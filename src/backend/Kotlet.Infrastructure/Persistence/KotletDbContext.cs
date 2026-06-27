@@ -2,6 +2,7 @@ using Kotlet.Domain.Auth;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.Pantry;
 using Kotlet.Domain.Houses;
+using Kotlet.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kotlet.Infrastructure.Persistence;
@@ -15,6 +16,7 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<PantryItem> PantryItems => Set<PantryItem>();
     public DbSet<House> Houses => Set<House>();
+    public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

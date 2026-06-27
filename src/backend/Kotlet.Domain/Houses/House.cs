@@ -1,5 +1,6 @@
 using Kotlet.Domain.Auth;
 using Kotlet.Domain.Pantry;
+using Kotlet.Domain.Shopping;
 
 namespace Kotlet.Domain.Houses;
 
@@ -9,6 +10,7 @@ public sealed class House
     public required string Name { get; set; }
     public ICollection<User> Users { get; set; } = [];
     public ICollection<PantryItem> PantryItems { get; set; } = [];
+    public ICollection<ShoppingListItem> ShoppingListItems { get; set; } = [];
 }
 
 public static class DefaultHouse
