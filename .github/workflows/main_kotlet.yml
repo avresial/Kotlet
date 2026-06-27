@@ -23,6 +23,20 @@ jobs:
         with:
           dotnet-version: '10.x'
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'src/frontend/.nvmrc'
+          cache: npm
+          cache-dependency-path: 'src/frontend/package-lock.json'
+
+      - name: Build and test frontend
+        working-directory: src/frontend
+        run: |
+          npm ci
+          npm run build
+          npm test -- --watch=false
+
       - name: Build with dotnet
         run: dotnet build Kotlet.slnx --configuration Release
 
@@ -62,4 +76,3 @@ jobs:
           app-name: 'Kotlet'
           slot-name: 'Production'
           package: .
-          

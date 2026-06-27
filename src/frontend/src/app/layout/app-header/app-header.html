@@ -3,13 +3,11 @@
   <nav aria-label="Account">
     @if (auth.currentUser(); as user) {
       <span>{{ user.displayName || user.email }}</span>
-      <button type="button" (click)="logout()" [disabled]="isLoggingOut()">
-        {{ isLoggingOut() ? 'Logging out…' : 'Log out' }}
-      </button>
+      <p-button type="button" label="Log out" severity="secondary" variant="text" (onClick)="logout()" [loading]="isLoggingOut()" />
       @if (logoutError()) { <span class="logout-error" role="alert">{{ logoutError() }}</span> }
     } @else {
-      <a routerLink="/login">Log in</a>
-      <a class="primary" routerLink="/register">Create account</a>
+      <a pButton routerLink="/login" severity="secondary" variant="text">Log in</a>
+      <a pButton routerLink="/register">Create account</a>
     }
   </nav>
 </header>

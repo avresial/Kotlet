@@ -7,17 +7,17 @@
     <form [formGroup]="form" (ngSubmit)="login()" novalidate>
       <label>
         Email
-        <input type="email" formControlName="email" autocomplete="email" [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched" />
-        @if (form.controls.email.touched && form.controls.email.hasError('required')) { <span class="field-error">Email is required.</span> }
-        @else if (form.controls.email.touched && form.controls.email.hasError('email')) { <span class="field-error">Enter a valid email address.</span> }
+        <input pInputText type="email" formControlName="email" autocomplete="email" [invalid]="form.controls.email.invalid && form.controls.email.touched" />
+        @if (form.controls.email.touched && form.controls.email.hasError('required')) { <p-message severity="error" size="small" variant="simple">Email is required.</p-message> }
+        @else if (form.controls.email.touched && form.controls.email.hasError('email')) { <p-message severity="error" size="small" variant="simple">Enter a valid email address.</p-message> }
       </label>
       <label>
         Password
-        <input type="password" formControlName="password" autocomplete="current-password" [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched" />
-        @if (form.controls.password.touched && form.controls.password.hasError('required')) { <span class="field-error">Password is required.</span> }
+        <p-password formControlName="password" autocomplete="current-password" [feedback]="false" [toggleMask]="true" [fluid]="true" [invalid]="form.controls.password.invalid && form.controls.password.touched" />
+        @if (form.controls.password.touched && form.controls.password.hasError('required')) { <p-message severity="error" size="small" variant="simple">Password is required.</p-message> }
       </label>
-      @if (errorMessage()) { <p class="form-error" role="alert">{{ errorMessage() }}</p> }
-      <button type="submit" [disabled]="isLoading()">{{ isLoading() ? 'Logging in…' : 'Log in' }}</button>
+      @if (errorMessage()) { <p-message severity="error" role="alert">{{ errorMessage() }}</p-message> }
+      <p-button type="submit" label="Log in" [loading]="isLoading()" [fluid]="true" />
     </form>
 
     <p class="switch">New to Kotlet? <a routerLink="/register">Create an account</a></p>
