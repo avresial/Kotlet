@@ -1,7 +1,11 @@
+using System.Security.Cryptography;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var databaseProvider = builder.Configuration["Database:Provider"] ?? "PostgreSQL";
-var api = builder.AddProject<Projects.Kotlet_Api>("api");
+var jwtSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+var api = builder.AddProject<Projects.Kotlet_Api>("api")
+    .WithEnvironment("Jwt__SigningKey", jwtSigningKey);
 
 if (databaseProvider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
 {

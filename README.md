@@ -74,7 +74,24 @@ they do not already exist:
 The seeder does not run outside the Development environment.
 
 To run the API without Aspire, configure `ConnectionStrings__kotletdb` with a
-PostgreSQL connection string. To create a new migration after changing the model:
+PostgreSQL connection string.
+
+## Authentication configuration
+
+Access tokens are short-lived JWTs. Refresh tokens are sent only through the
+`kotlet_refresh` HTTP-only cookie and persisted as SHA-256 hashes. Production must
+provide a unique signing key of at least 32 bytes through secure configuration; do
+not add it to an appsettings file:
+
+```powershell
+$env:Jwt__SigningKey = '<a-random-secret-of-at-least-32-bytes>'
+```
+
+The issuer, audience, access-token lifetime, refresh-token lifetime, and cookie name
+are configured under `Jwt` and `Auth` in `appsettings.json`. Aspire generates an
+ephemeral development signing key on every run and supplies it to the API; restarting
+Aspire therefore invalidates existing access tokens. For direct local API launches,
+set `Jwt__SigningKey` in the environment or .NET user secrets.
 
 PostgreSQL is the default database provider. For temporary development with an
 in-memory SQLite database, use the API's `sqlite` launch profile:
