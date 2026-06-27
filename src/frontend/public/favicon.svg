@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#963827"/>
+  <!-- top bun -->
+  <path d="M14 27c0-8.8 8.1-15 18-15s18 6.2 18 15v1H14z" fill="#e8a44e"/>
+  <circle cx="24" cy="21" r="1.6" fill="#fff4e0"/>
+  <circle cx="32" cy="18.5" r="1.6" fill="#fff4e0"/>
+  <circle cx="40" cy="21" r="1.6" fill="#fff4e0"/>
+  <!-- lettuce -->
+  <path d="M13 29h38c1.2 0 1.2 2-0.5 2.6-2.4.9-3.4 2.4-6 2.4s-3.6-2-6-2-3.4 2-6 2-3.6-2-6-2-3.4 2-6 2-3.6-1.5-6-2.4C12.8 31 12.8 29 14 29z" fill="#7faa56"/>
+  <!-- patty -->
+  <rect x="13" y="34" width="38" height="7" rx="3.5" fill="#6b3a23"/>
+  <!-- bottom bun -->
+  <path d="M14 42h36c0 5.5-7 9-18 9s-18-3.5-18-9z" fill="#d98e3f"/>
+</svg>
