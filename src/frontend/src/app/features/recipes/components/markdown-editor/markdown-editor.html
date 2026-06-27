@@ -8,6 +8,7 @@
       class="editor-textarea"
       [value]="value()"
       [disabled]="isDisabled()"
+      [attr.aria-labelledby]="ariaLabelledby()"
       (input)="onInput($event)"
       placeholder="Write your recipe description in Markdown…"
       rows="10"

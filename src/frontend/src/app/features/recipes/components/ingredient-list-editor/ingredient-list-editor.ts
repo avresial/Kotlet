@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   forwardRef,
+  input,
   signal,
 } from '@angular/core';
 import {
@@ -42,6 +43,7 @@ import { RecipeIngredientRequest } from '../../models/recipe.models';
 })
 export class IngredientListEditor implements ControlValueAccessor, Validator {
   private readonly fb = inject(FormBuilder);
+  readonly ariaLabelledby = input<string | null>(null);
   readonly isDisabled = signal(false);
 
   readonly formArray = this.fb.array<FormGroup>([]);

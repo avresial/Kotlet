@@ -1,4 +1,4 @@
-<div class="ingredient-list-editor">
+<div class="ingredient-list-editor" role="group" [attr.aria-labelledby]="ariaLabelledby()">
   @if (rows.length === 0) {
     <p class="empty">No ingredients yet. Add the first one below.</p>
   } @else {

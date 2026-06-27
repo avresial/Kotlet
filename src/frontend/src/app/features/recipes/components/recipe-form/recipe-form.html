@@ -23,13 +23,19 @@
   </div>
 
   <div class="form-field">
-    <label>Description (Markdown)</label>
-    <app-markdown-editor formControlName="descriptionMarkdown"></app-markdown-editor>
+    <label id="recipe-description-label">Description (Markdown)</label>
+    <app-markdown-editor
+      formControlName="descriptionMarkdown"
+      [ariaLabelledby]="'recipe-description-label'"
+    ></app-markdown-editor>
   </div>
 
   <div class="form-field">
-    <label>Ingredients</label>
-    <app-ingredient-list-editor formControlName="ingredients"></app-ingredient-list-editor>
+    <label id="recipe-ingredients-label">Ingredients</label>
+    <app-ingredient-list-editor
+      formControlName="ingredients"
+      [ariaLabelledby]="'recipe-ingredients-label'"
+    ></app-ingredient-list-editor>
   </div>
 
   <div class="form-actions">

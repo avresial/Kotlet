@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   forwardRef,
+  input,
   signal,
 } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
@@ -27,6 +28,8 @@ import { marked } from 'marked';
 })
 export class MarkdownEditor implements ControlValueAccessor {
   private readonly sanitizer = inject(DomSanitizer);
+
+  readonly ariaLabelledby = input<string | null>(null);
 
   readonly value = signal('');
   readonly activeTab = signal<'write' | 'preview'>('write');
