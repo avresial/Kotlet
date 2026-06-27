@@ -23,14 +23,16 @@
 
     input[type='text'] {
       padding: 10px 12px;
-      border: 1px solid var(--border-color, #ddd);
-      border-radius: 6px;
+      border: 1px solid #cfc3b4;
+      border-radius: 8px;
+      color: #29251f;
+      background: #fffdf9;
       font-size: 1rem;
       width: 100%;
       box-sizing: border-box;
 
       &.invalid { border-color: var(--danger, #e53e3e); }
-      &:focus { outline: 2px solid var(--primary, #4a90e2); outline-offset: 1px; }
+      &:focus { outline: 2px solid #b96554; outline-offset: 1px; }
     }
 
     .field-error {
@@ -46,22 +48,25 @@
 
     button {
       padding: 10px 24px;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 1rem;
       cursor: pointer;
       border: 1px solid transparent;
 
       &.primary {
-        background: var(--primary, #4a90e2);
+        border-color: #963827;
+        background: #963827;
         color: #fff;
         &:disabled { opacity: 0.6; cursor: not-allowed; }
       }
 
       &.secondary {
-        background: transparent;
-        border-color: var(--border-color, #ddd);
-        color: var(--text-primary, #333);
+        background: #fffaf2;
+        border-color: #cfc3b4;
+        color: #5d554c;
       }
+
+      &:hover:not(:disabled) { filter: brightness(.96); }
     }
   }
 }
