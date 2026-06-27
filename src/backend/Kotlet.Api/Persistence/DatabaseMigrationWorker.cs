@@ -21,6 +21,9 @@ public sealed class DatabaseMigrationWorker(
 
         logger.LogInformation("Database migrations applied successfully");
 
+        var ingredientsSeeder = scope.ServiceProvider.GetRequiredService<IngredientsSeeder>();
+        await ingredientsSeeder.SeedAsync(stoppingToken);
+
         if (environment.IsDevelopment())
         {
             var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
