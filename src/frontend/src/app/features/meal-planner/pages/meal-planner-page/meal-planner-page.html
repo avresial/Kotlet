@@ -1,0 +1,105 @@
+<main class="meal-planner-page">
+  <a class="back" routerLink="/">← Back to overview</a>
+  <header>
+    <div>
+      <p class="eyebrow">Plan your meals</p>
+      <h1>Meal Planner</h1>
+    </div>
+  </header>
+
+  <div class="date-picker">
+    <label for="plan-date">Select date</label>
+    <input
+      id="plan-date"
+      type="date"
+      [(ngModel)]="selectedDate"
+      (ngModelChange)="onDateChange()"
+    />
+  </div>
+
+  @if (planError()) {
+    <div class="error" role="alert">{{ planError() }}</div>
+  }
+
+  @if (isLoadingPlan()) {
+    <p class="empty">Loading meal plan…</p>
+  } @else {
+    <div class="slots">
+      @for (slot of slots; track slot) {
+        <section class="slot-section">
+          <h2>{{ slotLabels[slot] }}</h2>
+
+          <ul class="item-list" aria-label="{{ slotLabels[slot] }} items">
+            @for (item of itemsForSlot(slot); track item.id) {
+              <li class="meal-item">
+                <span class="item-type">{{ item.type === 'recipe' ? '▤' : '◉' }}</span>
+                <span class="item-name">{{ item.displayName }}</span>
+                @if (item.note) {
+                  <span class="item-note">{{ item.note }}</span>
+                }
+                <button
+                  type="button"
+                  class="button danger small"
+                  [disabled]="removingId() === item.id"
+                  (click)="removeItem(item)"
+                >
+                  {{ removingId() === item.id ? '…' : '✕' }}
+                </button>
+              </li>
+            } @empty {
+              <li class="empty-slot">No items yet.</li>
+            }
+          </ul>
+
+          @if (!isLoadingOptions()) {
+            <div class="add-actions">
+              <div class="add-row">
+                <select
+                  [ngModel]="selectedRecipeId()[slot]"
+                  (ngModelChange)="selectedRecipeId.update(s => ({ ...s, [slot]: $event }))"
+                  [disabled]="isAdding('recipe', slot)"
+                  aria-label="Select recipe for {{ slotLabels[slot] }}"
+                >
+                  <option value="">— pick a recipe —</option>
+                  @for (recipe of recipes(); track recipe.id) {
+                    <option [value]="recipe.id">{{ recipe.title }}</option>
+                  }
+                </select>
+                <button
+                  type="button"
+                  class="button secondary small"
+                  [disabled]="!selectedRecipeId()[slot] || !!addingSlot()"
+                  (click)="addRecipe(slot)"
+                >
+                  {{ isAdding('recipe', slot) ? 'Adding…' : '+ Add recipe' }}
+                </button>
+              </div>
+
+              <div class="add-row">
+                <select
+                  [ngModel]="selectedIngredientId()[slot]"
+                  (ngModelChange)="selectedIngredientId.update(s => ({ ...s, [slot]: $event }))"
+                  [disabled]="isAdding('ingredient', slot)"
+                  aria-label="Select ingredient for {{ slotLabels[slot] }}"
+                >
+                  <option value="">— pick an ingredient —</option>
+                  @for (ingredient of ingredients(); track ingredient.id) {
+                    <option [value]="ingredient.id">{{ ingredient.name }}</option>
+                  }
+                </select>
+                <button
+                  type="button"
+                  class="button secondary small"
+                  [disabled]="!selectedIngredientId()[slot] || !!addingSlot()"
+                  (click)="addIngredient(slot)"
+                >
+                  {{ isAdding('ingredient', slot) ? 'Adding…' : '+ Add ingredient' }}
+                </button>
+              </div>
+            </div>
+          }
+        </section>
+      }
+    </div>
+  }
+</main>

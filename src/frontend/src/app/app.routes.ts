@@ -1,11 +1,13 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
 import { authRoutes } from './features/auth/auth.routes';
+import { mealPlannerRoutes } from './features/meal-planner/meal-planner.routes';
 import { recipeRoutes } from './features/recipes/recipes.routes';
 
 export const routes: Routes = [
   ...authRoutes,
   ...recipeRoutes,
+  ...mealPlannerRoutes,
   {
     path: '',
     canActivate: [authGuard],
