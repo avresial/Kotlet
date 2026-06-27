@@ -1,10 +1,9 @@
 using Kotlet.Application.Menu.GetMenu;
 using Kotlet.Api.Auth;
 using Kotlet.Api.Persistence;
-using Kotlet.Domain.Auth;
 using Kotlet.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Identity;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +11,6 @@ builder.AddServiceDefaults();
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<GetMenuQueryHandler>();
-builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -34,6 +32,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options.Title = "Kotlet API";
+        options.Theme = ScalarTheme.Purple;
+    });
 }
 
 app.MapDefaultEndpoints();
