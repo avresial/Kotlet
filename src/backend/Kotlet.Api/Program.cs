@@ -21,3 +21,6 @@ app.MapGet("/api/menu", async (GetMenuQueryHandler handler, CancellationToken ca
     .WithName("GetMenu");
 
 app.Run();
+
+// Exposes the implicit Program class so integration tests can reference it via WebApplicationFactory<Program>.
+public partial class Program;
