@@ -1,0 +1,10 @@
+:host { display: block; border-bottom: 1px solid #d8cdbd; background: rgb(255 250 242 / 90%); }
+header { max-width: 72rem; min-height: 4.5rem; margin: 0 auto; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.brand { color: #a23b28; font-weight: 900; letter-spacing: .16em; text-decoration: none; }
+nav { display: flex; align-items: center; gap: 1rem; }
+nav span { max-width: 16rem; overflow: hidden; color: #625b51; text-overflow: ellipsis; white-space: nowrap; }
+nav a { color: #29251f; font-weight: 700; text-decoration: none; }
+nav .primary { border-radius: .55rem; background: #a23b28; color: white; padding: .6rem .8rem; }
+button { border: 0; background: transparent; color: #842f20; font: inherit; font-weight: 700; cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .6; }
+@media (max-width: 36rem) { header { padding: 0 1rem; } nav span { display: none; } }

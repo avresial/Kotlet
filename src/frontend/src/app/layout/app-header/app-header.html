@@ -1,0 +1,14 @@
+<header>
+  <a class="brand" routerLink="/">KOTLET</a>
+  <nav aria-label="Account">
+    @if (auth.currentUser(); as user) {
+      <span>{{ user.displayName || user.email }}</span>
+      <button type="button" (click)="logout()" [disabled]="isLoggingOut()">
+        {{ isLoggingOut() ? 'Logging out…' : 'Log out' }}
+      </button>
+    } @else {
+      <a routerLink="/login">Log in</a>
+      <a class="primary" routerLink="/register">Create account</a>
+    }
+  </nav>
+</header>

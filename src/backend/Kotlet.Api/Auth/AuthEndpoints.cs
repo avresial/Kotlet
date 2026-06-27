@@ -15,6 +15,7 @@ public static class AuthEndpoints
         var auth = endpoints.MapGroup("/api/auth").WithTags("Auth");
         auth.MapPost("/register", Register);
         auth.MapPost("/login", Login);
+        auth.MapPost("/logout", Logout).RequireAuthorization();
         auth.MapGet("/me", Me).RequireAuthorization();
         return endpoints;
     }
@@ -72,6 +73,12 @@ public static class AuthEndpoints
         await dbContext.SaveChangesAsync(cancellationToken);
         await SignIn(httpContext, user);
         return Results.Ok(new AuthResponse(ToResponse(user)));
+    }
+
+    private static async Task Logout(HttpContext httpContext)
+    {
+        await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        httpContext.Response.StatusCode = StatusCodes.Status204NoContent;
     }
 
     private static async Task<IResult> Me(ClaimsPrincipal principal, KotletDbContext dbContext,

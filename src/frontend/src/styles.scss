@@ -1,1 +1,4 @@
-/* You can add global styles to this file, and also import other style files */
+:root { color: #29251f; background: #f6f1e8; font-family: system-ui, sans-serif; }
+html { min-width: 20rem; min-height: 100%; }
+body { min-height: 100vh; margin: 0; }
+button, input { font: inherit; }
