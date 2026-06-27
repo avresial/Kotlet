@@ -1,0 +1,56 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { AuthService } from './auth.service';
+import { CurrentUser } from './auth.models';
+
+describe('AuthService', () => {
+  let service: AuthService;
+  let http: HttpTestingController;
+
+  const user: CurrentUser = {
+    id: 'user-1',
+    email: 'cook@example.com',
+    displayName: null,
+    createdAtUtc: '2026-06-27T00:00:00Z',
+    lastLoginAtUtc: null,
+  };
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    service = TestBed.inject(AuthService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => http.verify());
+
+  it('stores the user after login', () => {
+    service.login({ email: user.email, password: 'Password1!' }).subscribe();
+
+    const request = http.expectOne('/api/auth/login');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.withCredentials).toBe(true);
+    request.flush({ user });
+
+    expect(service.currentUser()).toEqual(user);
+    expect(service.isAuthenticated()).toBe(true);
+  });
+
+  it('restores an existing cookie session', async () => {
+    const restoration = service.restoreSession();
+    http.expectOne('/api/auth/me').flush(user);
+    await restoration;
+
+    expect(service.currentUser()).toEqual(user);
+  });
+
+  it('treats an unauthorized restoration as signed out', async () => {
+    const restoration = service.restoreSession();
+    http.expectOne('/api/auth/me').flush(null, { status: 401, statusText: 'Unauthorized' });
+    await restoration;
+
+    expect(service.isAuthenticated()).toBe(false);
+  });
+});

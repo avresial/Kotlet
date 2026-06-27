@@ -64,7 +64,8 @@
               "buildTarget": "kotlet-web:build:production"
             },
             "development": {
-              "buildTarget": "kotlet-web:build:development"
+              "buildTarget": "kotlet-web:build:development",
+              "proxyConfig": "proxy.conf.js"
             }
           },
           "defaultConfiguration": "development"

@@ -1,0 +1,39 @@
+name: CI
+
+# Runs build, unit tests, and integration tests on every pull request
+# and on every push to the develop branch.
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore
+        run: dotnet restore Kotlet.slnx
+
+      - name: Build
+        run: dotnet build Kotlet.slnx --configuration Release --no-restore
+
+      - name: Unit tests
+        run: >-
+          dotnet test tests/Kotlet.Application.UnitTests/Kotlet.Application.UnitTests.csproj
+          --configuration Release --no-build --verbosity normal
+
+      - name: Integration tests
+        run: >-
+          dotnet test tests/Kotlet.Api.IntegrationTests/Kotlet.Api.IntegrationTests.csproj
+          --configuration Release --no-build --verbosity normal
