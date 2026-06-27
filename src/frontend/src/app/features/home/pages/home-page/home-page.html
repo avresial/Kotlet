@@ -1,35 +1,4 @@
 <div class="app-shell">
-  <aside class="sidebar" aria-label="Main navigation">
-    <nav>
-      <a class="nav-item active" routerLink="/" aria-current="page">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
-        <span>Overview</span>
-      </a>
-      <button class="nav-item" type="button" disabled title="Coming soon">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 3v4m8-4v4M4 10h16"/></svg>
-        <span>Meal plan</span><span class="soon">Soon</span>
-      </button>
-      <button class="nav-item" type="button" disabled title="Coming soon">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11l3 3v15H5zM9 9h6m-6 4h6m-6 4h4"/></svg>
-        <span>Recipes</span><span class="soon">Soon</span>
-      </button>
-      <a class="nav-item" routerLink="/ingredients">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6zM9 8h6m-6 4h6m-6 4h4"/></svg>
-        <span>Ingredients</span>
-      </a>
-      <button class="nav-item" type="button" disabled title="Coming soon">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-1 13H5zm4 0a4 4 0 0 1 8 0M9 11v5m6-5v5"/></svg>
-        <span>Shopping list</span><span class="soon">Soon</span>
-      </button>
-    </nav>
-
-    <div class="sidebar-note">
-      <span class="note-icon" aria-hidden="true">✦</span>
-      <strong>Make it yours</strong>
-      <p>Your recipes, weekly plan, and shopping list will live here.</p>
-    </div>
-  </aside>
-
   <main class="dashboard">
     <header class="welcome">
       <div>
@@ -42,36 +11,93 @@
       </button>
     </header>
 
-    <section class="today-card" aria-labelledby="today-title">
-      <div class="card-heading">
-        <div>
-          <p class="section-label">Today’s menu</p>
-          <h2 id="today-title">One good meal, already planned.</h2>
+    <section class="card-grid" aria-label="At a glance">
+      <!-- Today's menu -->
+      <article class="card today-card" aria-labelledby="today-title">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Today’s menu</p>
+            <h2 id="today-title">What’s on the table</h2>
+          </div>
+          <span class="status"><span></span> Planned</span>
         </div>
-        <span class="status"><span></span> On the menu</span>
-      </div>
-      <article class="meal">
-        <div class="meal-visual" aria-hidden="true"><span>🍽️</span></div>
-        <div class="meal-details">
-          <p class="meal-time">DINNER</p>
-          <h3>Kotlet schabowy</h3>
-          <p>A Polish classic for tonight’s table.</p>
-          <div class="tags"><span>Main course</span><span>Home cooking</span></div>
-        </div>
-        <button class="more" type="button" disabled aria-label="Meal options" title="Coming soon">•••</button>
+        <ul class="menu-list">
+          @for (meal of todaysMenu; track meal.time) {
+            <li class="menu-item">
+              <span class="menu-emoji" aria-hidden="true">{{ meal.emoji }}</span>
+              <div class="menu-text">
+                <p class="meal-time">{{ meal.time }}</p>
+                <strong>{{ meal.name }}</strong>
+                <p class="menu-note">{{ meal.note }}</p>
+              </div>
+            </li>
+          }
+        </ul>
       </article>
-    </section>
 
-    <section class="quick-grid" aria-label="At a glance">
-      <article>
-        <span class="quick-icon calendar" aria-hidden="true">▦</span>
-        <div><strong>Plan the week</strong><p>Build a menu that works for your household.</p></div>
-        <span class="arrow" aria-hidden="true">→</span>
+      <!-- Newest recipes -->
+      <article class="card" aria-labelledby="recipes-title">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Newest recipes</p>
+            <h2 id="recipes-title">Freshly added</h2>
+          </div>
+        </div>
+        <ul class="recipe-list">
+          @for (recipe of newestRecipes; track recipe.name) {
+            <li class="recipe-item">
+              <span class="recipe-emoji" aria-hidden="true">{{ recipe.emoji }}</span>
+              <div class="recipe-text">
+                <strong>{{ recipe.name }}</strong>
+                <p>{{ recipe.category }}</p>
+              </div>
+              <span class="recipe-meta">{{ recipe.addedAgo }}</span>
+            </li>
+          }
+        </ul>
       </article>
-      <article>
-        <span class="quick-icon recipe" aria-hidden="true">≡</span>
-        <div><strong>Save your recipes</strong><p>Keep family favourites close at hand.</p></div>
-        <span class="arrow" aria-hidden="true">→</span>
+
+      <!-- Shopping list overview -->
+      <article class="card" aria-labelledby="shopping-title">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Shopping list</p>
+            <h2 id="shopping-title">{{ shoppingList.done }} of {{ shoppingList.total }} done</h2>
+          </div>
+          <span class="status muted">{{ shoppingProgress }}%</span>
+        </div>
+        <div class="progress" role="progressbar" [attr.aria-valuenow]="shoppingProgress" aria-valuemin="0" aria-valuemax="100">
+          <span [style.width.%]="shoppingProgress"></span>
+        </div>
+        <ul class="shopping-list">
+          @for (item of shoppingList.items; track item.name) {
+            <li class="shopping-item" [class.is-done]="item.done">
+              <span class="check" aria-hidden="true">{{ item.done ? '✓' : '○' }}</span>
+              <span class="shopping-name">{{ item.name }}</span>
+              <span class="shopping-qty">{{ item.qty }}</span>
+            </li>
+          }
+        </ul>
+      </article>
+
+      <!-- Most used ingredients -->
+      <article class="card" aria-labelledby="ingredients-title">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Most used ingredients</p>
+            <h2 id="ingredients-title">Your top 5</h2>
+          </div>
+        </div>
+        <ul class="ingredient-list">
+          @for (ingredient of topIngredients; track ingredient.name) {
+            <li class="ingredient-item">
+              <span class="ingredient-emoji" aria-hidden="true">{{ ingredient.emoji }}</span>
+              <span class="ingredient-name">{{ ingredient.name }}</span>
+              <span class="ingredient-bar"><span [style.width.%]="(ingredient.count / maxIngredientCount) * 100"></span></span>
+              <span class="ingredient-count">{{ ingredient.count }}</span>
+            </li>
+          }
+        </ul>
       </article>
     </section>
   </main>

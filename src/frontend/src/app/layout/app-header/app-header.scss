@@ -1,8 +1,26 @@
-:host { display: block; border-bottom: 1px solid #d8cdbd; background: rgb(255 250 242 / 90%); }
-header { max-width: 72rem; min-height: var(--app-header-height); margin: 0 auto; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.brand { color: #a23b28; font-weight: 900; letter-spacing: .16em; text-decoration: none; }
-nav { display: flex; align-items: center; gap: 1rem; }
-nav span { max-width: 16rem; overflow: hidden; color: #625b51; text-overflow: ellipsis; white-space: nowrap; }
-nav a { color: #29251f; font-weight: 700; text-decoration: none; }
-.logout-error { color: #912018; font-size: .85rem; }
-@media (max-width: 36rem) { header { padding: 0 1rem; } nav span { display: none; } }
+:host { display: block; }
+.app-sidebar { position: sticky; top: 0; height: 100vh; box-sizing: border-box; padding: 1rem 1rem; border-right: 1px solid #ded5c8; display: flex; flex-direction: column; background: #fffaf2; }
+.brand { padding: 0 .65rem; display: flex; align-items: center; justify-content: center; gap: .65rem; color: #29251f; font-size: 1.25rem; font-weight: 850; letter-spacing: -.02em; text-decoration: none; }
+.brand-mark { width: 8.5rem; height: auto; object-fit: contain; display: block; }
+.app-sidebar nav { margin-top: 1rem; display: grid; gap: .3rem; }
+.nav-item { width: 100%; min-height: 2.8rem; box-sizing: border-box; padding: .65rem .75rem; border: 0; border-radius: .65rem; display: flex; align-items: center; gap: .75rem; color: #625b51; background: transparent; font: inherit; font-size: .9rem; font-weight: 650; text-align: left; text-decoration: none; cursor: pointer; }
+.nav-item:hover:not(:disabled), .nav-item.active { color: #43633e; background: #e7eee2; }
+.nav-item:disabled { opacity: .58; cursor: default; }
+.icon { width: 1.3rem; flex: 0 0 1.3rem; color: currentColor; font-size: 1.15rem; text-align: center; }
+.settings { margin-top: .5rem; padding-top: .9rem; border-top: 1px solid #e3dbcf; border-radius: 0 0 .65rem .65rem; }
+footer { margin-top: auto; padding: 1rem .7rem .25rem; border-top: 1px solid #e3dbcf; }
+footer p { margin: 0 0 .75rem; color: #766e63; font-size: .75rem; line-height: 1.4; }
+footer strong { display: block; overflow: hidden; color: #302b25; font-size: .85rem; text-overflow: ellipsis; white-space: nowrap; }
+.logout { width: 100%; min-height: 2.5rem; padding: .55rem .7rem; border: 1px solid #d2c7b8; border-radius: .55rem; display: flex; align-items: center; gap: .6rem; color: #5d554c; background: transparent; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
+.logout:hover { background: #f1ebe2; }.logout:disabled { opacity: .55; cursor: default; }
+.logout-error { margin-top: .5rem; display: block; color: #912018; font-size: .72rem; }
+.public-header { max-width: 72rem; min-height: var(--app-header-height); margin: 0 auto; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.public-header nav { display: flex; align-items: center; gap: .75rem; }
+@media (max-width: 48rem) {
+  .app-sidebar { position: fixed; z-index: 10; inset: auto 0 0; width: 100%; height: 4.5rem; padding: .5rem; border: 1px solid #ded5c8; border-width: 1px 0 0; display: block; }
+  .app-sidebar > .brand, .app-sidebar footer, .settings { display: none; }
+  .app-sidebar nav { height: 100%; margin: 0; display: flex; align-items: stretch; justify-content: space-around; gap: .15rem; overflow-x: auto; }
+  .nav-item { width: auto; min-width: 4.25rem; min-height: 100%; padding: .35rem .45rem; flex-direction: column; justify-content: center; gap: .15rem; font-size: .62rem; white-space: nowrap; }
+  .icon { height: 1.25rem; font-size: 1rem; }
+  .public-header { padding: 0 1rem; }
+}
