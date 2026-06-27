@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "microsoft-dotnettools.vscode-dotnet-runtime",
+    "angular.ng-template"
+  ]
+}

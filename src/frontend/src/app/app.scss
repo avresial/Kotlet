@@ -1,0 +1,8 @@
+:host { display: block; min-height: 100vh; background: #f6f1e8; color: #29251f; font-family: system-ui, sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 12vh 2rem; }
+.eyebrow { color: #a23b28; font-weight: 800; letter-spacing: .18em; }
+h1 { max-width: 700px; font-family: Georgia, serif; font-size: clamp(2.8rem, 8vw, 5.5rem); line-height: .98; margin: 1rem 0 2rem; }
+.description { max-width: 590px; color: #625b51; font-size: 1.15rem; line-height: 1.7; }
+section { margin-top: 4rem; padding: 1.5rem; border: 1px solid #d8cdbd; border-radius: 1rem; background: #fffaf2; }
+section h2 { margin-top: 0; font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: #786f62; }
+section p { margin-bottom: 0; font-family: Georgia, serif; font-size: 1.7rem; }

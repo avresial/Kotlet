@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/aspire/">
+    <Project Path="src/aspire/Kotlet.AppHost/Kotlet.AppHost.csproj" />
+    <Project Path="src/aspire/Kotlet.ServiceDefaults/Kotlet.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/backend/">
+    <Project Path="src/backend/Kotlet.Api/Kotlet.Api.csproj" />
+    <Project Path="src/backend/Kotlet.Application/Kotlet.Application.csproj" />
+    <Project Path="src/backend/Kotlet.Domain/Kotlet.Domain.csproj" />
+    <Project Path="src/backend/Kotlet.Infrastructure/Kotlet.Infrastructure.csproj" />
+  </Folder>
+</Solution>

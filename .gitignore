@@ -43,6 +43,9 @@ ScaffoldingReadMe.txt
 ~$*
 *~
 CodeCoverage/
+node_modules/
+.angular/
+dist/
 
 # MSBuild Binary and Structured Log
 *.binlog
