@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { getApiError } from '../../core/http/api-error';
 
 @Component({
   selector: 'app-header',
-  imports: [RouterLink],
+  imports: [ButtonModule, RouterLink],
   templateUrl: './app-header.html',
   styleUrl: './app-header.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

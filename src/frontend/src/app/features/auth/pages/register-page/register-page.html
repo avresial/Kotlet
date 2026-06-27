@@ -7,24 +7,24 @@
     <form [formGroup]="form" (ngSubmit)="register()" novalidate>
       <label>
         Email
-        <input type="email" formControlName="email" autocomplete="email" [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched" />
-        @if (form.controls.email.touched && form.controls.email.hasError('required')) { <span class="field-error">Email is required.</span> }
-        @else if (form.controls.email.touched && form.controls.email.hasError('email')) { <span class="field-error">Enter a valid email address.</span> }
+        <input pInputText type="email" formControlName="email" autocomplete="email" [invalid]="form.controls.email.invalid && form.controls.email.touched" />
+        @if (form.controls.email.touched && form.controls.email.hasError('required')) { <p-message severity="error" size="small" variant="simple">Email is required.</p-message> }
+        @else if (form.controls.email.touched && form.controls.email.hasError('email')) { <p-message severity="error" size="small" variant="simple">Enter a valid email address.</p-message> }
       </label>
       <label>
         Password
-        <input type="password" formControlName="password" autocomplete="new-password" [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched" />
-        @if (form.controls.password.touched && form.controls.password.hasError('required')) { <span class="field-error">Password is required.</span> }
-        @else if (form.controls.password.touched && form.controls.password.hasError('minlength')) { <span class="field-error">Use at least 8 characters.</span> }
+        <p-password formControlName="password" autocomplete="new-password" [toggleMask]="true" [fluid]="true" [invalid]="form.controls.password.invalid && form.controls.password.touched" />
+        @if (form.controls.password.touched && form.controls.password.hasError('required')) { <p-message severity="error" size="small" variant="simple">Password is required.</p-message> }
+        @else if (form.controls.password.touched && form.controls.password.hasError('minlength')) { <p-message severity="error" size="small" variant="simple">Use at least 8 characters.</p-message> }
       </label>
       <label>
         Confirm password
-        <input type="password" formControlName="confirmPassword" autocomplete="new-password" [attr.aria-invalid]="form.controls.confirmPassword.touched && (form.controls.confirmPassword.invalid || form.hasError('passwordMismatch'))" />
-        @if (form.controls.confirmPassword.touched && form.controls.confirmPassword.hasError('required')) { <span class="field-error">Confirm your password.</span> }
-        @else if (form.controls.confirmPassword.touched && form.hasError('passwordMismatch')) { <span class="field-error">Passwords do not match.</span> }
+        <p-password formControlName="confirmPassword" autocomplete="new-password" [feedback]="false" [toggleMask]="true" [fluid]="true" [invalid]="form.controls.confirmPassword.touched && (form.controls.confirmPassword.invalid || form.hasError('passwordMismatch'))" />
+        @if (form.controls.confirmPassword.touched && form.controls.confirmPassword.hasError('required')) { <p-message severity="error" size="small" variant="simple">Confirm your password.</p-message> }
+        @else if (form.controls.confirmPassword.touched && form.hasError('passwordMismatch')) { <p-message severity="error" size="small" variant="simple">Passwords do not match.</p-message> }
       </label>
-      @if (errorMessage()) { <p class="form-error" role="alert">{{ errorMessage() }}</p> }
-      <button type="submit" [disabled]="isLoading()">{{ isLoading() ? 'Creating account…' : 'Create account' }}</button>
+      @if (errorMessage()) { <p-message severity="error" role="alert">{{ errorMessage() }}</p-message> }
+      <p-button type="submit" label="Create account" [loading]="isLoading()" [fluid]="true" />
     </form>
 
     <p class="switch">Already registered? <a routerLink="/login">Log in</a></p>

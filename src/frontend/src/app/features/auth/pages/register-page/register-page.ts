@@ -1,6 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { MessageModule } from 'primeng/message';
+import { PasswordModule } from 'primeng/password';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { getApiError } from '../../../../core/http/api-error';
@@ -11,7 +15,7 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-register-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ButtonModule, InputTextModule, MessageModule, PasswordModule, ReactiveFormsModule, RouterLink],
   templateUrl: './register-page.html',
   styleUrl: './register-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,13 +1,17 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { MessageModule } from 'primeng/message';
+import { PasswordModule } from 'primeng/password';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { getApiError } from '../../../../core/http/api-error';
 
 @Component({
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ButtonModule, InputTextModule, MessageModule, PasswordModule, ReactiveFormsModule, RouterLink],
   templateUrl: './login-page.html',
   styleUrl: './login-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
