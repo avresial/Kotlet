@@ -1,5 +1,7 @@
 using Kotlet.Application.Menu.GetMenu;
+using Kotlet.Application.Ingredients;
 using Kotlet.Api.Auth;
+using Kotlet.Api.Ingredients;
 using Kotlet.Api.Persistence;
 using Kotlet.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -14,6 +16,7 @@ builder.AddServiceDefaults();
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<GetMenuQueryHandler>();
+builder.Services.AddScoped<IngredientService>();
 builder.Services.AddOptions<JwtOptions>().BindConfiguration(JwtOptions.SectionName).ValidateOnStart();
 builder.Services.AddOptions<AuthOptions>().BindConfiguration(AuthOptions.SectionName).ValidateOnStart();
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
@@ -65,6 +68,7 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuthEndpoints();
+app.MapIngredientEndpoints();
 app.MapGet("/api/menu", async (GetMenuQueryHandler handler, CancellationToken cancellationToken) =>
     Results.Ok(await handler.Handle(new GetMenuQuery(), cancellationToken)))
     .WithName("GetMenu");
