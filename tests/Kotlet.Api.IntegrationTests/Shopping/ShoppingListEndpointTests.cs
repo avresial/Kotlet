@@ -38,7 +38,12 @@ public sealed class ShoppingListEndpointTests(TestWebApplicationFactory factory)
 
         var items = await client.GetFromJsonAsync<JsonElement[]>("/api/shopping-list");
         Assert.Contains(items!, item => item.GetProperty("id").GetGuid() == id);
-        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/shopping-list/{id}")).StatusCode);
+
+        var clearResponse = await client.DeleteAsync("/api/shopping-list/checked");
+        Assert.Equal(HttpStatusCode.OK, clearResponse.StatusCode);
+        var clearResult = await clearResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(1, clearResult.GetProperty("removed").GetInt32());
+        Assert.Empty((await client.GetFromJsonAsync<JsonElement[]>("/api/shopping-list"))!);
     }
 
     private static async Task<Guid> CreateIngredient(HttpClient client, decimal price)

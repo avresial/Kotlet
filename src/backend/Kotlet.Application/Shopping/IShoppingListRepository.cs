@@ -10,5 +10,6 @@ public interface IShoppingListRepository
     Task<bool> ItemExistsAsync(Guid houseId, Guid ingredientId, CancellationToken cancellationToken);
     void Add(ShoppingListItem item);
     void Remove(ShoppingListItem item);
+    Task<int> RemovePurchasedAsync(Guid houseId, CancellationToken cancellationToken);
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

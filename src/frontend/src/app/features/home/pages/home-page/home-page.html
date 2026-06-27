@@ -93,6 +93,7 @@
           }
         </ul> }
         <div class="receipt-total"><span>TOTAL</span><strong>{{ totalPrice().toFixed(2) }} zł</strong></div>
+        <button class="clear-checked" type="button" [disabled]="shoppingSaving() || purchasedCount() === 0" (click)="clearChecked()">Clear checked</button>
       </article>
 
       <!-- Low pantry stock -->

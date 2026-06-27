@@ -102,6 +102,15 @@ export class HomePage implements OnInit {
     });
   }
 
+  clearChecked(): void {
+    if (this.shoppingSaving() || this.purchasedCount() === 0) return;
+    this.shoppingSaving.set(true); this.shoppingError.set(null);
+    this.shoppingListService.clearChecked().pipe(finalize(() => this.shoppingSaving.set(false))).subscribe({
+      next: () => this.shoppingItems.update(items => items.filter(item => !item.isPurchased)),
+      error: error => this.shoppingError.set(getApiError(error, 'Unable to clear checked items.')),
+    });
+  }
+
   isOnShoppingList(ingredientId: string): boolean {
     return this.shoppingItems().some(item => item.ingredientId === ingredientId);
   }

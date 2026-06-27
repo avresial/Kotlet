@@ -16,5 +16,7 @@ internal sealed class ShoppingListRepository(KotletDbContext dbContext) : IShopp
     public Task<bool> ItemExistsAsync(Guid houseId, Guid ingredientId, CancellationToken cancellationToken) => dbContext.ShoppingListItems.AnyAsync(x => x.HouseId == houseId && x.IngredientId == ingredientId, cancellationToken);
     public void Add(ShoppingListItem item) => dbContext.ShoppingListItems.Add(item);
     public void Remove(ShoppingListItem item) => dbContext.ShoppingListItems.Remove(item);
+    public Task<int> RemovePurchasedAsync(Guid houseId, CancellationToken cancellationToken) =>
+        dbContext.ShoppingListItems.Where(x => x.HouseId == houseId && x.IsPurchased).ExecuteDeleteAsync(cancellationToken);
     public Task SaveChangesAsync(CancellationToken cancellationToken) => dbContext.SaveChangesAsync(cancellationToken);
 }

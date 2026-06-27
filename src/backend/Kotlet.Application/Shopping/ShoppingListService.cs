@@ -41,6 +41,9 @@ public sealed class ShoppingListService(IShoppingListRepository repository)
         return ShoppingListOperationStatus.Success;
     }
 
+    public Task<int> ClearPurchasedAsync(Guid houseId, CancellationToken cancellationToken) =>
+        repository.RemovePurchasedAsync(houseId, cancellationToken);
+
     private static bool ValidQuantity(decimal quantity) => quantity > 0 && quantity <= 99999999.999m;
     private static ShoppingListOperationResult InvalidQuantity() => new(ShoppingListOperationStatus.ValidationFailed,
         ValidationErrors: new Dictionary<string, string[]> { ["quantity"] = ["Quantity must be greater than 0 and no more than 99999999.999."] });

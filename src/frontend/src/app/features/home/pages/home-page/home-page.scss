@@ -43,7 +43,8 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 .shopping-item.is-done .shopping-name { color: #a59c8f; text-decoration: line-through; }
 .shopping-name { font-size: .92rem; }
 .shopping-add { display: grid; grid-template-columns: 1fr 4.5rem 2.25rem; gap: .4rem; margin-top: 1rem; }
-.shopping-add select, .shopping-add input, .shopping-quantity { min-width: 0; padding: .45rem; border: 1px solid #d8cbbb; border-radius: .35rem; background: #fffdf9; font: inherit; }
+.shopping-add select, .shopping-add input, .shopping-quantity { min-width: 0; padding: .45rem; border: 1px solid #d8cbbb; border-radius: .35rem; color: #29251f; background: #fffdf9; font: inherit; }
+.shopping-add select option { color: #29251f; background: #fffdf9; }
 .shopping-add button { border: 0; border-radius: .35rem; color: white; background: #963827; font-size: 1.1rem; }
 .shopping-add button:disabled { opacity: .5; }
 .shopping-item { grid-template-columns: auto minmax(5rem, 1fr) 3.8rem auto auto auto; }
@@ -52,6 +53,8 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 .shopping-price { min-width: 4rem; text-align: right; font-variant-numeric: tabular-nums; }
 .remove-shopping { border: 0; color: #9a9185; background: transparent; font-size: 1.1rem; cursor: pointer; }
 .receipt-total { display: flex; justify-content: space-between; margin-top: .8rem; padding-top: .8rem; border-top: 2px dashed #cfc0ad; font-family: ui-monospace, monospace; letter-spacing: .08em; }
+.clear-checked { margin-top: .75rem; padding: 0; border: 0; color: #8e392b; background: transparent; font: inherit; font-size: .75rem; font-weight: 750; cursor: pointer; }
+.clear-checked:disabled { color: #aaa095; cursor: default; }
 .empty-receipt { padding: 1rem 0; color: #746d63; text-align: center; }
 .shopping-error { margin: .6rem 0 0; color: #a12d22; font-size: .78rem; }
 

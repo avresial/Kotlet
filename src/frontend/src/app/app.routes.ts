@@ -11,6 +11,12 @@ export const routes: Routes = [
       import('./features/home/pages/home-page/home-page').then((m) => m.HomePage),
   },
   {
+    path: 'shopping-list',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/shopping-list/pages/shopping-list-page/shopping-list-page').then((m) => m.ShoppingListPage),
+  },
+  {
     path: 'pantry',
     canActivate: [authGuard],
     loadComponent: () =>
