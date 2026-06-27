@@ -37,6 +37,7 @@ public sealed record RecipeDetailResponse(
     string Slug,
     string? DescriptionMarkdown,
     IReadOnlyList<RecipeIngredientResponse> Ingredients,
+    IReadOnlyList<RecipeImageResponse> Images,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
 

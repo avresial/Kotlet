@@ -5,6 +5,7 @@ import {
   CreateRecipeRequest,
   PagedResponse,
   RecipeDetail,
+  RecipeImage,
   RecipeSummary,
   UpdateRecipeRequest,
 } from '../models/recipe.models';
@@ -33,5 +34,32 @@ export class RecipeService {
 
   delete(id: string) {
     return this.http.delete<void>(apiUrl(`/api/recipes/${id}`));
+  }
+
+  listImages(recipeId: string) {
+    return this.http.get<RecipeImage[]>(apiUrl(`/api/recipes/${recipeId}/images`));
+  }
+
+  imageContent(contentUrl: `/api/${string}`) {
+    return this.http.get(apiUrl(contentUrl), { responseType: 'blob' });
+  }
+
+  uploadImage(recipeId: string, file: File, altText?: string) {
+    const body = new FormData();
+    body.append('file', file);
+    if (altText?.trim()) body.append('altText', altText.trim());
+    return this.http.post<RecipeImage>(apiUrl(`/api/recipes/${recipeId}/images`), body);
+  }
+
+  updateImage(recipeId: string, imageId: string, altText: string | null) {
+    return this.http.patch<RecipeImage>(apiUrl(`/api/recipes/${recipeId}/images/${imageId}`), { altText });
+  }
+
+  reorderImages(recipeId: string, imageIds: string[]) {
+    return this.http.put<void>(apiUrl(`/api/recipes/${recipeId}/images/order`), { imageIds });
+  }
+
+  deleteImage(recipeId: string, imageId: string) {
+    return this.http.delete<void>(apiUrl(`/api/recipes/${recipeId}/images/${imageId}`));
   }
 }

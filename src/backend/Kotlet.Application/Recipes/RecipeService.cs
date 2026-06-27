@@ -3,7 +3,7 @@ using Kotlet.Domain.Recipes;
 
 namespace Kotlet.Application.Recipes;
 
-public sealed class RecipeService(IRecipeRepository repository)
+public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepository? imageRepository = null)
 {
     private const int MaxIngredients = 100;
 
@@ -23,7 +23,11 @@ public sealed class RecipeService(IRecipeRepository repository)
         Guid id, Guid ownerUserId, CancellationToken cancellationToken)
     {
         var recipe = await repository.GetByIdAsync(id, ownerUserId, tracked: false, cancellationToken);
-        return recipe is null ? null : ToDetailResponse(recipe);
+        if (recipe is null) return null;
+        var images = imageRepository is null
+            ? []
+            : await imageRepository.ListAsync(id, false, cancellationToken);
+        return ToDetailResponse(recipe, images.Select(ToImageResponse).ToList());
     }
 
     public async Task<RecipeOperationResult> CreateAsync(
@@ -176,11 +180,16 @@ public sealed class RecipeService(IRecipeRepository repository)
         return errors;
     }
 
-    private static RecipeDetailResponse ToDetailResponse(Recipe recipe) =>
+    private static RecipeDetailResponse ToDetailResponse(Recipe recipe, IReadOnlyList<RecipeImageResponse>? images = null) =>
         new(recipe.Id, recipe.Title, recipe.Slug, recipe.DescriptionMarkdown,
             recipe.Ingredients
                 .OrderBy(i => i.SortOrder)
                 .Select(i => new RecipeIngredientResponse(i.Id, i.SortOrder, i.Name, i.Quantity, i.Unit, i.Note))
                 .ToList(),
+            images ?? [],
             recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
+
+    private static RecipeImageResponse ToImageResponse(RecipeImage i) => new(i.Id, i.RecipeId, i.FileName,
+        i.ContentType, i.FileSizeBytes, i.AltText, i.SortOrder,
+        $"/api/recipes/{i.RecipeId}/images/{i.Id}/content", i.CreatedAtUtc);
 }

@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IPantryRepository, PantryRepository>();
         services.AddScoped<IShoppingListRepository, ShoppingListRepository>();
         services.AddScoped<IRecipeRepository, RecipeRepository>();
+        services.AddScoped<IRecipeImageRepository, RecipeImageRepository>();
         AddDatabase(services, configuration);
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<DatabaseSeeder>();
