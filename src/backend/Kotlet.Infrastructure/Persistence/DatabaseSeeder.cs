@@ -9,6 +9,7 @@ namespace Kotlet.Infrastructure.Persistence;
 public sealed class DatabaseSeeder(
     KotletDbContext dbContext,
     IPasswordHasher<User> passwordHasher,
+    IngredientCsvSeeder ingredientSeeder,
     ILogger<DatabaseSeeder> logger)
 {
     private static readonly SeedUser[] Users =
@@ -41,8 +42,11 @@ public sealed class DatabaseSeeder(
             dbContext.Users.Add(user);
         }
 
-        var createdCount = await dbContext.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("Development database seeding completed; {CreatedCount} users created", createdCount);
+        var createdUserCount = await dbContext.SaveChangesAsync(cancellationToken);
+        var createdIngredientCount = await ingredientSeeder.SeedAsync(cancellationToken);
+        logger.LogInformation(
+            "Development database seeding completed; {UserCount} users and {IngredientCount} ingredients created",
+            createdUserCount, createdIngredientCount);
     }
 
     private sealed record SeedUser(string Email, string Password, string DisplayName);

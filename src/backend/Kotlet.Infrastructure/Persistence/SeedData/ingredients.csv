@@ -1,0 +1,333 @@
+name,measurement_unit,calories_per_100_grams,price
+# Vegetables and mushrooms
+Potato,g,77,0.004
+Sweet potato,g,86,0.010
+Carrot,g,41,0.005
+Parsnip,g,75,0.012
+Beetroot,g,43,0.006
+Turnip,g,28,0.009
+Radish,g,16,0.010
+Celeriac,g,42,0.010
+Celery stalk,g,14,0.015
+Onion,g,40,0.005
+Red onion,g,40,0.009
+Spring onion,g,32,0.025
+Shallot,g,72,0.030
+Garlic,g,149,0.035
+Leek,g,61,0.012
+Cabbage,g,25,0.004
+Red cabbage,g,31,0.006
+Savoy cabbage,g,27,0.008
+Chinese cabbage,g,16,0.009
+Brussels sprouts,g,43,0.018
+Cauliflower,g,25,0.010
+Broccoli,g,34,0.014
+Kohlrabi,g,27,0.009
+Spinach,g,23,0.025
+Kale,g,49,0.020
+Lettuce,g,15,0.018
+Romaine lettuce,g,17,0.020
+Arugula,g,25,0.050
+Swiss chard,g,19,0.030
+Tomato,g,18,0.012
+Cherry tomato,g,18,0.025
+Cucumber,g,15,0.009
+Pickled cucumber,g,12,0.014
+Zucchini,g,17,0.012
+Eggplant,g,25,0.016
+Pumpkin,g,26,0.008
+Butternut squash,g,45,0.012
+Red bell pepper,g,31,0.020
+Yellow bell pepper,g,27,0.020
+Green bell pepper,g,20,0.018
+Chili pepper,g,40,0.080
+Jalapeño,g,29,0.060
+Green beans,g,31,0.018
+Peas,g,81,0.016
+Sweet corn,g,86,0.013
+Artichoke,g,47,0.035
+Asparagus,g,20,0.035
+Fennel,g,31,0.025
+Okra,g,33,0.035
+Button mushroom,g,22,0.020
+Portobello mushroom,g,22,0.026
+Oyster mushroom,g,33,0.030
+Shiitake mushroom,g,34,0.050
+Porcini mushroom,g,34,0.090
+# Fruit
+Apple,g,52,0.008
+Pear,g,57,0.010
+Banana,g,89,0.008
+Orange,g,47,0.010
+Mandarin,g,53,0.012
+Lemon,g,29,0.015
+Lime,g,30,0.025
+Grapefruit,g,42,0.012
+Peach,g,39,0.016
+Nectarine,g,44,0.018
+Apricot,g,48,0.025
+Plum,g,46,0.014
+Cherry,g,63,0.030
+Strawberry,g,32,0.025
+Raspberry,g,52,0.045
+Blueberry,g,57,0.040
+Blackberry,g,43,0.045
+Blackcurrant,g,63,0.035
+Redcurrant,g,56,0.035
+Grape,g,69,0.018
+Watermelon,g,30,0.007
+Melon,g,34,0.012
+Pineapple,g,50,0.014
+Mango,g,60,0.025
+Papaya,g,43,0.030
+Kiwi,g,61,0.020
+Pomegranate,g,83,0.030
+Avocado,g,160,0.035
+Coconut,g,354,0.025
+Fig,g,74,0.040
+Date,g,282,0.045
+Raisin,g,299,0.025
+Dried apricot,g,241,0.040
+# Grains pasta and bakery
+Wheat flour,g,364,0.004
+Whole wheat flour,g,340,0.006
+Rye flour,g,325,0.006
+Spelt flour,g,338,0.010
+Corn flour,g,361,0.008
+Rice flour,g,366,0.012
+Potato starch,g,357,0.009
+Cornstarch,g,381,0.008
+Breadcrumbs,g,395,0.012
+White rice,g,365,0.007
+Basmati rice,g,365,0.012
+Jasmine rice,g,356,0.012
+Brown rice,g,370,0.010
+Arborio rice,g,358,0.016
+Wild rice,g,357,0.030
+Oat flakes,g,379,0.010
+Barley groats,g,354,0.007
+Pearl barley,g,352,0.008
+Buckwheat groats,g,343,0.010
+Millet,g,378,0.012
+Quinoa,g,368,0.025
+Couscous,g,376,0.012
+Bulgur,g,342,0.012
+Polenta,g,370,0.010
+Semolina,g,360,0.008
+Pasta,g,371,0.009
+Spaghetti,g,371,0.010
+Egg noodles,g,384,0.012
+Rice noodles,g,364,0.018
+Soba noodles,g,336,0.025
+Udon noodles,g,337,0.020
+Lasagne sheets,g,371,0.014
+White bread,g,265,0.012
+Wholegrain bread,g,247,0.014
+Rye bread,g,259,0.014
+Sourdough bread,g,272,0.018
+Pita bread,g,275,0.020
+Tortilla,g,312,0.018
+Puff pastry,g,558,0.025
+Pizza dough,g,266,0.012
+# Legumes nuts and seeds
+Red lentils,g,358,0.012
+Green lentils,g,352,0.012
+Brown lentils,g,353,0.012
+Chickpeas,g,364,0.012
+White beans,g,333,0.010
+Kidney beans,g,333,0.012
+Black beans,g,341,0.015
+Pinto beans,g,347,0.015
+Mung beans,g,347,0.020
+Soybeans,g,446,0.018
+Tofu,g,144,0.025
+Tempeh,g,195,0.045
+Peanuts,g,567,0.020
+Almonds,g,579,0.045
+Walnuts,g,654,0.040
+Hazelnuts,g,628,0.045
+Cashews,g,553,0.050
+Pistachios,g,562,0.060
+Pecan nuts,g,691,0.070
+Brazil nuts,g,659,0.060
+Pine nuts,g,673,0.120
+Sunflower seeds,g,584,0.018
+Pumpkin seeds,g,559,0.035
+Sesame seeds,g,573,0.025
+Flaxseed,g,534,0.018
+Chia seeds,g,486,0.050
+Poppy seeds,g,525,0.030
+# Meat poultry and seafood
+Chicken breast,g,165,0.030
+Chicken thigh,g,209,0.022
+Chicken wing,g,203,0.018
+Whole chicken,g,239,0.018
+Turkey breast,g,135,0.035
+Turkey thigh,g,170,0.026
+Duck breast,g,337,0.055
+Ground beef,g,250,0.035
+Beef chuck,g,250,0.040
+Beef sirloin,g,244,0.075
+Beef tenderloin,g,218,0.120
+Beef liver,g,135,0.022
+Pork loin,g,242,0.032
+Pork tenderloin,g,143,0.045
+Pork shoulder,g,269,0.026
+Pork belly,g,518,0.030
+Pork ribs,g,277,0.035
+Ground pork,g,297,0.026
+Veal,g,172,0.065
+Lamb leg,g,258,0.070
+Lamb shoulder,g,264,0.060
+Rabbit,g,173,0.055
+Bacon,g,541,0.045
+Ham,g,145,0.040
+Sausage,g,301,0.035
+Chorizo,g,455,0.065
+Salami,g,407,0.060
+Cod fillet,g,82,0.055
+Salmon fillet,g,208,0.070
+Trout,g,148,0.050
+Tuna steak,g,132,0.080
+Mackerel,g,205,0.035
+Herring,g,158,0.030
+Sardines,g,208,0.040
+Anchovies,g,210,0.090
+Sea bass,g,124,0.085
+Tilapia,g,96,0.040
+Shrimp,g,99,0.075
+Mussels,g,86,0.035
+Clams,g,74,0.050
+Squid,g,92,0.060
+Octopus,g,82,0.075
+Crab meat,g,83,0.095
+# Dairy and eggs
+Chicken egg,pcs,143,1.00
+Quail egg,pcs,158,0.80
+Whole milk,ml,61,0.004
+Skimmed milk,ml,34,0.004
+Buttermilk,ml,40,0.005
+Kefir,ml,41,0.006
+Natural yogurt,g,61,0.012
+Greek yogurt,g,97,0.020
+Sour cream,g,193,0.018
+Heavy cream,ml,340,0.022
+Whipping cream,ml,292,0.020
+Butter,g,717,0.035
+Ghee,g,900,0.055
+Cream cheese,g,342,0.030
+Cottage cheese,g,98,0.018
+Quark,g,99,0.016
+Ricotta,g,174,0.035
+Mascarpone,g,429,0.045
+Mozzarella,g,280,0.035
+Cheddar,g,403,0.045
+Gouda,g,356,0.040
+Edam,g,357,0.038
+Parmesan,g,431,0.080
+Pecorino,g,387,0.085
+Feta,g,264,0.045
+Goat cheese,g,364,0.065
+Blue cheese,g,353,0.060
+# Oils sauces and condiments
+Olive oil,ml,884,0.045
+Extra virgin olive oil,ml,884,0.060
+Sunflower oil,ml,884,0.012
+Rapeseed oil,ml,884,0.014
+Sesame oil,ml,884,0.055
+Coconut oil,g,892,0.040
+Lard,g,902,0.018
+Mayonnaise,g,680,0.020
+Ketchup,g,112,0.012
+Mustard,g,66,0.018
+Dijon mustard,g,66,0.028
+Horseradish,g,48,0.025
+Soy sauce,ml,53,0.020
+Fish sauce,ml,35,0.035
+Oyster sauce,g,51,0.030
+Worcestershire sauce,ml,78,0.040
+Hot sauce,ml,12,0.040
+Barbecue sauce,g,172,0.025
+Tahini,g,595,0.045
+Peanut butter,g,588,0.030
+Tomato paste,g,82,0.020
+Passata,ml,30,0.010
+Canned tomatoes,g,24,0.010
+Coconut milk,ml,230,0.018
+Vegetable stock,ml,5,0.003
+Chicken stock,ml,7,0.004
+Beef stock,ml,8,0.004
+Apple cider vinegar,ml,21,0.015
+Wine vinegar,ml,19,0.018
+Balsamic vinegar,ml,88,0.030
+Rice vinegar,ml,18,0.025
+# Herbs spices and baking
+Salt,g,0,0.003
+Black pepper,g,251,0.100
+White pepper,g,296,0.120
+Paprika,g,282,0.060
+Smoked paprika,g,282,0.080
+Cayenne pepper,g,318,0.090
+Chili flakes,g,318,0.080
+Cumin,g,375,0.080
+Ground coriander,g,298,0.070
+Turmeric,g,312,0.070
+Curry powder,g,325,0.060
+Garam masala,g,379,0.100
+Cinnamon,g,247,0.080
+Nutmeg,g,525,0.160
+Cloves,g,274,0.180
+Cardamom,g,311,0.240
+Star anise,g,337,0.180
+Allspice,g,263,0.130
+Ginger,g,80,0.035
+Fresh turmeric,g,63,0.060
+Vanilla extract,ml,288,0.300
+Saffron,g,310,25.000
+Bay leaf,g,313,0.100
+Fresh basil,g,23,0.080
+Fresh parsley,g,36,0.040
+Fresh dill,g,43,0.050
+Fresh cilantro,g,23,0.050
+Fresh mint,g,44,0.060
+Fresh rosemary,g,131,0.080
+Fresh thyme,g,101,0.080
+Fresh sage,g,315,0.090
+Dried oregano,g,265,0.080
+Dried basil,g,233,0.070
+Dried thyme,g,276,0.090
+Dried marjoram,g,271,0.080
+Fennel seeds,g,345,0.100
+Caraway seeds,g,333,0.080
+Mustard seeds,g,508,0.090
+Fenugreek,g,323,0.090
+Sugar,g,387,0.004
+Brown sugar,g,380,0.008
+Powdered sugar,g,389,0.007
+Honey,g,304,0.030
+Maple syrup,ml,260,0.065
+Molasses,g,290,0.040
+Cocoa powder,g,228,0.040
+Dark chocolate,g,598,0.060
+Milk chocolate,g,535,0.045
+White chocolate,g,539,0.050
+Baking powder,g,53,0.025
+Baking soda,g,0,0.012
+Fresh yeast,g,105,0.025
+Dry yeast,g,325,0.080
+Gelatin,g,335,0.070
+Agar agar,g,306,0.180
+Desiccated coconut,g,660,0.025
+# Drinks and cooking alcohol
+Coffee beans,g,1,0.080
+Black tea,g,1,0.100
+Green tea,g,1,0.120
+Orange juice,ml,45,0.010
+Apple juice,ml,46,0.008
+Dry white wine,ml,82,0.025
+Dry red wine,ml,85,0.025
+Beer,ml,43,0.010
+Vodka,ml,231,0.055
+Brandy,ml,231,0.080
+Rum,ml,231,0.070
+Water,ml,0,0.001
