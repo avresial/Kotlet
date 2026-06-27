@@ -1,16 +1,5 @@
 :host { display: block; }
-.app-shell { min-height: calc(100vh - var(--app-header-height)); display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); }
-.sidebar { padding: 2rem 1rem 1.5rem; border-right: 1px solid #ded5c8; background: #eee8de; display: flex; flex-direction: column; }
-nav { display: grid; gap: .35rem; }
-.nav-item { width: 100%; min-height: 3rem; padding: .75rem .9rem; border: 0; border-radius: .7rem; display: flex; align-items: center; gap: .8rem; color: #655f56; background: transparent; font: inherit; font-weight: 650; text-align: left; text-decoration: none; }
-.nav-item svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
-.nav-item.active { color: #8b3325; background: #fffaf2; box-shadow: 0 1px 2px rgb(53 42 28 / 8%); }
-.nav-item:disabled { opacity: .66; cursor: default; }
-.soon { margin-left: auto; padding: .15rem .4rem; border: 1px solid #d4cabd; border-radius: 99px; font-size: .58rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.sidebar-note { margin-top: auto; padding: 1.1rem; border: 1px solid #d6ccbd; border-radius: .9rem; background: rgb(255 250 242 / 55%); }
-.note-icon { width: 2rem; height: 2rem; margin-bottom: .7rem; border-radius: 50%; display: grid; place-items: center; color: #fffaf2; background: #9c3a2a; }
-.sidebar-note strong { font-family: Georgia, serif; font-size: 1rem; }
-.sidebar-note p { margin: .4rem 0 0; color: #746d63; font-size: .8rem; line-height: 1.45; }
+.app-shell { min-height: 100vh; }
 .dashboard { width: min(100%, 74rem); margin: 0 auto; padding: clamp(2rem, 5vw, 4.5rem); }
 .welcome { display: flex; align-items: flex-end; justify-content: space-between; gap: 2rem; }
 .eyebrow, .section-label, .meal-time { margin: 0; color: #9a3a2a; font-size: .7rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
@@ -37,5 +26,5 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.4rem, 3v
 .quick-grid p { margin: .25rem 0 0; color: #777065; font-size: .8rem; line-height: 1.35; }
 .quick-icon { width: 2.4rem; height: 2.4rem; border-radius: .6rem; display: grid; place-items: center; font-size: 1.25rem; }
 .calendar { color: #8e392b; background: #f2dfd7; }.recipe { color: #52704b; background: #e1e9dc; }.arrow { color: #9a9185; }
-@media (max-width: 52rem) { .app-shell { grid-template-columns: 1fr; } .sidebar { padding: .6rem 1rem; border-right: 0; border-bottom: 1px solid #ded5c8; } nav { display: flex; overflow-x: auto; } .nav-item { width: auto; flex: 0 0 auto; } .nav-item .soon, .sidebar-note { display: none; } .dashboard { padding: 2rem 1.25rem; } }
+@media (max-width: 52rem) { .dashboard { padding: 2rem 1.25rem; } }
 @media (max-width: 38rem) { .welcome { align-items: flex-start; flex-direction: column; } .primary-action { display: none; } .meal { grid-template-columns: 5rem 1fr auto; gap: .8rem; } .meal-visual { aspect-ratio: 1; } .meal-visual span { width: 3.25rem; height: 3.25rem; font-size: 1.5rem; } .quick-grid { grid-template-columns: 1fr; } .card-heading { display: block; } .status { display: inline-block; margin-top: .8rem; } }

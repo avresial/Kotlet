@@ -1,13 +1,37 @@
-<header>
-  <a class="brand" routerLink="/">KOTLET</a>
-  <nav aria-label="Account">
-    @if (auth.currentUser(); as user) {
-      <span>{{ user.displayName || user.email }}</span>
-      <p-button type="button" label="Log out" severity="secondary" variant="text" (onClick)="logout()" [loading]="isLoggingOut()" />
+@if (auth.currentUser(); as user) {
+  <aside class="app-sidebar">
+    <a class="brand" routerLink="/" aria-label="Kotlet dashboard">
+      <span class="brand-mark" aria-hidden="true">K</span><span>Kotlet</span>
+    </a>
+
+    <nav aria-label="Main navigation">
+      <a class="nav-item" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <span class="icon" aria-hidden="true">⌂</span><span>Dashboard</span>
+      </a>
+      <button class="nav-item" type="button" disabled title="Coming soon"><span class="icon" aria-hidden="true">▤</span><span>Recipes</span></button>
+      <button class="nav-item" type="button" disabled title="Coming soon"><span class="icon" aria-hidden="true">▦</span><span>Week plan</span></button>
+      <button class="nav-item" type="button" disabled title="Coming soon"><span class="icon" aria-hidden="true">✓</span><span>Shopping list</span></button>
+      <button class="nav-item" type="button" disabled title="Coming soon"><span class="icon" aria-hidden="true">□</span><span>Pantry</span></button>
+      <a class="nav-item" routerLink="/ingredients" routerLinkActive="active">
+        <span class="icon" aria-hidden="true">◉</span><span>Ingredients</span>
+      </a>
+      <button class="nav-item settings" type="button" disabled title="Coming soon"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button>
+    </nav>
+
+    <footer>
+      <p>Hello, <strong>{{ user.displayName || user.email }}</strong></p>
+      <button class="logout" type="button" (click)="logout()" [disabled]="isLoggingOut()">
+        <span aria-hidden="true">↪</span>{{ isLoggingOut() ? 'Logging off…' : 'Log off' }}
+      </button>
       @if (logoutError()) { <span class="logout-error" role="alert">{{ logoutError() }}</span> }
-    } @else {
+    </footer>
+  </aside>
+} @else {
+  <header class="public-header">
+    <a class="brand" routerLink="/"><span class="brand-mark" aria-hidden="true">K</span><span>Kotlet</span></a>
+    <nav aria-label="Account">
       <a pButton routerLink="/login" severity="secondary" variant="text">Log in</a>
       <a pButton routerLink="/register">Create account</a>
-    }
-  </nav>
-</header>
+    </nav>
+  </header>
+}
