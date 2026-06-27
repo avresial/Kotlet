@@ -3,6 +3,10 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Xunit;
+using Kotlet.Domain.Houses;
+using Kotlet.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kotlet.Api.IntegrationTests.Auth;
 
@@ -19,6 +23,15 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.False(string.IsNullOrWhiteSpace(body.GetProperty("accessToken").GetString()));
+        var userId = body.GetProperty("user").GetProperty("id").GetGuid();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<KotletDbContext>();
+            var user = await db.Users.AsNoTracking().SingleAsync(item => item.Id == userId);
+            var house = await db.Houses.AsNoTracking().SingleAsync(item => item.Id == user.HouseId);
+            Assert.Equal(DefaultHouse.Id, user.HouseId);
+            Assert.Equal(DefaultHouse.Name, house.Name);
+        }
         var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"));
         Assert.Contains("kotlet_refresh=", cookie);
         Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);

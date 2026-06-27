@@ -17,6 +17,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("kotlet")
                 .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -76,7 +77,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_refresh_tokens_user_id");
 
-                    b.ToTable("refresh_tokens", (string)null);
+                    b.ToTable("refresh_tokens", "kotlet");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Auth.User", b =>
@@ -101,6 +102,10 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(320)")
                         .HasColumnName("email");
 
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
                     b.Property<DateTime?>("LastLoginAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_login_at_utc");
@@ -122,11 +127,39 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("HouseId")
+                        .HasDatabaseName("ix_users_house_id");
+
                     b.HasIndex("NormalizedEmail")
                         .IsUnique()
                         .HasDatabaseName("ux_users_normalized_email");
 
-                    b.ToTable("users", (string)null);
+                    b.ToTable("users", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Houses.House", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("houses", "kotlet");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("8a8c2f75-5998-45e8-8888-1d03d5b45275"),
+                            Name = "Default house"
+                        });
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Ingredients.Ingredient", b =>
@@ -164,7 +197,171 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ux_ingredients_name");
 
-                    b.ToTable("ingredients", (string)null);
+                    b.ToTable("ingredients", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Pantry.PantryItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
+                    b.Property<Guid>("IngredientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ingredient_id");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(11, 3)
+                        .HasColumnType("numeric(11,3)")
+                        .HasColumnName("quantity");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("HouseId", "IngredientId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_pantry_items_house_ingredient");
+
+                    b.ToTable("pantry_items", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Recipes.Recipe", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("DescriptionMarkdown")
+                        .HasColumnType("text")
+                        .HasColumnName("description_markdown");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("slug");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId")
+                        .HasDatabaseName("ix_recipes_owner_user_id");
+
+                    b.HasIndex("UpdatedAtUtc")
+                        .HasDatabaseName("ix_recipes_updated_at_utc");
+
+                    b.HasIndex("OwnerUserId", "Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ux_recipes_owner_slug");
+
+                    b.ToTable("recipes", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeIngredient", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("note");
+
+                    b.Property<decimal?>("Quantity")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("numeric(12,3)")
+                        .HasColumnName("quantity");
+
+                    b.Property<Guid>("RecipeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipe_id");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("unit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId")
+                        .HasDatabaseName("ix_recipe_ingredients_recipe_id");
+
+                    b.HasIndex("RecipeId", "SortOrder")
+                        .IsUnique()
+                        .HasDatabaseName("ux_recipe_ingredients_recipe_sort");
+
+                    b.ToTable("recipe_ingredients", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Shopping.ShoppingListItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
+                    b.Property<Guid>("IngredientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ingredient_id");
+
+                    b.Property<bool>("IsPurchased")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_purchased");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(11, 3)
+                        .HasColumnType("numeric(11,3)")
+                        .HasColumnName("quantity");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("HouseId", "IngredientId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_shopping_list_items_house_ingredient");
+
+                    b.ToTable("shopping_list_items", "kotlet");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Auth.RefreshToken", b =>
@@ -187,7 +384,81 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Kotlet.Domain.Auth.User", b =>
                 {
+                    b.HasOne("Kotlet.Domain.Houses.House", "House")
+                        .WithMany("Users")
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("House");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Pantry.PantryItem", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Houses.House", "House")
+                        .WithMany("PantryItems")
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.Ingredients.Ingredient", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("House");
+
+                    b.Navigation("Ingredient");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Shopping.ShoppingListItem", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Houses.House", "House")
+                        .WithMany("ShoppingListItems")
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.Ingredients.Ingredient", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("House");
+
+                    b.Navigation("Ingredient");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeIngredient", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Recipes.Recipe", "Recipe")
+                        .WithMany("Ingredients")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Auth.User", b =>
+                {
                     b.Navigation("RefreshTokens");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Houses.House", b =>
+                {
+                    b.Navigation("PantryItems");
+
+                    b.Navigation("ShoppingListItems");
+
+                    b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Recipes.Recipe", b =>
+                {
+                    b.Navigation("Ingredients");
                 });
 #pragma warning restore 612, 618
         }

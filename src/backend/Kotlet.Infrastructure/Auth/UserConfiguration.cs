@@ -11,6 +11,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable("users");
         builder.HasKey(user => user.Id);
         builder.Property(user => user.Id).HasColumnName("id");
+        builder.Property(user => user.HouseId).HasColumnName("house_id");
         builder.Property(user => user.Email).HasColumnName("email").HasMaxLength(320).IsRequired();
         builder.Property(user => user.NormalizedEmail).HasColumnName("normalized_email").HasMaxLength(320).IsRequired();
         builder.Property(user => user.PasswordHash).HasColumnName("password_hash").IsRequired();
@@ -19,5 +20,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.UpdatedAtUtc).HasColumnName("updated_at_utc").HasColumnType("timestamp with time zone");
         builder.Property(user => user.LastLoginAtUtc).HasColumnName("last_login_at_utc").HasColumnType("timestamp with time zone");
         builder.HasIndex(user => user.NormalizedEmail).IsUnique().HasDatabaseName("ux_users_normalized_email");
+        builder.HasIndex(user => user.HouseId).HasDatabaseName("ix_users_house_id");
+        builder.HasOne(user => user.House).WithMany(house => house.Users).HasForeignKey(user => user.HouseId).OnDelete(DeleteBehavior.Restrict);
     }
 }

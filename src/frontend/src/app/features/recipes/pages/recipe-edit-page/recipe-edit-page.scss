@@ -1,0 +1,16 @@
+.recipe-edit-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 16px;
+
+  .back { display: inline-block; margin-bottom: 16px; color: var(--text-secondary, #666); text-decoration: none; font-size: 0.9rem; }
+
+  header {
+    margin-bottom: 24px;
+    .eyebrow { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary, #888); margin: 0 0 4px; }
+    h1 { margin: 0; }
+  }
+
+  .loading { color: var(--text-secondary, #999); }
+  .error { padding: 12px 16px; background: var(--danger-bg, #fff5f5); color: var(--danger, #e53e3e); border: 1px solid var(--danger-border, #fed7d7); border-radius: 6px; }
+}

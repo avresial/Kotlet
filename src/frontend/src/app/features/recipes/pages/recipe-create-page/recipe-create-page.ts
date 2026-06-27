@@ -1,0 +1,37 @@
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+import { getApiError } from '../../../../core/http/api-error';
+import { CreateRecipeRequest } from '../../models/recipe.models';
+import { RecipeService } from '../../services/recipe.service';
+import { RecipeForm } from '../../components/recipe-form/recipe-form';
+
+@Component({
+  selector: 'app-recipe-create-page',
+  imports: [RouterLink, RecipeForm],
+  templateUrl: './recipe-create-page.html',
+  styleUrl: './recipe-create-page.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class RecipeCreatePage {
+  private readonly service = inject(RecipeService);
+  private readonly router = inject(Router);
+
+  readonly isSaving = signal(false);
+  readonly error = signal<string | null>(null);
+
+  save(request: CreateRecipeRequest): void {
+    this.isSaving.set(true);
+    this.error.set(null);
+    this.service.create(request).subscribe({
+      next: (recipe) => this.router.navigate(['/recipes', recipe.id]),
+      error: (err) => {
+        this.error.set(getApiError(err, 'Unable to create recipe.'));
+        this.isSaving.set(false);
+      },
+    });
+  }
+
+  cancel(): void {
+    this.router.navigate(['/recipes']);
+  }
+}

@@ -1,0 +1,51 @@
+<main class="recipe-detail-page">
+  <a class="back" routerLink="/recipes">← Back to recipes</a>
+
+  @if (isLoading()) {
+    <p class="loading">Loading recipe…</p>
+  } @else if (error() && !recipe()) {
+    <div class="error" role="alert">{{ error() }}</div>
+    <a routerLink="/recipes" class="button secondary">Back to recipes</a>
+  } @else if (recipe(); as r) {
+    <header>
+      <div class="title-row">
+        <h1>{{ r.title }}</h1>
+        <div class="header-actions">
+          <a [routerLink]="['/recipes', r.id, 'edit']" class="button secondary">Edit</a>
+          <button type="button" class="button danger" [disabled]="isDeleting()" (click)="delete()">
+            {{ isDeleting() ? 'Deleting…' : 'Delete' }}
+          </button>
+        </div>
+      </div>
+      <p class="meta">{{ r.ingredients.length }} ingredient{{ r.ingredients.length !== 1 ? 's' : '' }} · Updated {{ r.updatedAtUtc | date:'mediumDate' }}</p>
+    </header>
+
+    @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
+
+    @if (r.ingredients.length > 0) {
+      <section class="ingredients-section">
+        <h2>Ingredients</h2>
+        <ul class="ingredient-list">
+          @for (ing of r.ingredients; track ing.id) {
+            <li class="ingredient-item">
+              <span class="ing-name">{{ ing.name }}</span>
+              @if (ing.quantity !== null) {
+                <span class="ing-qty">{{ ing.quantity }}{{ ing.unit ? ' ' + ing.unit : '' }}</span>
+              }
+              @if (ing.note) {
+                <span class="ing-note">({{ ing.note }})</span>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (r.descriptionMarkdown) {
+      <section class="description-section">
+        <h2>Description</h2>
+        <div class="markdown-body" [innerHTML]="descriptionHtml()"></div>
+      </section>
+    }
+  }
+</main>

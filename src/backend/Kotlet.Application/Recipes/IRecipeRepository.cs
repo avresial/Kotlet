@@ -1,0 +1,14 @@
+using Kotlet.Domain.Recipes;
+
+namespace Kotlet.Application.Recipes;
+
+public interface IRecipeRepository
+{
+    Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
+        Guid ownerUserId, int page, int pageSize, string? search, CancellationToken cancellationToken);
+    Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken);
+    Task<bool> SlugExistsAsync(Guid ownerUserId, string slug, Guid? excludedId, CancellationToken cancellationToken);
+    void Add(Recipe recipe);
+    void Remove(Recipe recipe);
+    Task SaveChangesAsync(CancellationToken cancellationToken);
+}

@@ -1,0 +1,14 @@
+<main class="recipe-create-page">
+  <a class="back" routerLink="/recipes">← Back to recipes</a>
+  <header>
+    <p class="eyebrow">New recipe</p>
+    <h1>Create recipe</h1>
+  </header>
+  <app-recipe-form
+    [isSaving]="isSaving()"
+    [error]="error()"
+    submitLabel="Create recipe"
+    (submitted)="save($event)"
+    (cancelled)="cancel()"
+  ></app-recipe-form>
+</main>

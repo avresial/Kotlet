@@ -18,7 +18,8 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions, IOptions<AuthO
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(_jwt.AccessTokenMinutes);
         var token = new JwtSecurityToken(_jwt.Issuer, _jwt.Audience,
-            [new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()), new Claim(JwtRegisteredClaimNames.Email, user.Email)],
+            [new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()), new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(KotletClaimTypes.HouseId, user.HouseId.ToString())],
             now, expires, new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.SigningKey)), SecurityAlgorithms.HmacSha256));
         return (new JwtSecurityTokenHandler().WriteToken(token), expires);
     }

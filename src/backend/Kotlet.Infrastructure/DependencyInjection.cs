@@ -4,6 +4,12 @@ using Kotlet.Domain.Auth;
 using Kotlet.Infrastructure.Menu;
 using Kotlet.Infrastructure.Ingredients;
 using Kotlet.Infrastructure.Persistence;
+using Kotlet.Application.Pantry;
+using Kotlet.Infrastructure.Pantry;
+using Kotlet.Application.Recipes;
+using Kotlet.Infrastructure.Recipes;
+using Kotlet.Application.Shopping;
+using Kotlet.Infrastructure.Shopping;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +24,9 @@ public static class DependencyInjection
     {
         services.AddSingleton<IMenuReader, InMemoryMenuReader>();
         services.AddScoped<IIngredientRepository, IngredientRepository>();
+        services.AddScoped<IPantryRepository, PantryRepository>();
+        services.AddScoped<IShoppingListRepository, ShoppingListRepository>();
+        services.AddScoped<IRecipeRepository, RecipeRepository>();
         AddDatabase(services, configuration);
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<DatabaseSeeder>();
