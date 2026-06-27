@@ -1,7 +1,7 @@
 @if (auth.currentUser(); as user) {
   <aside class="app-sidebar">
     <a class="brand" routerLink="/" aria-label="Kotlet dashboard">
-      <span class="brand-mark" aria-hidden="true">K</span><span>Kotlet</span>
+      <img class="brand-mark" src="kotlet-logo.svg" alt="Kotlet" />
     </a>
 
     <nav aria-label="Main navigation">
@@ -28,7 +28,7 @@
   </aside>
 } @else {
   <header class="public-header">
-    <a class="brand" routerLink="/"><span class="brand-mark" aria-hidden="true">K</span><span>Kotlet</span></a>
+    <a class="brand" routerLink="/"><img class="brand-mark" src="kotlet-logo.svg" alt="Kotlet" /></a>
     <nav aria-label="Account">
       <a pButton routerLink="/login" severity="secondary" variant="text">Log in</a>
       <a pButton routerLink="/register">Create account</a>
