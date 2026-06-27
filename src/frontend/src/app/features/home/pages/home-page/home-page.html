@@ -42,6 +42,7 @@
             <p class="section-label">Newest recipes</p>
             <h2 id="recipes-title">Freshly added</h2>
           </div>
+          <a class="card-link" routerLink="/recipes">View all →</a>
         </div>
         @if (recipesLoading()) { <p class="recipe-state">Loading recipes…</p> }
         @else if (recipesError()) { <p class="recipe-state error" role="alert">Unable to load recipes.</p> }

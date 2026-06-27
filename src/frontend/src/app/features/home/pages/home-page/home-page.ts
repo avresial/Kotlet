@@ -77,11 +77,30 @@ export class HomePage implements OnInit {
     forkJoin({ pantry: this.pantryService.getAll(), ingredients: this.ingredientService.getAll(), shopping: this.shoppingListService.getAll() })
       .pipe(finalize(() => { this.pantryLoading.set(false); this.shoppingLoading.set(false); }))
       .subscribe({
-      next: ({ pantry, ingredients, shopping }) => {
-        this.lowStock.set(pantry.slice(0, 5)); this.ingredients.set(ingredients); this.shoppingItems.set(shopping);
-      },
-      error: error => this.shoppingError.set(getApiError(error, 'Unable to load the dashboard.')),
-    });
+        next: ({ pantry, ingredients, shopping }) => {
+          this.lowStock.set(pantry.slice(0, 5));
+          this.ingredients.set(ingredients);
+          this.shoppingItems.set(shopping);
+        },
+        error: error => this.shoppingError.set(getApiError(error, 'Unable to load the dashboard.')),
+      });
+  }
+
+  relativeTime(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const weeks = Math.floor(days / 7);
+    const months = Math.floor(days / 30);
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+    if (months >= 1) return rtf.format(-months, 'month');
+    if (weeks >= 1) return rtf.format(-weeks, 'week');
+    if (days >= 1) return rtf.format(-days, 'day');
+    if (hours >= 1) return rtf.format(-hours, 'hour');
+    if (minutes >= 1) return rtf.format(-minutes, 'minute');
+    return 'just now';
   }
 
   private loadAvatars(recipes: RecipeSummary[]): void {
