@@ -1,6 +1,8 @@
+using Kotlet.Application.MealPlanner;
 using Kotlet.Application.Menu.GetMenu;
 using Kotlet.Application.Ingredients;
 using Kotlet.Domain.Auth;
+using Kotlet.Infrastructure.MealPlanner;
 using Kotlet.Infrastructure.Menu;
 using Kotlet.Infrastructure.Ingredients;
 using Kotlet.Infrastructure.Persistence;
@@ -28,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IShoppingListRepository, ShoppingListRepository>();
         services.AddScoped<IRecipeRepository, RecipeRepository>();
         services.AddScoped<IRecipeImageRepository, RecipeImageRepository>();
+        services.AddScoped<IMealPlanRepository, MealPlanRepository>();
         AddDatabase(services, configuration);
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<DatabaseSeeder>();

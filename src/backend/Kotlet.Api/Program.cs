@@ -1,7 +1,9 @@
+using Kotlet.Application.MealPlanner;
 using Kotlet.Application.Menu.GetMenu;
 using Kotlet.Application.Ingredients;
 using Kotlet.Api.Auth;
 using Kotlet.Api.Ingredients;
+using Kotlet.Api.MealPlanner;
 using Kotlet.Api.Persistence;
 using Kotlet.Application.Pantry;
 using Kotlet.Api.Pantry;
@@ -27,6 +29,7 @@ builder.Services.AddScoped<PantryService>();
 builder.Services.AddScoped<ShoppingListService>();
 builder.Services.AddScoped<RecipeService>();
 builder.Services.AddScoped<RecipeImageService>();
+builder.Services.AddScoped<MealPlannerService>();
 builder.Services.AddOptions<JwtOptions>().BindConfiguration(JwtOptions.SectionName).ValidateOnStart();
 builder.Services.AddOptions<AuthOptions>().BindConfiguration(AuthOptions.SectionName).ValidateOnStart();
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
@@ -82,6 +85,7 @@ app.MapIngredientEndpoints();
 app.MapPantryEndpoints();
 app.MapShoppingListEndpoints();
 app.MapRecipeEndpoints();
+app.MapMealPlannerEndpoints();
 app.MapGet("/api/menu", async (GetMenuQueryHandler handler, CancellationToken cancellationToken) =>
     Results.Ok(await handler.Handle(new GetMenuQuery(), cancellationToken)))
     .WithName("GetMenu");
