@@ -2,8 +2,10 @@ using Kotlet.Domain.Auth;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.Pantry;
 using Kotlet.Domain.Houses;
+using Kotlet.Domain.Recipes;
 using Kotlet.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Kotlet.Infrastructure.Persistence;
 
@@ -17,10 +19,35 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<PantryItem> PantryItems => Set<PantryItem>();
     public DbSet<House> Houses => Set<House>();
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
+    public DbSet<Recipe> Recipes => Set<Recipe>();
+    public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(DefaultSchema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(KotletDbContext).Assembly);
+
+        // SQLite does not support DateTimeOffset in ORDER BY. Store as UTC ticks (long)
+        // so sorting works correctly. PostgreSQL is unaffected by this branch.
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+        {
+            var dateTimeOffsetConverter = new ValueConverter<DateTimeOffset, long>(
+                v => v.UtcTicks,
+                v => new DateTimeOffset(v, TimeSpan.Zero));
+            var nullableDateTimeOffsetConverter = new ValueConverter<DateTimeOffset?, long?>(
+                v => v == null ? null : (long?)v.Value.UtcTicks,
+                v => v == null ? null : (DateTimeOffset?)new DateTimeOffset(v.Value, TimeSpan.Zero));
+
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entityType.GetProperties())
+                {
+                    if (property.ClrType == typeof(DateTimeOffset))
+                        property.SetValueConverter(dateTimeOffsetConverter);
+                    else if (property.ClrType == typeof(DateTimeOffset?))
+                        property.SetValueConverter(nullableDateTimeOffsetConverter);
+                }
+            }
+        }
     }
 }
