@@ -6,6 +6,7 @@ namespace Kotlet.Api.Persistence;
 public sealed class DatabaseMigrationWorker(
     IServiceScopeFactory scopeFactory,
     IWebHostEnvironment environment,
+    MigrationReadySignal migrationReady,
     ILogger<DatabaseMigrationWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -19,6 +20,7 @@ public sealed class DatabaseMigrationWorker(
         else
             await dbContext.Database.MigrateAsync(stoppingToken);
 
+        migrationReady.SetReady();
         logger.LogInformation("Database migrations applied successfully");
 
         // The integration-test host shares a single in-memory SQLite connection across the

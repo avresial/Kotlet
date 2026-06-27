@@ -34,6 +34,7 @@ public static class DependencyInjection
         AddDatabase(services, configuration);
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<DatabaseSeeder>();
+        services.AddScoped<IngredientsSeeder>();
         services.AddScoped<IngredientCsvSeeder>();
         return services;
     }
@@ -54,11 +55,11 @@ public static class DependencyInjection
 
         if (provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
-            var connection = new SqliteConnection("Data Source=:memory:");
-            connection.Open();
-            services.AddSingleton(connection);
-            services.AddDbContext<KotletDbContext>((serviceProvider, options) =>
-                options.UseSqlite(serviceProvider.GetRequiredService<SqliteConnection>()));
+            var connectionString = $"Data Source=Kotlet-{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
+            var keepAliveConnection = new SqliteConnection(connectionString);
+            keepAliveConnection.Open();
+            services.AddSingleton(keepAliveConnection);
+            services.AddDbContext<KotletDbContext>(options => options.UseSqlite(connectionString));
             return;
         }
 
