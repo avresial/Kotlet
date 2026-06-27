@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -17,6 +17,13 @@ export class IngredientsPage implements OnInit {
   private readonly service = inject(IngredientService);
   private readonly formBuilder = inject(FormBuilder);
   readonly ingredients = signal<Ingredient[]>([]);
+  readonly search = signal('');
+  readonly filteredIngredients = computed(() => {
+    const query = this.search().trim().toLocaleLowerCase();
+    return query
+      ? this.ingredients().filter((ingredient) => ingredient.name.toLocaleLowerCase().includes(query))
+      : this.ingredients();
+  });
   readonly units = measurementUnits;
   readonly editingId = signal<string | null>(null);
   readonly isLoading = signal(true);

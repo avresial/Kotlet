@@ -25,8 +25,8 @@ export class MealPlannerPage implements OnInit {
   readonly slots: MealSlot[] = ['breakfast', 'dinner', 'supper'];
   readonly slotLabels: Record<MealSlot, string> = {
     breakfast: 'Breakfast',
-    dinner: 'Dinner',
-    supper: 'Supper',
+    dinner: 'Lunch',
+    supper: 'Dinner',
   };
 
   readonly selectedDate = signal(this.todayString());
@@ -159,6 +159,10 @@ export class MealPlannerPage implements OnInit {
   }
 
   private todayString(): string {
-    return new Date().toISOString().slice(0, 10);
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

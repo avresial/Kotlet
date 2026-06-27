@@ -1,5 +1,5 @@
 <main class="ingredients-page">
-  <a class="back" routerLink="/">← Back to overview</a>
+  <a class="back" routerLink="/dashboard">← Back to overview</a>
   <header>
     <div><p class="eyebrow">Recipe foundations</p><h1>Ingredients</h1><p>Manage the products used to calculate recipe calories and costs.</p></div>
   </header>
@@ -21,13 +21,21 @@
   </section>
 
   <section class="catalogue" aria-labelledby="catalogue-title">
-    <div class="section-heading"><h2 id="catalogue-title">Ingredient catalogue</h2><span>{{ ingredients().length }} total</span></div>
+    <div class="section-heading">
+      <h2 id="catalogue-title">Ingredient catalogue</h2>
+      <span>{{ search() ? filteredIngredients().length + ' of ' : '' }}{{ ingredients().length }} total</span>
+    </div>
+    <label class="catalogue-search">
+      <span class="sr-only">Search ingredients</span>
+      <input type="search" placeholder="Search ingredients…" [value]="search()" (input)="search.set($any($event.target).value)" />
+    </label>
     @if (isLoading()) { <p class="empty">Loading ingredients…</p> }
     @else if (ingredients().length === 0) { <p class="empty">No ingredients yet. Add the first one above.</p> }
+    @else if (filteredIngredients().length === 0) { <p class="empty">No ingredients match “{{ search() }}”.</p> }
     @else {
       <div class="table-wrap"><table>
         <thead><tr><th>Name</th><th>Unit</th><th>kcal / 100 g</th><th>Price / unit</th><th><span class="sr-only">Actions</span></th></tr></thead>
-        <tbody>@for (ingredient of ingredients(); track ingredient.id) {
+        <tbody>@for (ingredient of filteredIngredients(); track ingredient.id) {
           <tr><td><strong>{{ ingredient.name }}</strong></td><td>{{ unitLabel(ingredient.measurementUnit) }}</td><td>{{ ingredient.caloriesPer100Grams }}</td><td>{{ ingredient.price.toFixed(2) }}</td>
           <td class="row-actions"><button type="button" (click)="edit(ingredient)">Edit</button><button class="delete" type="button" [disabled]="deletingId() === ingredient.id" (click)="remove(ingredient)">{{ deletingId() === ingredient.id ? 'Deleting…' : 'Delete' }}</button></td></tr>
         }</tbody>

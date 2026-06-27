@@ -1,5 +1,5 @@
 <main class="recipe-list-page">
-  <a class="back" routerLink="/">← Back to overview</a>
+  <a class="back" routerLink="/dashboard">← Back to overview</a>
   <header>
     <div>
       <p class="eyebrow">Your kitchen</p>
@@ -11,7 +11,7 @@
 
   <div class="search-bar">
     <input type="search" [(ngModel)]="search" placeholder="Search recipes…" (keyup.enter)="onSearch()" />
-    <button type="button" class="primary" (click)="onSearch()">Search</button>
+    <button type="button" class="button primary" (click)="onSearch()">Search</button>
     @if (search()) {
       <button type="button" class="secondary" (click)="clearSearch()">Clear</button>
     }

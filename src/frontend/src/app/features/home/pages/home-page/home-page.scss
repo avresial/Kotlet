@@ -6,6 +6,7 @@
 h1 { margin: .6rem 0 .5rem; font-family: Georgia, serif; font-size: clamp(2.15rem, 4vw, 3.5rem); font-weight: 500; line-height: 1.08; }
 .intro { margin: 0; color: #746d63; font-size: 1.05rem; }
 .primary-action { padding: .78rem 1.1rem; border: 0; border-radius: .6rem; color: #fff; background: #963827; font: inherit; font-weight: 750; white-space: nowrap; opacity: .72; }
+.primary-action:disabled { opacity: .48; cursor: not-allowed; }
 .primary-action span { margin-right: .3rem; font-size: 1.15rem; }
 .card-grid { margin-top: 3rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
 .card { padding: clamp(1.25rem, 3vw, 1.75rem); border: 1px solid #dcd2c4; border-radius: 1rem; background: #fffaf2; box-shadow: 0 1rem 2.8rem rgb(70 52 31 / 6%); }

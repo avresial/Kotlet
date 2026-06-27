@@ -26,8 +26,8 @@ footer strong { display: block; overflow: hidden; color: #302b25; font-size: .85
 @media (max-width: 48rem) {
   .app-sidebar { position: fixed; z-index: 10; inset: auto 0 0; width: 100%; height: 4.5rem; padding: .5rem; border: 1px solid #ded5c8; border-width: 1px 0 0; display: block; }
   .app-sidebar > .brand, .app-sidebar footer, .settings { display: none; }
-  .app-sidebar nav { height: 100%; margin: 0; display: flex; align-items: stretch; justify-content: space-around; gap: .15rem; overflow-x: auto; }
-  .nav-item { width: auto; min-width: 4.25rem; min-height: 100%; padding: .35rem .45rem; flex-direction: column; justify-content: center; gap: .15rem; font-size: .62rem; white-space: nowrap; }
+  .app-sidebar nav { height: 100%; margin: 0; display: flex; align-items: stretch; justify-content: space-around; gap: .1rem; overflow: hidden; }
+  .nav-item { width: auto; min-width: 0; min-height: 100%; padding: .35rem .2rem; flex: 1 1 0; flex-direction: column; justify-content: center; gap: .15rem; font-size: .56rem; white-space: nowrap; }
   .icon { height: 1.25rem; font-size: 1rem; }
   .public-header { padding: .75rem 1rem; gap: .5rem; }
   .public-header nav { gap: .4rem; }
