@@ -11,6 +11,7 @@ export function getApiError(error: unknown, fallback: string): string {
 
   const problem = error.error as ProblemDetails | null;
   if (problem?.message) return problem.message;
-  const validationError = problem?.errors && Object.values(problem.errors).flat()[0];
+  const validationError = problem?.errors
+    && Object.values(problem.errors).flat().find((message) => message.trim().length > 0);
   return validationError ?? fallback;
 }

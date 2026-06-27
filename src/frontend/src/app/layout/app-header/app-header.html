@@ -6,6 +6,7 @@
       <button type="button" (click)="logout()" [disabled]="isLoggingOut()">
         {{ isLoggingOut() ? 'Logging out…' : 'Log out' }}
       </button>
+      @if (logoutError()) { <span class="logout-error" role="alert">{{ logoutError() }}</span> }
     } @else {
       <a routerLink="/login">Log in</a>
       <a class="primary" routerLink="/register">Create account</a>

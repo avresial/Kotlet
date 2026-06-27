@@ -13,8 +13,8 @@ public static class AuthEndpoints
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var auth = endpoints.MapGroup("/api/auth").WithTags("Auth");
-        auth.MapPost("/register", Register);
-        auth.MapPost("/login", Login);
+        auth.MapPost("/register", Register).AddEndpointFilter(RequireSameOrigin);
+        auth.MapPost("/login", Login).AddEndpointFilter(RequireSameOrigin);
         auth.MapPost("/logout", Logout).RequireAuthorization();
         auth.MapGet("/me", Me).RequireAuthorization();
         return endpoints;
@@ -75,10 +75,27 @@ public static class AuthEndpoints
         return Results.Ok(new AuthResponse(ToResponse(user)));
     }
 
-    private static async Task Logout(HttpContext httpContext)
+    private static async Task<IResult> Logout(HttpContext httpContext)
     {
         await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        httpContext.Response.StatusCode = StatusCodes.Status204NoContent;
+        return Results.NoContent();
+    }
+
+    private static ValueTask<object?> RequireSameOrigin(
+        EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        var request = context.HttpContext.Request;
+        var source = request.Headers.Origin.FirstOrDefault()
+            ?? request.Headers.Referer.FirstOrDefault();
+
+        if (source is not null &&
+            (!Uri.TryCreate(source, UriKind.Absolute, out var sourceUri) ||
+             !string.Equals(sourceUri.Authority, request.Host.Value, StringComparison.OrdinalIgnoreCase)))
+        {
+            return ValueTask.FromResult<object?>(Results.BadRequest(new { message = "Cross-origin authentication requests are not allowed." }));
+        }
+
+        return next(context);
     }
 
     private static async Task<IResult> Me(ClaimsPrincipal principal, KotletDbContext dbContext,

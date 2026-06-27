@@ -32,13 +32,13 @@ src/app/
 
 ## Naming
 
-- Use PascalCase for types: `LoginPage`, `AuthService`, `CurrentUser`.
-- Use kebab-case for files and directories: `login-page.ts`, `auth.service.ts`.
-- Use the `app-` prefix for component selectors: `app-login-page`.
-- Name booleans as questions: `isLoading`, `isAuthenticated`, `hasError`.
-- Suffix observables with `$`; use noun phrases for signals.
-- Use request/response names for transport models and avoid `I` interface prefixes.
-- Keep tests beside their implementation as `*.spec.ts`.
+- Types are PascalCase: `LoginPage`, `AuthService`, `CurrentUser`.
+- Files and directories use kebab-case: `login-page.ts`, `auth.service.ts`.
+- Component selectors carry the `app-` prefix, as in `app-login-page`.
+- Boolean names read as questions: `isLoading`, `isAuthenticated`, `hasError`.
+- Observables have a `$` suffix, while signals use noun phrases.
+- Transport models use request/response names and omit `I` interface prefixes.
+- Tests live beside their implementation as `*.spec.ts`.
 
 Angular standalone components are the default. Root routes lazy-load feature routes.
 Feature state should remain private unless the rest of the application genuinely

@@ -25,6 +25,10 @@ export class LoginPage {
   });
 
   login(): void {
+    if (this.isLoading()) {
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
