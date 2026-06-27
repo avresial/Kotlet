@@ -135,6 +135,14 @@ export class MealPlannerPage implements OnInit {
     return this.addingSlot() === `${prefix}-${slot}`;
   }
 
+  setSelectedRecipeId(slot: MealSlot, value: string): void {
+    this.selectedRecipeId.update((s) => ({ ...s, [slot]: value }));
+  }
+
+  setSelectedIngredientId(slot: MealSlot, value: string): void {
+    this.selectedIngredientId.update((s) => ({ ...s, [slot]: value }));
+  }
+
   private appendItem(plan: DailyMealPlan, slot: MealSlot, item: MealPlanItem): DailyMealPlan {
     return {
       ...plan,

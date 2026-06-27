@@ -56,7 +56,7 @@
               <div class="add-row">
                 <select
                   [ngModel]="selectedRecipeId()[slot]"
-                  (ngModelChange)="selectedRecipeId.update(s => ({ ...s, [slot]: $event }))"
+                  (ngModelChange)="setSelectedRecipeId(slot, $event)"
                   [disabled]="isAdding('recipe', slot)"
                   aria-label="Select recipe for {{ slotLabels[slot] }}"
                 >
@@ -78,7 +78,7 @@
               <div class="add-row">
                 <select
                   [ngModel]="selectedIngredientId()[slot]"
-                  (ngModelChange)="selectedIngredientId.update(s => ({ ...s, [slot]: $event }))"
+                  (ngModelChange)="setSelectedIngredientId(slot, $event)"
                   [disabled]="isAdding('ingredient', slot)"
                   aria-label="Select ingredient for {{ slotLabels[slot] }}"
                 >
