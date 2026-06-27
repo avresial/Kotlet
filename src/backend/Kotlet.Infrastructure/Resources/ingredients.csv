@@ -1,0 +1,294 @@
+Name,MeasurementUnit,CaloriesPer100Grams,Price
+Onion,g,40,0.20
+Garlic,g,149,0.05
+Tomato,g,18,0.30
+Carrot,g,41,0.15
+Potato,g,77,0.10
+Broccoli,g,34,0.40
+Spinach,g,23,0.50
+Cucumber,g,15,0.25
+Bell pepper,g,31,0.60
+Zucchini,g,17,0.30
+Eggplant,g,25,0.35
+Celery,g,16,0.30
+Leek,g,61,0.40
+Cauliflower,g,25,0.45
+Cabbage,g,25,0.15
+Red cabbage,g,31,0.20
+Sweet potato,g,86,0.35
+Pumpkin,g,26,0.20
+Mushrooms,g,22,0.80
+Asparagus,g,20,1.50
+Brussels sprouts,g,43,0.60
+Kale,g,49,0.60
+Green beans,g,31,0.60
+Peas,g,81,0.40
+Corn,g,86,0.30
+Beetroot,g,43,0.20
+Radish,g,16,0.25
+Kohlrabi,g,27,0.30
+Parsnip,g,75,0.35
+Artichoke,g,47,1.20
+Fennel bulb,g,31,0.90
+Spring onion,g,32,0.40
+Cherry tomato,g,18,0.80
+Pointed cabbage,g,25,0.30
+Pak choi,g,13,0.70
+Apple,g,52,0.25
+Banana,g,89,0.15
+Orange,g,47,0.30
+Lemon,g,29,0.40
+Lime,g,30,0.50
+Strawberry,g,32,0.80
+Blueberry,g,57,1.20
+Raspberry,g,52,1.50
+Cherry,g,63,1.00
+Grape,g,67,0.60
+Pear,g,57,0.35
+Peach,g,39,0.50
+Plum,g,46,0.40
+Mango,g,60,0.80
+Pineapple,g,50,0.60
+Watermelon,g,30,0.15
+Avocado,g,160,1.50
+Pomegranate,g,83,1.00
+Kiwi,g,61,0.60
+Grapefruit,g,42,0.50
+Fig,g,74,0.60
+Apricot,g,48,0.70
+Blackberry,g,43,1.20
+Cranberry,g,46,1.00
+Melon,g,34,0.40
+Chicken breast,g,165,1.50
+Chicken thigh,g,209,1.00
+Chicken drumstick,g,185,0.80
+Beef mince,g,254,1.80
+Beef steak,g,271,3.50
+Beef brisket,g,195,2.00
+Pork loin,g,242,1.20
+Pork belly,g,518,1.00
+Pork shoulder,g,215,1.00
+Pork ribs,g,292,1.20
+Salmon,g,208,3.00
+Tuna,g,144,2.50
+Cod,g,82,2.00
+Sea bass,g,97,3.50
+Shrimp,g,99,3.50
+Mussels,g,86,2.00
+Squid,g,92,2.50
+Sardines,g,208,1.20
+Herring,g,203,1.00
+Mackerel,g,205,1.50
+Turkey breast,g,135,1.80
+Duck breast,g,337,3.00
+Lamb leg,g,282,2.50
+Veal cutlet,g,172,2.80
+Bacon,g,541,1.20
+Ham,g,145,1.00
+Salami,g,336,1.50
+Chorizo,g,455,1.80
+Eggs,piece,155,0.50
+Tofu,g,76,0.90
+Tempeh,g,193,1.50
+Lentils,g,116,0.30
+Chickpeas,g,164,0.25
+Black beans,g,132,0.20
+Kidney beans,g,127,0.20
+White beans,g,139,0.20
+Edamame,g,122,0.60
+Split peas,g,341,0.20
+Milk,ml,42,0.15
+Heavy cream,ml,345,0.50
+Whipping cream,ml,300,0.45
+Butter,g,717,0.80
+Cheddar,g,402,1.20
+Mozzarella,g,280,1.50
+Parmesan,g,431,2.50
+Gouda,g,356,1.00
+Brie,g,334,2.00
+Feta,g,264,1.80
+Ricotta,g,174,0.90
+Cream cheese,g,342,0.60
+Greek yogurt,g,59,0.40
+Natural yogurt,g,61,0.30
+Sour cream,g,193,0.35
+Crème fraîche,g,292,0.60
+Buttermilk,ml,40,0.20
+Condensed milk,ml,321,0.40
+All-purpose flour,g,364,0.10
+Bread flour,g,361,0.12
+Whole wheat flour,g,340,0.15
+Rye flour,g,324,0.12
+Corn flour,g,361,0.15
+Rice flour,g,366,0.18
+Almond flour,g,590,0.80
+Oat flour,g,375,0.20
+Semolina,g,360,0.15
+Rice,g,130,0.08
+Pasta,g,371,0.12
+Spaghetti,g,371,0.12
+Bread,g,265,0.20
+Oats,g,389,0.15
+Rolled oats,g,389,0.15
+Cornmeal,g,362,0.12
+Panko breadcrumbs,g,395,0.25
+Breadcrumbs,g,395,0.15
+Couscous,g,376,0.20
+Quinoa,g,368,0.50
+Barley,g,354,0.15
+Brown rice,g,370,0.12
+Buckwheat,g,343,0.20
+Millet,g,378,0.18
+Polenta,g,350,0.15
+Pita bread,g,275,0.30
+Tortilla,g,306,0.25
+Noodles,g,138,0.20
+Olive oil,ml,884,0.80
+Vegetable oil,ml,884,0.30
+Coconut oil,ml,862,0.70
+Sesame oil,ml,884,1.20
+Sunflower oil,ml,884,0.25
+Canola oil,ml,884,0.25
+Butter (clarified),g,876,1.00
+Lard,g,902,0.40
+Ghee,g,900,1.20
+Salt,g,0,0.02
+Black pepper,g,251,0.50
+White pepper,g,296,0.55
+Paprika,g,282,0.40
+Smoked paprika,g,282,0.45
+Cumin,g,375,0.60
+Ground coriander,g,298,0.50
+Turmeric,g,312,0.60
+Chili powder,g,282,0.50
+Cayenne pepper,g,318,0.60
+Red chili flakes,g,306,0.50
+Oregano,g,265,0.40
+Basil,g,23,0.30
+Dried basil,g,233,0.40
+Thyme,g,101,0.40
+Dried thyme,g,276,0.50
+Rosemary,g,131,0.40
+Bay leaves,g,313,0.30
+Garlic powder,g,331,0.50
+Onion powder,g,341,0.40
+Cinnamon,g,247,0.40
+Nutmeg,g,525,0.60
+Ground ginger,g,335,0.50
+Fresh ginger,g,80,0.80
+Cardamom,g,311,1.50
+Cloves,g,274,0.80
+Dill,g,43,0.30
+Dried dill,g,253,0.50
+Parsley,g,36,0.30
+Dried parsley,g,292,0.40
+Chives,g,30,0.40
+Mint,g,70,0.50
+Tarragon,g,295,0.60
+Fennel seeds,g,345,0.60
+Caraway seeds,g,333,0.50
+Coriander seeds,g,298,0.40
+Mustard seeds,g,508,0.50
+Saffron,g,310,50.00
+Star anise,g,337,0.80
+Allspice,g,263,0.50
+Marjoram,g,271,0.40
+Sage,g,315,0.50
+Lemongrass,g,99,0.80
+Savory,g,272,0.50
+Fenugreek,g,323,0.50
+Vanilla extract,ml,288,3.00
+Vanilla pod,piece,275,4.00
+Soy sauce,ml,53,0.40
+Worcestershire sauce,ml,78,0.60
+Hot sauce,ml,35,0.80
+Ketchup,g,112,0.25
+Mustard,g,66,0.30
+Dijon mustard,g,67,0.40
+Mayonnaise,g,680,0.40
+White vinegar,ml,21,0.15
+Apple cider vinegar,ml,22,0.40
+Balsamic vinegar,ml,88,0.80
+Red wine vinegar,ml,19,0.40
+Rice vinegar,ml,18,0.30
+Fish sauce,ml,35,0.70
+Oyster sauce,ml,51,0.60
+Tomato paste,g,82,0.30
+Tomato sauce,ml,29,0.25
+Hoisin sauce,ml,97,0.70
+Sriracha,ml,35,0.80
+Tahini,g,595,1.00
+Miso paste,g,199,0.80
+Harissa,g,64,1.00
+Capers,g,23,1.20
+Pesto,g,493,1.00
+Tzatziki,g,95,0.60
+Horseradish,g,48,0.50
+Cream of tartar,g,318,0.60
+Sugar,g,387,0.12
+Brown sugar,g,380,0.15
+Powdered sugar,g,389,0.15
+Honey,g,304,0.60
+Maple syrup,ml,260,1.50
+Agave nectar,ml,310,1.00
+Molasses,ml,290,0.50
+Baking powder,g,94,0.30
+Baking soda,g,0,0.15
+Dry yeast,g,325,0.40
+Cocoa powder,g,228,0.80
+Dark chocolate,g,598,1.50
+Milk chocolate,g,535,1.20
+White chocolate,g,539,1.20
+Vanilla sugar,g,400,0.30
+Cornstarch,g,381,0.20
+Gelatin,g,335,0.50
+Almonds,g,579,1.50
+Walnuts,g,654,1.80
+Cashews,g,553,1.80
+Peanuts,g,567,0.50
+Peanut butter,g,588,0.60
+Sunflower seeds,g,584,0.40
+Pumpkin seeds,g,559,0.60
+Sesame seeds,g,573,0.50
+Flaxseeds,g,534,0.40
+Chia seeds,g,486,0.80
+Pine nuts,g,673,3.00
+Hazelnuts,g,628,2.00
+Pistachios,g,562,2.50
+Pecans,g,691,2.00
+Macadamia nuts,g,718,3.50
+Brazil nuts,g,659,2.00
+Chicken broth,ml,15,0.20
+Beef broth,ml,15,0.20
+Vegetable broth,ml,10,0.15
+Coconut milk,ml,197,0.50
+Almond milk,ml,13,0.25
+Oat milk,ml,46,0.30
+White wine,ml,82,0.60
+Red wine,ml,85,0.60
+Beer,ml,43,0.30
+Lemon juice,ml,22,0.40
+Orange juice,ml,45,0.30
+Sun-dried tomatoes,g,258,1.50
+Anchovies,g,210,2.50
+Olives,g,145,0.80
+Black olives,g,115,0.80
+Artichoke hearts,g,50,1.20
+Roasted peppers,g,28,0.80
+Pickles,g,11,0.30
+Sauerkraut,g,19,0.20
+Kimchi,g,15,0.60
+Nori,g,35,1.00
+Wakame,g,45,0.80
+Dried porcini,g,296,4.00
+Truffle oil,ml,900,5.00
+Pomegranate molasses,ml,281,1.20
+Date syrup,ml,281,1.00
+Tamarind paste,g,239,0.80
+Sambal oelek,g,35,0.70
+Gochujang,g,99,0.80
+Mirin,ml,258,0.70
+Sake,ml,134,0.60
+Coconut cream,ml,330,0.60
+Crème de cacao,ml,348,0.80
+Port wine,ml,157,0.80
