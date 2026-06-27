@@ -76,6 +76,38 @@ The seeder does not run outside the Development environment.
 To run the API without Aspire, configure `ConnectionStrings__kotletdb` with a
 PostgreSQL connection string.
 
+## Shared Supabase database
+
+Kotlet isolates every application table and its EF Core migration history in the
+`kotlet` PostgreSQL schema. The API is the only component that connects to the
+database; do not put the database connection string in Angular configuration or
+allow the browser to write directly to Supabase tables.
+
+Configure the Supabase PostgreSQL connection string as a secret on the backend host:
+
+```powershell
+$env:ConnectionStrings__kotletdb = 'Host=<host>;Port=5432;Database=postgres;Username=<user>;Password=<password>;SSL Mode=Require;Trust Server Certificate=true'
+```
+
+Use a local environment variable, .NET user secrets, or an Azure App Service
+application setting. Never commit the database password. Apply migrations from a
+trusted machine with network access to Supabase:
+
+```powershell
+dotnet ef database update --project src/backend/Kotlet.Infrastructure --startup-project src/backend/Kotlet.Api
+```
+
+Review the SQL first when targeting a shared project:
+
+```powershell
+dotnet ef migrations script --idempotent --project src/backend/Kotlet.Infrastructure --startup-project src/backend/Kotlet.Api --output kotlet-migrations.sql
+```
+
+The script must only create or modify objects in `kotlet`, including
+`kotlet.__EFMigrationsHistory`. Existing application schemas and Supabase-managed
+objects must remain untouched. If the `kotlet` schema is ever exposed through the
+Supabase Data API, review and enable appropriate Row Level Security policies first.
+
 ## Authentication configuration
 
 Access tokens are short-lived JWTs. Refresh tokens are sent only through the

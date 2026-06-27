@@ -40,8 +40,10 @@ public static class DependencyInjection
         if (provider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
         {
             services.AddDbContext<KotletDbContext>(options =>
-                options.UseNpgsql(configuration.GetConnectionString("kotletdb")
-                    ?? throw new InvalidOperationException("Connection string 'kotletdb' is not configured.")));
+                options.UseNpgsql(
+                    configuration.GetConnectionString("kotletdb")
+                        ?? throw new InvalidOperationException("Connection string 'kotletdb' is not configured."),
+                    npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", DatabaseSchemas.Kotlet)));
             return;
         }
 

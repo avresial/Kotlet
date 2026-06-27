@@ -13,6 +13,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "pantry_items",
+                schema: "kotlet",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -26,12 +27,14 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_pantry_items_ingredients_ingredient_id",
                         column: x => x.ingredient_id,
+                        principalSchema: "kotlet",
                         principalTable: "ingredients",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_pantry_items_users_user_id",
                         column: x => x.user_id,
+                        principalSchema: "kotlet",
                         principalTable: "users",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -39,11 +42,13 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_pantry_items_ingredient_id",
+                schema: "kotlet",
                 table: "pantry_items",
                 column: "ingredient_id");
 
             migrationBuilder.CreateIndex(
                 name: "ux_pantry_items_user_ingredient",
+                schema: "kotlet",
                 table: "pantry_items",
                 columns: new[] { "user_id", "ingredient_id" },
                 unique: true);
@@ -53,7 +58,8 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "pantry_items");
+                name: "pantry_items",
+                schema: "kotlet");
         }
     }
 }

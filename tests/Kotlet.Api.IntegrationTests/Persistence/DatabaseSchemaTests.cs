@@ -7,6 +7,12 @@ namespace Kotlet.Api.IntegrationTests.Persistence;
 public sealed class DatabaseSchemaTests
 {
     [Fact]
+    public void DefaultSchema_UsesCentralDatabaseSchemaConstant()
+    {
+        Assert.Equal(DatabaseSchemas.Kotlet, KotletDbContext.DefaultSchema);
+    }
+
+    [Fact]
     public void EveryApplicationTable_UsesKotletSchema()
     {
         var options = new DbContextOptionsBuilder<KotletDbContext>().UseSqlite("Data Source=:memory:").Options;
