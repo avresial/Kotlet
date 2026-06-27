@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
@@ -17,6 +18,7 @@ export class RecipeEditPage implements OnInit {
   private readonly service = inject(RecipeService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly recipe = signal<RecipeDetail | null>(null);
   readonly isLoading = signal(true);
@@ -26,7 +28,15 @@ export class RecipeEditPage implements OnInit {
   get id(): string { return this.route.snapshot.paramMap.get('id')!; }
 
   ngOnInit(): void {
-    this.service.get(this.id)
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => this.load(params.get('id')!));
+  }
+
+  private load(id: string): void {
+    this.isLoading.set(true);
+    this.error.set(null);
+    this.service.get(id)
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: (recipe) => this.recipe.set(recipe),
