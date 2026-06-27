@@ -10,10 +10,10 @@ public static class AuthEndpoints
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var auth = endpoints.MapGroup("/api/auth").WithTags("Auth");
-        auth.MapPost("/register", Register).AddEndpointFilter(RequireSameOrigin);
-        auth.MapPost("/login", Login).AddEndpointFilter(RequireSameOrigin);
-        auth.MapPost("/refresh", Refresh).AddEndpointFilter(RequireSameOrigin);
-        auth.MapPost("/logout", Logout).AddEndpointFilter(RequireSameOrigin);
+        auth.MapPost("/register", Register);
+        auth.MapPost("/login", Login);
+        auth.MapPost("/refresh", Refresh);
+        auth.MapPost("/logout", Logout);
         auth.MapGet("/me", Me).RequireAuthorization();
         return endpoints;
     }
@@ -105,5 +105,4 @@ public static class AuthEndpoints
     private static string NormalizeEmail(string email) => email.Trim().ToUpperInvariant();
     private static CurrentUserResponse ToResponse(User user) => new(user.Id, user.Email, user.DisplayName, user.CreatedAtUtc, user.LastLoginAtUtc);
     private static Dictionary<string, string[]> ValidateRegistration(RegisterRequest r) { var e = new Dictionary<string, string[]>(); if (string.IsNullOrWhiteSpace(r.Email) || !System.Net.Mail.MailAddress.TryCreate(r.Email.Trim(), out _)) e["email"] = ["A valid email is required."]; if (string.IsNullOrWhiteSpace(r.Password) || r.Password.Length < 8) e["password"] = ["Password must be at least 8 characters long."]; if (r.Password != r.ConfirmPassword) e["confirmPassword"] = ["Passwords do not match."]; if (r.DisplayName?.Trim().Length > 100) e["displayName"] = ["Display name cannot exceed 100 characters."]; return e; }
-    private static ValueTask<object?> RequireSameOrigin(EndpointFilterInvocationContext c, EndpointFilterDelegate next) { var r = c.HttpContext.Request; var source = r.Headers.Origin.FirstOrDefault() ?? r.Headers.Referer.FirstOrDefault(); if (source is not null && (!Uri.TryCreate(source, UriKind.Absolute, out var uri) || !string.Equals(uri.Authority, r.Host.Value, StringComparison.OrdinalIgnoreCase))) return ValueTask.FromResult<object?>(Results.BadRequest(new { message = "Cross-origin authentication requests are not allowed." })); return next(c); }
 }
