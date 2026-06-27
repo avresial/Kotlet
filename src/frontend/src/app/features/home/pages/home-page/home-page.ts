@@ -10,6 +10,8 @@ import { IngredientService } from '../../../ingredients/ingredient.service';
 import { ShoppingListItem } from '../../../shopping-list/shopping-list.models';
 import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
 import { getApiError } from '../../../../core/http/api-error';
+import { RecipeService } from '../../../recipes/services/recipe.service';
+import { RecipeSummary } from '../../../recipes/models/recipe.models';
 
 @Component({
   selector: 'app-home-page',
@@ -23,6 +25,7 @@ export class HomePage implements OnInit {
   private readonly pantryService = inject(PantryService);
   private readonly ingredientService = inject(IngredientService);
   private readonly shoppingListService = inject(ShoppingListService);
+  private readonly recipeService = inject(RecipeService);
   readonly lowStock = signal<PantryItem[]>([]);
   readonly pantryLoading = signal(true);
   readonly ingredients = signal<Ingredient[]>([]);
@@ -32,6 +35,8 @@ export class HomePage implements OnInit {
   readonly shoppingError = signal<string | null>(null);
   readonly selectedIngredientId = signal('');
   readonly newQuantity = signal(1);
+  readonly newestRecipes = signal<RecipeSummary[]>([]);
+  readonly recipesLoading = signal(true);
   readonly availableIngredients = computed(() => this.ingredients().filter(ingredient =>
     !this.shoppingItems().some(item => item.ingredientId === ingredient.id)));
   readonly purchasedCount = computed(() => this.shoppingItems().filter(item => item.isPurchased).length);
@@ -48,14 +53,6 @@ export class HomePage implements OnInit {
     day: 'numeric',
   }).format(new Date());
 
-  // Mocked dashboard data — to be wired to real APIs later.
-  readonly newestRecipes = [
-    { emoji: '🥟', name: 'Pierogi ruskie', category: 'Main course', addedAgo: '2 days ago' },
-    { emoji: '🍲', name: 'Żurek', category: 'Soup', addedAgo: '4 days ago' },
-    { emoji: '🥧', name: 'Sernik', category: 'Dessert', addedAgo: '1 week ago' },
-    { emoji: '🥗', name: 'Mizeria', category: 'Side', addedAgo: '1 week ago' },
-  ];
-
   readonly todaysMenu = [
     { time: 'BREAKFAST', emoji: '🍳', name: 'Jajecznica', note: 'Scrambled eggs with chives' },
     { time: 'LUNCH', emoji: '🥪', name: 'Kanapki', note: 'Open sandwiches on rye' },
@@ -63,14 +60,43 @@ export class HomePage implements OnInit {
   ];
 
   ngOnInit(): void {
-    forkJoin({ pantry: this.pantryService.getAll(), ingredients: this.ingredientService.getAll(), shopping: this.shoppingListService.getAll() })
-      .pipe(finalize(() => { this.pantryLoading.set(false); this.shoppingLoading.set(false); }))
+    forkJoin({
+      pantry: this.pantryService.getAll(),
+      ingredients: this.ingredientService.getAll(),
+      shopping: this.shoppingListService.getAll(),
+      recipes: this.recipeService.list(1, 4),
+    })
+      .pipe(finalize(() => {
+        this.pantryLoading.set(false);
+        this.shoppingLoading.set(false);
+        this.recipesLoading.set(false);
+      }))
       .subscribe({
-      next: ({ pantry, ingredients, shopping }) => {
-        this.lowStock.set(pantry.slice(0, 5)); this.ingredients.set(ingredients); this.shoppingItems.set(shopping);
-      },
-      error: error => this.shoppingError.set(getApiError(error, 'Unable to load the dashboard.')),
-    });
+        next: ({ pantry, ingredients, shopping, recipes }) => {
+          this.lowStock.set(pantry.slice(0, 5));
+          this.ingredients.set(ingredients);
+          this.shoppingItems.set(shopping);
+          this.newestRecipes.set(recipes.items);
+        },
+        error: error => this.shoppingError.set(getApiError(error, 'Unable to load the dashboard.')),
+      });
+  }
+
+  relativeTime(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const weeks = Math.floor(days / 7);
+    const months = Math.floor(days / 30);
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+    if (months >= 1) return rtf.format(-months, 'month');
+    if (weeks >= 1) return rtf.format(-weeks, 'week');
+    if (days >= 1) return rtf.format(-days, 'day');
+    if (hours >= 1) return rtf.format(-hours, 'hour');
+    if (minutes >= 1) return rtf.format(-minutes, 'minute');
+    return 'just now';
   }
 
   addToShoppingList(ingredientId = this.selectedIngredientId(), quantity = this.newQuantity()): void {
