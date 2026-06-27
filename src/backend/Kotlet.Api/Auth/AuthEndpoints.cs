@@ -15,7 +15,7 @@ public static class AuthEndpoints
         var auth = endpoints.MapGroup("/api/auth").WithTags("Auth");
         auth.MapPost("/register", Register).AddEndpointFilter(RequireSameOrigin);
         auth.MapPost("/login", Login).AddEndpointFilter(RequireSameOrigin);
-        auth.MapPost("/logout", Logout).RequireAuthorization();
+        auth.MapPost("/logout", (Delegate)Logout).RequireAuthorization();
         auth.MapGet("/me", Me).RequireAuthorization();
         return endpoints;
     }

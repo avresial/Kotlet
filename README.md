@@ -76,6 +76,25 @@ The seeder does not run outside the Development environment.
 To run the API without Aspire, configure `ConnectionStrings__kotletdb` with a
 PostgreSQL connection string. To create a new migration after changing the model:
 
+PostgreSQL is the default database provider. For temporary development with an
+in-memory SQLite database, use the API's `sqlite` launch profile:
+
+```powershell
+dotnet run --project src/backend/Kotlet.Api --launch-profile sqlite
+```
+
+The same provider can be selected when running through Aspire. The SQLite database
+exists only for the lifetime of the API process, and Aspire will not start PostgreSQL:
+
+```powershell
+$env:Database__Provider = 'Sqlite'
+dotnet run --project src/aspire/Kotlet.AppHost
+```
+
+Remove the environment variable to return to the default PostgreSQL setup.
+
+To create a new PostgreSQL migration after changing the model:
+
 ```powershell
 dotnet ef migrations add <MigrationName> --project src/backend/Kotlet.Infrastructure --startup-project src/backend/Kotlet.Api --output-dir Persistence/Migrations
 ```

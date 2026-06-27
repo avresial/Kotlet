@@ -14,7 +14,10 @@ public sealed class DatabaseMigrationWorker(
 
         await using var scope = scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<KotletDbContext>();
-        await dbContext.Database.MigrateAsync(stoppingToken);
+        if (dbContext.Database.IsSqlite())
+            await dbContext.Database.EnsureCreatedAsync(stoppingToken);
+        else
+            await dbContext.Database.MigrateAsync(stoppingToken);
 
         logger.LogInformation("Database migrations applied successfully");
 
