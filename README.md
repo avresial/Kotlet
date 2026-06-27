@@ -52,14 +52,33 @@ src/
 
 ## Run locally
 
-Prerequisites: .NET 10 SDK, Node.js 22.22+ or 24.x, and npm.
+Prerequisites: .NET 10 SDK, Node.js 22.22+ or 24.x, npm, and a Docker-compatible container runtime.
 
 ```powershell
 dotnet run --project src/aspire/Kotlet.AppHost
 ```
 
 Aspire starts the API and Angular development server and displays their endpoints in
-the Aspire dashboard. The sample API endpoint is `GET /api/menu`.
+the Aspire dashboard. It also starts PostgreSQL and supplies the `kotletdb` connection
+string to the API. A background worker applies EF Core migrations when the API starts.
+The sample API endpoint is `GET /api/menu`; authentication endpoints are under
+`/api/auth`. In development, the interactive Scalar API client is available at
+`/scalar/v1`.
+
+After migrations, the development database seeder creates two local accounts if
+they do not already exist:
+
+- `admin@kotlet.local` / `Admin123!`
+- `testuser@kotlet.local` / `TestUser123!`
+
+The seeder does not run outside the Development environment.
+
+To run the API without Aspire, configure `ConnectionStrings__kotletdb` with a
+PostgreSQL connection string. To create a new migration after changing the model:
+
+```powershell
+dotnet ef migrations add <MigrationName> --project src/backend/Kotlet.Infrastructure --startup-project src/backend/Kotlet.Api --output-dir Persistence/Migrations
+```
 
 ### Visual Studio Code
 
