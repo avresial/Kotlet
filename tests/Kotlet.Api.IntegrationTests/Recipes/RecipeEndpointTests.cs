@@ -30,7 +30,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
             descriptionMarkdown = "Simple **soup**.",
             ingredients = new[]
             {
-                new { name = "Tomatoes", quantity = 800, unit = "g", note = "canned" },
+                new { name = "Tomatoes", quantity = 800, unit = "g", note = (string?)"canned" },
                 new { name = "Garlic", quantity = 2, unit = "cloves", note = (string?)null }
             }
         });
