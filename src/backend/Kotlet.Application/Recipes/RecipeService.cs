@@ -103,7 +103,6 @@ public sealed class RecipeService(IRecipeRepository repository)
         IReadOnlyList<RecipeIngredientRequest> requests, Guid recipeId) =>
         requests.Select((r, i) => new RecipeIngredient
         {
-            Id = Guid.NewGuid(),
             RecipeId = recipeId,
             SortOrder = i,
             Name = r.Name.Trim(),
