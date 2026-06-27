@@ -1,0 +1,64 @@
+name: Deploy frontend to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/frontend/**'
+      - '.github/workflows/github-pages.yml'
+  workflow_dispatch:
+
+# Allow the GITHUB_TOKEN to deploy to Pages and verify the deployment origin
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment, skipping queued runs in between
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'src/frontend/.nvmrc'
+          cache: npm
+          cache-dependency-path: 'src/frontend/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: src/frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: src/frontend
+        run: npm run build -- --base-href "/${{ github.event.repository.name }}/"
+
+      - name: Add SPA fallback and disable Jekyll
+        working-directory: src/frontend/dist/kotlet-web/browser
+        run: |
+          cp index.html 404.html
+          touch .nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: src/frontend/dist/kotlet-web/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

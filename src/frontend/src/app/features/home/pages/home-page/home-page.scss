@@ -1,7 +1,41 @@
-.home { max-width: 760px; margin: 0 auto; padding: 10vh 2rem; }
-.eyebrow { color: #a23b28; font-weight: 800; letter-spacing: .18em; }
-h1 { max-width: 700px; font-family: Georgia, serif; font-size: clamp(2.8rem, 8vw, 5.5rem); line-height: .98; margin: 1rem 0 2rem; }
-.description { max-width: 590px; color: #625b51; font-size: 1.15rem; line-height: 1.7; }
-section { margin-top: 4rem; padding: 1.5rem; border: 1px solid #d8cdbd; border-radius: 1rem; background: #fffaf2; }
-section h2 { margin-top: 0; font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: #786f62; }
-section p { margin-bottom: 0; font-family: Georgia, serif; font-size: 1.7rem; }
+:host { display: block; }
+.app-shell { min-height: calc(100vh - var(--app-header-height)); display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); }
+.sidebar { padding: 2rem 1rem 1.5rem; border-right: 1px solid #ded5c8; background: #eee8de; display: flex; flex-direction: column; }
+nav { display: grid; gap: .35rem; }
+.nav-item { width: 100%; min-height: 3rem; padding: .75rem .9rem; border: 0; border-radius: .7rem; display: flex; align-items: center; gap: .8rem; color: #655f56; background: transparent; font: inherit; font-weight: 650; text-align: left; text-decoration: none; }
+.nav-item svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.nav-item.active { color: #8b3325; background: #fffaf2; box-shadow: 0 1px 2px rgb(53 42 28 / 8%); }
+.nav-item:disabled { opacity: .66; cursor: default; }
+.soon { margin-left: auto; padding: .15rem .4rem; border: 1px solid #d4cabd; border-radius: 99px; font-size: .58rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.sidebar-note { margin-top: auto; padding: 1.1rem; border: 1px solid #d6ccbd; border-radius: .9rem; background: rgb(255 250 242 / 55%); }
+.note-icon { width: 2rem; height: 2rem; margin-bottom: .7rem; border-radius: 50%; display: grid; place-items: center; color: #fffaf2; background: #9c3a2a; }
+.sidebar-note strong { font-family: Georgia, serif; font-size: 1rem; }
+.sidebar-note p { margin: .4rem 0 0; color: #746d63; font-size: .8rem; line-height: 1.45; }
+.dashboard { width: min(100%, 74rem); margin: 0 auto; padding: clamp(2rem, 5vw, 4.5rem); }
+.welcome { display: flex; align-items: flex-end; justify-content: space-between; gap: 2rem; }
+.eyebrow, .section-label, .meal-time { margin: 0; color: #9a3a2a; font-size: .7rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+h1 { margin: .6rem 0 .5rem; font-family: Georgia, serif; font-size: clamp(2.15rem, 4vw, 3.5rem); font-weight: 500; line-height: 1.08; }
+.intro { margin: 0; color: #746d63; font-size: 1.05rem; }
+.primary-action { padding: .78rem 1.1rem; border: 0; border-radius: .6rem; color: #fff; background: #963827; font: inherit; font-weight: 750; white-space: nowrap; opacity: .72; }
+.primary-action span { margin-right: .3rem; font-size: 1.15rem; }
+.today-card { margin-top: 3rem; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid #dcd2c4; border-radius: 1rem; background: #fffaf2; box-shadow: 0 1rem 2.8rem rgb(70 52 31 / 6%); }
+.card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 500; }
+.status { padding: .35rem .65rem; border-radius: 99px; color: #496244; background: #e8eee2; font-size: .7rem; font-weight: 750; white-space: nowrap; }
+.status span { width: .4rem; height: .4rem; margin-right: .35rem; border-radius: 50%; display: inline-block; background: #63805b; }
+.meal { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e4dbcf; display: grid; grid-template-columns: 8rem 1fr auto; align-items: center; gap: 1.5rem; }
+.meal-visual { aspect-ratio: 4 / 3; border-radius: .75rem; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 50% 45%, #f7d999 0 20%, transparent 21%), linear-gradient(135deg, #d9a052, #9d4f2d); }
+.meal-visual span { width: 4.5rem; height: 4.5rem; border-radius: 50%; display: grid; place-items: center; background: #fff8e8; font-size: 2.1rem; box-shadow: 0 .4rem 1rem rgb(67 33 15 / 20%); }
+.meal-details h3 { margin: .35rem 0; font-family: Georgia, serif; font-size: 1.55rem; font-weight: 500; }
+.meal-details > p:not(.meal-time) { margin: 0; color: #746d63; }
+.tags { margin-top: .8rem; display: flex; flex-wrap: wrap; gap: .4rem; }
+.tags span { padding: .3rem .55rem; border: 1px solid #ded4c6; border-radius: 99px; color: #71695e; font-size: .7rem; }
+.more { align-self: start; border: 0; color: #80776b; background: none; font-size: 1.1rem; letter-spacing: .1em; }
+.quick-grid { margin-top: 1.25rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+.quick-grid article { padding: 1.25rem; border: 1px solid #ded5c8; border-radius: .85rem; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem; background: rgb(255 250 242 / 45%); }
+.quick-grid strong { font-family: Georgia, serif; font-size: 1rem; }
+.quick-grid p { margin: .25rem 0 0; color: #777065; font-size: .8rem; line-height: 1.35; }
+.quick-icon { width: 2.4rem; height: 2.4rem; border-radius: .6rem; display: grid; place-items: center; font-size: 1.25rem; }
+.calendar { color: #8e392b; background: #f2dfd7; }.recipe { color: #52704b; background: #e1e9dc; }.arrow { color: #9a9185; }
+@media (max-width: 52rem) { .app-shell { grid-template-columns: 1fr; } .sidebar { padding: .6rem 1rem; border-right: 0; border-bottom: 1px solid #ded5c8; } nav { display: flex; overflow-x: auto; } .nav-item { width: auto; flex: 0 0 auto; } .nav-item .soon, .sidebar-note { display: none; } .dashboard { padding: 2rem 1.25rem; } }
+@media (max-width: 38rem) { .welcome { align-items: flex-start; flex-direction: column; } .primary-action { display: none; } .meal { grid-template-columns: 5rem 1fr auto; gap: .8rem; } .meal-visual { aspect-ratio: 1; } .meal-visual span { width: 3.25rem; height: 3.25rem; font-size: 1.5rem; } .quick-grid { grid-template-columns: 1fr; } .card-heading { display: block; } .status { display: inline-block; margin-top: .8rem; } }
