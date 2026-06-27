@@ -36,6 +36,11 @@ export class RecipeService {
     return this.http.delete<void>(apiUrl(`/api/recipes/${id}`));
   }
 
+  listRecent(limit = 4) {
+    const params = new HttpParams().set('limit', limit);
+    return this.http.get<RecipeSummary[]>(apiUrl('/api/recipes/recent'), { params });
+  }
+
   listImages(recipeId: string) {
     return this.http.get<RecipeImage[]>(apiUrl(`/api/recipes/${recipeId}/images`));
   }

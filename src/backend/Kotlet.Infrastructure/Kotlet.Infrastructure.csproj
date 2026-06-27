@@ -6,7 +6,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\ingredients.csv" />
+    <Content Include="Persistence\SeedData\ingredients.csv">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>SeedData\ingredients.csv</TargetPath>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

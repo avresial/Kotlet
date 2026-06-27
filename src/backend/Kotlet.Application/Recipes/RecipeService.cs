@@ -15,8 +15,16 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         var (items, total) = await repository.GetPagedAsync(ownerUserId, page, pageSize, search, cancellationToken);
         return new PagedResponse<RecipeSummaryResponse>(
             items.Select(r => new RecipeSummaryResponse(
-                r.Id, r.Title, r.Slug, r.Ingredients.Count, r.UpdatedAtUtc)).ToList(),
+                r.Id, r.Title, r.Slug, r.Ingredients.Count, r.CreatedAtUtc, r.UpdatedAtUtc)).ToList(),
             page, pageSize, total);
+    }
+
+    public async Task<IReadOnlyList<RecipeSummaryResponse>> ListRecentAsync(
+        Guid ownerUserId, int limit, CancellationToken cancellationToken)
+    {
+        limit = Math.Clamp(limit, 1, 20);
+        var recipes = await repository.GetRecentAsync(ownerUserId, limit, cancellationToken);
+        return recipes.Select(ToSummaryResponse).ToList();
     }
 
     public async Task<RecipeDetailResponse?> GetByIdAsync(
@@ -188,6 +196,9 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
                 .ToList(),
             images ?? [],
             recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
+
+    private static RecipeSummaryResponse ToSummaryResponse(Recipe recipe) =>
+        new(recipe.Id, recipe.Title, recipe.Slug, recipe.Ingredients.Count, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
 
     private static RecipeImageResponse ToImageResponse(RecipeImage i) => new(i.Id, i.RecipeId, i.FileName,
         i.ContentType, i.FileSizeBytes, i.AltText, i.SortOrder,

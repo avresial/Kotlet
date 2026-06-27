@@ -27,6 +27,7 @@ export interface RecipeSummary {
   title: string;
   slug: string;
   ingredientCount: number;
+  createdAtUtc: string;
   updatedAtUtc: string;
 }
 

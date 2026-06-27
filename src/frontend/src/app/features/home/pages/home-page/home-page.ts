@@ -10,8 +10,8 @@ import { IngredientService } from '../../../ingredients/ingredient.service';
 import { ShoppingListItem } from '../../../shopping-list/shopping-list.models';
 import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
 import { getApiError } from '../../../../core/http/api-error';
-import { RecipeService } from '../../../recipes/services/recipe.service';
 import { RecipeSummary } from '../../../recipes/models/recipe.models';
+import { RecipeService } from '../../../recipes/services/recipe.service';
 
 @Component({
   selector: 'app-home-page',
@@ -33,10 +33,11 @@ export class HomePage implements OnInit {
   readonly shoppingLoading = signal(true);
   readonly shoppingSaving = signal(false);
   readonly shoppingError = signal<string | null>(null);
-  readonly selectedIngredientId = signal('');
-  readonly newQuantity = signal(1);
   readonly newestRecipes = signal<RecipeSummary[]>([]);
   readonly recipesLoading = signal(true);
+  readonly recipesError = signal(false);
+  readonly selectedIngredientId = signal('');
+  readonly newQuantity = signal(1);
   readonly availableIngredients = computed(() => this.ingredients().filter(ingredient =>
     !this.shoppingItems().some(item => item.ingredientId === ingredient.id)));
   readonly purchasedCount = computed(() => this.shoppingItems().filter(item => item.isPurchased).length);
@@ -60,43 +61,30 @@ export class HomePage implements OnInit {
   ];
 
   ngOnInit(): void {
-    forkJoin({
-      pantry: this.pantryService.getAll(),
-      ingredients: this.ingredientService.getAll(),
-      shopping: this.shoppingListService.getAll(),
-      recipes: this.recipeService.list(1, 4),
-    })
-      .pipe(finalize(() => {
-        this.pantryLoading.set(false);
-        this.shoppingLoading.set(false);
-        this.recipesLoading.set(false);
-      }))
+    this.recipeService.listRecent(4).pipe(finalize(() => this.recipesLoading.set(false))).subscribe({
+      next: recipes => this.newestRecipes.set(recipes),
+      error: () => this.recipesError.set(true),
+    });
+    forkJoin({ pantry: this.pantryService.getAll(), ingredients: this.ingredientService.getAll(), shopping: this.shoppingListService.getAll() })
+      .pipe(finalize(() => { this.pantryLoading.set(false); this.shoppingLoading.set(false); }))
       .subscribe({
-        next: ({ pantry, ingredients, shopping, recipes }) => {
+        next: ({ pantry, ingredients, shopping }) => {
           this.lowStock.set(pantry.slice(0, 5));
           this.ingredients.set(ingredients);
           this.shoppingItems.set(shopping);
-          this.newestRecipes.set(recipes.items);
         },
         error: error => this.shoppingError.set(getApiError(error, 'Unable to load the dashboard.')),
       });
   }
 
-  relativeTime(dateStr: string): string {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const seconds = Math.floor(diff / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    const weeks = Math.floor(days / 7);
-    const months = Math.floor(days / 30);
-    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-    if (months >= 1) return rtf.format(-months, 'month');
-    if (weeks >= 1) return rtf.format(-weeks, 'week');
-    if (days >= 1) return rtf.format(-days, 'day');
-    if (hours >= 1) return rtf.format(-hours, 'hour');
-    if (minutes >= 1) return rtf.format(-minutes, 'minute');
-    return 'just now';
+  relativeDate(value: string): string {
+    const elapsedDays = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000));
+    if (elapsedDays === 0) return 'today';
+    if (elapsedDays === 1) return 'yesterday';
+    if (elapsedDays < 7) return `${elapsedDays} days ago`;
+    const weeks = Math.floor(elapsedDays / 7);
+    if (weeks < 5) return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(new Date(value));
   }
 
   addToShoppingList(ingredientId = this.selectedIngredientId(), quantity = this.newQuantity()): void {
