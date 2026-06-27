@@ -5,6 +5,8 @@ using Kotlet.Api.Ingredients;
 using Kotlet.Api.Persistence;
 using Kotlet.Application.Pantry;
 using Kotlet.Api.Pantry;
+using Kotlet.Application.Recipes;
+using Kotlet.Api.Recipes;
 using Kotlet.Application.Shopping;
 using Kotlet.Api.Shopping;
 using Kotlet.Infrastructure;
@@ -23,6 +25,7 @@ builder.Services.AddScoped<GetMenuQueryHandler>();
 builder.Services.AddScoped<IngredientService>();
 builder.Services.AddScoped<PantryService>();
 builder.Services.AddScoped<ShoppingListService>();
+builder.Services.AddScoped<RecipeService>();
 builder.Services.AddOptions<JwtOptions>().BindConfiguration(JwtOptions.SectionName).ValidateOnStart();
 builder.Services.AddOptions<AuthOptions>().BindConfiguration(AuthOptions.SectionName).ValidateOnStart();
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
@@ -77,6 +80,7 @@ app.MapAuthEndpoints();
 app.MapIngredientEndpoints();
 app.MapPantryEndpoints();
 app.MapShoppingListEndpoints();
+app.MapRecipeEndpoints();
 app.MapGet("/api/menu", async (GetMenuQueryHandler handler, CancellationToken cancellationToken) =>
     Results.Ok(await handler.Handle(new GetMenuQuery(), cancellationToken)))
     .WithName("GetMenu");

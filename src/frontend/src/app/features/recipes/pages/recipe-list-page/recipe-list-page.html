@@ -1,0 +1,54 @@
+<main class="recipe-list-page">
+  <a class="back" routerLink="/">← Back to overview</a>
+  <header>
+    <div>
+      <p class="eyebrow">Your kitchen</p>
+      <h1>Recipes</h1>
+      <p>Manage your recipe collection.</p>
+    </div>
+    <a routerLink="/recipes/new" class="button primary">+ New recipe</a>
+  </header>
+
+  <div class="search-bar">
+    <input type="search" [(ngModel)]="search" placeholder="Search recipes…" (keyup.enter)="onSearch()" />
+    <button type="button" class="primary" (click)="onSearch()">Search</button>
+    @if (search()) {
+      <button type="button" class="secondary" (click)="clearSearch()">Clear</button>
+    }
+  </div>
+
+  @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
+
+  @if (isLoading()) {
+    <p class="empty">Loading recipes…</p>
+  } @else if (recipes().length === 0) {
+    <p class="empty">
+      @if (search()) { No recipes match "{{ search() }}". }
+      @else { No recipes yet. <a routerLink="/recipes/new">Create your first one!</a> }
+    </p>
+  } @else {
+    <div class="recipe-grid">
+      @for (recipe of recipes(); track recipe.id) {
+        <article class="recipe-card">
+          <div class="card-body" (click)="navigateTo(recipe)" role="button" tabindex="0" (keyup.enter)="navigateTo(recipe)" [attr.aria-label]="'View ' + recipe.title">
+            <h2>{{ recipe.title }}</h2>
+            <p class="meta">{{ recipe.ingredientCount }} ingredient{{ recipe.ingredientCount !== 1 ? 's' : '' }}</p>
+            <p class="updated">Updated {{ recipe.updatedAtUtc | date:'mediumDate' }}</p>
+          </div>
+          <div class="card-actions">
+            <a [routerLink]="['/recipes', recipe.id, 'edit']" class="button secondary small">Edit</a>
+            <button type="button" class="button danger small" [disabled]="deletingId() === recipe.id" (click)="delete(recipe)">
+              {{ deletingId() === recipe.id ? 'Deleting…' : 'Delete' }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+
+    <nav class="pagination" aria-label="Pagination">
+      <button type="button" [disabled]="page() <= 1" (click)="prevPage()">← Previous</button>
+      <span>Page {{ page() }}</span>
+      <button type="button" [disabled]="!hasNextPage" (click)="nextPage()">Next →</button>
+    </nav>
+  }
+</main>

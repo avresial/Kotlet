@@ -2,6 +2,7 @@ using Kotlet.Domain.Auth;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.Pantry;
 using Kotlet.Domain.Houses;
+using Kotlet.Domain.Recipes;
 using Kotlet.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,8 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<PantryItem> PantryItems => Set<PantryItem>();
     public DbSet<House> Houses => Set<House>();
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
+    public DbSet<Recipe> Recipes => Set<Recipe>();
+    public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

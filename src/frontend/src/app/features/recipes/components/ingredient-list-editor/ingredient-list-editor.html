@@ -1,0 +1,40 @@
+<div class="ingredient-list-editor">
+  @if (rows.length === 0) {
+    <p class="empty">No ingredients yet. Add the first one below.</p>
+  } @else {
+    <div class="ingredient-rows">
+      @for (row of rows; track $index) {
+        <div class="ingredient-row" [formGroup]="row">
+          <span class="row-index">{{ $index + 1 }}</span>
+          <div class="row-fields">
+            <label class="field-name">
+              <span class="sr-only">Name</span>
+              <input type="text" formControlName="name" placeholder="Ingredient name *" [class.invalid]="row.get('name')?.invalid && row.get('name')?.touched" />
+              @if (row.get('name')?.invalid && row.get('name')?.touched) {
+                <span class="field-error">Name is required</span>
+              }
+            </label>
+            <label class="field-qty">
+              <span class="sr-only">Quantity</span>
+              <input type="number" formControlName="quantity" placeholder="Qty" min="0.001" step="any" />
+            </label>
+            <label class="field-unit">
+              <span class="sr-only">Unit</span>
+              <input type="text" formControlName="unit" placeholder="Unit" />
+            </label>
+            <label class="field-note">
+              <span class="sr-only">Note</span>
+              <input type="text" formControlName="note" placeholder="Note (optional)" />
+            </label>
+          </div>
+          <div class="row-actions">
+            <button type="button" [disabled]="$index === 0 || isDisabled()" (click)="moveUp($index)" title="Move up" aria-label="Move ingredient up">↑</button>
+            <button type="button" [disabled]="$index === rows.length - 1 || isDisabled()" (click)="moveDown($index)" title="Move down" aria-label="Move ingredient down">↓</button>
+            <button type="button" class="delete" [disabled]="isDisabled()" (click)="removeRow($index)" aria-label="Remove ingredient">✕</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+  <button type="button" class="add-row" [disabled]="isDisabled()" (click)="addRow()">+ Add ingredient</button>
+</div>

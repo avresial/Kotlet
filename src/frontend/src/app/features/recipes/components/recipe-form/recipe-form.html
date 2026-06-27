@@ -1,0 +1,40 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="recipe-form">
+  @if (error()) {
+    <div class="error" role="alert">{{ error() }}</div>
+  }
+
+  <div class="form-field">
+    <label for="recipe-title">Title <span aria-hidden="true">*</span></label>
+    <input
+      id="recipe-title"
+      type="text"
+      formControlName="title"
+      placeholder="e.g. Tomato Soup"
+      [class.invalid]="form.get('title')?.invalid && form.get('title')?.touched"
+      maxlength="160"
+    />
+    @if (form.get('title')?.invalid && form.get('title')?.touched) {
+      <span class="field-error">
+        @if (form.get('title')?.errors?.['required']) { Title is required. }
+        @else if (form.get('title')?.errors?.['maxlength']) { Title cannot exceed 160 characters. }
+      </span>
+    }
+  </div>
+
+  <div class="form-field">
+    <label>Description (Markdown)</label>
+    <app-markdown-editor formControlName="descriptionMarkdown"></app-markdown-editor>
+  </div>
+
+  <div class="form-field">
+    <label>Ingredients</label>
+    <app-ingredient-list-editor formControlName="ingredients"></app-ingredient-list-editor>
+  </div>
+
+  <div class="form-actions">
+    <button type="button" class="secondary" (click)="cancel()">Cancel</button>
+    <button type="submit" class="primary" [disabled]="isSaving()">
+      {{ isSaving() ? 'Saving…' : submitLabel() }}
+    </button>
+  </div>
+</form>

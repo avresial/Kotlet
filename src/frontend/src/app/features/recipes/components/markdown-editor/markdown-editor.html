@@ -1,0 +1,25 @@
+<div class="markdown-editor">
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" [class.active]="activeTab() === 'write'" [attr.aria-selected]="activeTab() === 'write'" (click)="setTab('write')">Write</button>
+    <button type="button" role="tab" [class.active]="activeTab() === 'preview'" [attr.aria-selected]="activeTab() === 'preview'" (click)="setTab('preview')">Preview</button>
+  </div>
+  @if (activeTab() === 'write') {
+    <textarea
+      class="editor-textarea"
+      [value]="value()"
+      [disabled]="isDisabled()"
+      (input)="onInput($event)"
+      placeholder="Write your recipe description in Markdown…"
+      rows="10"
+    ></textarea>
+  }
+  @if (activeTab() === 'preview') {
+    <div class="preview-pane markdown-body">
+      @if (previewHtml()) {
+        <div [innerHTML]="previewHtml()"></div>
+      } @else {
+        <p class="empty-preview">Nothing to preview yet.</p>
+      }
+    </div>
+  }
+</div>

@@ -1,9 +1,11 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
 import { authRoutes } from './features/auth/auth.routes';
+import { recipeRoutes } from './features/recipes/recipes.routes';
 
 export const routes: Routes = [
   ...authRoutes,
+  ...recipeRoutes,
   {
     path: '',
     canActivate: [authGuard],
