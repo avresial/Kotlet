@@ -19,7 +19,7 @@ public sealed class RecipeServiceTests
 
     [Theory]
     [InlineData("Tomato Soup", "tomato-soup")]
-    [InlineData("  Chicken & Rice  ", "chicken--rice")]
+    [InlineData("  Chicken & Rice  ", "chicken-rice")]
     [InlineData("Crème brûlée", "crme-brle")]
     [InlineData("Hello   World", "hello-world")]
     public void GenerateSlug_ProducesExpectedSlug(string title, string expectedSlug)
@@ -268,8 +268,9 @@ public sealed class RecipeServiceTests
             var query = Recipes.Where(r => r.OwnerUserId == ownerUserId);
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(r => r.Title.Contains(search, StringComparison.OrdinalIgnoreCase));
-            var list = query.OrderByDescending(r => r.UpdatedAtUtc).Skip((page - 1) * pageSize).Take(pageSize).ToList();
-            return Task.FromResult<(IReadOnlyList<Recipe>, int)>((list, list.Count));
+            var filtered = query.ToList();
+            var list = filtered.OrderByDescending(r => r.UpdatedAtUtc).Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            return Task.FromResult<(IReadOnlyList<Recipe>, int)>((list, filtered.Count));
         }
 
         public Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken) =>

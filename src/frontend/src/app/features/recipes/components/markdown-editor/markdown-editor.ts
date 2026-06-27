@@ -32,9 +32,9 @@ export class MarkdownEditor implements ControlValueAccessor {
   readonly activeTab = signal<'write' | 'preview'>('write');
   readonly isDisabled = signal(false);
 
-  readonly previewHtml = computed<SafeHtml>(() => {
+  readonly previewHtml = computed<SafeHtml | null>(() => {
     const md = this.value();
-    if (!md.trim()) return '';
+    if (!md.trim()) return null;
     const raw = marked.parse(md, { async: false }) as string;
     const clean = DOMPurify.sanitize(raw);
     return this.sanitizer.bypassSecurityTrustHtml(clean);

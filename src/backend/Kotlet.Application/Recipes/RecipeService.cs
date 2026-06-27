@@ -34,7 +34,10 @@ public sealed class RecipeService(IRecipeRepository repository)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
         var title = request.Title.Trim();
-        var slug = await ResolveSlugAsync(ownerUserId, GenerateSlug(title), null, cancellationToken);
+        var baseSlug = GenerateSlug(title);
+        if (baseSlug.Length == 0)
+            return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: new() { ["title"] = ["Title must contain at least one letter or digit."] });
+        var slug = await ResolveSlugAsync(ownerUserId, baseSlug, null, cancellationToken);
         var now = DateTimeOffset.UtcNow;
 
         var recipeId = Guid.NewGuid();
@@ -68,6 +71,8 @@ public sealed class RecipeService(IRecipeRepository repository)
 
         var title = request.Title.Trim();
         var newSlug = GenerateSlug(title);
+        if (newSlug.Length == 0)
+            return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: new() { ["title"] = ["Title must contain at least one letter or digit."] });
         if (newSlug != recipe.Slug)
             newSlug = await ResolveSlugAsync(ownerUserId, newSlug, id, cancellationToken);
 

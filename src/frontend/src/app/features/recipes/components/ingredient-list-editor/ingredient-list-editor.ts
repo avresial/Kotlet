@@ -18,6 +18,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { inject } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { RecipeIngredientRequest } from '../../models/recipe.models';
 
 @Component({
@@ -47,6 +48,7 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
 
   private onChange: (value: RecipeIngredientRequest[]) => void = () => {};
   private onTouched: () => void = () => {};
+  private changeSubscription?: Subscription;
 
   writeValue(value: RecipeIngredientRequest[] | null): void {
     this.formArray.clear({ emitEvent: false });
@@ -55,7 +57,8 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
 
   registerOnChange(fn: (value: RecipeIngredientRequest[]) => void): void {
     this.onChange = fn;
-    this.formArray.valueChanges.subscribe(() => this.emitChange());
+    this.changeSubscription?.unsubscribe();
+    this.changeSubscription = this.formArray.valueChanges.subscribe(() => this.emitChange());
   }
 
   registerOnTouched(fn: () => void): void {
@@ -81,7 +84,6 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
   removeRow(index: number): void {
     this.formArray.removeAt(index);
     this.onTouched();
-    this.emitChange();
   }
 
   moveUp(index: number): void {
@@ -89,7 +91,6 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
     const item = this.formArray.at(index);
     this.formArray.removeAt(index, { emitEvent: false });
     this.formArray.insert(index - 1, item);
-    this.emitChange();
   }
 
   moveDown(index: number): void {
@@ -97,7 +98,6 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
     const item = this.formArray.at(index);
     this.formArray.removeAt(index, { emitEvent: false });
     this.formArray.insert(index + 1, item);
-    this.emitChange();
   }
 
   private createRow(ing?: RecipeIngredientRequest): FormGroup {

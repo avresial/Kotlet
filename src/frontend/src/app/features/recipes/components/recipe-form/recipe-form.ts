@@ -29,7 +29,7 @@ export class RecipeForm implements OnInit {
   readonly cancelled = output<void>();
 
   readonly form = this.fb.nonNullable.group({
-    title: ['', [Validators.required, Validators.maxLength(160)]],
+    title: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(160)]],
     descriptionMarkdown: [''],
     ingredients: [[] as RecipeIngredientRequest[]],
   });
@@ -57,7 +57,7 @@ export class RecipeForm implements OnInit {
     }
     const value = this.form.getRawValue();
     this.submitted.emit({
-      title: value.title,
+      title: value.title.trim(),
       descriptionMarkdown: value.descriptionMarkdown || null,
       ingredients: value.ingredients,
     });

@@ -24,6 +24,7 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
         var total = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderByDescending(r => r.UpdatedAtUtc)
+            .ThenByDescending(r => r.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);

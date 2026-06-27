@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@ang
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, Subscription } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { RecipeSummary } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
@@ -26,15 +26,17 @@ export class RecipeListPage implements OnInit {
   readonly page = signal(1);
   readonly totalCount = signal(0);
   readonly pageSize = 20;
+  private loadSub?: Subscription;
 
   ngOnInit(): void {
     this.load();
   }
 
   load(): void {
+    this.loadSub?.unsubscribe();
     this.isLoading.set(true);
     this.error.set(null);
-    this.service
+    this.loadSub = this.service
       .list(this.page(), this.pageSize, this.search() || undefined)
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
