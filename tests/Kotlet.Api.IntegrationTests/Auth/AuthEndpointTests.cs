@@ -26,6 +26,21 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
     }
 
     [Fact]
+    public async Task Auth_AllowsCrossOriginCredentialedRequests()
+    {
+        var client = _factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Options, "/api/auth/login");
+        request.Headers.Add("Origin", "https://frontend.example");
+        request.Headers.Add("Access-Control-Request-Method", "POST");
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal("https://frontend.example", response.Headers.GetValues("Access-Control-Allow-Origin").Single());
+        Assert.Equal("true", response.Headers.GetValues("Access-Control-Allow-Credentials").Single());
+    }
+
+    [Fact]
     public async Task Me_RequiresValidBearerToken()
     {
         var client = _factory.CreateClient();
