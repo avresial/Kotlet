@@ -19,20 +19,27 @@
             <p class="section-label">Today’s menu</p>
             <h2 id="today-title">What’s on the table</h2>
           </div>
-          <span class="status"><span></span> Planned</span>
+          @if (todaysMenu().length > 0) {
+            <span class="status"><span></span> Planned</span>
+          } @else if (!menuLoading() && !menuError()) {
+            <span class="status muted"><span></span> Nothing planned</span>
+          }
         </div>
-        <ul class="menu-list">
-          @for (meal of todaysMenu; track meal.time) {
+        @if (menuLoading()) { <p class="recipe-state">Loading today’s menu…</p> }
+        @else if (menuError()) { <p class="recipe-state error" role="alert">Unable to load today’s menu.</p> }
+        @else if (todaysMenu().length === 0) { <p class="recipe-state">Nothing planned for today. <a routerLink="/meal-planner">Plan your meals</a>.</p> }
+        @else { <ul class="menu-list">
+          @for (meal of todaysMenu(); track meal.id) {
             <li class="menu-item">
               <span class="menu-emoji" aria-hidden="true">{{ meal.emoji }}</span>
               <div class="menu-text">
                 <p class="meal-time">{{ meal.time }}</p>
                 <strong>{{ meal.name }}</strong>
-                <p class="menu-note">{{ meal.note }}</p>
+                @if (meal.note) { <p class="menu-note">{{ meal.note }}</p> }
               </div>
             </li>
           }
-        </ul>
+        </ul> }
       </article>
 
       <!-- Newest recipes -->
