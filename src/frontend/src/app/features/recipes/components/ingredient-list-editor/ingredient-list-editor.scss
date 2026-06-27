@@ -2,6 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  --recipe-border: #cfc3b4;
+  --recipe-surface: #fffdf9;
+  --recipe-accent: #963827;
 
   .empty {
     color: var(--text-secondary, #999);
@@ -24,15 +27,15 @@
       min-width: 24px;
       padding-top: 10px;
       font-size: 0.8rem;
-      color: var(--text-secondary, #999);
+      color: #756d62;
       text-align: center;
     }
 
     .row-fields {
       flex: 1;
       display: grid;
-      grid-template-columns: 1fr 80px 80px 1fr;
-      gap: 6px;
+      grid-template-columns: minmax(11rem, 1.25fr) 5.5rem 5.5rem minmax(10rem, 1fr);
+      gap: 8px;
 
       @media (max-width: 640px) {
         grid-template-columns: 1fr 70px;
@@ -41,16 +44,22 @@
 
       label { display: flex; flex-direction: column; gap: 2px; }
 
-      input {
+      input, select {
+        min-height: 2.65rem;
         padding: 8px 10px;
-        border: 1px solid var(--border-color, #ddd);
-        border-radius: 4px;
+        border: 1px solid var(--recipe-border);
+        border-radius: 8px;
+        color: #29251f;
+        background: var(--recipe-surface);
         font-size: 0.9rem;
         width: 100%;
         box-sizing: border-box;
 
-        &.invalid { border-color: var(--danger, #e53e3e); }
+        &:focus { outline: 2px solid #b96554; outline-offset: 1px; }
+        &.invalid { border-color: #a93827; }
       }
+
+      input[readonly] { color: #6f675d; background: #f3ede4; }
 
       .field-error {
         font-size: 0.75rem;
@@ -60,37 +69,52 @@
 
     .row-actions {
       display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding-top: 4px;
+      gap: 4px;
+      padding-top: 2px;
 
       button {
-        padding: 4px 8px;
-        border: 1px solid var(--border-color, #ddd);
-        border-radius: 4px;
-        background: var(--surface-secondary, #f9f9f9);
+        width: 2.35rem;
+        min-height: 2.35rem;
+        padding: 0;
+        border: 1px solid var(--recipe-border);
+        border-radius: 8px;
+        color: #5d554c;
+        background: #fffaf2;
         cursor: pointer;
         font-size: 0.8rem;
         line-height: 1;
 
-        &:disabled { opacity: 0.4; cursor: not-allowed; }
-        &.delete { border-color: var(--danger, #e53e3e); color: var(--danger, #e53e3e); }
+        &:hover:not(:disabled) { border-color: #aa9180; background: #f4ece1; }
+        &:disabled { opacity: 0.28; cursor: not-allowed; }
+        &.delete { color: #963827; }
+        &.delete:hover:not(:disabled) { border-color: #c98e83; background: #fff0ec; }
       }
     }
   }
 
   .add-row {
     align-self: flex-start;
-    padding: 8px 16px;
-    border: 1px dashed var(--border-color, #aaa);
-    border-radius: 6px;
-    background: transparent;
+    min-height: 2.6rem;
+    padding: 8px 14px;
+    border: 1px solid #bdaea0;
+    border-radius: 8px;
+    background: #fffaf2;
     cursor: pointer;
     font-size: 0.9rem;
-    color: var(--text-secondary, #555);
+    color: #7d3428;
+    font-weight: 700;
 
-    &:hover:not(:disabled) { background: var(--surface-secondary, #f5f5f5); }
+    &:hover:not(:disabled) { border-color: #963827; background: #f6e9e2; }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+
+  .catalogue-error { margin: 2px 0; color: #852b20; font-size: .82rem; }
+
+  @media (max-width: 860px) {
+    .ingredient-row { flex-wrap: wrap; }
+    .ingredient-row .row-fields { grid-template-columns: minmax(10rem, 1fr) 5rem 5rem; }
+    .ingredient-row .row-fields .field-note { grid-column: 1 / -1; }
+    .ingredient-row .row-actions { margin-left: 32px; }
   }
 
   .sr-only {

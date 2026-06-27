@@ -1,6 +1,6 @@
 <div class="ingredient-list-editor" role="group" [attr.aria-labelledby]="ariaLabelledby()">
   @if (rows.length === 0) {
-    <p class="empty">No ingredients yet. Add the first one below.</p>
+    <p class="empty">No ingredients added yet.</p>
   } @else {
     <div class="ingredient-rows">
       @for (row of rows; track $index) {
@@ -9,11 +9,17 @@
           <div class="row-fields">
             <label class="field-name">
               <span class="sr-only">Name</span>
-              <input type="text" formControlName="name" placeholder="Ingredient name *" [class.invalid]="row.get('name')?.invalid && row.get('name')?.touched" />
+              <select formControlName="name" (change)="selectIngredient(row)" [class.invalid]="row.get('name')?.invalid && row.get('name')?.touched">
+                <option value="" disabled>Select ingredient</option>
+                @for (ingredient of ingredients(); track ingredient.id) {
+                  <option [value]="ingredient.name">{{ ingredient.name }}</option>
+                }
+              </select>
               @if (row.get('name')?.invalid && row.get('name')?.touched) {
                 <span class="field-error">
                   @if (row.get('name')?.errors?.['required']) { Name is required }
                   @else if (row.get('name')?.errors?.['maxlength']) { Name cannot exceed 200 characters }
+                  @else if (row.get('name')?.errors?.['unknownIngredient']) { Choose an ingredient from the list }
                 </span>
               }
             </label>
@@ -23,7 +29,7 @@
             </label>
             <label class="field-unit">
               <span class="sr-only">Unit</span>
-              <input type="text" formControlName="unit" placeholder="Unit" />
+              <input type="text" formControlName="unit" placeholder="Unit" readonly title="Unit is set by the selected ingredient" />
             </label>
             <label class="field-note">
               <span class="sr-only">Note</span>
@@ -33,11 +39,16 @@
           <div class="row-actions">
             <button type="button" [disabled]="$index === 0 || isDisabled()" (click)="moveUp($index)" title="Move up" aria-label="Move ingredient up">↑</button>
             <button type="button" [disabled]="$index === rows.length - 1 || isDisabled()" (click)="moveDown($index)" title="Move down" aria-label="Move ingredient down">↓</button>
-            <button type="button" class="delete" [disabled]="isDisabled()" (click)="removeRow($index)" aria-label="Remove ingredient">✕</button>
+            <button type="button" class="delete" [disabled]="isDisabled()" (click)="removeRow($index)" title="Remove" aria-label="Remove ingredient">×</button>
           </div>
         </div>
       }
     </div>
   }
-  <button type="button" class="add-row" [disabled]="isDisabled()" (click)="addRow()">+ Add ingredient</button>
+  @if (ingredientLoadError()) {
+    <p class="catalogue-error" role="alert">Ingredients could not be loaded. Try refreshing the page.</p>
+  }
+  <button type="button" class="add-row" [disabled]="isDisabled() || isLoadingIngredients() || ingredientLoadError()" (click)="addRow()">
+    <span aria-hidden="true">+</span> {{ isLoadingIngredients() ? 'Loading ingredients…' : 'Add ingredient' }}
+  </button>
 </div>
