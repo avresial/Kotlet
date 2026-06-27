@@ -34,6 +34,7 @@ public static class DependencyInjection
         AddDatabase(services, configuration);
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<DatabaseSeeder>();
+        services.AddScoped<IngredientsSeeder>();
         services.AddScoped<IngredientCsvSeeder>();
         return services;
     }
