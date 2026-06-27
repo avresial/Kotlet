@@ -8,6 +8,8 @@ export interface CurrentUser {
 
 export interface AuthResponse {
   user: CurrentUser;
+  accessToken: string;
+  accessTokenExpiresAtUtc: string;
 }
 
 export interface LoginRequest {

@@ -10,4 +10,5 @@ public sealed class User
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
     public DateTime? LastLoginAtUtc { get; set; }
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }

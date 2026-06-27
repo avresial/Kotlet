@@ -15,6 +15,11 @@ describe('AuthService', () => {
     createdAtUtc: '2026-06-27T00:00:00Z',
     lastLoginAtUtc: null,
   };
+  const authResponse = {
+    user,
+    accessToken: 'access-token',
+    accessTokenExpiresAtUtc: '2026-06-27T00:15:00Z',
+  };
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -32,15 +37,15 @@ describe('AuthService', () => {
     const request = http.expectOne('/api/auth/login');
     expect(request.request.method).toBe('POST');
     expect(request.request.withCredentials).toBe(true);
-    request.flush({ user });
+    request.flush(authResponse);
 
     expect(service.currentUser()).toEqual(user);
     expect(service.isAuthenticated()).toBe(true);
   });
 
-  it('restores an existing cookie session', async () => {
+  it('restores a session through the refresh cookie', async () => {
     const restoration = service.restoreSession();
-    http.expectOne('/api/auth/me').flush(user);
+    http.expectOne('/api/auth/refresh').flush(authResponse);
     await restoration;
 
     expect(service.currentUser()).toEqual(user);
@@ -48,7 +53,7 @@ describe('AuthService', () => {
 
   it('treats an unauthorized restoration as signed out', async () => {
     const restoration = service.restoreSession();
-    http.expectOne('/api/auth/me').flush(null, { status: 401, statusText: 'Unauthorized' });
+    http.expectOne('/api/auth/refresh').flush(null, { status: 401, statusText: 'Unauthorized' });
     await restoration;
 
     expect(service.isAuthenticated()).toBe(false);
