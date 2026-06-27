@@ -8,10 +8,11 @@ import { marked } from 'marked';
 import { getApiError } from '../../../../core/http/api-error';
 import { RecipeDetail } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
+import { ImageGallery } from '../../components/image-gallery/image-gallery';
 
 @Component({
   selector: 'app-recipe-detail-page',
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, ImageGallery],
   templateUrl: './recipe-detail-page.html',
   styleUrl: './recipe-detail-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

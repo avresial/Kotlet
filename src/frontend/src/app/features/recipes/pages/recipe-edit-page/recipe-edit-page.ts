@@ -6,10 +6,11 @@ import { getApiError } from '../../../../core/http/api-error';
 import { RecipeDetail, UpdateRecipeRequest } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeForm } from '../../components/recipe-form/recipe-form';
+import { ImageGalleryEditor } from '../../components/image-gallery-editor/image-gallery-editor';
 
 @Component({
   selector: 'app-recipe-edit-page',
-  imports: [RouterLink, RecipeForm],
+  imports: [RouterLink, RecipeForm, ImageGalleryEditor],
   templateUrl: './recipe-edit-page.html',
   styleUrl: './recipe-edit-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

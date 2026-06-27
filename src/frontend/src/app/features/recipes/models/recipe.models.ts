@@ -36,8 +36,21 @@ export interface RecipeDetail {
   slug: string;
   descriptionMarkdown: string | null;
   ingredients: RecipeIngredient[];
+  images: RecipeImage[];
   createdAtUtc: string;
   updatedAtUtc: string;
+}
+
+export interface RecipeImage {
+  id: string;
+  recipeId: string;
+  fileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  altText: string | null;
+  sortOrder: number;
+  contentUrl: `/api/${string}`;
+  createdAtUtc: string;
 }
 
 export interface PagedResponse<T> {

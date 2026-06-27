@@ -13,6 +13,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "ingredients",
+                schema: "kotlet",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -28,6 +29,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "ux_ingredients_name",
+                schema: "kotlet",
                 table: "ingredients",
                 column: "name",
                 unique: true);
@@ -37,7 +39,8 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "ingredients");
+                name: "ingredients",
+                schema: "kotlet");
         }
     }
 }

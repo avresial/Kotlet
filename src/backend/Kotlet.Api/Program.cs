@@ -26,6 +26,7 @@ builder.Services.AddScoped<IngredientService>();
 builder.Services.AddScoped<PantryService>();
 builder.Services.AddScoped<ShoppingListService>();
 builder.Services.AddScoped<RecipeService>();
+builder.Services.AddScoped<RecipeImageService>();
 builder.Services.AddOptions<JwtOptions>().BindConfiguration(JwtOptions.SectionName).ValidateOnStart();
 builder.Services.AddOptions<AuthOptions>().BindConfiguration(AuthOptions.SectionName).ValidateOnStart();
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()

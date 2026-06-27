@@ -1,0 +1,20 @@
+@if (images().length === 0) {
+  <div class="gallery-empty">No recipe images yet.</div>
+} @else {
+  <section class="gallery" aria-label="Recipe images">
+    <div class="cover">
+      @if (urls()[images()[0].id]; as url) {
+        <img [src]="url" [alt]="images()[0].altText || images()[0].fileName">
+      }
+    </div>
+    @if (images().length > 1) {
+      <div class="thumbnails">
+        @for (image of images(); track image.id) {
+          @if (urls()[image.id]; as url) {
+            <img [src]="url" [alt]="image.altText || image.fileName">
+          }
+        }
+      </div>
+    }
+  </section>
+}

@@ -13,6 +13,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "refresh_tokens",
+                schema: "kotlet",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -31,12 +32,14 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_refresh_tokens_refresh_tokens_replaced_by_token_id",
                         column: x => x.replaced_by_token_id,
+                        principalSchema: "kotlet",
                         principalTable: "refresh_tokens",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_refresh_tokens_users_user_id",
                         column: x => x.user_id,
+                        principalSchema: "kotlet",
                         principalTable: "users",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -44,16 +47,19 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_refresh_tokens_replaced_by_token_id",
+                schema: "kotlet",
                 table: "refresh_tokens",
                 column: "replaced_by_token_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_refresh_tokens_user_id",
+                schema: "kotlet",
                 table: "refresh_tokens",
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
                 name: "ux_refresh_tokens_token_hash",
+                schema: "kotlet",
                 table: "refresh_tokens",
                 column: "token_hash",
                 unique: true);
@@ -63,7 +69,8 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "refresh_tokens");
+                name: "refresh_tokens",
+                schema: "kotlet");
         }
     }
 }

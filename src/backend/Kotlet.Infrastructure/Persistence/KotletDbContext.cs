@@ -11,7 +11,7 @@ namespace Kotlet.Infrastructure.Persistence;
 
 public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) : DbContext(options)
 {
-    public const string DefaultSchema = "kotlet";
+    public const string DefaultSchema = DatabaseSchemas.Kotlet;
 
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
@@ -21,6 +21,7 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
     public DbSet<Recipe> Recipes => Set<Recipe>();
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
+    public DbSet<RecipeImage> RecipeImages => Set<RecipeImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

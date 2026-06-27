@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IPantryRepository, PantryRepository>();
         services.AddScoped<IShoppingListRepository, ShoppingListRepository>();
         services.AddScoped<IRecipeRepository, RecipeRepository>();
+        services.AddScoped<IRecipeImageRepository, RecipeImageRepository>();
         AddDatabase(services, configuration);
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<DatabaseSeeder>();
@@ -41,8 +42,10 @@ public static class DependencyInjection
         if (provider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
         {
             services.AddDbContext<KotletDbContext>(options =>
-                options.UseNpgsql(configuration.GetConnectionString("kotletdb")
-                    ?? throw new InvalidOperationException("Connection string 'kotletdb' is not configured.")));
+                options.UseNpgsql(
+                    configuration.GetConnectionString("kotletdb")
+                        ?? throw new InvalidOperationException("Connection string 'kotletdb' is not configured."),
+                    npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", DatabaseSchemas.Kotlet)));
             return;
         }
 

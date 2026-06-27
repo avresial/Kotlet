@@ -8,7 +8,9 @@ public sealed class KotletDbContextFactory : IDesignTimeDbContextFactory<KotletD
     public KotletDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<KotletDbContext>()
-            .UseNpgsql("Host=localhost;Database=kotletdb;Username=postgres;Password=postgres")
+            .UseNpgsql(
+                "Host=localhost;Database=kotletdb;Username=postgres;Password=postgres",
+                npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", DatabaseSchemas.Kotlet))
             .Options;
 
         return new KotletDbContext(options);

@@ -1,0 +1,6 @@
+<div class="upload">
+  <label>Image <input type="file" accept="image/jpeg,image/png,image/webp" (change)="choose($event)"></label>
+  <label>Alt text <input type="text" maxlength="300" [value]="altText" (input)="altText = $any($event.target).value"></label>
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  <button type="button" [disabled]="!file" (click)="submit()">Upload image</button>
+</div>

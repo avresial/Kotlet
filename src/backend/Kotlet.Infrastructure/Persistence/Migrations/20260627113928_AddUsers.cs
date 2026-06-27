@@ -11,8 +11,11 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(name: "kotlet");
+
             migrationBuilder.CreateTable(
                 name: "users",
+                schema: "kotlet",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -31,6 +34,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "ux_users_normalized_email",
+                schema: "kotlet",
                 table: "users",
                 column: "normalized_email",
                 unique: true);
@@ -40,7 +44,8 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "users");
+                name: "users",
+                schema: "kotlet");
         }
     }
 }
