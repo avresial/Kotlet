@@ -42,19 +42,24 @@
             <p class="section-label">Newest recipes</p>
             <h2 id="recipes-title">Freshly added</h2>
           </div>
+          <a class="card-link" routerLink="/recipes">View all →</a>
         </div>
-        <ul class="recipe-list">
-          @for (recipe of newestRecipes; track recipe.name) {
-            <li class="recipe-item">
-              <span class="recipe-emoji" aria-hidden="true">{{ recipe.emoji }}</span>
-              <div class="recipe-text">
-                <strong>{{ recipe.name }}</strong>
-                <p>{{ recipe.category }}</p>
-              </div>
-              <span class="recipe-meta">{{ recipe.addedAgo }}</span>
-            </li>
-          }
-        </ul>
+        @if (recipesLoading()) { <p>Loading recipes…</p> }
+        @else if (newestRecipes().length === 0) { <p>No recipes added yet.</p> }
+        @else {
+          <ul class="recipe-list">
+            @for (recipe of newestRecipes(); track recipe.id) {
+              <li class="recipe-item">
+                <span class="recipe-emoji" aria-hidden="true">🍽️</span>
+                <div class="recipe-text">
+                  <a [routerLink]="['/recipes', recipe.id]"><strong>{{ recipe.title }}</strong></a>
+                  <p>{{ recipe.ingredientCount }} {{ recipe.ingredientCount === 1 ? 'ingredient' : 'ingredients' }}</p>
+                </div>
+                <span class="recipe-meta">{{ relativeTime(recipe.updatedAtUtc) }}</span>
+              </li>
+            }
+          </ul>
+        }
       </article>
 
       <!-- Shopping list overview -->
