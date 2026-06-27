@@ -48,7 +48,7 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions, IOptions<AuthO
 
     private static CookieOptions CookieOptions(DateTime expires, bool secure) => new()
     {
-        HttpOnly = true, Secure = secure, SameSite = SameSiteMode.Lax, Expires = expires,
+        HttpOnly = true, Secure = secure, SameSite = secure ? SameSiteMode.None : SameSiteMode.Lax, Expires = expires,
         Path = "/api/auth"
     };
 }

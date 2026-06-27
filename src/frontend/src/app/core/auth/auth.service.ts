@@ -2,6 +2,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom, tap } from 'rxjs';
 import { AuthResponse, CurrentUser, LoginRequest, RegisterRequest } from './auth.models';
+import { apiUrl } from '../http/api-url';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -28,23 +29,23 @@ export class AuthService {
 
   login(request: LoginRequest) {
     return this.http
-      .post<AuthResponse>('/api/auth/login', request, { withCredentials: true })
+      .post<AuthResponse>(apiUrl('/api/auth/login'), request, { withCredentials: true })
       .pipe(tap((response) => this.setSession(response)));
   }
 
   register(request: RegisterRequest) {
     return this.http
-      .post<AuthResponse>('/api/auth/register', request, { withCredentials: true })
+      .post<AuthResponse>(apiUrl('/api/auth/register'), request, { withCredentials: true })
       .pipe(tap((response) => this.setSession(response)));
   }
 
   refresh() {
-    return this.http.post<AuthResponse>('/api/auth/refresh', null, { withCredentials: true });
+    return this.http.post<AuthResponse>(apiUrl('/api/auth/refresh'), null, { withCredentials: true });
   }
 
   logout() {
     return this.http
-      .post<void>('/api/auth/logout', null, { withCredentials: true })
+      .post<void>(apiUrl('/api/auth/logout'), null, { withCredentials: true })
       .pipe(tap(() => {
         this.currentUserState.set(null);
         this.accessTokenState.set(null);
