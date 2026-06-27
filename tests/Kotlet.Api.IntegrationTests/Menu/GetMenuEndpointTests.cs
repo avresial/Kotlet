@@ -1,15 +1,14 @@
 using System.Net;
 using System.Net.Http.Json;
 using Kotlet.Domain.Menu;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace Kotlet.Api.IntegrationTests.Menu;
 
-public sealed class GetMenuEndpointTests(WebApplicationFactory<Program> factory)
-    : IClassFixture<WebApplicationFactory<Program>>
+public sealed class GetMenuEndpointTests(TestWebApplicationFactory factory)
+    : IClassFixture<TestWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory = factory;
+    private readonly TestWebApplicationFactory _factory = factory;
 
     [Fact]
     public async Task GetMenu_ReturnsOk()
