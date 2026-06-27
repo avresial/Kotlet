@@ -1,6 +1,8 @@
 using Kotlet.Application.Menu.GetMenu;
+using Kotlet.Application.Ingredients;
 using Kotlet.Domain.Auth;
 using Kotlet.Infrastructure.Menu;
+using Kotlet.Infrastructure.Ingredients;
 using Kotlet.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
@@ -15,6 +17,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IMenuReader, InMemoryMenuReader>();
+        services.AddScoped<IIngredientRepository, IngredientRepository>();
         AddDatabase(services, configuration);
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddScoped<DatabaseSeeder>();

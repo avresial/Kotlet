@@ -10,5 +10,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/home/pages/home-page/home-page').then((m) => m.HomePage),
   },
+  {
+    path: 'ingredients',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/ingredients/pages/ingredients-page/ingredients-page').then((m) => m.IngredientsPage),
+  },
   { path: '**', redirectTo: '' },
 ];

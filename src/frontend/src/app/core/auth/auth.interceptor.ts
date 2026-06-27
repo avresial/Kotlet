@@ -2,11 +2,12 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
+import { apiUrl } from '../http/api-url';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
   const token = auth.accessToken();
-  const isAuthEndpoint = request.url.startsWith('/api/auth/');
+  const isAuthEndpoint = request.url.startsWith(apiUrl('/api/auth/'));
   const authenticated = token ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : request;
 
   return next(authenticated).pipe(
