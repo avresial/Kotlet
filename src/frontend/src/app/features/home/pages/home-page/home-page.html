@@ -80,24 +80,27 @@
         </ul>
       </article>
 
-      <!-- Most used ingredients -->
+      <!-- Low pantry stock -->
       <article class="card" aria-labelledby="ingredients-title">
         <div class="card-heading">
           <div>
-            <p class="section-label">Most used ingredients</p>
-            <h2 id="ingredients-title">Your top 5</h2>
+            <p class="section-label">Pantry</p>
+            <h2 id="ingredients-title">Running low</h2>
           </div>
+          <a class="card-link" routerLink="/pantry">View pantry →</a>
         </div>
-        <ul class="ingredient-list">
-          @for (ingredient of topIngredients; track ingredient.name) {
+        @if (pantryLoading()) { <p>Loading stock…</p> }
+        @else if (lowStock().length === 0) { <p>No products stored yet.</p> }
+        @else { <ul class="ingredient-list">
+          @for (ingredient of lowStock(); track ingredient.id) {
             <li class="ingredient-item">
-              <span class="ingredient-emoji" aria-hidden="true">{{ ingredient.emoji }}</span>
-              <span class="ingredient-name">{{ ingredient.name }}</span>
-              <span class="ingredient-bar"><span [style.width.%]="(ingredient.count / maxIngredientCount) * 100"></span></span>
-              <span class="ingredient-count">{{ ingredient.count }}</span>
+              <span class="ingredient-emoji" aria-hidden="true">◉</span>
+              <span class="ingredient-name">{{ ingredient.ingredientName }}</span>
+              <span>{{ ingredient.quantity === 0 ? 'Out of stock' : 'Low stock' }}</span>
+              <span class="ingredient-count">{{ ingredient.quantity }} {{ ingredient.measurementUnit }}</span>
             </li>
           }
-        </ul>
+        </ul> }
       </article>
     </section>
   </main>

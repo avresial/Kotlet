@@ -2,6 +2,7 @@ using Kotlet.Domain.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Kotlet.Domain.Houses;
 
 namespace Kotlet.Infrastructure.Persistence;
 
@@ -28,6 +29,7 @@ public sealed class DatabaseSeeder(
             var user = new User
             {
                 Id = Guid.NewGuid(),
+                HouseId = DefaultHouse.Id,
                 Email = seedUser.Email,
                 NormalizedEmail = normalizedEmail,
                 PasswordHash = string.Empty,

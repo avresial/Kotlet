@@ -2,6 +2,7 @@ using Kotlet.Domain.Auth;
 using Kotlet.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Kotlet.Domain.Houses;
 
 namespace Kotlet.Api.Auth;
 
@@ -28,7 +29,7 @@ public static class AuthEndpoints
         if (await db.Users.AnyAsync(x => x.NormalizedEmail == normalized, cancellationToken))
             return Results.Conflict(new { message = "An account with this email already exists." });
         var now = DateTime.UtcNow;
-        var user = new User { Id = Guid.NewGuid(), Email = email, NormalizedEmail = normalized, PasswordHash = "", DisplayName = string.IsNullOrWhiteSpace(request.DisplayName) ? null : request.DisplayName.Trim(), CreatedAtUtc = now, UpdatedAtUtc = now };
+        var user = new User { Id = Guid.NewGuid(), HouseId = DefaultHouse.Id, Email = email, NormalizedEmail = normalized, PasswordHash = "", DisplayName = string.IsNullOrWhiteSpace(request.DisplayName) ? null : request.DisplayName.Trim(), CreatedAtUtc = now, UpdatedAtUtc = now };
         user.PasswordHash = hasher.HashPassword(user, request.Password);
         db.Users.Add(user);
         try { await IssueTokens(user, db, tokens, context, environment, cancellationToken); }

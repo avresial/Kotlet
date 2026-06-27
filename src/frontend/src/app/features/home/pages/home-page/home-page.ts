@@ -1,15 +1,21 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { PantryItem } from '../../../pantry/pantry.models';
+import { PantryService } from '../../../pantry/pantry.service';
 
 @Component({
   selector: 'app-home-page',
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './home-page.html',
   styleUrl: './home-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HomePage {
+export class HomePage implements OnInit {
   readonly auth = inject(AuthService);
+  private readonly pantryService = inject(PantryService);
+  readonly lowStock = signal<PantryItem[]>([]);
+  readonly pantryLoading = signal(true);
   readonly firstName = computed(() => {
     const user = this.auth.currentUser();
     return user?.displayName?.trim().split(/\s+/)[0] || user?.email.split('@')[0] || 'there';
@@ -46,15 +52,12 @@ export class HomePage {
     { time: 'DINNER', emoji: '🍽️', name: 'Kotlet schabowy', note: 'A Polish classic for tonight’s table' },
   ];
 
-  readonly topIngredients = [
-    { name: 'Onion', emoji: '🧅', count: 28 },
-    { name: 'Egg', emoji: '🥚', count: 24 },
-    { name: 'Flour', emoji: '🌾', count: 21 },
-    { name: 'Butter', emoji: '🧈', count: 18 },
-    { name: 'Garlic', emoji: '🧄', count: 15 },
-  ];
-
-  readonly maxIngredientCount = Math.max(...this.topIngredients.map((i) => i.count));
+  ngOnInit(): void {
+    this.pantryService.getAll().subscribe({
+      next: items => { this.lowStock.set(items.slice(0, 5)); this.pantryLoading.set(false); },
+      error: () => this.pantryLoading.set(false),
+    });
+  }
 
   get shoppingProgress(): number {
     return Math.round((this.shoppingList.done / this.shoppingList.total) * 100);

@@ -49,9 +49,8 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 .ingredient-item:first-child { border-top: 0; }
 .ingredient-emoji { font-size: 1.15rem; }
 .ingredient-name { font-size: .9rem; }
-.ingredient-bar { height: .45rem; border-radius: 99px; background: #ede2d2; overflow: hidden; }
-.ingredient-bar span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #d9a052, #9d4f2d); }
 .ingredient-count { color: #746d63; font-size: .8rem; font-weight: 700; min-width: 1.5rem; text-align: right; }
+.card-link { color: #8e392b; font-size: .75rem; font-weight: 750; text-decoration: none; }
 
 @media (max-width: 52rem) { .dashboard { padding: 2rem 1.25rem; } .card-grid { grid-template-columns: 1fr; } }
 @media (max-width: 38rem) { .welcome { align-items: flex-start; flex-direction: column; } .primary-action { display: none; } .card-heading { display: block; } .status { display: inline-block; margin-top: .8rem; } }
