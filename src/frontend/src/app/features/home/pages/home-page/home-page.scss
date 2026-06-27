@@ -30,6 +30,7 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 .recipe-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem; padding: .75rem 0; color: inherit; text-decoration: none; }
 .recipe-item:hover strong { color: #8e392b; }
 .recipe-emoji { width: 2.4rem; height: 2.4rem; border-radius: .6rem; display: grid; place-items: center; font-size: 1.2rem; background: #f4ead9; }
+.recipe-avatar { width: 2.4rem; height: 2.4rem; border-radius: .6rem; object-fit: cover; flex-shrink: 0; }
 .recipe-text strong { font-family: Georgia, serif; font-size: 1.05rem; font-weight: 500; }
 .recipe-text p { margin: .1rem 0 0; color: #777065; font-size: .78rem; }
 .recipe-meta { color: #9a9185; font-size: .75rem; white-space: nowrap; }

@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { finalize, forkJoin } from 'rxjs';
@@ -26,6 +27,7 @@ export class HomePage implements OnInit {
   private readonly ingredientService = inject(IngredientService);
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly recipeService = inject(RecipeService);
+  private readonly destroyRef = inject(DestroyRef);
   readonly lowStock = signal<PantryItem[]>([]);
   readonly pantryLoading = signal(true);
   readonly ingredients = signal<Ingredient[]>([]);
@@ -34,6 +36,7 @@ export class HomePage implements OnInit {
   readonly shoppingSaving = signal(false);
   readonly shoppingError = signal<string | null>(null);
   readonly newestRecipes = signal<RecipeSummary[]>([]);
+  readonly recipeAvatarUrls = signal<Record<string, string>>({});
   readonly recipesLoading = signal(true);
   readonly recipesError = signal(false);
   readonly selectedIngredientId = signal('');
@@ -61,8 +64,14 @@ export class HomePage implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.destroyRef.onDestroy(() => {
+      Object.values(this.recipeAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
+    });
     this.recipeService.listRecent(4).pipe(finalize(() => this.recipesLoading.set(false))).subscribe({
-      next: recipes => this.newestRecipes.set(recipes),
+      next: recipes => {
+        this.newestRecipes.set(recipes);
+        this.loadAvatars(recipes);
+      },
       error: () => this.recipesError.set(true),
     });
     forkJoin({ pantry: this.pantryService.getAll(), ingredients: this.ingredientService.getAll(), shopping: this.shoppingListService.getAll() })
@@ -73,6 +82,18 @@ export class HomePage implements OnInit {
       },
       error: error => this.shoppingError.set(getApiError(error, 'Unable to load the dashboard.')),
     });
+  }
+
+  private loadAvatars(recipes: RecipeSummary[]): void {
+    for (const recipe of recipes) {
+      if (!recipe.firstImageUrl) continue;
+      this.recipeService.imageContent(recipe.firstImageUrl as `/api/${string}`)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(blob => {
+          const url = URL.createObjectURL(blob);
+          this.recipeAvatarUrls.update(urls => ({ ...urls, [recipe.id]: url }));
+        });
+    }
   }
 
   relativeDate(value: string): string {

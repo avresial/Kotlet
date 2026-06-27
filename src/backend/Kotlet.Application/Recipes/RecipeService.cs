@@ -13,9 +13,9 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
         var (items, total) = await repository.GetPagedAsync(ownerUserId, page, pageSize, search, cancellationToken);
+        var firstImageIds = await GetFirstImageIdsAsync(items.Select(r => r.Id).ToList(), cancellationToken);
         return new PagedResponse<RecipeSummaryResponse>(
-            items.Select(r => new RecipeSummaryResponse(
-                r.Id, r.Title, r.Slug, r.Ingredients.Count, r.CreatedAtUtc, r.UpdatedAtUtc)).ToList(),
+            items.Select(r => ToSummaryResponse(r, firstImageIds)).ToList(),
             page, pageSize, total);
     }
 
@@ -24,7 +24,8 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
     {
         limit = Math.Clamp(limit, 1, 20);
         var recipes = await repository.GetRecentAsync(ownerUserId, limit, cancellationToken);
-        return recipes.Select(ToSummaryResponse).ToList();
+        var firstImageIds = await GetFirstImageIdsAsync(recipes.Select(r => r.Id).ToList(), cancellationToken);
+        return recipes.Select(r => ToSummaryResponse(r, firstImageIds)).ToList();
     }
 
     public async Task<RecipeDetailResponse?> GetByIdAsync(
@@ -197,8 +198,23 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
             images ?? [],
             recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
 
-    private static RecipeSummaryResponse ToSummaryResponse(Recipe recipe) =>
-        new(recipe.Id, recipe.Title, recipe.Slug, recipe.Ingredients.Count, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
+    private async Task<IReadOnlyDictionary<Guid, Guid>> GetFirstImageIdsAsync(
+        IReadOnlyList<Guid> recipeIds, CancellationToken cancellationToken)
+    {
+        if (imageRepository is null || recipeIds.Count == 0)
+            return new Dictionary<Guid, Guid>();
+        return await imageRepository.GetFirstImageIdsAsync(recipeIds, cancellationToken);
+    }
+
+    private static RecipeSummaryResponse ToSummaryResponse(
+        Recipe recipe, IReadOnlyDictionary<Guid, Guid>? firstImageIds = null)
+    {
+        string? firstImageUrl = null;
+        if (firstImageIds is not null && firstImageIds.TryGetValue(recipe.Id, out var imageId))
+            firstImageUrl = $"/api/recipes/{recipe.Id}/images/{imageId}/content";
+        return new(recipe.Id, recipe.Title, recipe.Slug, recipe.Ingredients.Count,
+            firstImageUrl, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
+    }
 
     private static RecipeImageResponse ToImageResponse(RecipeImage i) => new(i.Id, i.RecipeId, i.FileName,
         i.ContentType, i.FileSizeBytes, i.AltText, i.SortOrder,
