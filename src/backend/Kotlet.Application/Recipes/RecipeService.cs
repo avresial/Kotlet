@@ -80,7 +80,9 @@ public sealed class RecipeService(IRecipeRepository repository)
         recipe.Slug = newSlug;
         recipe.DescriptionMarkdown = request.DescriptionMarkdown?.Trim();
         recipe.UpdatedAtUtc = DateTimeOffset.UtcNow;
-        recipe.Ingredients = MapIngredients(request.Ingredients, id);
+        recipe.Ingredients.Clear();
+        foreach (var ing in MapIngredients(request.Ingredients, id))
+            recipe.Ingredients.Add(ing);
         await repository.SaveChangesAsync(cancellationToken);
         return new(RecipeOperationStatus.Success, ToDetailResponse(recipe));
     }
