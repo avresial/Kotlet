@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RecipeImage } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
@@ -18,7 +18,7 @@ export class ImageGallery {
   constructor() {
     effect(() => {
       const images = this.images();
-      this.revokeUrls();
+      untracked(() => this.revokeUrls());
       for (const image of images) {
         this.service.imageContent(image.contentUrl).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(blob => {
           const url = URL.createObjectURL(blob);
