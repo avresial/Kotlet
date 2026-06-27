@@ -1,6 +1,7 @@
 <Project Sdk="Aspire.AppHost.Sdk/13.4.6">
 
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <ProjectReference Include="..\..\backend\Kotlet.Api\Kotlet.Api.csproj" />
   </ItemGroup>
 
