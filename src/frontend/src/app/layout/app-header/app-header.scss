@@ -16,8 +16,13 @@ footer strong { display: block; overflow: hidden; color: #302b25; font-size: .85
 .logout-error { margin-top: .5rem; display: block; color: #912018; font-size: .72rem; }
 .public-header { max-width: 72rem; min-height: var(--app-header-height); margin: 0 auto; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .public-header nav { display: flex; align-items: center; gap: .75rem; }
-.public-header nav [pButton] { white-space: nowrap; }
 .public-header .brand-mark { width: 7rem; }
+.account-link { min-height: 2.6rem; padding: .6rem 1rem; border: 1px solid transparent; border-radius: .5rem; display: inline-flex; align-items: center; justify-content: center; color: #20362d; font-size: .82rem; font-weight: 750; text-decoration: none; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+.account-link:hover { transform: translateY(-1px); }
+.login-link { border-color: #ccd5ce; background: rgb(255 255 255 / 35%); }
+.login-link:hover { background: #fffdf8; }
+.create-link { color: #fff; background: #b9533f; }
+.create-link:hover { background: #a94735; }
 @media (max-width: 48rem) {
   .app-sidebar { position: fixed; z-index: 10; inset: auto 0 0; width: 100%; height: 4.5rem; padding: .5rem; border: 1px solid #ded5c8; border-width: 1px 0 0; display: block; }
   .app-sidebar > .brand, .app-sidebar footer, .settings { display: none; }
@@ -26,5 +31,7 @@ footer strong { display: block; overflow: hidden; color: #302b25; font-size: .85
   .icon { height: 1.25rem; font-size: 1rem; }
   .public-header { padding: .75rem 1rem; gap: .5rem; }
   .public-header nav { gap: .4rem; }
-  .public-header nav [pButton] { padding: .55rem .7rem; font-size: .85rem; }
+  .public-header .brand { padding: 0; }
+  .public-header .brand-mark { width: 6.25rem; }
+  .account-link { min-height: 2.35rem; padding: .5rem .7rem; font-size: .74rem; }
 }
