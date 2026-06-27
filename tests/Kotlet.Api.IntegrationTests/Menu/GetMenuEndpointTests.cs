@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Kotlet.Domain.Menu;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Xunit;
 
 namespace Kotlet.Api.IntegrationTests.Menu;
 

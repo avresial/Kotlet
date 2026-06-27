@@ -1,5 +1,6 @@
 using Kotlet.Application.Menu.GetMenu;
 using Kotlet.Domain.Menu;
+using Xunit;
 
 namespace Kotlet.Application.UnitTests.Menu.GetMenu;
 
