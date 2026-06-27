@@ -13,6 +13,16 @@ import { ShoppingListService } from '../../../shopping-list/shopping-list.servic
 import { getApiError } from '../../../../core/http/api-error';
 import { RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
+import { DailyMealPlan, MealSlot } from '../../../meal-planner/models/meal-planner.models';
+import { MealPlannerService } from '../../../meal-planner/services/meal-planner.service';
+
+interface TodaysMenuEntry {
+  id: string;
+  time: string;
+  emoji: string;
+  name: string;
+  note: string | null;
+}
 
 @Component({
   selector: 'app-home-page',
@@ -27,6 +37,7 @@ export class HomePage implements OnInit {
   private readonly ingredientService = inject(IngredientService);
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly recipeService = inject(RecipeService);
+  private readonly mealPlannerService = inject(MealPlannerService);
   private readonly destroyRef = inject(DestroyRef);
   readonly lowStock = signal<PantryItem[]>([]);
   readonly pantryLoading = signal(true);
@@ -57,11 +68,16 @@ export class HomePage implements OnInit {
     day: 'numeric',
   }).format(new Date());
 
-  readonly todaysMenu = [
-    { time: 'BREAKFAST', emoji: '🍳', name: 'Jajecznica', note: 'Scrambled eggs with chives' },
-    { time: 'LUNCH', emoji: '🥪', name: 'Kanapki', note: 'Open sandwiches on rye' },
-    { time: 'DINNER', emoji: '🍽️', name: 'Kotlet schabowy', note: 'A Polish classic for tonight’s table' },
-  ];
+  readonly todaysMenu = signal<TodaysMenuEntry[]>([]);
+  readonly menuLoading = signal(true);
+  readonly menuError = signal(false);
+
+  private readonly slotMeta: Record<MealSlot, { time: string; emoji: string }> = {
+    breakfast: { time: 'BREAKFAST', emoji: '🍳' },
+    dinner: { time: 'LUNCH', emoji: '🥪' },
+    supper: { time: 'DINNER', emoji: '🍽️' },
+  };
+  private readonly slotOrder: MealSlot[] = ['breakfast', 'dinner', 'supper'];
 
   ngOnInit(): void {
     this.destroyRef.onDestroy(() => {
@@ -73,6 +89,10 @@ export class HomePage implements OnInit {
         this.loadAvatars(recipes);
       },
       error: () => this.recipesError.set(true),
+    });
+    this.mealPlannerService.getForDate(this.todayString()).pipe(finalize(() => this.menuLoading.set(false))).subscribe({
+      next: plan => this.todaysMenu.set(this.buildMenu(plan)),
+      error: () => this.menuError.set(true),
     });
     forkJoin({ pantry: this.pantryService.getAll(), ingredients: this.ingredientService.getAll(), shopping: this.shoppingListService.getAll() })
       .pipe(finalize(() => { this.pantryLoading.set(false); this.shoppingLoading.set(false); }))
@@ -165,5 +185,24 @@ export class HomePage implements OnInit {
 
   isOnShoppingList(ingredientId: string): boolean {
     return this.shoppingItems().some(item => item.ingredientId === ingredientId);
+  }
+
+  private buildMenu(plan: DailyMealPlan): TodaysMenuEntry[] {
+    const entries: TodaysMenuEntry[] = [];
+    for (const slot of this.slotOrder) {
+      const meta = this.slotMeta[slot];
+      for (const item of plan.meals[slot] ?? []) {
+        entries.push({ id: item.id, time: meta.time, emoji: meta.emoji, name: item.displayName, note: item.note ?? null });
+      }
+    }
+    return entries;
+  }
+
+  private todayString(): string {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }
