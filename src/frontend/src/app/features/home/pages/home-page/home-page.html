@@ -50,7 +50,11 @@
           @for (recipe of newestRecipes(); track recipe.id) {
             <li>
               <a class="recipe-item" [routerLink]="['/recipes', recipe.id]">
-              <span class="recipe-emoji" aria-hidden="true">🍽️</span>
+              @if (recipeAvatarUrls()[recipe.id]; as avatarUrl) {
+                <img class="recipe-avatar" [src]="avatarUrl" [alt]="recipe.title" />
+              } @else {
+                <span class="recipe-emoji" aria-hidden="true">🍽️</span>
+              }
               <div class="recipe-text">
                 <strong>{{ recipe.title }}</strong>
                 <p>{{ recipe.ingredientCount }} ingredient{{ recipe.ingredientCount === 1 ? '' : 's' }}</p>
