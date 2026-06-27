@@ -9,6 +9,7 @@ public static class RecipeEndpoints
     {
         var recipes = endpoints.MapGroup("/api/recipes").WithTags("Recipes").RequireAuthorization();
         recipes.MapGet("", List).WithName("ListRecipes");
+        recipes.MapGet("/recent", ListRecent).WithName("ListRecentRecipes");
         recipes.MapPost("", Create).WithName("CreateRecipe");
         recipes.MapGet("/{id:guid}", GetById).WithName("GetRecipe");
         recipes.MapPut("/{id:guid}", Update).WithName("UpdateRecipe");
@@ -90,6 +91,16 @@ public static class RecipeEndpoints
         if (currentUser.UserId is not { } userId) return Results.Unauthorized();
         var result = await service.ListAsync(userId, page, pageSize, search, cancellationToken);
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> ListRecent(
+        ICurrentUser currentUser,
+        RecipeService service,
+        int limit = 4,
+        CancellationToken cancellationToken = default)
+    {
+        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
+        return Results.Ok(await service.ListRecentAsync(userId, limit, cancellationToken));
     }
 
     private static async Task<IResult> Create(

@@ -43,18 +43,23 @@
             <h2 id="recipes-title">Freshly added</h2>
           </div>
         </div>
-        <ul class="recipe-list">
-          @for (recipe of newestRecipes; track recipe.name) {
-            <li class="recipe-item">
-              <span class="recipe-emoji" aria-hidden="true">{{ recipe.emoji }}</span>
+        @if (recipesLoading()) { <p class="recipe-state">Loading recipes…</p> }
+        @else if (recipesError()) { <p class="recipe-state error" role="alert">Unable to load recipes.</p> }
+        @else if (newestRecipes().length === 0) { <p class="recipe-state">No recipes yet. <a routerLink="/recipes/new">Add your first recipe</a>.</p> }
+        @else { <ul class="recipe-list">
+          @for (recipe of newestRecipes(); track recipe.id) {
+            <li>
+              <a class="recipe-item" [routerLink]="['/recipes', recipe.id]">
+              <span class="recipe-emoji" aria-hidden="true">🍽️</span>
               <div class="recipe-text">
-                <strong>{{ recipe.name }}</strong>
-                <p>{{ recipe.category }}</p>
+                <strong>{{ recipe.title }}</strong>
+                <p>{{ recipe.ingredientCount }} ingredient{{ recipe.ingredientCount === 1 ? '' : 's' }}</p>
               </div>
-              <span class="recipe-meta">{{ recipe.addedAgo }}</span>
+              <span class="recipe-meta">{{ relativeDate(recipe.createdAtUtc) }}</span>
+              </a>
             </li>
           }
-        </ul>
+        </ul> }
       </article>
 
       <!-- Shopping list overview -->

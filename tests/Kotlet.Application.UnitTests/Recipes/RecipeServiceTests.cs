@@ -151,6 +151,21 @@ public sealed class RecipeServiceTests
         Assert.Equal("My Recipe", result.Items[0].Title);
     }
 
+    [Fact]
+    public async Task ListRecent_ReturnsNewestCreatedOwnerRecipes()
+    {
+        var repo = new FakeRecipeRepository();
+        var older = MakeRecipe("Older", "older", OwnerId);
+        older.CreatedAtUtc = DateTimeOffset.UtcNow.AddDays(-2);
+        var newer = MakeRecipe("Newer", "newer", OwnerId);
+        repo.Recipes.AddRange([older, newer, MakeRecipe("Other", "other", OtherOwnerId)]);
+
+        var result = await new RecipeService(repo).ListRecentAsync(OwnerId, 1, CancellationToken.None);
+
+        Assert.Single(result);
+        Assert.Equal("Newer", result[0].Title);
+    }
+
     // ---- GetById ----
 
     [Fact]
@@ -272,6 +287,14 @@ public sealed class RecipeServiceTests
             var list = filtered.OrderByDescending(r => r.UpdatedAtUtc).Skip((page - 1) * pageSize).Take(pageSize).ToList();
             return Task.FromResult<(IReadOnlyList<Recipe>, int)>((list, filtered.Count));
         }
+
+        public Task<IReadOnlyList<Recipe>> GetRecentAsync(
+            Guid ownerUserId, int limit, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<Recipe>>(Recipes
+                .Where(r => r.OwnerUserId == ownerUserId)
+                .OrderByDescending(r => r.CreatedAtUtc)
+                .Take(limit)
+                .ToList());
 
         public Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken) =>
             Task.FromResult(Recipes.SingleOrDefault(r => r.Id == id && r.OwnerUserId == ownerUserId));

@@ -32,6 +32,17 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
         return (items, total);
     }
 
+    public async Task<IReadOnlyList<Recipe>> GetRecentAsync(
+        Guid ownerUserId, int limit, CancellationToken cancellationToken) =>
+        await dbContext.Recipes
+            .AsNoTracking()
+            .Include(r => r.Ingredients)
+            .Where(r => r.OwnerUserId == ownerUserId)
+            .OrderByDescending(r => r.CreatedAtUtc)
+            .ThenByDescending(r => r.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
     public Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken)
     {
         var query = tracked

@@ -25,12 +25,17 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 .meal-time { margin: 0 0 .15rem; }
 
 /* Newest recipes */
-.recipe-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem; padding: .75rem 0; border-top: 1px solid #e4dbcf; }
-.recipe-item:first-child { border-top: 0; }
+.recipe-list li { border-top: 1px solid #e4dbcf; }
+.recipe-list li:first-child { border-top: 0; }
+.recipe-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem; padding: .75rem 0; color: inherit; text-decoration: none; }
+.recipe-item:hover strong { color: #8e392b; }
 .recipe-emoji { width: 2.4rem; height: 2.4rem; border-radius: .6rem; display: grid; place-items: center; font-size: 1.2rem; background: #f4ead9; }
 .recipe-text strong { font-family: Georgia, serif; font-size: 1.05rem; font-weight: 500; }
 .recipe-text p { margin: .1rem 0 0; color: #777065; font-size: .78rem; }
 .recipe-meta { color: #9a9185; font-size: .75rem; white-space: nowrap; }
+.recipe-state { margin: 1.5rem 0 0; color: #746d63; }
+.recipe-state a { color: #8e392b; }
+.recipe-state.error { color: #a12d22; }
 
 /* Shopping list */
 .progress { margin-top: 1.1rem; height: .5rem; border-radius: 99px; background: #ede2d2; overflow: hidden; }

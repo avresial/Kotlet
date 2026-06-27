@@ -10,6 +10,8 @@ import { IngredientService } from '../../../ingredients/ingredient.service';
 import { ShoppingListItem } from '../../../shopping-list/shopping-list.models';
 import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
 import { getApiError } from '../../../../core/http/api-error';
+import { RecipeSummary } from '../../../recipes/models/recipe.models';
+import { RecipeService } from '../../../recipes/services/recipe.service';
 
 @Component({
   selector: 'app-home-page',
@@ -23,6 +25,7 @@ export class HomePage implements OnInit {
   private readonly pantryService = inject(PantryService);
   private readonly ingredientService = inject(IngredientService);
   private readonly shoppingListService = inject(ShoppingListService);
+  private readonly recipeService = inject(RecipeService);
   readonly lowStock = signal<PantryItem[]>([]);
   readonly pantryLoading = signal(true);
   readonly ingredients = signal<Ingredient[]>([]);
@@ -30,6 +33,9 @@ export class HomePage implements OnInit {
   readonly shoppingLoading = signal(true);
   readonly shoppingSaving = signal(false);
   readonly shoppingError = signal<string | null>(null);
+  readonly newestRecipes = signal<RecipeSummary[]>([]);
+  readonly recipesLoading = signal(true);
+  readonly recipesError = signal(false);
   readonly selectedIngredientId = signal('');
   readonly newQuantity = signal(1);
   readonly availableIngredients = computed(() => this.ingredients().filter(ingredient =>
@@ -48,14 +54,6 @@ export class HomePage implements OnInit {
     day: 'numeric',
   }).format(new Date());
 
-  // Mocked dashboard data — to be wired to real APIs later.
-  readonly newestRecipes = [
-    { emoji: '🥟', name: 'Pierogi ruskie', category: 'Main course', addedAgo: '2 days ago' },
-    { emoji: '🍲', name: 'Żurek', category: 'Soup', addedAgo: '4 days ago' },
-    { emoji: '🥧', name: 'Sernik', category: 'Dessert', addedAgo: '1 week ago' },
-    { emoji: '🥗', name: 'Mizeria', category: 'Side', addedAgo: '1 week ago' },
-  ];
-
   readonly todaysMenu = [
     { time: 'BREAKFAST', emoji: '🍳', name: 'Jajecznica', note: 'Scrambled eggs with chives' },
     { time: 'LUNCH', emoji: '🥪', name: 'Kanapki', note: 'Open sandwiches on rye' },
@@ -63,6 +61,10 @@ export class HomePage implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.recipeService.listRecent(4).pipe(finalize(() => this.recipesLoading.set(false))).subscribe({
+      next: recipes => this.newestRecipes.set(recipes),
+      error: () => this.recipesError.set(true),
+    });
     forkJoin({ pantry: this.pantryService.getAll(), ingredients: this.ingredientService.getAll(), shopping: this.shoppingListService.getAll() })
       .pipe(finalize(() => { this.pantryLoading.set(false); this.shoppingLoading.set(false); }))
       .subscribe({
@@ -71,6 +73,16 @@ export class HomePage implements OnInit {
       },
       error: error => this.shoppingError.set(getApiError(error, 'Unable to load the dashboard.')),
     });
+  }
+
+  relativeDate(value: string): string {
+    const elapsedDays = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000));
+    if (elapsedDays === 0) return 'today';
+    if (elapsedDays === 1) return 'yesterday';
+    if (elapsedDays < 7) return `${elapsedDays} days ago`;
+    const weeks = Math.floor(elapsedDays / 7);
+    if (weeks < 5) return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(new Date(value));
   }
 
   addToShoppingList(ingredientId = this.selectedIngredientId(), quantity = this.newQuantity()): void {

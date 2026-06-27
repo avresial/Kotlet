@@ -29,6 +29,7 @@ public sealed record RecipeSummaryResponse(
     string Title,
     string Slug,
     int IngredientCount,
+    DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
 
 public sealed record RecipeDetailResponse(
