@@ -72,5 +72,39 @@
         <p-button type="submit" [label]="'settings.changePassword' | t" [loading]="passwordSaving()" />
       </form>
     </section>
+
+    <section class="card" aria-labelledby="ai-provider-title">
+      <div class="section-heading"><h2 id="ai-provider-title">{{ 'settings.aiProvider' | t }}</h2><p>{{ 'settings.aiProviderHelp' | t }}</p></div>
+      <form [formGroup]="providerForm" (ngSubmit)="saveProvider()" novalidate>
+        <label>
+          {{ 'settings.aiProviderName' | t }}
+          <input pInputText type="text" formControlName="providerName" [placeholder]="'settings.aiProviderNamePlaceholder' | t" [invalid]="providerForm.controls.providerName.invalid && providerForm.controls.providerName.touched" />
+          @if (providerForm.controls.providerName.touched && providerForm.controls.providerName.hasError('required')) { <p-message severity="error" size="small" variant="simple">{{ 'settings.aiProviderNameRequired' | t }}</p-message> }
+        </label>
+        <label>
+          {{ 'settings.aiProviderBaseUrl' | t }}
+          <input pInputText type="url" formControlName="baseUrl" placeholder="https://api.openai.com/v1" [invalid]="providerForm.controls.baseUrl.invalid && providerForm.controls.baseUrl.touched" />
+          @if (providerForm.controls.baseUrl.touched && providerForm.controls.baseUrl.hasError('required')) { <p-message severity="error" size="small" variant="simple">{{ 'settings.aiProviderBaseUrlRequired' | t }}</p-message> }
+          @else if (providerForm.controls.baseUrl.touched && providerForm.controls.baseUrl.hasError('url')) { <p-message severity="error" size="small" variant="simple">{{ 'settings.aiProviderBaseUrlInvalid' | t }}</p-message> }
+        </label>
+        <label>
+          {{ 'settings.aiProviderApiKey' | t }}
+          <p-password formControlName="apiKey" autocomplete="new-password" [feedback]="false" [toggleMask]="true" [fluid]="true" [invalid]="providerForm.controls.apiKey.invalid && providerForm.controls.apiKey.touched" />
+          @if (providerConfigured()) { <small>{{ 'settings.aiProviderKeyConfigured' | t }}</small> }
+          @if (providerForm.controls.apiKey.touched && providerForm.controls.apiKey.hasError('required')) { <p-message severity="error" size="small" variant="simple">{{ 'settings.aiProviderKeyRequired' | t }}</p-message> }
+        </label>
+        <label>
+          {{ 'settings.aiProviderModel' | t }}
+          <input pInputText type="text" formControlName="defaultModel" [placeholder]="'settings.aiProviderModelPlaceholder' | t" />
+        </label>
+        <label class="toggle"><input type="checkbox" formControlName="isEnabled" /> {{ 'settings.aiProviderEnabled' | t }}</label>
+        @if (providerError()) { <p-message severity="error" role="alert">{{ providerError() }}</p-message> }
+        @if (providerSaved()) { <p-message severity="success" role="status">{{ 'settings.aiProviderSaved' | t }}</p-message> }
+        <div class="actions">
+          <p-button type="submit" [label]="'settings.aiProviderSave' | t" [loading]="providerSaving()" />
+          <p-button type="button" severity="danger" [outlined]="true" [label]="'settings.aiProviderDelete' | t" [disabled]="providerSaving()" (onClick)="deleteProvider()" />
+        </div>
+      </form>
+    </section>
   }
 </main>

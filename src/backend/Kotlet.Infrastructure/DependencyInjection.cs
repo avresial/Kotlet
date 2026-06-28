@@ -1,4 +1,6 @@
 using Kotlet.Application.MealPlanner;
+using Kotlet.Application.Ai;
+using Kotlet.Infrastructure.Ai;
 using Kotlet.Application.Menu.GetMenu;
 using Kotlet.Application.Ingredients;
 using Kotlet.Domain.Auth;
@@ -30,6 +32,7 @@ public static class DependencyInjection
         services.AddSingleton<IMenuReader, InMemoryMenuReader>();
         services.AddMemoryCache();
         services.AddScoped<IIngredientRepository, IngredientRepository>();
+        services.AddScoped<IUserAiProviderRepository, UserAiProviderRepository>();
         services.AddScoped<ITranslationRepository, TranslationRepository>();
         services.AddScoped<TranslationCacheInterceptor>();
         services.AddScoped<IPantryRepository, PantryRepository>();
