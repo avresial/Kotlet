@@ -1,32 +1,33 @@
 @if (auth.currentUser(); as user) {
   <aside class="app-sidebar">
-    <a class="brand" routerLink="/dashboard" aria-label="Kotlet dashboard">
+    <a class="brand" routerLink="/dashboard" [attr.aria-label]="'nav.dashboardAria' | t">
       <img class="brand-mark" src="kotlet-logo.svg" alt="Kotlet" />
     </a>
 
-    <nav aria-label="Main navigation">
+    <nav [attr.aria-label]="'nav.mainAria' | t">
       <a class="nav-item" routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-        <span class="icon" aria-hidden="true">⌂</span><span>Dashboard</span>
+        <span class="icon" aria-hidden="true">⌂</span><span>{{ 'nav.dashboard' | t }}</span>
       </a>
-      <a class="nav-item" routerLink="/recipes" routerLinkActive="active"><span class="icon" aria-hidden="true">▤</span><span>Recipes</span></a>
-      <a class="nav-item" routerLink="/meal-planner" routerLinkActive="active"><span class="icon" aria-hidden="true">▦</span><span>Meal Planner</span></a>
-      <a class="nav-item" routerLink="/shopping-list" routerLinkActive="active"><span class="icon" aria-hidden="true">✓</span><span>Shopping list</span></a>
-      <a class="nav-item" routerLink="/pantry" routerLinkActive="active"><span class="icon" aria-hidden="true">□</span><span>Pantry</span></a>
+      <a class="nav-item" routerLink="/recipes" routerLinkActive="active"><span class="icon" aria-hidden="true">▤</span><span>{{ 'nav.recipes' | t }}</span></a>
+      <a class="nav-item" routerLink="/meal-planner" routerLinkActive="active"><span class="icon" aria-hidden="true">▦</span><span>{{ 'nav.mealPlanner' | t }}</span></a>
+      <a class="nav-item" routerLink="/shopping-list" routerLinkActive="active"><span class="icon" aria-hidden="true">✓</span><span>{{ 'nav.shoppingList' | t }}</span></a>
+      <a class="nav-item" routerLink="/pantry" routerLinkActive="active"><span class="icon" aria-hidden="true">□</span><span>{{ 'nav.pantry' | t }}</span></a>
       <a class="nav-item" routerLink="/ingredients" routerLinkActive="active">
-        <span class="icon" aria-hidden="true">◉</span><span>Ingredients</span>
+        <span class="icon" aria-hidden="true">◉</span><span>{{ 'nav.ingredients' | t }}</span>
       </a>
     </nav>
 
     <footer>
       <button class="account-trigger" type="button" (click)="toggleAccountMenu($event)" [attr.aria-expanded]="isAccountMenuOpen()" aria-haspopup="menu">
-        <span>Hello, <strong>{{ user.displayName || user.email.split('@')[0] }}</strong></span>
+        <span>{{ 'nav.hello' | t }} <strong>{{ user.displayName || user.email.split('@')[0] }}</strong></span>
         <span class="chevron" aria-hidden="true">⌃</span>
       </button>
       @if (isAccountMenuOpen()) {
         <div class="account-menu" role="menu" (click)="$event.stopPropagation()">
-          <a role="menuitem" routerLink="/settings" (click)="closeAccountMenu()"><span aria-hidden="true">⚙</span>Settings</a>
+          <app-language-switcher />
+          <a role="menuitem" routerLink="/settings" (click)="closeAccountMenu()"><span aria-hidden="true">⚙</span>{{ 'nav.settings' | t }}</a>
           <button role="menuitem" type="button" (click)="logout()" [disabled]="isLoggingOut()">
-            <span aria-hidden="true">↪</span>{{ isLoggingOut() ? 'Logging off…' : 'Log off' }}
+            <span aria-hidden="true">↪</span>{{ (isLoggingOut() ? 'auth.logout.loading' : 'auth.logout.submit') | t }}
           </button>
         </div>
       }
@@ -36,9 +37,10 @@
 } @else {
   <header class="public-header">
     <a class="brand" routerLink="/"><img class="brand-mark" src="kotlet-logo.svg" alt="Kotlet" /></a>
-    <nav aria-label="Account">
-      <a class="account-link login-link" routerLink="/login">Log in</a>
-      <a class="account-link create-link" routerLink="/register">Create account</a>
+    <nav [attr.aria-label]="'nav.accountAria' | t">
+      <app-language-switcher />
+      <a class="account-link login-link" routerLink="/login">{{ 'auth.login.submit' | t }}</a>
+      <a class="account-link create-link" routerLink="/register">{{ 'auth.register.submit' | t }}</a>
     </nav>
   </header>
 }

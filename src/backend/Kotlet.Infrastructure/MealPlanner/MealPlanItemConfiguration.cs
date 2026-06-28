@@ -8,7 +8,9 @@ internal sealed class MealPlanItemConfiguration : IEntityTypeConfiguration<MealP
 {
     public void Configure(EntityTypeBuilder<MealPlanItem> builder)
     {
-        builder.ToTable("meal_plan_items");
+        builder.ToTable("meal_plan_items", table => table.HasCheckConstraint(
+            "CK_meal_plan_items_recipe_or_ingredient",
+            "(recipe_id IS NOT NULL AND ingredient_id IS NULL) OR (recipe_id IS NULL AND ingredient_id IS NOT NULL)"));
         builder.HasKey(m => m.Id);
         builder.Property(m => m.Id).HasColumnName("id");
         builder.Property(m => m.UserId).HasColumnName("user_id").IsRequired();

@@ -1,58 +1,65 @@
 <main class="settings-page">
-  <a class="back" routerLink="/dashboard">← Back to overview</a>
+  <a class="back" routerLink="/dashboard">← {{ 'settings.back' | t }}</a>
   <header>
-    <p class="eyebrow">Your account</p>
-    <h1>Settings</h1>
-    <p>Manage how you appear in Kotlet and keep your account secure.</p>
+    <p class="eyebrow">{{ 'settings.eyebrow' | t }}</p>
+    <h1>{{ 'nav.settings' | t }}</h1>
+    <p>{{ 'settings.intro' | t }}</p>
   </header>
 
   @if (auth.currentUser(); as user) {
     <section class="card account" aria-labelledby="account-title">
-      <div class="section-heading"><h2 id="account-title">Account</h2></div>
+      <div class="section-heading"><h2 id="account-title">{{ 'settings.account' | t }}</h2></div>
       <dl>
-        <div><dt>Email</dt><dd>{{ user.email }}</dd></div>
-        <div><dt>Member since</dt><dd>{{ user.createdAtUtc | date: 'mediumDate' }}</dd></div>
-        <div><dt>Last sign-in</dt><dd>{{ user.lastLoginAtUtc ? (user.lastLoginAtUtc | date: 'medium') : 'Never' }}</dd></div>
+        <div><dt>{{ 'auth.email' | t }}</dt><dd>{{ user.email }}</dd></div>
+        <div><dt>{{ 'settings.memberSince' | t }}</dt><dd>{{ user.createdAtUtc | date: 'mediumDate' }}</dd></div>
+        <div><dt>{{ 'settings.lastSignIn' | t }}</dt><dd>{{ user.lastLoginAtUtc ? (user.lastLoginAtUtc | date: 'medium') : ('settings.never' | t) }}</dd></div>
       </dl>
     </section>
 
     <section class="card" aria-labelledby="profile-title">
-      <div class="section-heading"><h2 id="profile-title">Profile</h2><p>This name is shown across the app.</p></div>
+      <div class="section-heading"><h2 id="profile-title">{{ 'settings.profile' | t }}</h2><p>{{ 'settings.profileHelp' | t }}</p></div>
       <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
         <label>
-          Name
-          <input pInputText type="text" formControlName="displayName" autocomplete="name" placeholder="Your name" [invalid]="profileForm.controls.displayName.invalid && profileForm.controls.displayName.touched" />
-          @if (profileForm.controls.displayName.touched && profileForm.controls.displayName.hasError('maxlength')) { <p-message severity="error" size="small" variant="simple">Name cannot exceed 100 characters.</p-message> }
+          {{ 'settings.displayName' | t }}
+          <input pInputText type="text" formControlName="displayName" autocomplete="name" [placeholder]="'settings.displayNamePlaceholder' | t" [invalid]="profileForm.controls.displayName.invalid && profileForm.controls.displayName.touched" />
+          @if (profileForm.controls.displayName.touched && profileForm.controls.displayName.hasError('maxlength')) { <p-message severity="error" size="small" variant="simple">{{ 'validation.displayNameLength' | t }}</p-message> }
+        </label>
+        <label>
+          {{ 'settings.preferredLanguage' | t }}
+          <select formControlName="preferredLanguage">
+            <option value="en">{{ 'settings.languageEnglish' | t }}</option>
+            <option value="pl">{{ 'settings.languagePolish' | t }}</option>
+          </select>
         </label>
         @if (profileError()) { <p-message severity="error" role="alert">{{ profileError() }}</p-message> }
-        @if (profileSaved()) { <p-message severity="success" role="status">Profile updated.</p-message> }
-        <p-button type="submit" label="Save profile" [loading]="profileSaving()" />
+        @if (profileSaved()) { <p-message severity="success" role="status">{{ 'settings.profileSaved' | t }}</p-message> }
+        <p-button type="submit" [label]="'settings.saveProfile' | t" [loading]="profileSaving()" />
       </form>
     </section>
 
     <section class="card" aria-labelledby="password-title">
-      <div class="section-heading"><h2 id="password-title">Password</h2><p>Choose a strong password you do not use elsewhere.</p></div>
+      <div class="section-heading"><h2 id="password-title">{{ 'auth.password' | t }}</h2><p>{{ 'settings.passwordHelp' | t }}</p></div>
       <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" novalidate>
         <label>
-          Current password
+          {{ 'settings.currentPassword' | t }}
           <p-password formControlName="currentPassword" autocomplete="current-password" [feedback]="false" [toggleMask]="true" [fluid]="true" [invalid]="passwordForm.controls.currentPassword.invalid && passwordForm.controls.currentPassword.touched" />
-          @if (passwordForm.controls.currentPassword.touched && passwordForm.controls.currentPassword.hasError('required')) { <p-message severity="error" size="small" variant="simple">Current password is required.</p-message> }
+          @if (passwordForm.controls.currentPassword.touched && passwordForm.controls.currentPassword.hasError('required')) { <p-message severity="error" size="small" variant="simple">{{ 'validation.currentPasswordRequired' | t }}</p-message> }
         </label>
         <label>
-          New password
+          {{ 'settings.newPassword' | t }}
           <p-password formControlName="newPassword" autocomplete="new-password" [toggleMask]="true" [fluid]="true" [invalid]="passwordForm.controls.newPassword.invalid && passwordForm.controls.newPassword.touched" />
-          @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.hasError('required')) { <p-message severity="error" size="small" variant="simple">New password is required.</p-message> }
-          @else if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.hasError('minlength')) { <p-message severity="error" size="small" variant="simple">Use at least 8 characters.</p-message> }
+          @if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.hasError('required')) { <p-message severity="error" size="small" variant="simple">{{ 'validation.newPasswordRequired' | t }}</p-message> }
+          @else if (passwordForm.controls.newPassword.touched && passwordForm.controls.newPassword.hasError('minlength')) { <p-message severity="error" size="small" variant="simple">{{ 'validation.passwordLength' | t }}</p-message> }
         </label>
         <label>
-          Confirm new password
+          {{ 'settings.confirmNewPassword' | t }}
           <p-password formControlName="confirmPassword" autocomplete="new-password" [feedback]="false" [toggleMask]="true" [fluid]="true" [invalid]="passwordForm.controls.confirmPassword.touched && (passwordForm.controls.confirmPassword.invalid || passwordForm.hasError('passwordMismatch'))" />
-          @if (passwordForm.controls.confirmPassword.touched && passwordForm.controls.confirmPassword.hasError('required')) { <p-message severity="error" size="small" variant="simple">Confirm your new password.</p-message> }
-          @else if (passwordForm.controls.confirmPassword.touched && passwordForm.hasError('passwordMismatch')) { <p-message severity="error" size="small" variant="simple">Passwords do not match.</p-message> }
+          @if (passwordForm.controls.confirmPassword.touched && passwordForm.controls.confirmPassword.hasError('required')) { <p-message severity="error" size="small" variant="simple">{{ 'validation.confirmNewPassword' | t }}</p-message> }
+          @else if (passwordForm.controls.confirmPassword.touched && passwordForm.hasError('passwordMismatch')) { <p-message severity="error" size="small" variant="simple">{{ 'validation.passwordMismatch' | t }}</p-message> }
         </label>
         @if (passwordError()) { <p-message severity="error" role="alert">{{ passwordError() }}</p-message> }
-        @if (passwordSaved()) { <p-message severity="success" role="status">Password changed.</p-message> }
-        <p-button type="submit" label="Change password" [loading]="passwordSaving()" />
+        @if (passwordSaved()) { <p-message severity="success" role="status">{{ 'settings.passwordSaved' | t }}</p-message> }
+        <p-button type="submit" [label]="'settings.changePassword' | t" [loading]="passwordSaving()" />
       </form>
     </section>
   }

@@ -8,10 +8,12 @@ import { PasswordModule } from 'primeng/password';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-login-page',
-  imports: [ButtonModule, InputTextModule, MessageModule, PasswordModule, ReactiveFormsModule, RouterLink],
+  imports: [ButtonModule, InputTextModule, MessageModule, PasswordModule, ReactiveFormsModule, RouterLink, TranslatePipe],
   templateUrl: './login-page.html',
   styleUrl: './login-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,6 +22,7 @@ export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly translations = inject(TranslationService);
 
   readonly isLoading = signal(false);
   readonly errorMessage = signal<string | null>(null);
@@ -42,7 +45,7 @@ export class LoginPage {
     this.errorMessage.set(null);
     this.auth.login(this.form.getRawValue()).pipe(finalize(() => this.isLoading.set(false))).subscribe({
       next: () => void this.router.navigateByUrl(this.safeReturnUrl()),
-      error: (error) => this.errorMessage.set(getApiError(error, 'Email or password is incorrect.')),
+      error: (error) => this.errorMessage.set(getApiError(error, this.translations.translate('auth.login.error'))),
     });
   }
 

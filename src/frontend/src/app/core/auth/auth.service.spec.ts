@@ -12,6 +12,7 @@ describe('AuthService', () => {
     id: 'user-1',
     email: 'cook@example.com',
     displayName: null,
+    preferredLanguage: null,
     createdAtUtc: '2026-06-27T00:00:00Z',
     lastLoginAtUtc: null,
   };
