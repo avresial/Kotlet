@@ -2,6 +2,7 @@ using Kotlet.Application.MealPlanner;
 using Kotlet.Application.Menu.GetMenu;
 using Kotlet.Application.Ingredients;
 using Kotlet.Api.Auth;
+using Kotlet.Api.Admin;
 using Kotlet.Api.Ingredients;
 using Kotlet.Api.MealPlanner;
 using Kotlet.Api.Persistence;
@@ -14,6 +15,8 @@ using Kotlet.Api.Shopping;
 using Kotlet.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
+using Kotlet.Infrastructure.Persistence;
 using Scalar.AspNetCore;
 using System.Security.Claims;
 using System.Text;
@@ -49,6 +52,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true, ClockSkew = TimeSpan.FromSeconds(30),
             NameClaimType = ClaimTypes.NameIdentifier
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var subject = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!Guid.TryParse(subject, out var userId))
+                {
+                    context.Fail("The token subject is invalid.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<KotletDbContext>();
+                if (!await db.Users.AsNoTracking().AnyAsync(user => user.Id == userId, context.HttpContext.RequestAborted))
+                    context.Fail("The user no longer exists.");
+            }
+        };
     });
 builder.Services.AddAuthorization();
 builder.Services.AddCors(options =>
@@ -82,6 +101,7 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuthEndpoints();
+app.MapAdminEndpoints();
 app.MapIngredientEndpoints();
 app.MapPantryEndpoints();
 app.MapShoppingListEndpoints();

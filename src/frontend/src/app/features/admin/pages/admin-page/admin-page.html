@@ -1,0 +1,35 @@
+<main class="admin-page">
+  <a class="back" routerLink="/dashboard">← {{ 'common.backOverview' | t }}</a>
+  <header><p class="eyebrow">{{ 'admin.eyebrow' | t }}</p><h1>{{ 'nav.admin' | t }}</h1><p>{{ 'admin.intro' | t }}</p></header>
+
+  <section class="card" aria-labelledby="api-keys-title">
+    <div class="section-heading"><div><h2 id="api-keys-title">{{ 'admin.apiKeys' | t }}</h2><p>{{ 'admin.apiKeysHelp' | t }}</p></div><span class="badge">{{ 'admin.comingSoon' | t }}</span></div>
+    <div class="service"><div><strong>YouTube Transcription API</strong><span>{{ 'admin.notConfigured' | t }}</span></div><p-button [label]="'admin.configure' | t" [disabled]="true" severity="secondary" /></div>
+  </section>
+
+  <section class="card" aria-labelledby="users-title">
+    <div class="section-heading"><div><h2 id="users-title">{{ 'admin.users' | t }}</h2><p>{{ 'admin.usersHelp' | t }}</p></div><span class="count">{{ users().length }}</span></div>
+    @if (error()) { <p-message severity="error" role="alert">{{ error() }}</p-message> }
+    @if (loading()) { <p>{{ 'admin.loading' | t }}</p> }
+    @else if (users().length === 0) { <p>{{ 'admin.empty' | t }}</p> }
+    @else {
+      <div class="user-list">
+        @for (user of users(); track user.id) {
+          <article class="user-row">
+            @if (editingId() === user.id) {
+              <form [formGroup]="form" (ngSubmit)="save()">
+                <label>{{ 'auth.email' | t }}<input pInputText type="email" formControlName="email" /></label>
+                <label>{{ 'settings.displayName' | t }}<input pInputText type="text" formControlName="displayName" /></label>
+                <label>{{ 'settings.preferredLanguage' | t }}<select formControlName="preferredLanguage"><option value="">—</option><option value="en">{{ 'settings.languageEnglish' | t }}</option><option value="pl">{{ 'settings.languagePolish' | t }}</option></select></label>
+                <div class="actions"><p-button type="submit" [label]="'admin.save' | t" [loading]="saving()" /><p-button type="button" [label]="'admin.cancel' | t" severity="secondary" (onClick)="cancel()" /></div>
+              </form>
+            } @else {
+              <div class="identity"><strong>{{ user.displayName || user.email }}</strong><span>{{ user.email }}</span><small>{{ 'admin.joined' | t }} {{ user.createdAtUtc | date: 'mediumDate' }} · {{ 'settings.lastSignIn' | t }}: {{ user.lastLoginAtUtc ? (user.lastLoginAtUtc | date: 'medium') : ('settings.never' | t) }}</small></div>
+              <div class="actions"><p-button [label]="'admin.edit' | t" severity="secondary" (onClick)="edit(user)" /><p-button [label]="'common.remove' | t" severity="danger" [loading]="deletingId() === user.id" (onClick)="remove(user)" /></div>
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
+</main>
