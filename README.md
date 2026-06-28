@@ -83,6 +83,11 @@ Kotlet isolates every application table and its EF Core migration history in the
 database; do not put the database connection string in Angular configuration or
 allow the browser to write directly to Supabase tables.
 
+The shared Supabase project (`FinanceManager`, schema `kotlet`) is already
+provisioned. See [docs/supabase-connection.md](docs/supabase-connection.md) for
+the project host, the exact connection-string settings, and how to apply future
+migrations.
+
 Configure the Supabase PostgreSQL connection string as a secret on the backend host:
 
 ```powershell
