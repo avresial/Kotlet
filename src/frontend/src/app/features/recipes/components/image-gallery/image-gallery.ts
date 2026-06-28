@@ -13,6 +13,7 @@ export class ImageGallery {
   private readonly service = inject(RecipeService);
   private readonly destroyRef = inject(DestroyRef);
   readonly images = input.required<RecipeImage[]>();
+  readonly immersive = input(false);
   readonly urls = signal<Record<string, string>>({});
 
   constructor() {
