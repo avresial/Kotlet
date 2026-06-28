@@ -65,6 +65,16 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 .empty-receipt { padding: 1rem 0; color: #746d63; text-align: center; }
 .shopping-error { margin: .6rem 0 0; color: #a12d22; font-size: .78rem; }
 
+/* Your home */
+.member-list { margin: 1.25rem 0 0; padding: 0; list-style: none; }
+.member-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem; padding: .75rem 0; border-top: 1px solid #e4dbcf; }
+.member-item:first-child { border-top: 0; }
+.member-avatar { width: 2.4rem; height: 2.4rem; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: .8rem; font-weight: 750; letter-spacing: .02em; background: linear-gradient(135deg, #c06a3e, #963827); }
+.member-text strong { display: flex; align-items: center; gap: .5rem; font-family: Georgia, serif; font-size: 1.05rem; font-weight: 500; }
+.member-text p { margin: .1rem 0 0; color: #777065; font-size: .78rem; word-break: break-all; }
+.member-you { padding: .1rem .4rem; border-radius: 99px; color: #496244; background: #e8eee2; font-family: system-ui, sans-serif; font-size: .62rem; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+.member-meta { color: #9a9185; font-size: .75rem; white-space: nowrap; }
+
 /* Most used ingredients */
 .ingredient-item { display: grid; grid-template-columns: auto minmax(4rem, 1fr) auto auto auto; align-items: center; gap: .75rem; padding: .6rem 0; border-top: 1px solid #e4dbcf; }
 .ingredient-item:first-child { border-top: 0; }

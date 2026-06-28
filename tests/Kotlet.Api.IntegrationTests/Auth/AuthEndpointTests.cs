@@ -154,6 +154,31 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
         Assert.Equal(HttpStatusCode.BadRequest, change.StatusCode);
     }
 
+    [Fact]
+    public async Task House_RequiresAuthentication()
+    {
+        var client = _factory.CreateClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/house")).StatusCode);
+    }
+
+    [Fact]
+    public async Task House_ReturnsMembersOfCurrentUsersHouseWithCurrentUserFirst()
+    {
+        var client = _factory.CreateClient();
+        var email = await Authenticate(client);
+
+        var house = await client.GetFromJsonAsync<JsonElement>("/api/auth/house");
+
+        Assert.Equal(DefaultHouse.Id, house.GetProperty("id").GetGuid());
+        Assert.Equal(DefaultHouse.Name, house.GetProperty("name").GetString());
+        var members = house.GetProperty("members").EnumerateArray().ToList();
+        Assert.NotEmpty(members);
+        var current = Assert.Single(members, member => member.GetProperty("email").GetString() == email);
+        Assert.True(current.GetProperty("isCurrentUser").GetBoolean());
+        Assert.True(members[0].GetProperty("isCurrentUser").GetBoolean());
+        Assert.Contains(members, member => member.GetProperty("email").GetString() == email);
+    }
+
     private static async Task<string> Authenticate(HttpClient client)
     {
         var email = $"cook-{Guid.NewGuid():N}@example.com";

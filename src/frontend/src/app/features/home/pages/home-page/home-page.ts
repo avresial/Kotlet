@@ -15,6 +15,8 @@ import { RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { DailyMealPlan, MealSlot } from '../../../meal-planner/models/meal-planner.models';
 import { MealPlannerService } from '../../../meal-planner/services/meal-planner.service';
+import { HouseMember } from '../../home.models';
+import { HomeService } from '../../home.service';
 
 interface TodaysMenuEntry {
   id: string;
@@ -38,6 +40,7 @@ export class HomePage implements OnInit {
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly recipeService = inject(RecipeService);
   private readonly mealPlannerService = inject(MealPlannerService);
+  private readonly homeService = inject(HomeService);
   private readonly destroyRef = inject(DestroyRef);
   readonly lowStock = signal<PantryItem[]>([]);
   readonly pantryLoading = signal(true);
@@ -72,6 +75,11 @@ export class HomePage implements OnInit {
   readonly menuLoading = signal(true);
   readonly menuError = signal(false);
 
+  readonly houseName = signal<string | null>(null);
+  readonly houseMembers = signal<HouseMember[]>([]);
+  readonly houseLoading = signal(true);
+  readonly houseError = signal(false);
+
   private readonly slotMeta: Record<MealSlot, { time: string; emoji: string }> = {
     breakfast: { time: 'BREAKFAST', emoji: '🍳' },
     dinner: { time: 'LUNCH', emoji: '🥪' },
@@ -93,6 +101,10 @@ export class HomePage implements OnInit {
     this.mealPlannerService.getForDate(this.todayString()).pipe(finalize(() => this.menuLoading.set(false))).subscribe({
       next: plan => this.todaysMenu.set(this.buildMenu(plan)),
       error: () => this.menuError.set(true),
+    });
+    this.homeService.getHouse().pipe(finalize(() => this.houseLoading.set(false))).subscribe({
+      next: house => { this.houseName.set(house.name); this.houseMembers.set(house.members); },
+      error: () => this.houseError.set(true),
     });
     forkJoin({ pantry: this.pantryService.getAll(), ingredients: this.ingredientService.getAll(), shopping: this.shoppingListService.getAll() })
       .pipe(finalize(() => { this.pantryLoading.set(false); this.shoppingLoading.set(false); }))
@@ -181,6 +193,17 @@ export class HomePage implements OnInit {
       next: () => this.shoppingItems.update(items => items.filter(item => !item.isPurchased)),
       error: error => this.shoppingError.set(getApiError(error, 'Unable to clear checked items.')),
     });
+  }
+
+  memberName(member: HouseMember): string {
+    return member.displayName?.trim() || member.email.split('@')[0];
+  }
+
+  memberInitials(member: HouseMember): string {
+    const name = this.memberName(member);
+    const parts = name.split(/\s+/).filter(Boolean);
+    const initials = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2);
+    return initials.toUpperCase();
   }
 
   isOnShoppingList(ingredientId: string): boolean {
