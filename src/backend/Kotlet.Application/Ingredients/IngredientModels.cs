@@ -3,6 +3,8 @@ namespace Kotlet.Application.Ingredients;
 public sealed record IngredientDto(
     Guid Id,
     string Name,
+    string DefaultName,
+    string? Translation,
     string MeasurementUnit,
     bool IsCountable,
     decimal? MeasurementUnitsPerPiece,
@@ -16,7 +18,8 @@ public sealed record SaveIngredientCommand(
     bool IsCountable,
     decimal? MeasurementUnitsPerPiece,
     decimal CaloriesPer100BaseUnits,
-    decimal PricePer100BaseUnits);
+    decimal PricePer100BaseUnits,
+    string? Translation = null);
 
 public enum IngredientOperationStatus
 {

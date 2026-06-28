@@ -52,6 +52,48 @@ public sealed class IngredientServiceTests
     }
 
     [Fact]
+    public async Task Create_InNonDefaultLanguage_WithCanonicalNameAndTranslation_StoresBoth()
+    {
+        var repository = new FakeIngredientRepository();
+        var translations = new FakeTranslationRepository();
+        var service = new IngredientService(repository, translations);
+
+        var result = await service.CreateAsync(
+            new SaveIngredientCommand("Milk", "ml", false, null, 42, 3m, Translation: "Mleko"),
+            Polish,
+            CancellationToken.None);
+
+        Assert.Equal(IngredientOperationStatus.Success, result.Status);
+        // The Polish user sees the translation, but the canonical English name is stored too.
+        Assert.Equal("Mleko", result.Ingredient!.Name);
+        Assert.Equal("Milk", result.Ingredient.DefaultName);
+        Assert.Equal("Mleko", result.Ingredient.Translation);
+        var stored = Assert.Single(repository.Ingredients);
+        Assert.Equal("Milk", stored.Name);
+        Assert.Equal("Mleko", translations.Entries[TranslationKeys.Ingredient(stored.Id, Polish)]);
+    }
+
+    [Fact]
+    public async Task Update_InNonDefaultLanguage_WithCanonicalNameAndTranslation_UpdatesBoth()
+    {
+        var existing = Ingredient("Unknown");
+        var repository = new FakeIngredientRepository(existing);
+        var translations = new FakeTranslationRepository();
+        var service = new IngredientService(repository, translations);
+
+        var result = await service.UpdateAsync(
+            existing.Id,
+            new SaveIngredientCommand("Milk", "ml", false, null, 0, 1, Translation: "Mleko"),
+            Polish,
+            CancellationToken.None);
+
+        Assert.Equal(IngredientOperationStatus.Success, result.Status);
+        Assert.Equal("Mleko", result.Ingredient!.Name);
+        Assert.Equal("Milk", existing.Name);
+        Assert.Equal("Mleko", translations.Entries[TranslationKeys.Ingredient(existing.Id, Polish)]);
+    }
+
+    [Fact]
     public async Task GetAll_ResolvesTranslatedNameForLanguageAndFallsBackToDefault()
     {
         var translated = Ingredient("Milk");

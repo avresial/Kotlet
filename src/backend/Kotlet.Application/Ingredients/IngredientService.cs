@@ -21,7 +21,7 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
         var ingredients = await repository.GetAllAsync(cancellationToken);
         var dictionary = await LoadTranslationsAsync(languageCode, cancellationToken);
         return ingredients
-            .Select(ingredient => ToDto(ingredient, ResolveName(ingredient, languageCode, dictionary)))
+            .Select(ingredient => ToDto(ingredient, ResolveTranslation(ingredient, languageCode, dictionary)))
             .OrderBy(dto => dto.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
@@ -32,7 +32,7 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
         if (ingredient is null)
             return null;
         var dictionary = await LoadTranslationsAsync(languageCode, cancellationToken);
-        return ToDto(ingredient, ResolveName(ingredient, languageCode, dictionary));
+        return ToDto(ingredient, ResolveTranslation(ingredient, languageCode, dictionary));
     }
 
     public async Task<IngredientOperationResult> CreateAsync(
@@ -44,15 +44,16 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
         if (errors.Count > 0)
             return new(IngredientOperationStatus.ValidationFailed, ValidationErrors: errors);
 
-        var displayName = command.Name.Trim();
+        var isDefaultLanguage = TranslationKeys.IsDefaultLanguage(languageCode);
+        var (canonicalName, persistedTranslation) = ResolveNames(command, isDefaultLanguage);
+        var displayName = isDefaultLanguage ? canonicalName : persistedTranslation!;
         if (await IsDisplayNameTakenAsync(displayName, languageCode, null, cancellationToken))
             return Conflict();
 
-        var isDefaultLanguage = TranslationKeys.IsDefaultLanguage(languageCode);
         var ingredient = new Ingredient
         {
             Id = Guid.NewGuid(),
-            Name = isDefaultLanguage ? displayName : UnknownName,
+            Name = canonicalName,
             MeasurementUnit = NormalizeUnit(command.MeasurementUnit),
             IsCountable = command.IsCountable,
             MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null,
@@ -62,11 +63,11 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
         repository.Add(ingredient);
         // Stage the translation (when any) so the ingredient row and its translation are persisted
         // in a single commit on the shared DbContext, keeping the two writes atomic.
-        if (!isDefaultLanguage)
-            await translations.SetAsync(TranslationKeys.Ingredient(ingredient.Id, languageCode), displayName, cancellationToken);
+        if (persistedTranslation is not null)
+            await translations.SetAsync(TranslationKeys.Ingredient(ingredient.Id, languageCode), persistedTranslation, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
 
-        return new(IngredientOperationStatus.Success, ToDto(ingredient, displayName));
+        return new(IngredientOperationStatus.Success, ToDto(ingredient, isDefaultLanguage ? null : persistedTranslation));
     }
 
     public async Task<IngredientOperationResult> UpdateAsync(
@@ -83,7 +84,9 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
         if (ingredient is null)
             return new(IngredientOperationStatus.NotFound);
 
-        var displayName = command.Name.Trim();
+        var isDefaultLanguage = TranslationKeys.IsDefaultLanguage(languageCode);
+        var (canonicalName, persistedTranslation) = ResolveNames(command, isDefaultLanguage);
+        var displayName = isDefaultLanguage ? canonicalName : persistedTranslation!;
         if (await IsDisplayNameTakenAsync(displayName, languageCode, id, cancellationToken))
             return Conflict();
         var measurementUnit = NormalizeUnit(command.MeasurementUnit);
@@ -91,19 +94,21 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             return new(IngredientOperationStatus.Conflict,
                 Message: "The base measurement unit cannot be changed while the ingredient is in use.");
 
-        var isDefaultLanguage = TranslationKeys.IsDefaultLanguage(languageCode);
-        if (isDefaultLanguage)
-            ingredient.Name = displayName;
+        // The canonical (default-language) name is only set when we know it: when editing in the
+        // default language, or when a non-default editor also supplied the canonical name alongside
+        // the translation. A legacy translation-only edit leaves the existing canonical name intact.
+        if (isDefaultLanguage || !string.IsNullOrWhiteSpace(command.Translation))
+            ingredient.Name = canonicalName;
         ingredient.MeasurementUnit = measurementUnit;
         ingredient.IsCountable = command.IsCountable;
         ingredient.MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null;
         ingredient.CaloriesPer100BaseUnits = command.CaloriesPer100BaseUnits;
         ingredient.PricePer100BaseUnits = command.PricePer100BaseUnits;
-        if (!isDefaultLanguage)
-            await translations.SetAsync(TranslationKeys.Ingredient(ingredient.Id, languageCode), displayName, cancellationToken);
+        if (persistedTranslation is not null)
+            await translations.SetAsync(TranslationKeys.Ingredient(ingredient.Id, languageCode), persistedTranslation, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
 
-        return new(IngredientOperationStatus.Success, ToDto(ingredient, displayName));
+        return new(IngredientOperationStatus.Success, ToDto(ingredient, isDefaultLanguage ? null : persistedTranslation));
     }
 
     public async Task<IngredientOperationStatus> DeleteAsync(Guid id, CancellationToken cancellationToken)
@@ -134,14 +139,35 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             string.Equals(ResolveName(ingredient, languageCode, dictionary), name, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static string ResolveName(Ingredient ingredient, string languageCode, IReadOnlyDictionary<string, string> dictionary)
+    /// <summary>
+    /// Splits the submitted command into the canonical (default-language) name stored on the entity
+    /// and the translation (when any) stored in the dictionary for the editor's language.
+    /// </summary>
+    private static (string CanonicalName, string? PersistedTranslation) ResolveNames(SaveIngredientCommand command, bool isDefaultLanguage)
+    {
+        var inputName = command.Name.Trim();
+        if (isDefaultLanguage)
+            return (inputName, null);
+        var translation = command.Translation?.Trim();
+        // The editor supplied both the canonical name and its translation (the new edit flow).
+        if (!string.IsNullOrWhiteSpace(translation))
+            return (inputName, translation);
+        // Legacy flow: only a name was supplied in a non-default language, so it *is* the translation
+        // and the canonical name stays the "Unknown" placeholder until an English name is provided.
+        return (UnknownName, inputName);
+    }
+
+    private static string ResolveName(Ingredient ingredient, string languageCode, IReadOnlyDictionary<string, string> dictionary) =>
+        ResolveTranslation(ingredient, languageCode, dictionary) is { } translated ? translated : ingredient.Name;
+
+    private static string? ResolveTranslation(Ingredient ingredient, string languageCode, IReadOnlyDictionary<string, string> dictionary)
     {
         if (TranslationKeys.IsDefaultLanguage(languageCode))
-            return ingredient.Name;
+            return null;
         return dictionary.TryGetValue(TranslationKeys.Ingredient(ingredient.Id, languageCode), out var translated)
                && !string.IsNullOrWhiteSpace(translated)
             ? translated
-            : ingredient.Name;
+            : null;
     }
 
     private static Dictionary<string, string[]> Validate(SaveIngredientCommand command)
@@ -162,8 +188,12 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
     }
 
     private static string NormalizeUnit(string unit) => unit.Trim().ToLowerInvariant();
-    private static IngredientDto ToDto(Ingredient ingredient, string name) =>
-        new(ingredient.Id, name, ingredient.MeasurementUnit, ingredient.IsCountable,
+    private static IngredientDto ToDto(Ingredient ingredient, string? translation) =>
+        new(ingredient.Id,
+            string.IsNullOrWhiteSpace(translation) ? ingredient.Name : translation,
+            ingredient.Name,
+            translation,
+            ingredient.MeasurementUnit, ingredient.IsCountable,
             ingredient.MeasurementUnitsPerPiece, ingredient.CaloriesPer100BaseUnits,
             ingredient.PricePer100BaseUnits, ingredient.SvgIcon);
     private static IngredientOperationResult Conflict() =>
