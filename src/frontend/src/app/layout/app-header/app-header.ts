@@ -24,6 +24,7 @@ export class AppHeader {
   readonly isLoggingOut = signal(false);
   readonly logoutError = signal<string | null>(null);
   readonly isAccountMenuOpen = signal(false);
+  readonly isDrawerOpen = signal(false);
 
   readonly homes = signal<HomeSummary[]>([]);
   readonly homesLoading = signal(false);
@@ -72,10 +73,24 @@ export class AppHeader {
     this.isAccountMenuOpen.set(false);
   }
 
+  toggleDrawer(): void {
+    this.isDrawerOpen.update((isOpen) => !isOpen);
+    this.closeAccountMenu();
+  }
+
+  closeDrawer(): void {
+    this.isDrawerOpen.set(false);
+    this.closeAccountMenu();
+  }
+
   @HostListener('document:click')
-  @HostListener('document:keydown.escape')
   closeAccountMenuFromDocument(): void {
     this.closeAccountMenu();
+  }
+
+  @HostListener('document:keydown.escape')
+  closeMenusFromEscape(): void {
+    this.closeDrawer();
   }
 
   logout(): void {
@@ -84,7 +99,7 @@ export class AppHeader {
     }
 
     this.isLoggingOut.set(true);
-    this.closeAccountMenu();
+    this.closeDrawer();
     this.logoutError.set(null);
     this.auth.logout().pipe(finalize(() => this.isLoggingOut.set(false))).subscribe({
       next: () => void this.router.navigateByUrl('/login'),

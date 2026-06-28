@@ -1,4 +1,5 @@
 :host { display: block; }
+.drawer-trigger, .drawer-backdrop { display: none; }
 .app-sidebar { position: sticky; top: 0; height: 100vh; box-sizing: border-box; padding: 1rem 1rem; border-right: 1px solid #ded5c8; display: flex; flex-direction: column; background: #fffaf2; }
 .brand { padding: 0 .65rem; display: flex; align-items: center; justify-content: center; gap: .65rem; color: #29251f; font-size: 1.25rem; font-weight: 850; letter-spacing: -.02em; text-decoration: none; }
 .brand-mark { width: 8.5rem; height: auto; object-fit: contain; display: block; }
@@ -40,14 +41,21 @@ footer { position: relative; margin-top: auto; padding: 1rem .25rem .25rem; bord
 .create-link { color: #fff; background: #b9533f; }
 .create-link:hover { background: #a94735; }
 @media (max-width: 48rem) {
-  .app-sidebar { position: fixed; z-index: 10; inset: auto 0 0; width: 100%; height: 4.5rem; padding: .5rem; border: 1px solid #ded5c8; border-width: 1px 0 0; display: block; }
-  .app-sidebar > .brand, .app-sidebar footer { display: none; }
-  .app-sidebar nav { height: 100%; margin: 0; display: flex; align-items: stretch; justify-content: space-around; gap: .1rem; overflow: hidden; }
-  .nav-item { width: auto; min-width: 0; min-height: 100%; padding: .35rem .2rem; flex: 1 1 0; flex-direction: column; justify-content: center; gap: .15rem; font-size: .56rem; white-space: nowrap; }
-  .icon { height: 1.25rem; font-size: 1rem; }
+  .drawer-trigger { position: fixed; z-index: 50; top: .75rem; left: .75rem; width: 2.75rem; height: 2.75rem; padding: 0; border: 1px solid #d8cdbf; border-radius: .65rem; display: grid; place-items: center; color: #514a42; background: #fffaf2; box-shadow: 0 .25rem .8rem rgb(65 49 35 / 12%); font-size: 1.45rem; line-height: 1; cursor: pointer; }
+  .drawer-trigger[aria-expanded="true"] { left: min(calc(100vw - 3.5rem), 18.5rem); color: #9a3a2a; box-shadow: none; }
+  .drawer-backdrop { position: fixed; z-index: 30; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; display: block; background: rgb(41 37 31 / 46%); }
+  .app-sidebar { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(20rem, calc(100vw - .75rem)); height: 100dvh; padding: 1rem; visibility: hidden; transform: translateX(-105%); transition: visibility 0s .2s, transform .2s ease; box-shadow: .75rem 0 2rem rgb(41 37 31 / 18%); }
+  .app-sidebar.drawer-open { visibility: visible; transform: translateX(0); transition-delay: 0s; }
+  .app-sidebar .brand { padding-right: 3rem; }
   .public-header { padding: .75rem 1rem; gap: .5rem; }
   .public-header nav { gap: .4rem; }
   .public-header .brand { padding: 0; }
   .public-header .brand-mark { width: 6.25rem; }
   .account-link { min-height: 2.35rem; padding: .5rem .7rem; font-size: .74rem; }
+}
+@media (max-width: 30rem) {
+  .public-header { padding-inline: .75rem; }
+  .public-header .brand-mark { width: 5.25rem; }
+  .public-header nav { gap: .25rem; }
+  .account-link { padding-inline: .5rem; }
 }
