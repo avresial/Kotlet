@@ -174,7 +174,8 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
         Validators.maxLength(200),
         (control: AbstractControl) => this.isLoadingIngredients()
           || !control.value
-          || this.ingredients().some((item) => item.name === control.value)
+          || this.ingredients().some((item) =>
+            item.id === row.get('ingredientId')?.value || item.name === control.value)
           ? null
           : { unknownIngredient: true },
       ]);
