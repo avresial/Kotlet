@@ -81,9 +81,9 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 .empty { margin: 2rem 0; color: #756d62; text-align: center; }
 .planner-body { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; align-items: start; gap: 1.5rem; }
 .slots { display: grid; gap: 1rem; }
-.receipt-rail { position: sticky; top: 1rem; }
+.receipt-rail { position: sticky; top: 1rem; display: grid; gap: 1rem; }
 
-.slot-section, .day-receipt {
+.slot-section, .day-receipt, .calorie-overview {
   padding: clamp(1.2rem, 3vw, 1.75rem);
   border: 1px solid #dcd2c4;
   border-radius: 1rem;
@@ -201,6 +201,15 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 .receipt-total { display: grid; grid-template-columns: 1fr auto auto; gap: .75rem; margin-top: 1.1rem; padding-top: 1rem; border-top: 2px dashed #cbb9a2; font-family: ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; }
 .receipt-total span:first-child { color: #847b70; font-size: .78rem; }
 
+.calorie-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.calorie-heading h2 { margin-top: .3rem; }
+.calorie-heading > strong { color: #7d3428; font-family: Georgia, serif; font-size: 1.15rem; font-weight: 500; white-space: nowrap; }
+.calorie-lines { margin: 1rem 0 0; padding: 0; border-top: 1px solid #e1d7c9; list-style: none; }
+.calorie-lines li { display: flex; justify-content: space-between; gap: 1rem; padding: .7rem 0; border-bottom: 1px solid #e1d7c9; font-size: .82rem; }
+.calorie-lines li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calorie-lines li strong { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.calorie-empty { margin: 1rem 0 0; color: #847b70; font-size: .82rem; line-height: 1.5; }
+
 @media (max-width: 60rem) {
   .planner-body { grid-template-columns: 1fr; }
   .receipt-rail { position: static; }
@@ -210,9 +219,9 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   .meal-planner-page { width: min(100% - 1.5rem, 72rem); padding-top: 1.5rem; }
   .date-picker { align-items: stretch; flex-direction: column; }
   .overview-heading { align-items: start; flex-direction: column; }
-  .meal-item-header { align-items: start; flex-wrap: wrap; }
-  .item-title { width: auto; flex-basis: calc(100% - 4.5rem); }
-  .shopping-button { order: 4; margin-left: 1.6rem; }
+  .meal-item-header { gap: .4rem; }
+  .item-title { width: auto; min-width: 0; }
+  .icon-button { width: 1.8rem; height: 1.8rem; padding: .3rem; }
   .meal-item-details { margin-left: 0; }
   .people-row { align-items: flex-start; flex-wrap: wrap; }
   .row-label { width: 100%; }

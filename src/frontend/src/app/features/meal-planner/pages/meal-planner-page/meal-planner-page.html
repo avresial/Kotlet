@@ -274,6 +274,29 @@
         <strong>{{ dayTotal().toFixed(2) }} zł</strong>
       </div>
     </section>
+
+    <section class="calorie-overview" aria-labelledby="calorie-overview-title">
+      <div class="calorie-heading">
+        <div>
+          <p class="eyebrow">Daily nutrition</p>
+          <h2 id="calorie-overview-title">Calories overview</h2>
+        </div>
+        <strong>{{ dayCalories().toFixed(0) }} kcal</strong>
+      </div>
+
+      @if (caloriesByPerson().length) {
+        <ul class="calorie-lines">
+          @for (person of caloriesByPerson(); track person.id) {
+            <li>
+              <span>{{ person.name }}</span>
+              <strong>{{ person.calories.toFixed(0) }} kcal</strong>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="calorie-empty">Assign people to meals to see their calorie totals.</p>
+      }
+    </section>
     </aside>
     </div>
   }

@@ -64,6 +64,10 @@ export class PantryPage implements OnInit {
     });
   }
 
+  selectedIngredient(): Ingredient | undefined {
+    return this.ingredients().find(ingredient => ingredient.id === this.form.controls.ingredientId.value);
+  }
+
   step(item: PantryItem): number { return ['kg', 'l'].includes(item.measurementUnit) ? 0.1 : 1; }
   private sort(items: PantryItem[]): PantryItem[] { return [...items].sort((a, b) => a.quantity - b.quantity || a.ingredientName.localeCompare(b.ingredientName)); }
 }

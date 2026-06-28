@@ -99,6 +99,7 @@
         <form class="shopping-add" (ngSubmit)="addToShoppingList()">
           <app-ingredient-picker name="ingredient" [ingredients]="availableIngredients()" placeholder="Add ingredient…" [ngModel]="selectedIngredientId()" (ngModelChange)="selectedIngredientId.set($event)" />
           <input name="quantity" aria-label="Quantity" type="number" min="0.001" step="0.001" [ngModel]="newQuantity()" (ngModelChange)="newQuantity.set($event)" />
+          <span class="shopping-add-unit" [class.is-empty]="!selectedShoppingIngredient()">{{ selectedShoppingIngredient()?.measurementUnit || 'unit' }}</span>
           <button type="submit" [disabled]="shoppingSaving() || !selectedIngredientId()">＋</button>
         </form>
         @if (shoppingError()) { <p class="shopping-error" role="alert">{{ shoppingError() }}</p> }

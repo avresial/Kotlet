@@ -50,6 +50,30 @@ public sealed class PantryEndpointTests(TestWebApplicationFactory factory) : ICl
         Assert.Equal(HttpStatusCode.NoContent, (await other.DeleteAsync($"/api/pantry/{itemId}")).StatusCode);
     }
 
+    [Fact]
+    public async Task Pantry_ReturnsTranslatedIngredientNameAndMeasurementUnit()
+    {
+        var client = await CreateAuthenticatedClient("pantry-translation");
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("pl");
+        var translatedName = $"Produkt {Guid.NewGuid():N}";
+        var response = await client.PostAsJsonAsync("/api/ingredients", new
+        {
+            name = $"Product {Guid.NewGuid():N}", translation = translatedName,
+            measurementUnit = "g", isCountable = false, measurementUnitsPerPiece = (decimal?)null,
+            caloriesPer100BaseUnits = 100m, pricePer100BaseUnits = 5m
+        });
+        var ingredient = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        var createdResponse = await client.PostAsJsonAsync("/api/pantry", new
+        {
+            ingredientId = ingredient.GetProperty("id").GetGuid(), quantity = 2m
+        });
+        var created = await createdResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(translatedName, created.GetProperty("ingredientName").GetString());
+        Assert.Equal("g", created.GetProperty("measurementUnit").GetString());
+    }
+
     private static async Task<Guid> CreateIngredient(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/ingredients", new
