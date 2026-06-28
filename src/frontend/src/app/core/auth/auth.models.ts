@@ -2,6 +2,7 @@ export interface CurrentUser {
   id: string;
   email: string;
   displayName: string | null;
+  preferredLanguage: 'en' | 'pl' | null;
   createdAtUtc: string;
   lastLoginAtUtc: string | null;
 }
@@ -19,10 +20,12 @@ export interface LoginRequest {
 
 export interface RegisterRequest extends LoginRequest {
   confirmPassword: string;
+  displayName: string;
 }
 
 export interface UpdateProfileRequest {
   displayName: string | null;
+  preferredLanguage: 'en' | 'pl' | null;
 }
 
 export interface ChangePasswordRequest {

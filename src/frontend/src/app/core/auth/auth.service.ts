@@ -10,10 +10,12 @@ import {
   UpdateProfileRequest,
 } from './auth.models';
 import { apiUrl } from '../http/api-url';
+import { TranslationService } from '../i18n/translation.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private readonly translations = inject(TranslationService);
   private readonly currentUserState = signal<CurrentUser | null>(null);
   private readonly accessTokenState = signal<string | null>(null);
   private restoration: Promise<void> | null = null;
@@ -83,5 +85,8 @@ export class AuthService {
   setSession(response: AuthResponse): void {
     this.currentUserState.set(response.user);
     this.accessTokenState.set(response.accessToken);
+    if (response.user.preferredLanguage) {
+      void this.translations.setLanguage(response.user.preferredLanguage);
+    }
   }
 }
