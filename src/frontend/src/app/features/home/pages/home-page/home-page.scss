@@ -21,6 +21,7 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 .menu-item { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 1rem; padding: .85rem 0; border-top: 1px solid #e4dbcf; }
 .menu-item:first-child { border-top: 0; }
 .menu-emoji { width: 2.8rem; height: 2.8rem; border-radius: .7rem; display: grid; place-items: center; font-size: 1.4rem; background: radial-gradient(circle at 50% 45%, #f7d999 0 30%, transparent 31%), linear-gradient(135deg, #d9a052, #9d4f2d); }
+.menu-avatar { width: 2.8rem; height: 2.8rem; border-radius: .7rem; object-fit: cover; flex-shrink: 0; }
 .menu-text strong { font-family: Georgia, serif; font-size: 1.15rem; font-weight: 500; }
 .menu-note { margin: .2rem 0 0; color: #746d63; font-size: .82rem; }
 .meal-time { margin: 0 0 .15rem; }
