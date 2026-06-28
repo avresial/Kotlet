@@ -115,6 +115,7 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
 
   selectIngredient(row: FormGroup): void {
     const ingredient = this.ingredients().find((item) => item.name === row.get('name')?.value);
+    row.get('ingredientId')?.setValue(ingredient?.id ?? '');
     row.get('unit')?.setValue(ingredient?.measurementUnit ?? null);
     this.onTouched();
   }
@@ -139,13 +140,35 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
     this.formArray.insert(index + 1, item);
   }
 
+  unitsFor(row: FormGroup): { value: string; label: string }[] {
+    const ingredient = this.ingredients().find((item) => item.id === row.get('ingredientId')?.value);
+    if (!ingredient) return [];
+    const units = [
+      { value: ingredient.measurementUnit, label: ingredient.measurementUnit },
+      { value: 'tsp', label: 'tsp' },
+      { value: 'tbsp', label: 'tbsp' },
+      { value: 'cup', label: 'cup' },
+    ];
+    if (ingredient.isCountable) units.push({ value: 'piece', label: 'piece' });
+    return units;
+  }
+
   private createRow(ing?: RecipeIngredientRequest): FormGroup {
     const row = this.fb.group({
+      ingredientId: [ing?.ingredientId ?? ''],
       name: [ing?.name ?? ''],
-      quantity: [ing?.quantity ?? null, Validators.min(0.001)],
-      unit: [ing?.unit ?? null, Validators.maxLength(40)],
+      quantity: [ing?.quantity ?? null],
+      unit: [ing?.unit ?? ''],
       note: [ing?.note ?? null, Validators.maxLength(300)],
     });
+    row.get('quantity')?.setValidators([
+      (control: AbstractControl) => this.rowHasData(row) && control.value == null ? { required: true } : null,
+      Validators.min(0.001),
+    ]);
+    row.get('unit')?.setValidators([
+      (control: AbstractControl) => this.rowHasData(row) && !control.value ? { required: true } : null,
+      Validators.maxLength(40),
+    ]);
     row.get('name')?.setValidators([
         (control: AbstractControl) => this.rowHasData(row) && !control.value ? { required: true } : null,
         Validators.maxLength(200),
@@ -166,7 +189,11 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
     if (this.rows.length === 0 || this.rowHasData(this.rows[this.rows.length - 1])) {
       this.formArray.push(this.createRow(), { emitEvent: false });
     }
-    this.rows.forEach(row => row.get('name')?.updateValueAndValidity({ emitEvent: false }));
+    this.rows.forEach(row => {
+      row.get('name')?.updateValueAndValidity({ emitEvent: false });
+      row.get('quantity')?.updateValueAndValidity({ emitEvent: false });
+      row.get('unit')?.updateValueAndValidity({ emitEvent: false });
+    });
   }
 
   private rowHasData(row: FormGroup | Record<string, unknown>): boolean {

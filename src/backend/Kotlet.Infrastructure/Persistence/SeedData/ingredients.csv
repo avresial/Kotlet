@@ -1,4 +1,4 @@
-name,measurement_unit,calories_per_100_grams,price
+name,measurement_unit,calories_per_100_base_units,price_per_100_base_units
 # Vegetables and mushrooms
 Potato,g,77,0.004
 Sweet potato,g,86,0.010
@@ -202,8 +202,8 @@ Squid,g,92,0.060
 Octopus,g,82,0.075
 Crab meat,g,83,0.095
 # Dairy and eggs
-Chicken egg,pcs,143,1.00
-Quail egg,pcs,158,0.80
+Chicken egg,g,143,1.00
+Quail egg,g,158,0.80
 Whole milk,ml,61,0.004
 Skimmed milk,ml,34,0.004
 Buttermilk,ml,40,0.005

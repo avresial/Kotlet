@@ -12,7 +12,7 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
     {
         var query = dbContext.Recipes
             .AsNoTracking()
-            .Include(r => r.Ingredients)
+            .Include(r => r.Ingredients).ThenInclude(i => i.Ingredient)
             .Where(r => r.HouseId == houseId);
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -36,7 +36,7 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
         Guid houseId, int limit, CancellationToken cancellationToken) =>
         await dbContext.Recipes
             .AsNoTracking()
-            .Include(r => r.Ingredients)
+            .Include(r => r.Ingredients).ThenInclude(i => i.Ingredient)
             .Where(r => r.HouseId == houseId)
             .OrderByDescending(r => r.CreatedAtUtc)
             .ThenByDescending(r => r.Id)
@@ -46,8 +46,8 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
     public Task<Recipe?> GetByIdAsync(Guid id, Guid houseId, bool tracked, CancellationToken cancellationToken)
     {
         var query = tracked
-            ? dbContext.Recipes.Include(r => r.Ingredients)
-            : dbContext.Recipes.AsNoTracking().Include(r => r.Ingredients);
+            ? dbContext.Recipes.Include(r => r.Ingredients).ThenInclude(i => i.Ingredient)
+            : dbContext.Recipes.AsNoTracking().Include(r => r.Ingredients).ThenInclude(i => i.Ingredient);
         return query.SingleOrDefaultAsync(
             r => r.Id == id && r.HouseId == houseId,
             cancellationToken);

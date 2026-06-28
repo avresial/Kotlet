@@ -11,6 +11,7 @@ using Kotlet.Infrastructure.Pantry;
 using Kotlet.Application.Recipes;
 using Kotlet.Infrastructure.Recipes;
 using Kotlet.Application.Shopping;
+using Kotlet.Application.Measurements;
 using Kotlet.Infrastructure.Shopping;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IShoppingListRepository, ShoppingListRepository>();
         services.AddScoped<IRecipeRepository, RecipeRepository>();
         services.AddScoped<IRecipeImageRepository, RecipeImageRepository>();
+        services.AddSingleton<MeasurementMappingService>();
         services.AddScoped<IMealPlanRepository, MealPlanRepository>();
         AddDatabase(services, configuration);
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();

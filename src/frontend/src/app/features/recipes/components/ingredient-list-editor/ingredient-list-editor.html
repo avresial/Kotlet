@@ -24,7 +24,9 @@
             </label>
             <label class="field-unit">
               <span class="sr-only">Unit</span>
-              <input type="text" formControlName="unit" placeholder="Unit" readonly title="Unit is set by the selected ingredient" />
+              <select formControlName="unit" aria-label="Unit">
+                @for (unit of unitsFor(row); track unit.value) { <option [value]="unit.value">{{ unit.label }}</option> }
+              </select>
             </label>
             <label class="field-note">
               <span class="sr-only">Note</span>

@@ -4,7 +4,7 @@ export interface ShoppingListItem {
   ingredientName: string;
   measurementUnit: string;
   quantity: number;
-  unitPrice: number;
+  pricePer100BaseUnits: number;
   totalPrice: number;
   isPurchased: boolean;
 }

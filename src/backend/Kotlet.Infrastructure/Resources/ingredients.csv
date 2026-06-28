@@ -1,4 +1,4 @@
-Name,MeasurementUnit,CaloriesPer100Grams,Price
+Name,MeasurementUnit,CaloriesPer100BaseUnits,PricePer100BaseUnits
 Onion,g,40,0.20
 Garlic,g,149,0.05
 Tomato,g,18,0.30
@@ -87,7 +87,7 @@ Bacon,g,541,1.20
 Ham,g,145,1.00
 Salami,g,336,1.50
 Chorizo,g,455,1.80
-Eggs,piece,155,0.50
+Eggs,g,155,0.50
 Tofu,g,76,0.90
 Tempeh,g,193,1.50
 Lentils,g,116,0.30

@@ -69,4 +69,29 @@
       &:hover:not(:disabled) { filter: brightness(.96); }
     }
   }
+
+  .image-picker {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: -10px;
+
+    input[type='file'] { display: none; }
+    .image-name { color: var(--text-secondary, #666); font-size: .9rem; }
+    .field-error { flex-basis: 100%; font-size: .82rem; color: var(--danger, #e53e3e); }
+  }
+
+  .text-button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #963827;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &.remove-image { color: var(--text-secondary, #666); }
+  }
 }

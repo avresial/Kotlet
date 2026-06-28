@@ -24,5 +24,11 @@ public sealed class IngredientCsvSeederTests
         Assert.Equal(323, firstCount);
         Assert.Equal(0, secondCount);
         Assert.Equal(323, await dbContext.Ingredients.CountAsync());
+        var orange = await dbContext.Ingredients.SingleAsync(x => x.Name == "Orange");
+        Assert.True(orange.IsCountable);
+        Assert.Equal(150m, orange.MeasurementUnitsPerPiece);
+        Assert.Empty(await dbContext.Ingredients
+            .Where(x => x.MeasurementUnit != "g" && x.MeasurementUnit != "ml")
+            .ToListAsync());
     }
 }

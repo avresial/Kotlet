@@ -22,6 +22,8 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
     public async Task Recipe_CanBeCreatedListedViewedUpdatedAndDeleted()
     {
         var client = await CreateAuthenticatedClient();
+        var tomatoesId = await CreateIngredient(client, "Tomatoes", false, null);
+        var garlicId = await CreateIngredient(client, "Garlic", true, 5m);
 
         // Create
         var create = await client.PostAsJsonAsync("/api/recipes", new
@@ -30,8 +32,8 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
             descriptionMarkdown = "Simple **soup**.",
             ingredients = new[]
             {
-                new { name = "Tomatoes", quantity = 800, unit = "g", note = (string?)"canned" },
-                new { name = "Garlic", quantity = 2, unit = "cloves", note = (string?)null }
+                new { ingredientId = tomatoesId, quantity = 800, unit = "g", note = (string?)"canned" },
+                new { ingredientId = garlicId, quantity = 2, unit = "piece", note = (string?)null }
             }
         });
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
@@ -40,6 +42,9 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         Assert.Equal("Tomato Soup", created.GetProperty("title").GetString());
         Assert.Equal("tomato-soup", created.GetProperty("slug").GetString());
         Assert.Equal(2, created.GetProperty("ingredients").GetArrayLength());
+        var garlic = created.GetProperty("ingredients")[1];
+        Assert.Equal(10m, garlic.GetProperty("normalizedQuantity").GetDecimal());
+        Assert.Equal("g", garlic.GetProperty("normalizedUnit").GetString());
 
         // List
         var list = await client.GetFromJsonAsync<JsonElement>("/api/recipes");
@@ -59,13 +64,15 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
             descriptionMarkdown = "Rich and creamy.",
             ingredients = new[]
             {
-                new { name = "Tomatoes", quantity = 400, unit = "g", note = (string?)null }
+                new { ingredientId = tomatoesId, quantity = 30, unit = "g", note = (string?)null }
             }
         });
         Assert.Equal(HttpStatusCode.OK, update.StatusCode);
         var updated = await update.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("Cream of Tomato", updated.GetProperty("title").GetString());
         Assert.Equal(1, updated.GetProperty("ingredients").GetArrayLength());
+        Assert.Equal(2m, updated.GetProperty("ingredients")[0].GetProperty("quantity").GetDecimal());
+        Assert.Equal("tbsp", updated.GetProperty("ingredients")[0].GetProperty("unit").GetString());
 
         // Delete
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/recipes/{id}")).StatusCode);
@@ -91,7 +98,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         {
             title = "Soup",
             descriptionMarkdown = (string?)null,
-            ingredients = new[] { new { name = "", quantity = (decimal?)null, unit = (string?)null, note = (string?)null } }
+            ingredients = new[] { new { ingredientId = Guid.Empty, quantity = 0m, unit = "", note = (string?)null } }
         });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -185,5 +192,16 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());
         await TestAuth.CreateHomeAsync(client);
         return client;
+    }
+
+    private static async Task<Guid> CreateIngredient(HttpClient client, string label, bool isCountable, decimal? pieceSize)
+    {
+        var response = await client.PostAsJsonAsync("/api/ingredients", new
+        {
+            name = $"{label} {Guid.NewGuid():N}", measurementUnit = "g", isCountable,
+            measurementUnitsPerPiece = pieceSize, caloriesPer100BaseUnits = 0m, pricePer100BaseUnits = 1m
+        });
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return body.GetProperty("id").GetGuid();
     }
 }

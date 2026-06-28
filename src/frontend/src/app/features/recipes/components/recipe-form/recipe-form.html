@@ -22,6 +22,25 @@
     }
   </div>
 
+  @if (showImagePicker()) {
+    <div class="image-picker">
+      <input
+        #imageInput
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        (change)="chooseImage($event)"
+      />
+      <button type="button" class="text-button" (click)="imageInput.click()">
+        {{ selectedImage ? 'Change image' : 'Add image' }}
+      </button>
+      @if (selectedImage) {
+        <span class="image-name">{{ selectedImage.name }}</span>
+        <button type="button" class="text-button remove-image" (click)="removeImage(imageInput)">Remove</button>
+      }
+      @if (imageError) { <span class="field-error" role="alert">{{ imageError }}</span> }
+    </div>
+  }
+
   <div class="form-field">
     <label id="recipe-description-label">Description (Markdown)</label>
     <app-markdown-editor

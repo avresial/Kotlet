@@ -16,15 +16,15 @@ jobs:
       contents: read #This is required for actions/checkout
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up .NET Core
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.x'
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: 'src/frontend/.nvmrc'
           cache: npm
@@ -44,7 +44,7 @@ jobs:
         run: dotnet publish src/backend/Kotlet.Api/Kotlet.Api.csproj -c Release -o ${{github.workspace}}/myapp
 
       - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: .net-app
           path: ${{github.workspace}}/myapp
@@ -58,12 +58,12 @@ jobs:
 
     steps:
       - name: Download artifact from build job
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: .net-app
       
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_5F0DF80DEFBC4C498C7B7B1DAAB988AF }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_92B6E38F683F4503B8D783330A4F6036 }}

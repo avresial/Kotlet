@@ -1,7 +1,8 @@
 export interface RecipeIngredientRequest {
+  ingredientId: string;
   name: string;
-  quantity: number | null;
-  unit: string | null;
+  quantity: number;
+  unit: string;
   note: string | null;
 }
 
@@ -16,9 +17,12 @@ export type UpdateRecipeRequest = CreateRecipeRequest;
 export interface RecipeIngredient {
   id: string;
   sortOrder: number;
+  ingredientId: string;
   name: string;
-  quantity: number | null;
-  unit: string | null;
+  quantity: number;
+  unit: string;
+  normalizedQuantity: number;
+  normalizedUnit: string;
   note: string | null;
 }
 

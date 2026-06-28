@@ -10,6 +10,8 @@ header p:last-child { margin: 0; color: #746d63; }
 h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
 form { margin-top: 1.25rem; display: grid; grid-template-columns: 2fr 1.2fr 1fr 1fr auto; align-items: end; gap: 1rem; }
 label { display: grid; gap: .4rem; color: #554e45; font-size: .78rem; font-weight: 750; }
+.checkbox-field { grid-template-columns: auto 1fr; align-items: center; align-self: center; }
+.checkbox-field input { width: auto; min-height: auto; }
 input, select { width: 100%; min-height: 2.75rem; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #29251f; background: #fff; }
 input:focus, select:focus { outline: 2px solid #b96554; outline-offset: 1px; }
 .actions, .row-actions { display: flex; gap: .5rem; }

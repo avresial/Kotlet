@@ -18,17 +18,32 @@ export class RecipeCreatePage {
 
   readonly isSaving = signal(false);
   readonly error = signal<string | null>(null);
+  private selectedImage: File | null = null;
 
   save(request: CreateRecipeRequest): void {
     this.isSaving.set(true);
     this.error.set(null);
     this.service.create(request).subscribe({
-      next: (recipe) => this.router.navigate(['/recipes', recipe.id]),
+      next: (recipe) => {
+        if (!this.selectedImage) {
+          this.router.navigate(['/recipes', recipe.id]);
+          return;
+        }
+
+        this.service.uploadImage(recipe.id, this.selectedImage).subscribe({
+          next: () => this.router.navigate(['/recipes', recipe.id]),
+          error: () => this.router.navigate(['/recipes', recipe.id, 'edit']),
+        });
+      },
       error: (err) => {
         this.error.set(getApiError(err, 'Unable to create recipe.'));
         this.isSaving.set(false);
       },
     });
+  }
+
+  selectImage(file: File | null): void {
+    this.selectedImage = file;
   }
 
   cancel(): void {

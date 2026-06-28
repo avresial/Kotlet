@@ -21,7 +21,7 @@ public sealed class ShoppingListEndpointTests(TestWebApplicationFactory factory)
         var client = await CreateAuthenticatedClient();
         var ingredientId = await CreateIngredient(client, 7.25m);
 
-        var createResponse = await client.PostAsJsonAsync("/api/shopping-list", new { ingredientId, quantity = 2m });
+        var createResponse = await client.PostAsJsonAsync("/api/shopping-list", new { ingredientId, quantity = 200m });
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
         var created = await createResponse.Content.ReadFromJsonAsync<JsonElement>();
         var id = created.GetProperty("id").GetGuid();
@@ -30,7 +30,7 @@ public sealed class ShoppingListEndpointTests(TestWebApplicationFactory factory)
         var duplicate = await client.PostAsJsonAsync("/api/shopping-list", new { ingredientId, quantity = 1m });
         Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
 
-        var updateResponse = await client.PutAsJsonAsync($"/api/shopping-list/{id}", new { quantity = 3m, isPurchased = true });
+        var updateResponse = await client.PutAsJsonAsync($"/api/shopping-list/{id}", new { quantity = 300m, isPurchased = true });
         Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
         var updated = await updateResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(21.75m, updated.GetProperty("totalPrice").GetDecimal());
@@ -50,7 +50,8 @@ public sealed class ShoppingListEndpointTests(TestWebApplicationFactory factory)
     {
         var response = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name = $"Shopping ingredient {Guid.NewGuid():N}", measurementUnit = "kg", caloriesPer100Grams = 100m, price
+            name = $"Shopping ingredient {Guid.NewGuid():N}", measurementUnit = "g",
+            caloriesPer100BaseUnits = 100m, pricePer100BaseUnits = price
         });
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         return body.GetProperty("id").GetGuid();

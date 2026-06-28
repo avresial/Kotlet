@@ -7,7 +7,9 @@
   <app-recipe-form
     [isSaving]="isSaving()"
     [error]="error()"
+    [showImagePicker]="true"
     submitLabel="Create recipe"
+    (imageSelected)="selectImage($event)"
     (submitted)="save($event)"
     (cancelled)="cancel()"
   ></app-recipe-form>

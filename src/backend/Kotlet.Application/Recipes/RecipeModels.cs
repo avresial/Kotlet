@@ -1,9 +1,9 @@
 namespace Kotlet.Application.Recipes;
 
 public sealed record RecipeIngredientRequest(
-    string Name,
-    decimal? Quantity,
-    string? Unit,
+    Guid IngredientId,
+    decimal Quantity,
+    string Unit,
     string? Note);
 
 public sealed record CreateRecipeRequest(
@@ -19,9 +19,12 @@ public sealed record UpdateRecipeRequest(
 public sealed record RecipeIngredientResponse(
     Guid Id,
     int SortOrder,
+    Guid IngredientId,
     string Name,
-    decimal? Quantity,
-    string? Unit,
+    decimal Quantity,
+    string Unit,
+    decimal NormalizedQuantity,
+    string NormalizedUnit,
     string? Note);
 
 public sealed record RecipeSummaryResponse(

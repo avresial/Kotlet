@@ -38,9 +38,12 @@ public static class IngredientEndpoints
     }
 
     private static async Task<IResult> Delete(Guid id, IngredientService service, CancellationToken cancellationToken) =>
-        await service.DeleteAsync(id, cancellationToken) is IngredientOperationStatus.Success
-            ? Results.NoContent()
-            : Results.NotFound();
+        await service.DeleteAsync(id, cancellationToken) switch
+        {
+            IngredientOperationStatus.Success => Results.NoContent(),
+            IngredientOperationStatus.Conflict => Results.Conflict(new { message = "Ingredient is used by a recipe, pantry, or shopping list." }),
+            _ => Results.NotFound()
+        };
 
     private static IResult ToHttpResult(IngredientOperationResult result, bool created) => result.Status switch
     {

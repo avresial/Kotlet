@@ -58,9 +58,10 @@
   }
 
   .recipe-card {
+    position: relative;
     border: 1px solid #dcd2c4;
     border-radius: 1rem;
-    overflow: hidden;
+    overflow: visible;
     display: flex;
     flex-direction: column;
     background: #fffaf2;
@@ -71,6 +72,7 @@
       width: 100%;
       height: 11rem;
       object-fit: cover;
+      border-radius: calc(1rem - 1px) calc(1rem - 1px) 0 0;
       background: #f4ead9;
     }
 
@@ -86,11 +88,67 @@
       .updated { margin: 0; font-size: 0.8rem; color: #92897d; }
     }
 
-    .card-actions {
-      padding: 10px 16px;
-      border-top: 1px solid #e1d7c9;
-      display: flex;
-      gap: 8px;
+    .card-menu {
+      position: absolute;
+      z-index: 2;
+      top: .65rem;
+      right: .65rem;
+
+      &[open] .card-menu-trigger { background: #fffaf2; }
+    }
+
+    .card-menu-trigger {
+      width: 2.25rem;
+      height: 2.25rem;
+      display: grid;
+      place-items: center;
+      border: 1px solid #d8cfc3;
+      border-radius: .55rem;
+      background: rgb(255 253 249 / 92%);
+      color: #382f28;
+      box-shadow: 0 .2rem .8rem rgb(70 52 31 / 12%);
+      cursor: pointer;
+      font-size: 1.35rem;
+      line-height: 1;
+      list-style: none;
+
+      &::-webkit-details-marker { display: none; }
+      &:hover { background: #fffaf2; }
+      &:focus-visible { outline: 2px solid #9a3a2a; outline-offset: 2px; }
+    }
+
+    .card-menu-dropdown {
+      position: absolute;
+      top: calc(100% + .4rem);
+      right: 0;
+      min-width: 8.5rem;
+      padding: .35rem;
+      border: 1px solid #d8cfc3;
+      border-radius: .55rem;
+      background: #fffdf9;
+      box-shadow: 0 .7rem 1.8rem rgb(70 52 31 / 18%);
+
+      a, button {
+        display: block;
+        width: 100%;
+        padding: .6rem .75rem;
+        border: 0;
+        border-radius: .35rem;
+        background: transparent;
+        color: #382f28;
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+        text-decoration: none;
+
+        &:hover { background: #f7eee3; }
+        &:focus-visible { outline: 2px solid #9a3a2a; outline-offset: -2px; }
+      }
+
+      .delete-action {
+        color: #9a3024;
+        &:disabled { opacity: .5; cursor: not-allowed; }
+      }
     }
   }
 

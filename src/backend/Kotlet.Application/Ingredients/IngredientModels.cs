@@ -4,14 +4,18 @@ public sealed record IngredientDto(
     Guid Id,
     string Name,
     string MeasurementUnit,
-    decimal CaloriesPer100Grams,
-    decimal Price);
+    bool IsCountable,
+    decimal? MeasurementUnitsPerPiece,
+    decimal CaloriesPer100BaseUnits,
+    decimal PricePer100BaseUnits);
 
 public sealed record SaveIngredientCommand(
     string Name,
     string MeasurementUnit,
-    decimal CaloriesPer100Grams,
-    decimal Price);
+    bool IsCountable,
+    decimal? MeasurementUnitsPerPiece,
+    decimal CaloriesPer100BaseUnits,
+    decimal PricePer100BaseUnits);
 
 public enum IngredientOperationStatus
 {

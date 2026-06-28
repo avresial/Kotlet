@@ -10,9 +10,13 @@
     <h2 id="editor-title">{{ editingId() ? 'Edit ingredient' : 'Add ingredient' }}</h2>
     <form [formGroup]="form" (ngSubmit)="save()">
       <label>Name<input type="text" formControlName="name" placeholder="e.g. Chicken breast" /></label>
-      <label>Measurement unit<select formControlName="measurementUnit">@for (unit of units; track unit.value) { <option [value]="unit.value">{{ unit.label }}</option> }</select></label>
-      <label>Calories per 100 g<input type="number" min="0" max="999999.99" step="0.01" formControlName="caloriesPer100Grams" /></label>
-      <label>Price per unit<input type="number" min="0" max="99999999.99" step="0.01" formControlName="price" /></label>
+      <label>Base measurement unit<select formControlName="measurementUnit">@for (unit of units; track unit.value) { <option [value]="unit.value">{{ unit.label }}</option> }</select></label>
+      <label class="checkbox-field"><input type="checkbox" formControlName="isCountable" /> Countable in pieces</label>
+      @if (form.controls.isCountable.value) {
+        <label>Base units per piece<input type="number" min="0.001" max="999999999.999" step="0.001" formControlName="measurementUnitsPerPiece" /></label>
+      }
+      <label>Calories per 100 {{ form.controls.measurementUnit.value }}<input type="number" min="0" max="999999.99" step="0.01" formControlName="caloriesPer100BaseUnits" /></label>
+      <label>Price per 100 {{ form.controls.measurementUnit.value }}<input type="number" min="0" max="99999999.99" step="0.01" formControlName="pricePer100BaseUnits" /></label>
       <div class="actions">
         @if (editingId()) { <button class="secondary" type="button" (click)="cancelEdit()">Cancel</button> }
         <button class="primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Saving…' : editingId() ? 'Save changes' : 'Add ingredient' }}</button>
@@ -34,9 +38,9 @@
     @else if (filteredIngredients().length === 0) { <p class="empty">No ingredients match “{{ search() }}”.</p> }
     @else {
       <div class="table-wrap"><table>
-        <thead><tr><th>Name</th><th>Unit</th><th>kcal / 100 g</th><th>Price / unit</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <thead><tr><th>Name</th><th>Base unit</th><th>Piece size</th><th>kcal / 100</th><th>Price / 100</th><th><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>@for (ingredient of filteredIngredients(); track ingredient.id) {
-          <tr><td data-label="Name"><strong>{{ ingredient.name }}</strong></td><td data-label="Unit">{{ unitLabel(ingredient.measurementUnit) }}</td><td data-label="kcal / 100 g">{{ ingredient.caloriesPer100Grams }}</td><td data-label="Price / unit">{{ ingredient.price.toFixed(2) }}</td>
+          <tr><td data-label="Name"><strong>{{ ingredient.name }}</strong></td><td data-label="Base unit">{{ unitLabel(ingredient.measurementUnit) }}</td><td data-label="Piece size">{{ ingredient.isCountable ? ingredient.measurementUnitsPerPiece + ' ' + ingredient.measurementUnit : '—' }}</td><td data-label="kcal / 100">{{ ingredient.caloriesPer100BaseUnits }}</td><td data-label="Price / 100">{{ ingredient.pricePer100BaseUnits.toFixed(2) }}</td>
           <td class="row-actions" data-label="Actions"><button type="button" (click)="edit(ingredient)">Edit</button><button class="delete" type="button" [disabled]="deletingId() === ingredient.id" (click)="remove(ingredient)">{{ deletingId() === ingredient.id ? 'Deleting…' : 'Delete' }}</button></td></tr>
         }</tbody>
       </table></div>
