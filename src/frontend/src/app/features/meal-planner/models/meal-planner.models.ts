@@ -17,6 +17,7 @@ export interface MealPlanItem {
   note?: string | null;
   sortOrder: number;
   participants: MealParticipant[];
+  guests: number;
   servings: number;
   servingsOverridden: boolean;
 }
@@ -50,4 +51,8 @@ export interface SetParticipantsRequest {
 
 export interface SetServingsRequest {
   servings: number | null;
+}
+
+export interface SetGuestsRequest {
+  guests: number;
 }

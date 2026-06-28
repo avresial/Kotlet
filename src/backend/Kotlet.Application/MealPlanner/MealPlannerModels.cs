@@ -11,6 +11,8 @@ public sealed record SetParticipantsRequest(IReadOnlyList<Guid> UserIds);
 
 public sealed record SetServingsRequest(int? Servings);
 
+public sealed record SetGuestsRequest(int Guests);
+
 public sealed record MealParticipantResponse(
     Guid UserId,
     string DisplayName,
@@ -26,6 +28,7 @@ public sealed record MealPlanItemResponse(
     string? Note,
     int SortOrder,
     IReadOnlyList<MealParticipantResponse> Participants,
+    int Guests,
     int Servings,
     bool ServingsOverridden);
 

@@ -42,4 +42,8 @@ export class MealPlannerService {
   setServings(id: string, servings: number | null) {
     return this.http.put<MealPlanItem>(apiUrl(`/api/meal-planner/items/${id}/servings`), { servings });
   }
+
+  setGuests(id: string, guests: number) {
+    return this.http.put<MealPlanItem>(apiUrl(`/api/meal-planner/items/${id}/guests`), { guests });
+  }
 }

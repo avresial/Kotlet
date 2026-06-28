@@ -11,6 +11,7 @@ public sealed class MealPlannerService(
 {
     private static readonly HashSet<string> ValidSlots = ["breakfast", "dinner", "supper"];
     private const int MaxServings = 99;
+    private const int MaxGuests = 99;
 
     public async Task<DailyMealPlanResponse> GetForDateAsync(
         Guid userId, Guid houseId, DateOnly date, CancellationToken cancellationToken)
@@ -159,6 +160,31 @@ public sealed class MealPlannerService(
         return new(MealPlannerOperationStatus.Success, response);
     }
 
+    /// <summary>
+    /// Sets the number of extra guests joining a meal. Guests add to the headcount
+    /// used to derive the serving count when no explicit override is set.
+    /// </summary>
+    public async Task<MealPlannerOperationResult> SetGuestsAsync(
+        Guid userId, Guid houseId, Guid itemId, int guests, CancellationToken cancellationToken)
+    {
+        if (guests is < 0 or > MaxGuests)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
+            {
+                ["guests"] = [$"Guests must be between 0 and {MaxGuests}."]
+            });
+
+        var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
+        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+
+        item.Guests = guests;
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        await repository.SaveChangesAsync(cancellationToken);
+
+        var members = await GetMemberNamesAsync(houseId, cancellationToken);
+        var response = await ToResponseAsync(item, userId, houseId, members, cancellationToken);
+        return new(MealPlannerOperationStatus.Success, response);
+    }
+
     private async Task<Dictionary<string, string[]>> ValidateAddAsync(
         Guid houseId, AddMealPlanItemRequest request, CancellationToken cancellationToken)
     {
@@ -232,6 +258,7 @@ public sealed class MealPlannerService(
             item.Note,
             item.SortOrder,
             participants,
+            item.Guests,
             item.EffectiveServings,
             item.Servings.HasValue);
     }
