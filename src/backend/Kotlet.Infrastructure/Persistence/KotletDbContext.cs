@@ -1,4 +1,5 @@
 using Kotlet.Domain.Auth;
+using Kotlet.Domain.Ai;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.MealPlanner;
 using Kotlet.Domain.Pantry;
@@ -16,6 +17,7 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public const string DefaultSchema = DatabaseSchemas.Kotlet;
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserAiProviderConfiguration> UserAiProviderConfigurations => Set<UserAiProviderConfiguration>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
