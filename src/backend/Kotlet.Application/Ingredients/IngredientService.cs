@@ -109,7 +109,8 @@ public sealed class IngredientService(IIngredientRepository repository)
     private static string NormalizeUnit(string unit) => unit.Trim().ToLowerInvariant();
     private static IngredientDto ToDto(Ingredient ingredient) =>
         new(ingredient.Id, ingredient.Name, ingredient.MeasurementUnit, ingredient.IsCountable,
-            ingredient.MeasurementUnitsPerPiece, ingredient.CaloriesPer100BaseUnits, ingredient.PricePer100BaseUnits);
+            ingredient.MeasurementUnitsPerPiece, ingredient.CaloriesPer100BaseUnits,
+            ingredient.PricePer100BaseUnits, ingredient.SvgIcon);
     private static IngredientOperationResult Conflict() =>
         new(IngredientOperationStatus.Conflict, Message: "An ingredient with this name already exists.");
 }

@@ -19,7 +19,26 @@ public sealed class IngredientServiceTests
         Assert.Equal(IngredientOperationStatus.Success, result.Status);
         Assert.Equal("Chicken breast", result.Ingredient!.Name);
         Assert.Equal("g", result.Ingredient.MeasurementUnit);
+        Assert.Null(result.Ingredient.SvgIcon);
         Assert.Equal(1, repository.SaveCount);
+    }
+
+    [Fact]
+    public async Task Update_LeavesSvgIconUnchanged()
+    {
+        var existing = Ingredient("Salt");
+        existing.SvgIcon = "<svg />";
+        var repository = new FakeIngredientRepository(existing);
+        var service = new IngredientService(repository);
+
+        var result = await service.UpdateAsync(
+            existing.Id,
+            new SaveIngredientCommand("Sea salt", "g", false, null, 0, 1),
+            CancellationToken.None);
+
+        Assert.Equal(IngredientOperationStatus.Success, result.Status);
+        Assert.Equal("<svg />", result.Ingredient!.SvgIcon);
+        Assert.Equal("<svg />", existing.SvgIcon);
     }
 
     [Fact]

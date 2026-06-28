@@ -7,7 +7,8 @@ public sealed record IngredientDto(
     bool IsCountable,
     decimal? MeasurementUnitsPerPiece,
     decimal CaloriesPer100BaseUnits,
-    decimal PricePer100BaseUnits);
+    decimal PricePer100BaseUnits,
+    string? SvgIcon);
 
 public sealed record SaveIngredientCommand(
     string Name,

@@ -31,6 +31,7 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
         var created = await create.Content.ReadFromJsonAsync<JsonElement>();
         var id = created.GetProperty("id").GetGuid();
+        Assert.Equal(JsonValueKind.Null, created.GetProperty("svgIcon").ValueKind);
 
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/ingredients");
         Assert.Contains(list!, item => item.GetProperty("id").GetGuid() == id);
@@ -44,6 +45,7 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
         var updated = await update.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("ml", updated.GetProperty("measurementUnit").GetString());
         Assert.True(updated.GetProperty("isCountable").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, updated.GetProperty("svgIcon").ValueKind);
 
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/ingredients/{id}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/ingredients/{id}")).StatusCode);
