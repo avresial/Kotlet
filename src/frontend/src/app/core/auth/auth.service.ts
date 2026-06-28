@@ -1,7 +1,14 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom, tap } from 'rxjs';
-import { AuthResponse, CurrentUser, LoginRequest, RegisterRequest } from './auth.models';
+import {
+  AuthResponse,
+  ChangePasswordRequest,
+  CurrentUser,
+  LoginRequest,
+  RegisterRequest,
+  UpdateProfileRequest,
+} from './auth.models';
 import { apiUrl } from '../http/api-url';
 
 @Injectable({ providedIn: 'root' })
@@ -41,6 +48,16 @@ export class AuthService {
 
   refresh() {
     return this.http.post<AuthResponse>(apiUrl('/api/auth/refresh'), null, { withCredentials: true });
+  }
+
+  updateProfile(request: UpdateProfileRequest) {
+    return this.http
+      .put<CurrentUser>(apiUrl('/api/auth/profile'), request, { withCredentials: true })
+      .pipe(tap((user) => this.currentUserState.set(user)));
+  }
+
+  changePassword(request: ChangePasswordRequest) {
+    return this.http.post<void>(apiUrl('/api/auth/password'), request, { withCredentials: true });
   }
 
   logout() {

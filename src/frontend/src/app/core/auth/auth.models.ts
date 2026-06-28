@@ -20,3 +20,13 @@ export interface LoginRequest {
 export interface RegisterRequest extends LoginRequest {
   confirmPassword: string;
 }
+
+export interface UpdateProfileRequest {
+  displayName: string | null;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
