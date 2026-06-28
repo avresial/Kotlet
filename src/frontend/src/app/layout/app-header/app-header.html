@@ -1,18 +1,26 @@
 @if (auth.currentUser(); as user) {
-  <aside class="app-sidebar">
-    <a class="brand" routerLink="/dashboard" [attr.aria-label]="'nav.dashboardAria' | t">
+  <button class="drawer-trigger" type="button" (click)="toggleDrawer()"
+    [attr.aria-expanded]="isDrawerOpen()" aria-controls="app-navigation"
+    [attr.aria-label]="(isDrawerOpen() ? 'nav.closeMenu' : 'nav.openMenu') | t">
+    <span aria-hidden="true">{{ isDrawerOpen() ? '×' : '☰' }}</span>
+  </button>
+  @if (isDrawerOpen()) {
+    <div class="drawer-backdrop" (click)="closeDrawer()" aria-hidden="true"></div>
+  }
+  <aside id="app-navigation" class="app-sidebar" [class.drawer-open]="isDrawerOpen()">
+    <a class="brand" routerLink="/dashboard" [attr.aria-label]="'nav.dashboardAria' | t" (click)="closeDrawer()">
       <img class="brand-mark" src="kotlet-logo.svg" alt="Kotlet" />
     </a>
 
     <nav [attr.aria-label]="'nav.mainAria' | t">
-      <a class="nav-item" routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+      <a class="nav-item" routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeDrawer()">
         <span class="icon" aria-hidden="true">⌂</span><span>{{ 'nav.dashboard' | t }}</span>
       </a>
-      <a class="nav-item" routerLink="/recipes" routerLinkActive="active"><span class="icon" aria-hidden="true">▤</span><span>{{ 'nav.recipes' | t }}</span></a>
-      <a class="nav-item" routerLink="/meal-planner" routerLinkActive="active"><span class="icon" aria-hidden="true">▦</span><span>{{ 'nav.mealPlanner' | t }}</span></a>
-      <a class="nav-item" routerLink="/shopping-list" routerLinkActive="active"><span class="icon" aria-hidden="true">✓</span><span>{{ 'nav.shoppingList' | t }}</span></a>
-      <a class="nav-item" routerLink="/pantry" routerLinkActive="active"><span class="icon" aria-hidden="true">□</span><span>{{ 'nav.pantry' | t }}</span></a>
-      <a class="nav-item" routerLink="/ingredients" routerLinkActive="active">
+      <a class="nav-item" routerLink="/recipes" routerLinkActive="active" (click)="closeDrawer()"><span class="icon" aria-hidden="true">▤</span><span>{{ 'nav.recipes' | t }}</span></a>
+      <a class="nav-item" routerLink="/meal-planner" routerLinkActive="active" (click)="closeDrawer()"><span class="icon" aria-hidden="true">▦</span><span>{{ 'nav.mealPlanner' | t }}</span></a>
+      <a class="nav-item" routerLink="/shopping-list" routerLinkActive="active" (click)="closeDrawer()"><span class="icon" aria-hidden="true">✓</span><span>{{ 'nav.shoppingList' | t }}</span></a>
+      <a class="nav-item" routerLink="/pantry" routerLinkActive="active" (click)="closeDrawer()"><span class="icon" aria-hidden="true">□</span><span>{{ 'nav.pantry' | t }}</span></a>
+      <a class="nav-item" routerLink="/ingredients" routerLinkActive="active" (click)="closeDrawer()">
         <span class="icon" aria-hidden="true">◉</span><span>{{ 'nav.ingredients' | t }}</span>
       </a>
     </nav>
@@ -40,12 +48,12 @@
             }
           </div>
           <app-language-switcher />
-          <a role="menuitem" routerLink="/home" (click)="closeAccountMenu()">
+          <a role="menuitem" routerLink="/home" (click)="closeDrawer()">
             <span aria-hidden="true">⌂</span>{{ 'nav.home' | t }}
             @if (invitationCount() > 0) { <span class="invite-badge">{{ invitationCount() }}</span> }
           </a>
-          <a role="menuitem" routerLink="/settings" (click)="closeAccountMenu()"><span aria-hidden="true">⚙</span>{{ 'nav.settings' | t }}</a>
-          <a role="menuitem" routerLink="/admin" (click)="closeAccountMenu()"><span aria-hidden="true">♜</span>{{ 'nav.admin' | t }}</a>
+          <a role="menuitem" routerLink="/settings" (click)="closeDrawer()"><span aria-hidden="true">⚙</span>{{ 'nav.settings' | t }}</a>
+          <a role="menuitem" routerLink="/admin" (click)="closeDrawer()"><span aria-hidden="true">♜</span>{{ 'nav.admin' | t }}</a>
           <button role="menuitem" type="button" (click)="logout()" [disabled]="isLoggingOut()">
             <span aria-hidden="true">↪</span>{{ (isLoggingOut() ? 'auth.logout.loading' : 'auth.logout.submit') | t }}
           </button>
