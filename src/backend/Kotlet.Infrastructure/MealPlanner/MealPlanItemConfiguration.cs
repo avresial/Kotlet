@@ -21,6 +21,7 @@ internal sealed class MealPlanItemConfiguration : IEntityTypeConfiguration<MealP
         builder.Property(m => m.Note).HasColumnName("note").HasColumnType("text");
         builder.Property(m => m.SortOrder).HasColumnName("sort_order").IsRequired();
         builder.Property(m => m.Servings).HasColumnName("servings");
+        builder.Property(m => m.Guests).HasColumnName("guests").IsRequired().HasDefaultValue(0);
         builder.Property(m => m.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(m => m.UpdatedAt).HasColumnName("updated_at").IsRequired();
 

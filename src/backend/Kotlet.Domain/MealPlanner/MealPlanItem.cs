@@ -13,9 +13,15 @@ public sealed class MealPlanItem
 
     /// <summary>
     /// Explicit serving count. When null, the effective serving count is derived
-    /// from the number of assigned participants (headcount).
+    /// from the number of assigned participants plus any guests (headcount).
     /// </summary>
     public int? Servings { get; set; }
+
+    /// <summary>
+    /// Number of extra guests joining the meal who are not house members.
+    /// Adds to the headcount used to derive the serving count.
+    /// </summary>
+    public int Guests { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
@@ -24,7 +30,7 @@ public sealed class MealPlanItem
 
     /// <summary>
     /// Effective serving count: the explicit override when set, otherwise the
-    /// number of assigned participants.
+    /// number of assigned participants plus guests.
     /// </summary>
-    public int EffectiveServings => Servings ?? Participants.Count;
+    public int EffectiveServings => Servings ?? Participants.Count + Guests;
 }

@@ -101,6 +101,35 @@ public sealed class MealPlannerEndpointTests(TestWebApplicationFactory factory) 
     }
 
     [Fact]
+    public async Task Guests_AddToHeadcount_AndAreValidated()
+    {
+        var client = await CreateAuthenticatedClient("mp-guests");
+        var ingredientId = await CreateIngredient(client);
+        var item = await AddIngredientMeal(client, ingredientId);
+        var itemId = item.GetProperty("id").GetGuid();
+        Assert.Equal(0, item.GetProperty("guests").GetInt32());
+
+        // Two guests with no participants: servings derived from guest count.
+        var setResponse = await client.PutAsJsonAsync($"/api/meal-planner/items/{itemId}/guests", new { guests = 2 });
+        Assert.Equal(HttpStatusCode.OK, setResponse.StatusCode);
+        var withGuests = await setResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(2, withGuests.GetProperty("guests").GetInt32());
+        Assert.Equal(2, withGuests.GetProperty("servings").GetInt32());
+        Assert.False(withGuests.GetProperty("servingsOverridden").GetBoolean());
+
+        // Adding a house member stacks on top of the guests.
+        var members = await client.GetFromJsonAsync<JsonElement[]>("/api/meal-planner/members");
+        var memberId = members![0].GetProperty("userId").GetGuid();
+        var participantsResponse = await client.PutAsJsonAsync($"/api/meal-planner/items/{itemId}/participants",
+            new { userIds = new[] { memberId } });
+        var withBoth = await participantsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(3, withBoth.GetProperty("servings").GetInt32());
+
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.PutAsJsonAsync($"/api/meal-planner/items/{itemId}/guests", new { guests = -1 })).StatusCode);
+    }
+
+    [Fact]
     public async Task SetParticipants_RejectsNonHouseMembers()
     {
         var client = await CreateAuthenticatedClient("mp-stranger");

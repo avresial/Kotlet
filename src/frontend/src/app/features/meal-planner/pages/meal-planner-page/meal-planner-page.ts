@@ -231,26 +231,29 @@ export class MealPlannerPage implements OnInit {
     });
   }
 
-  setServings(item: MealPlanItem, value: number | null): void {
-    if (this.busyItemId()) return;
+  /** Builds an index array used to render one chip per guest. */
+  guestSeats(item: MealPlanItem): number[] {
+    return Array.from({ length: item.guests }, (_, index) => index);
+  }
+
+  addGuest(item: MealPlanItem): void {
+    if (this.busyItemId() || item.guests >= 99) return;
+    this.setGuests(item, item.guests + 1);
+  }
+
+  removeGuest(item: MealPlanItem): void {
+    if (this.busyItemId() || item.guests <= 0) return;
+    this.setGuests(item, item.guests - 1);
+  }
+
+  private setGuests(item: MealPlanItem, guests: number): void {
     this.busyItemId.set(item.id);
-    this.service.setServings(item.id, value).pipe(
+    this.service.setGuests(item.id, guests).pipe(
       finalize(() => this.busyItemId.set(null))
     ).subscribe({
       next: (updated) => this.plan.update((p) => p ? this.replaceItem(p, updated) : p),
-      error: (err) => this.planError.set(getApiError(err, 'Unable to update servings.')),
+      error: (err) => this.planError.set(getApiError(err, 'Unable to update guests.')),
     });
-  }
-
-  onServingsInput(item: MealPlanItem, raw: string): void {
-    const parsed = Number.parseInt(raw, 10);
-    if (Number.isNaN(parsed) || parsed === item.servings) return;
-    this.setServings(item, parsed);
-  }
-
-  resetServings(item: MealPlanItem): void {
-    if (!item.servingsOverridden) return;
-    this.setServings(item, null);
   }
 
   setSelectedRecipeId(slot: MealSlot, value: string): void {

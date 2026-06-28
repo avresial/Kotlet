@@ -15,6 +15,7 @@ public static class MealPlannerEndpoints
         group.MapDelete("/items/{id:guid}", RemoveItem).WithName("RemoveMealPlanItem");
         group.MapPut("/items/{id:guid}/participants", SetParticipants).WithName("SetMealPlanItemParticipants");
         group.MapPut("/items/{id:guid}/servings", SetServings).WithName("SetMealPlanItemServings");
+        group.MapPut("/items/{id:guid}/guests", SetGuests).WithName("SetMealPlanItemGuests");
         return endpoints;
     }
 
@@ -109,6 +110,18 @@ public static class MealPlannerEndpoints
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
         var result = await service.SetServingsAsync(userId, houseId, id, request.Servings, cancellationToken);
+        return ToResult(result);
+    }
+
+    private static async Task<IResult> SetGuests(
+        Guid id,
+        SetGuestsRequest request,
+        ICurrentUser currentUser,
+        MealPlannerService service,
+        CancellationToken cancellationToken)
+    {
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var result = await service.SetGuestsAsync(userId, houseId, id, request.Guests, cancellationToken);
         return ToResult(result);
     }
 

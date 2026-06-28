@@ -26,6 +26,7 @@
         <div class="account-menu" role="menu" (click)="$event.stopPropagation()">
           <app-language-switcher />
           <a role="menuitem" routerLink="/settings" (click)="closeAccountMenu()"><span aria-hidden="true">⚙</span>{{ 'nav.settings' | t }}</a>
+          <a role="menuitem" routerLink="/admin" (click)="closeAccountMenu()"><span aria-hidden="true">♜</span>{{ 'nav.admin' | t }}</a>
           <button role="menuitem" type="button" (click)="logout()" [disabled]="isLoggingOut()">
             <span aria-hidden="true">↪</span>{{ (isLoggingOut() ? 'auth.logout.loading' : 'auth.logout.submit') | t }}
           </button>

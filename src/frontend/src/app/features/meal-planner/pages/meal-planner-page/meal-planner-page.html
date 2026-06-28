@@ -61,6 +61,7 @@
   @if (isLoadingPlan()) {
     <p class="empty">Loading meal plan…</p>
   } @else {
+    <div class="planner-body">
     <div class="slots">
       @for (slot of slots; track slot) {
         <section class="slot-section">
@@ -85,12 +86,18 @@
                   </div>
                   <button
                     type="button"
-                    class="shopping-button"
+                    class="icon-button shopping-button"
                     [class.is-added]="shoppingItemState()[item.id] === 'added'"
                     [disabled]="shoppingItemState()[item.id] === 'adding'"
                     (click)="addToShoppingList(item)"
+                    [attr.aria-label]="shoppingItemState()[item.id] === 'added' ? 'Added to shopping list' : 'Add to shopping list'"
+                    [title]="shoppingItemState()[item.id] === 'adding' ? 'Adding…' : shoppingItemState()[item.id] === 'added' ? 'Added to shopping list' : 'Add to shopping list'"
                   >
-                    {{ shoppingItemState()[item.id] === 'adding' ? 'Adding…' : shoppingItemState()[item.id] === 'added' ? '✓ Added to shopping list' : '+ Add to shopping list' }}
+                    @if (shoppingItemState()[item.id] === 'added') {
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                    } @else {
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12zM6 6 5 3H2M9 20a1 1 0 1 0 0 .01M18 20a1 1 0 1 0 0 .01"/></svg>
+                    }
                   </button>
                   <button
                     type="button"
@@ -115,6 +122,19 @@
                             aria-label="Remove {{ person.displayName }}"
                             [disabled]="busyItemId() === item.id"
                             (click)="removeParticipant(item, person.userId)"
+                          >×</button>
+                        </li>
+                      }
+
+                      @for (seat of guestSeats(item); track seat) {
+                        <li class="chip is-guest">
+                          <span>Guest</span>
+                          <button
+                            type="button"
+                            class="chip-remove"
+                            aria-label="Remove guest"
+                            [disabled]="busyItemId() === item.id"
+                            (click)="removeGuest(item)"
                           >×</button>
                         </li>
                       }
@@ -149,6 +169,16 @@
                     >
                       <svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg>
                     </button>
+                    <button
+                      type="button"
+                      class="icon-button"
+                      [disabled]="busyItemId() === item.id || item.guests >= 99"
+                      (click)="addGuest(item)"
+                      aria-label="Add guest"
+                      title="Add guest"
+                    >
+                      <svg viewBox="0 0 24 24"><path d="M16 19c0-2.8-2.2-5-5-5s-5 2.2-5 5M11 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6"/></svg>
+                    </button>
                     @if (item.participants.length) {
                       <button
                         type="button"
@@ -169,21 +199,8 @@
                       <dd>{{ itemCost(item) === null ? '—' : itemCost(item)!.toFixed(2) + ' zł' }}</dd>
                     </div>
                     <div>
-                      <dt><label for="servings-{{ item.id }}">People served</label></dt>
-                      <dd class="served-value">
-                        <input
-                          id="servings-{{ item.id }}"
-                          type="number"
-                          min="0"
-                          max="99"
-                          [value]="item.servings"
-                          [disabled]="busyItemId() === item.id"
-                          (change)="onServingsInput(item, $any($event.target).value)"
-                        />
-                        @if (item.servingsOverridden) {
-                          <button type="button" class="reset-button" [disabled]="busyItemId() === item.id" (click)="resetServings(item)" title="Match assigned people">reset</button>
-                        }
-                      </dd>
+                      <dt>People served</dt>
+                      <dd class="served-value">{{ item.servings }}</dd>
                     </div>
                     <div>
                       <dt>Price per meal</dt>
@@ -227,6 +244,7 @@
       }
     </div>
 
+    <aside class="receipt-rail">
     <section class="day-receipt" aria-labelledby="day-receipt-title">
       <div class="receipt-heading">
         <div>
@@ -256,5 +274,7 @@
         <strong>{{ dayTotal().toFixed(2) }} zł</strong>
       </div>
     </section>
+    </aside>
+    </div>
   }
 </main>
