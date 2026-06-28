@@ -93,6 +93,81 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsync("/api/auth/refresh", null)).StatusCode);
     }
 
+    [Fact]
+    public async Task UpdateProfile_ChangesDisplayName()
+    {
+        var client = _factory.CreateClient();
+        await Authenticate(client);
+
+        var response = await client.PutAsJsonAsync("/api/auth/profile", new { displayName = "Head Chef" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Head Chef", body.GetProperty("displayName").GetString());
+
+        var me = await client.GetFromJsonAsync<JsonElement>("/api/auth/me");
+        Assert.Equal("Head Chef", me.GetProperty("displayName").GetString());
+    }
+
+    [Fact]
+    public async Task UpdateProfile_RequiresAuthentication()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.PutAsJsonAsync("/api/auth/profile", new { displayName = "Anonymous" });
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePassword_UpdatesPasswordAndAllowsLoginWithNewPassword()
+    {
+        var client = _factory.CreateClient();
+        var email = await Authenticate(client);
+
+        var change = await client.PostAsJsonAsync("/api/auth/password", new
+        {
+            currentPassword = "Password1!",
+            newPassword = "NewPassword2!",
+            confirmPassword = "NewPassword2!"
+        });
+        Assert.Equal(HttpStatusCode.NoContent, change.StatusCode);
+
+        var loginClient = _factory.CreateClient();
+        var oldLogin = await loginClient.PostAsJsonAsync("/api/auth/login", new { email, password = "Password1!" });
+        Assert.Equal(HttpStatusCode.Unauthorized, oldLogin.StatusCode);
+        var newLogin = await loginClient.PostAsJsonAsync("/api/auth/login", new { email, password = "NewPassword2!" });
+        Assert.Equal(HttpStatusCode.OK, newLogin.StatusCode);
+    }
+
+    [Fact]
+    public async Task ChangePassword_RejectsIncorrectCurrentPassword()
+    {
+        var client = _factory.CreateClient();
+        await Authenticate(client);
+
+        var change = await client.PostAsJsonAsync("/api/auth/password", new
+        {
+            currentPassword = "WrongPassword!",
+            newPassword = "NewPassword2!",
+            confirmPassword = "NewPassword2!"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, change.StatusCode);
+    }
+
+    private static async Task<string> Authenticate(HttpClient client)
+    {
+        var email = $"cook-{Guid.NewGuid():N}@example.com";
+        var registration = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            email,
+            password = "Password1!",
+            confirmPassword = "Password1!"
+        });
+        var body = await registration.Content.ReadFromJsonAsync<JsonElement>();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());
+        return email;
+    }
+
     private static Task<HttpResponseMessage> Register(HttpClient client) => client.PostAsJsonAsync("/api/auth/register", new
     {
         email = $"cook-{Guid.NewGuid():N}@example.com",

@@ -39,5 +39,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/ingredients/pages/ingredients-page/ingredients-page').then((m) => m.IngredientsPage),
   },
+  {
+    path: 'settings',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/settings/pages/settings-page/settings-page').then((m) => m.SettingsPage),
+  },
   { path: '**', redirectTo: '' },
 ];
