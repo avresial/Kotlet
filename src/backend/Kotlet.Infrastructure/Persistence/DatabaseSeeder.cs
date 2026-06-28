@@ -20,6 +20,7 @@ public sealed class DatabaseSeeder(
 
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
+        var roles = await dbContext.Roles.ToDictionaryAsync(role => role.Name, cancellationToken);
         var hasDefaultHouse = await dbContext.Houses.AnyAsync(house => house.Id == DefaultHouse.Id, cancellationToken);
         var createDefaultHouse = false;
 
@@ -38,6 +39,9 @@ public sealed class DatabaseSeeder(
                 NormalizedEmail = normalizedEmail,
                 PasswordHash = string.Empty,
                 DisplayName = seedUser.DisplayName,
+                Roles = seedUser.Email == "admin@kotlet.local"
+                    ? [roles[RoleNames.User], roles[RoleNames.Admin]]
+                    : [roles[RoleNames.User]],
                 CreatedAtUtc = now,
                 UpdatedAtUtc = now
             };

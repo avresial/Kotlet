@@ -8,6 +8,7 @@ export interface CurrentUser {
   defaultHouseId: string | null;
   activeHouseId: string | null;
   hasHome: boolean;
+  roles: string[];
 }
 
 export interface AuthResponse {

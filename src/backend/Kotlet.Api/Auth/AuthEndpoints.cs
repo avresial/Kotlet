@@ -31,7 +31,8 @@ public static class AuthEndpoints
             return Results.Conflict(new { message = "An account with this email already exists." });
         var now = DateTime.UtcNow;
         // New users start without a home; they set one up on first login.
-        var user = new User { Id = Guid.NewGuid(), Email = email, NormalizedEmail = normalized, PasswordHash = "", DisplayName = ResolveDisplayName(request.DisplayName, email), CreatedAtUtc = now, UpdatedAtUtc = now };
+        var userRole = await db.Roles.SingleAsync(role => role.Name == RoleNames.User, cancellationToken);
+        var user = new User { Id = Guid.NewGuid(), Email = email, NormalizedEmail = normalized, PasswordHash = "", DisplayName = ResolveDisplayName(request.DisplayName, email), CreatedAtUtc = now, UpdatedAtUtc = now, Roles = [userRole] };
         user.PasswordHash = hasher.HashPassword(user, request.Password);
         db.Users.Add(user);
         try { await IssueTokens(user, null, db, tokens, context, environment, cancellationToken); }
@@ -44,7 +45,7 @@ public static class AuthEndpoints
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["credentials"] = ["Email and password are required."] });
-        var user = await db.Users.SingleOrDefaultAsync(x => x.NormalizedEmail == NormalizeEmail(request.Email), cancellationToken);
+        var user = await db.Users.Include(x => x.Roles).SingleOrDefaultAsync(x => x.NormalizedEmail == NormalizeEmail(request.Email), cancellationToken);
         if (user is null || hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password) == PasswordVerificationResult.Failed)
             return Results.Unauthorized();
         user.LastLoginAtUtc = user.UpdatedAtUtc = DateTime.UtcNow;
@@ -58,7 +59,7 @@ public static class AuthEndpoints
     {
         var raw = tokens.ReadRefreshCookie(context.Request);
         if (string.IsNullOrEmpty(raw)) return Unauthorized(tokens, context, environment);
-        var old = await db.RefreshTokens.Include(x => x.User).SingleOrDefaultAsync(x => x.TokenHash == tokens.Hash(raw), cancellationToken);
+        var old = await db.RefreshTokens.Include(x => x.User).ThenInclude(x => x.Roles).SingleOrDefaultAsync(x => x.TokenHash == tokens.Hash(raw), cancellationToken);
         if (old is null || old.ExpiresAtUtc <= DateTime.UtcNow) return Unauthorized(tokens, context, environment);
         if (old.RevokedAtUtc is not null)
         {
@@ -96,7 +97,7 @@ public static class AuthEndpoints
     private static async Task<IResult> Me(ICurrentUser currentUser, KotletDbContext db, CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } id) return Results.Unauthorized();
-        var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var user = await db.Users.AsNoTracking().Include(x => x.Roles).SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (user is null) return Results.Unauthorized();
         var hasHome = await db.HouseMemberships.AnyAsync(m => m.UserId == id, cancellationToken);
         return Results.Ok(ToResponse(user, currentUser.HouseId, hasHome));
@@ -111,7 +112,7 @@ public static class AuthEndpoints
         var preferredLanguage = request.PreferredLanguage?.Trim().ToLowerInvariant();
         if (preferredLanguage is not null and not ("en" or "pl"))
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["preferredLanguage"] = ["Preferred language must be 'en' or 'pl'."] });
-        var user = await db.Users.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var user = await db.Users.Include(x => x.Roles).SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (user is null) return Results.Unauthorized();
         if (request.DefaultHouseId is { } defaultHouseId)
         {
@@ -166,7 +167,7 @@ public static class AuthEndpoints
     private static IResult Unauthorized(TokenService tokens, HttpContext context, IWebHostEnvironment env) { tokens.ClearRefreshCookie(context.Response, IsSecure(env)); return Results.Unauthorized(); }
     private static async Task RevokeTokenFamily(Guid userId, KotletDbContext db, CancellationToken ct) { var active = await db.RefreshTokens.Where(x => x.UserId == userId && x.RevokedAtUtc == null).ToListAsync(ct); var now = DateTime.UtcNow; active.ForEach(x => x.RevokedAtUtc = now); await db.SaveChangesAsync(ct); }
     private static string NormalizeEmail(string email) => email.Trim().ToUpperInvariant();
-    private static CurrentUserResponse ToResponse(User user, Guid? activeHouseId, bool hasHome) => new(user.Id, user.Email, ResolveDisplayName(user.DisplayName, user.Email), user.PreferredLanguage, user.CreatedAtUtc, user.LastLoginAtUtc, user.DefaultHouseId, activeHouseId, hasHome);
+    private static CurrentUserResponse ToResponse(User user, Guid? activeHouseId, bool hasHome) => new(user.Id, user.Email, ResolveDisplayName(user.DisplayName, user.Email), user.PreferredLanguage, user.CreatedAtUtc, user.LastLoginAtUtc, user.DefaultHouseId, activeHouseId, hasHome, user.Roles.Select(role => role.Name).ToArray());
     private static string ResolveDisplayName(string? displayName, string email) =>
         string.IsNullOrWhiteSpace(displayName) ? email.Split('@', 2)[0] : displayName.Trim();
     private static Dictionary<string, string[]> ValidateRegistration(RegisterRequest r) { var e = new Dictionary<string, string[]>(); if (string.IsNullOrWhiteSpace(r.Email) || !System.Net.Mail.MailAddress.TryCreate(r.Email.Trim(), out _)) e["email"] = ["A valid email is required."]; if (string.IsNullOrWhiteSpace(r.Password) || r.Password.Length < 8) e["password"] = ["Password must be at least 8 characters long."]; if (r.Password != r.ConfirmPassword) e["confirmPassword"] = ["Passwords do not match."]; if (r.DisplayName?.Trim().Length > 100) e["displayName"] = ["Display name cannot exceed 100 characters."]; return e; }

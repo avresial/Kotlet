@@ -6,5 +6,5 @@ public sealed record UpdateProfileRequest(string? DisplayName, string? Preferred
 public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmPassword);
 public sealed record CurrentUserResponse(
     Guid Id, string Email, string? DisplayName, string? PreferredLanguage, DateTime CreatedAtUtc, DateTime? LastLoginAtUtc,
-    Guid? DefaultHouseId, Guid? ActiveHouseId, bool HasHome);
+    Guid? DefaultHouseId, Guid? ActiveHouseId, bool HasHome, string[] Roles);
 public sealed record AuthResponse(CurrentUserResponse User, string AccessToken, DateTime AccessTokenExpiresAtUtc);

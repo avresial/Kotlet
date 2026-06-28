@@ -227,6 +227,7 @@ public static class HouseEndpoints
     private static async Task<TokenResponse> ActivateHouseAsync(User user, Guid? houseId, KotletDbContext db,
         TokenService tokens, HttpContext context, CancellationToken ct)
     {
+        await db.Entry(user).Collection(value => value.Roles).LoadAsync(ct);
         var raw = tokens.ReadRefreshCookie(context.Request);
         if (!string.IsNullOrEmpty(raw))
         {

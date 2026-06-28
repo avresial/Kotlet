@@ -15,6 +15,7 @@ public sealed class User
     public DateTime UpdatedAtUtc { get; set; }
     public DateTime? LastLoginAtUtc { get; set; }
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+    public ICollection<Role> Roles { get; set; } = [];
     public ICollection<HouseMembership> Memberships { get; set; } = [];
     public House? DefaultHouse { get; set; }
 }

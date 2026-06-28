@@ -18,6 +18,7 @@ describe('AuthService', () => {
     defaultHouseId: null,
     activeHouseId: null,
     hasHome: false,
+    roles: ['User'],
   };
   const authResponse = {
     user,

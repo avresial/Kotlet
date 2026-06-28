@@ -56,7 +56,9 @@
           }
           <a role="menuitem" routerLink="/home" (click)="closeDrawer()"><span aria-hidden="true">⌂</span>{{ 'nav.home' | t }}</a>
           <a role="menuitem" routerLink="/settings" (click)="closeDrawer()"><span aria-hidden="true">⚙</span>{{ 'nav.settings' | t }}</a>
-          <a role="menuitem" routerLink="/admin" (click)="closeDrawer()"><span aria-hidden="true">♜</span>{{ 'nav.admin' | t }}</a>
+          @if (user.roles.includes('Admin')) {
+            <a role="menuitem" routerLink="/admin" (click)="closeDrawer()"><span aria-hidden="true">♜</span>{{ 'nav.admin' | t }}</a>
+          }
           <button role="menuitem" type="button" (click)="logout()" [disabled]="isLoggingOut()">
             <span aria-hidden="true">↪</span>{{ (isLoggingOut() ? 'auth.logout.loading' : 'auth.logout.submit') | t }}
           </button>

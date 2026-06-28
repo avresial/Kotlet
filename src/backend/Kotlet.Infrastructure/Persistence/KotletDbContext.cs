@@ -16,6 +16,7 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public const string DefaultSchema = DatabaseSchemas.Kotlet;
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<PantryItem> PantryItems => Set<PantryItem>();

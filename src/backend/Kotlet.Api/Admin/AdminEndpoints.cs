@@ -8,7 +8,7 @@ public static class AdminEndpoints
 {
     public static IEndpointRouteBuilder MapAdminEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var admin = endpoints.MapGroup("/api/admin").WithTags("Admin").RequireAuthorization();
+        var admin = endpoints.MapGroup("/api/admin").WithTags("Admin").RequireAuthorization(RoleNames.Admin);
         admin.MapGet("/users", GetUsers);
         admin.MapPut("/users/{id:guid}", UpdateUser);
         admin.MapDelete("/users/{id:guid}", DeleteUser);
