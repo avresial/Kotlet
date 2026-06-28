@@ -35,6 +35,7 @@ export class RecipeForm implements OnInit {
 
   readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(160)]],
+    servings: [1, [Validators.required, Validators.min(1), Validators.max(99)]],
     descriptionMarkdown: [''],
     ingredients: [[] as RecipeIngredientRequest[]],
   });
@@ -44,6 +45,7 @@ export class RecipeForm implements OnInit {
     if (initial) {
       this.form.setValue({
         title: initial.title,
+        servings: initial.servings,
         descriptionMarkdown: initial.descriptionMarkdown ?? '',
         ingredients: initial.ingredients.map((i) => ({
           ingredientId: i.ingredientId,
@@ -64,6 +66,7 @@ export class RecipeForm implements OnInit {
     const value = this.form.getRawValue();
     this.submitted.emit({
       title: value.title.trim(),
+      servings: value.servings,
       descriptionMarkdown: value.descriptionMarkdown || null,
       ingredients: value.ingredients,
     });

@@ -9,6 +9,8 @@ export interface RecipeIngredientRequest {
 export interface CreateRecipeRequest {
   title: string;
   descriptionMarkdown: string | null;
+  /** Number of adult portions the recipe yields. One serving is a single adult portion. */
+  servings: number;
   ingredients: RecipeIngredientRequest[];
 }
 
@@ -31,6 +33,7 @@ export interface RecipeSummary {
   title: string;
   slug: string;
   ingredientCount: number;
+  servings: number;
   firstImageUrl: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
@@ -41,6 +44,7 @@ export interface RecipeDetail {
   title: string;
   slug: string;
   descriptionMarkdown: string | null;
+  servings: number;
   ingredients: RecipeIngredient[];
   images: RecipeImage[];
   createdAtUtc: string;
