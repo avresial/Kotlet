@@ -39,6 +39,23 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
     }
 
     [Fact]
+    public async Task Register_DefaultsDisplayNameToEmailPrefix()
+    {
+        var client = _factory.CreateClient();
+        var email = $"default-name-{Guid.NewGuid():N}@example.com";
+
+        var response = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            email,
+            password = "Password1!",
+            confirmPassword = "Password1!"
+        });
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(email.Split('@')[0], body.GetProperty("user").GetProperty("displayName").GetString());
+    }
+
+    [Fact]
     public async Task Auth_AllowsCrossOriginCredentialedRequests()
     {
         var client = _factory.CreateClient();

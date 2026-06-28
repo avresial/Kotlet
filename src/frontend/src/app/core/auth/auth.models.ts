@@ -19,6 +19,7 @@ export interface LoginRequest {
 
 export interface RegisterRequest extends LoginRequest {
   confirmPassword: string;
+  displayName: string;
 }
 
 export interface UpdateProfileRequest {

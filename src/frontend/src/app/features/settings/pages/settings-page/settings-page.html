@@ -20,9 +20,9 @@
       <div class="section-heading"><h2 id="profile-title">Profile</h2><p>This name is shown across the app.</p></div>
       <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
         <label>
-          Display name
-          <input pInputText type="text" formControlName="displayName" autocomplete="name" placeholder="Add a display name" [invalid]="profileForm.controls.displayName.invalid && profileForm.controls.displayName.touched" />
-          @if (profileForm.controls.displayName.touched && profileForm.controls.displayName.hasError('maxlength')) { <p-message severity="error" size="small" variant="simple">Display name cannot exceed 100 characters.</p-message> }
+          Name
+          <input pInputText type="text" formControlName="displayName" autocomplete="name" placeholder="Your name" [invalid]="profileForm.controls.displayName.invalid && profileForm.controls.displayName.touched" />
+          @if (profileForm.controls.displayName.touched && profileForm.controls.displayName.hasError('maxlength')) { <p-message severity="error" size="small" variant="simple">Name cannot exceed 100 characters.</p-message> }
         </label>
         @if (profileError()) { <p-message severity="error" role="alert">{{ profileError() }}</p-message> }
         @if (profileSaved()) { <p-message severity="success" role="status">Profile updated.</p-message> }

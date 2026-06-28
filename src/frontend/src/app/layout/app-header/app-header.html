@@ -15,14 +15,21 @@
       <a class="nav-item" routerLink="/ingredients" routerLinkActive="active">
         <span class="icon" aria-hidden="true">◉</span><span>Ingredients</span>
       </a>
-      <a class="nav-item settings" routerLink="/settings" routerLinkActive="active"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></a>
     </nav>
 
     <footer>
-      <p>Hello, <strong>{{ user.displayName || user.email }}</strong></p>
-      <button class="logout" type="button" (click)="logout()" [disabled]="isLoggingOut()">
-        <span aria-hidden="true">↪</span>{{ isLoggingOut() ? 'Logging off…' : 'Log off' }}
+      <button class="account-trigger" type="button" (click)="toggleAccountMenu($event)" [attr.aria-expanded]="isAccountMenuOpen()" aria-haspopup="menu">
+        <span>Hello, <strong>{{ user.displayName || user.email.split('@')[0] }}</strong></span>
+        <span class="chevron" aria-hidden="true">⌃</span>
       </button>
+      @if (isAccountMenuOpen()) {
+        <div class="account-menu" role="menu" (click)="$event.stopPropagation()">
+          <a role="menuitem" routerLink="/settings" (click)="closeAccountMenu()"><span aria-hidden="true">⚙</span>Settings</a>
+          <button role="menuitem" type="button" (click)="logout()" [disabled]="isLoggingOut()">
+            <span aria-hidden="true">↪</span>{{ isLoggingOut() ? 'Logging off…' : 'Log off' }}
+          </button>
+        </div>
+      }
       @if (logoutError()) { <span class="logout-error" role="alert">{{ logoutError() }}</span> }
     </footer>
   </aside>

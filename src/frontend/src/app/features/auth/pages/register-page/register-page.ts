@@ -29,11 +29,20 @@ export class RegisterPage {
   readonly form = new FormGroup(
     {
       email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
+      displayName: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(100)] }),
       password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(8)] }),
       confirmPassword: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     },
     { validators: passwordsMatch },
   );
+
+  constructor() {
+    this.form.controls.email.valueChanges.subscribe((email) => {
+      if (!this.form.controls.displayName.dirty) {
+        this.form.controls.displayName.setValue(email.split('@', 1)[0], { emitEvent: false });
+      }
+    });
+  }
 
   register(): void {
     if (this.form.invalid) {

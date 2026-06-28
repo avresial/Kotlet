@@ -12,6 +12,11 @@
         @else if (form.controls.email.touched && form.controls.email.hasError('email')) { <p-message severity="error" size="small" variant="simple">Enter a valid email address.</p-message> }
       </label>
       <label>
+        Name
+        <input pInputText type="text" formControlName="displayName" autocomplete="name" placeholder="Your name" [invalid]="form.controls.displayName.invalid && form.controls.displayName.touched" />
+        @if (form.controls.displayName.touched && form.controls.displayName.hasError('maxlength')) { <p-message severity="error" size="small" variant="simple">Name cannot exceed 100 characters.</p-message> }
+      </label>
+      <label>
         Password
         <p-password formControlName="password" autocomplete="new-password" [toggleMask]="true" [fluid]="true" [invalid]="form.controls.password.invalid && form.controls.password.touched" />
         @if (form.controls.password.touched && form.controls.password.hasError('required')) { <p-message severity="error" size="small" variant="simple">Password is required.</p-message> }

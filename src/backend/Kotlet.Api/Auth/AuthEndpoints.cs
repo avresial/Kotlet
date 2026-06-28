@@ -32,7 +32,7 @@ public static class AuthEndpoints
         if (await db.Users.AnyAsync(x => x.NormalizedEmail == normalized, cancellationToken))
             return Results.Conflict(new { message = "An account with this email already exists." });
         var now = DateTime.UtcNow;
-        var user = new User { Id = Guid.NewGuid(), HouseId = DefaultHouse.Id, Email = email, NormalizedEmail = normalized, PasswordHash = "", DisplayName = string.IsNullOrWhiteSpace(request.DisplayName) ? null : request.DisplayName.Trim(), CreatedAtUtc = now, UpdatedAtUtc = now };
+        var user = new User { Id = Guid.NewGuid(), HouseId = DefaultHouse.Id, Email = email, NormalizedEmail = normalized, PasswordHash = "", DisplayName = ResolveDisplayName(request.DisplayName, email), CreatedAtUtc = now, UpdatedAtUtc = now };
         user.PasswordHash = hasher.HashPassword(user, request.Password);
         db.Users.Add(user);
         try { await IssueTokens(user, db, tokens, context, environment, cancellationToken); }
@@ -116,7 +116,7 @@ public static class AuthEndpoints
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["displayName"] = ["Display name cannot exceed 100 characters."] });
         var user = await db.Users.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (user is null) return Results.Unauthorized();
-        user.DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName;
+        user.DisplayName = ResolveDisplayName(displayName, user.Email);
         user.UpdatedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return Results.Ok(ToResponse(user));
@@ -153,6 +153,8 @@ public static class AuthEndpoints
     private static IResult Unauthorized(TokenService tokens, HttpContext context, IWebHostEnvironment env) { tokens.ClearRefreshCookie(context.Response, IsSecure(env)); return Results.Unauthorized(); }
     private static async Task RevokeTokenFamily(Guid userId, KotletDbContext db, CancellationToken ct) { var active = await db.RefreshTokens.Where(x => x.UserId == userId && x.RevokedAtUtc == null).ToListAsync(ct); var now = DateTime.UtcNow; active.ForEach(x => x.RevokedAtUtc = now); await db.SaveChangesAsync(ct); }
     private static string NormalizeEmail(string email) => email.Trim().ToUpperInvariant();
-    private static CurrentUserResponse ToResponse(User user) => new(user.Id, user.Email, user.DisplayName, user.CreatedAtUtc, user.LastLoginAtUtc);
+    private static CurrentUserResponse ToResponse(User user) => new(user.Id, user.Email, ResolveDisplayName(user.DisplayName, user.Email), user.CreatedAtUtc, user.LastLoginAtUtc);
+    private static string ResolveDisplayName(string? displayName, string email) =>
+        string.IsNullOrWhiteSpace(displayName) ? email.Split('@', 2)[0] : displayName.Trim();
     private static Dictionary<string, string[]> ValidateRegistration(RegisterRequest r) { var e = new Dictionary<string, string[]>(); if (string.IsNullOrWhiteSpace(r.Email) || !System.Net.Mail.MailAddress.TryCreate(r.Email.Trim(), out _)) e["email"] = ["A valid email is required."]; if (string.IsNullOrWhiteSpace(r.Password) || r.Password.Length < 8) e["password"] = ["Password must be at least 8 characters long."]; if (r.Password != r.ConfirmPassword) e["confirmPassword"] = ["Passwords do not match."]; if (r.DisplayName?.Trim().Length > 100) e["displayName"] = ["Display name cannot exceed 100 characters."]; return e; }
 }

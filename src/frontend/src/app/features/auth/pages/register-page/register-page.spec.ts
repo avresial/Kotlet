@@ -16,11 +16,20 @@ describe('RegisterPage', () => {
     const page = TestBed.createComponent(RegisterPage).componentInstance;
     page.form.setValue({
       email: 'cook@example.com',
+      displayName: 'Cook',
       password: 'short',
       confirmPassword: 'different',
     });
 
     expect(page.form.controls.password.hasError('minlength')).toBe(true);
     expect(page.form.hasError('passwordMismatch')).toBe(true);
+  });
+
+  it('defaults the name to the email prefix', () => {
+    const page = TestBed.createComponent(RegisterPage).componentInstance;
+
+    page.form.controls.email.setValue('miki@example.com');
+
+    expect(page.form.controls.displayName.value).toBe('miki');
   });
 });

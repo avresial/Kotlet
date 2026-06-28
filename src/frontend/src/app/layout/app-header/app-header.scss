@@ -7,12 +7,17 @@
 .nav-item:hover:not(:disabled), .nav-item.active { color: #9a3a2a; background: #f6e3d8; }
 .nav-item:disabled { opacity: .58; cursor: default; }
 .icon { width: 1.3rem; flex: 0 0 1.3rem; color: currentColor; font-size: 1.15rem; text-align: center; }
-.settings { margin-top: .5rem; padding-top: .9rem; border-top: 1px solid #e3dbcf; border-radius: 0 0 .65rem .65rem; }
-footer { margin-top: auto; padding: 1rem .7rem .25rem; border-top: 1px solid #e3dbcf; }
-footer p { margin: 0 0 .75rem; color: #766e63; font-size: .75rem; line-height: 1.4; }
-footer strong { display: block; overflow: hidden; color: #302b25; font-size: .85rem; text-overflow: ellipsis; white-space: nowrap; }
-.logout { width: 100%; min-height: 2.5rem; padding: .55rem .7rem; border: 1px solid #d2c7b8; border-radius: .55rem; display: flex; align-items: center; gap: .6rem; color: #5d554c; background: transparent; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
-.logout:hover { background: #f1ebe2; }.logout:disabled { opacity: .55; cursor: default; }
+footer { position: relative; margin-top: auto; padding: 1rem .25rem .25rem; border-top: 1px solid #e3dbcf; }
+.account-trigger { width: 100%; min-width: 0; padding: .45rem .55rem; border: 0; border-radius: .55rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; color: #766e63; background: transparent; font: inherit; font-size: .75rem; line-height: 1.35; text-align: left; cursor: pointer; }
+.account-trigger:hover, .account-trigger[aria-expanded="true"] { background: #f1ebe2; }
+.account-trigger > span:first-child { min-width: 0; }
+.account-trigger strong { display: block; overflow: hidden; color: #302b25; font-size: .85rem; text-overflow: ellipsis; white-space: nowrap; }
+.chevron { color: #8b8175; font-size: .8rem; transition: transform .15s ease; }
+.account-trigger[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+.account-menu { position: absolute; z-index: 20; right: .25rem; bottom: calc(100% - .6rem); left: .25rem; padding: .35rem; border: 1px solid #d8cdbf; border-radius: .65rem; display: grid; gap: .15rem; background: #fffdf9; box-shadow: 0 .6rem 1.5rem rgb(65 49 35 / 14%); }
+.account-menu a, .account-menu button { min-height: 2.35rem; padding: .5rem .65rem; border: 0; border-radius: .45rem; display: flex; align-items: center; gap: .65rem; color: #514a42; background: transparent; font: inherit; font-size: .82rem; font-weight: 700; text-decoration: none; cursor: pointer; }
+.account-menu a:hover, .account-menu button:hover { background: #f1ebe2; }
+.account-menu button:disabled { opacity: .55; cursor: default; }
 .logout-error { margin-top: .5rem; display: block; color: #912018; font-size: .72rem; }
 .public-header { max-width: 72rem; min-height: var(--app-header-height); margin: 0 auto; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .public-header nav { display: flex; align-items: center; gap: .75rem; }
@@ -25,7 +30,7 @@ footer strong { display: block; overflow: hidden; color: #302b25; font-size: .85
 .create-link:hover { background: #a94735; }
 @media (max-width: 48rem) {
   .app-sidebar { position: fixed; z-index: 10; inset: auto 0 0; width: 100%; height: 4.5rem; padding: .5rem; border: 1px solid #ded5c8; border-width: 1px 0 0; display: block; }
-  .app-sidebar > .brand, .app-sidebar footer, .settings { display: none; }
+  .app-sidebar > .brand, .app-sidebar footer { display: none; }
   .app-sidebar nav { height: 100%; margin: 0; display: flex; align-items: stretch; justify-content: space-around; gap: .1rem; overflow: hidden; }
   .nav-item { width: auto; min-width: 0; min-height: 100%; padding: .35rem .2rem; flex: 1 1 0; flex-direction: column; justify-content: center; gap: .15rem; font-size: .56rem; white-space: nowrap; }
   .icon { height: 1.25rem; font-size: 1rem; }
