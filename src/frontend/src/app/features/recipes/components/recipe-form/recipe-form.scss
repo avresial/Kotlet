@@ -21,7 +21,8 @@
       font-size: 0.95rem;
     }
 
-    input[type='text'] {
+    input[type='text'],
+    input[type='number'] {
       padding: 10px 12px;
       border: 1px solid #cfc3b4;
       border-radius: 8px;
@@ -35,11 +36,18 @@
       &:focus { outline: 2px solid #b96554; outline-offset: 1px; }
     }
 
+    .field-hint {
+      font-size: 0.82rem;
+      color: var(--text-secondary, #6b6358);
+    }
+
     .field-error {
       font-size: 0.82rem;
       color: var(--danger, #e53e3e);
     }
   }
+
+  input[type='number'] { max-width: 140px; }
 
   .form-actions {
     display: flex;

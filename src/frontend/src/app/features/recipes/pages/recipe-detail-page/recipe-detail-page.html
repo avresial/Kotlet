@@ -20,7 +20,7 @@
           </div>
         </details>
       </div>
-      <p class="meta">{{ r.ingredients.length }} ingredient{{ r.ingredients.length !== 1 ? 's' : '' }} · Updated {{ r.updatedAtUtc | date:'mediumDate' }}</p>
+      <p class="meta">{{ r.servings }} serving{{ r.servings !== 1 ? 's' : '' }} · {{ r.ingredients.length }} ingredient{{ r.ingredients.length !== 1 ? 's' : '' }} · Updated {{ r.updatedAtUtc | date:'mediumDate' }}</p>
     </header>
 
     @if (error()) { <div class="error" role="alert">{{ error() }}</div> }

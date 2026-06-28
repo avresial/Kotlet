@@ -13,6 +13,7 @@ public sealed class RecipeService(
     IRecipeImageRepository? imageRepository = null)
 {
     private const int MaxIngredients = 100;
+    private const int MaxServings = 99;
 
     public async Task<PagedResponse<RecipeSummaryResponse>> ListAsync(
         Guid houseId, int page, int pageSize, string? search, CancellationToken cancellationToken)
@@ -49,7 +50,7 @@ public sealed class RecipeService(
     public async Task<RecipeOperationResult> CreateAsync(
         Guid ownerUserId, Guid houseId, CreateRecipeRequest request, CancellationToken cancellationToken)
     {
-        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients);
+        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
@@ -74,6 +75,7 @@ public sealed class RecipeService(
             Title = title,
             Slug = slug,
             DescriptionMarkdown = request.DescriptionMarkdown?.Trim(),
+            Servings = request.Servings,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
             Ingredients = mappedIngredients.Items
@@ -88,7 +90,7 @@ public sealed class RecipeService(
     public async Task<RecipeOperationResult> UpdateAsync(
         Guid id, Guid houseId, UpdateRecipeRequest request, CancellationToken cancellationToken)
     {
-        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients);
+        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
@@ -110,6 +112,7 @@ public sealed class RecipeService(
         recipe.Title = title;
         recipe.Slug = newSlug;
         recipe.DescriptionMarkdown = request.DescriptionMarkdown?.Trim();
+        recipe.Servings = request.Servings;
         recipe.UpdatedAtUtc = DateTimeOffset.UtcNow;
         recipe.Ingredients.Clear();
         foreach (var ing in mappedIngredients.Items)
@@ -203,7 +206,7 @@ public sealed class RecipeService(
     }
 
     private static Dictionary<string, string[]> Validate(
-        string title, string? descriptionMarkdown, IReadOnlyList<RecipeIngredientRequest> ingredients)
+        string title, string? descriptionMarkdown, IReadOnlyList<RecipeIngredientRequest> ingredients, int servings)
     {
         var errors = new Dictionary<string, string[]>();
 
@@ -211,6 +214,9 @@ public sealed class RecipeService(
             errors["title"] = ["Title is required."];
         else if (title.Trim().Length > 160)
             errors["title"] = ["Title cannot exceed 160 characters."];
+
+        if (servings is < 1 or > MaxServings)
+            errors["servings"] = [$"Servings must be between 1 and {MaxServings}."];
 
         if (descriptionMarkdown is not null && descriptionMarkdown.Length > 20_000)
             errors["descriptionMarkdown"] = ["Description cannot exceed 20,000 characters."];
@@ -241,7 +247,7 @@ public sealed class RecipeService(
     }
 
     private RecipeDetailResponse ToDetailResponse(Recipe recipe, IReadOnlyList<RecipeImageResponse>? images = null) =>
-        new(recipe.Id, recipe.Title, recipe.Slug, recipe.DescriptionMarkdown,
+        new(recipe.Id, recipe.Title, recipe.Slug, recipe.DescriptionMarkdown, recipe.Servings,
             recipe.Ingredients
                 .OrderBy(i => i.SortOrder)
                 .Select(i =>
@@ -268,7 +274,7 @@ public sealed class RecipeService(
         string? firstImageUrl = null;
         if (firstImageIds is not null && firstImageIds.TryGetValue(recipe.Id, out var imageId))
             firstImageUrl = $"/api/recipes/{recipe.Id}/images/{imageId}/content";
-        return new(recipe.Id, recipe.Title, recipe.Slug, recipe.Ingredients.Count,
+        return new(recipe.Id, recipe.Title, recipe.Slug, recipe.Ingredients.Count, recipe.Servings,
             firstImageUrl, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
     }
 

@@ -17,6 +17,7 @@ internal sealed class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         builder.Property(r => r.Title).HasColumnName("title").HasMaxLength(160).IsRequired();
         builder.Property(r => r.Slug).HasColumnName("slug").HasMaxLength(200).IsRequired();
         builder.Property(r => r.DescriptionMarkdown).HasColumnName("description_markdown").HasColumnType("text");
+        builder.Property(r => r.Servings).HasColumnName("servings").HasDefaultValue(1).IsRequired();
         builder.Property(r => r.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
         builder.Property(r => r.UpdatedAtUtc).HasColumnName("updated_at_utc").IsRequired();
 
