@@ -116,8 +116,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
     [Fact]
     public async Task HouseMember_CanViewAnotherMembersRecipe()
     {
-        var client1 = await CreateAuthenticatedClient();
-        var client2 = await CreateAuthenticatedClient();
+        var (client1, client2, _) = await TestAuth.HouseholdAsync(_factory, "recipe");
 
         var create = await client1.PostAsJsonAsync("/api/recipes", new
         {
@@ -131,8 +130,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
     [Fact]
     public async Task HouseMember_CanUpdateAnotherMembersRecipe()
     {
-        var client1 = await CreateAuthenticatedClient();
-        var client2 = await CreateAuthenticatedClient();
+        var (client1, client2, _) = await TestAuth.HouseholdAsync(_factory, "recipe");
 
         var create = await client1.PostAsJsonAsync("/api/recipes", new
         {
@@ -150,8 +148,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
     [Fact]
     public async Task HouseMember_CanDeleteAnotherMembersRecipe()
     {
-        var client1 = await CreateAuthenticatedClient();
-        var client2 = await CreateAuthenticatedClient();
+        var (client1, client2, _) = await TestAuth.HouseholdAsync(_factory, "recipe");
 
         var create = await client1.PostAsJsonAsync("/api/recipes", new
         {
@@ -165,8 +162,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
     [Fact]
     public async Task List_IncludesRecipesFromHouseMembers()
     {
-        var client1 = await CreateAuthenticatedClient();
-        var client2 = await CreateAuthenticatedClient();
+        var (client1, client2, _) = await TestAuth.HouseholdAsync(_factory, "recipe");
         var uniqueTitle = $"User1Recipe {Guid.NewGuid():N}";
 
         await client1.PostAsJsonAsync("/api/recipes", new { title = uniqueTitle, descriptionMarkdown = (string?)null, ingredients = Array.Empty<object>() });
@@ -187,6 +183,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         });
         var body = await registration.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());
+        await TestAuth.CreateHomeAsync(client);
         return client;
     }
 }

@@ -70,6 +70,7 @@ public sealed class MealPlannerService(
         var item = new MealPlanItem
         {
             Id = Guid.NewGuid(),
+            HouseId = houseId,
             UserId = userId,
             Date = request.Date,
             Slot = slot,

@@ -1,0 +1,140 @@
+.home-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.back {
+  color: var(--text-muted, #6b7280);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0 0 0.25rem;
+}
+
+.title-row,
+.rename {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  h1 {
+    margin: 0;
+  }
+
+  input {
+    flex: 1;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border, #d1d5db);
+    border-radius: 8px;
+  }
+}
+
+.card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  padding: 1.5rem;
+
+  h2 {
+    margin: 0 0 0.75rem;
+  }
+
+  h3 {
+    margin: 1.25rem 0 0.5rem;
+    font-size: 0.95rem;
+  }
+}
+
+.members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border, #eee);
+    border-radius: 8px;
+
+    span {
+      display: block;
+      color: var(--text-muted, #6b7280);
+      font-size: 0.85rem;
+    }
+  }
+}
+
+.invite {
+  display: flex;
+  gap: 0.75rem;
+
+  input {
+    flex: 1;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border, #d1d5db);
+    border-radius: 8px;
+  }
+}
+
+button {
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+
+  &.primary {
+    background: var(--accent, #16a34a);
+    color: #fff;
+  }
+
+  &.ghost {
+    background: transparent;
+    border-color: var(--border, #d1d5db);
+    color: var(--text, #111827);
+  }
+
+  &.ghost.danger {
+    color: var(--danger, #dc2626);
+    border-color: var(--danger, #dc2626);
+  }
+
+  &.danger-solid {
+    background: var(--danger, #dc2626);
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.danger-zone {
+  border-color: var(--danger, #fecaca);
+}
+
+.muted {
+  color: var(--text-muted, #6b7280);
+  margin: 0 0 0.5rem;
+}
+
+.error {
+  color: var(--danger, #dc2626);
+  margin: 0.5rem 0 0;
+}

@@ -111,10 +111,15 @@ export class HomePage implements OnInit {
       },
       error: () => this.menuError.set(true),
     });
-    this.homeService.getHouse().pipe(finalize(() => this.houseLoading.set(false))).subscribe({
-      next: house => { this.houseName.set(house.name); this.houseMembers.set(house.members); },
-      error: () => this.houseError.set(true),
-    });
+    const activeHouseId = this.auth.currentUser()?.activeHouseId;
+    if (activeHouseId) {
+      this.homeService.getHome(activeHouseId).pipe(finalize(() => this.houseLoading.set(false))).subscribe({
+        next: house => { this.houseName.set(house.name); this.houseMembers.set(house.members); },
+        error: () => this.houseError.set(true),
+      });
+    } else {
+      this.houseLoading.set(false);
+    }
     forkJoin({ pantry: this.pantryService.getAll(), ingredients: this.ingredientService.getAll(), shopping: this.shoppingListService.getAll() })
       .pipe(finalize(() => { this.pantryLoading.set(false); this.shoppingLoading.set(false); }))
       .subscribe({

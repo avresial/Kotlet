@@ -1,3 +1,4 @@
+using Kotlet.Domain.Houses;
 using Kotlet.Domain.MealPlanner;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -13,6 +14,7 @@ internal sealed class MealPlanItemConfiguration : IEntityTypeConfiguration<MealP
             "(recipe_id IS NOT NULL AND ingredient_id IS NULL) OR (recipe_id IS NULL AND ingredient_id IS NOT NULL)"));
         builder.HasKey(m => m.Id);
         builder.Property(m => m.Id).HasColumnName("id");
+        builder.Property(m => m.HouseId).HasColumnName("house_id").IsRequired();
         builder.Property(m => m.UserId).HasColumnName("user_id").IsRequired();
         builder.Property(m => m.Date).HasColumnName("planned_date").IsRequired();
         builder.Property(m => m.Slot).HasColumnName("slot").IsRequired();
@@ -32,6 +34,8 @@ internal sealed class MealPlanItemConfiguration : IEntityTypeConfiguration<MealP
             .HasForeignKey(p => p.MealPlanItemId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasIndex(m => new { m.HouseId, m.Date }).HasDatabaseName("ix_meal_plan_items_house_date");
+        builder.HasOne<House>().WithMany().HasForeignKey(m => m.HouseId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(m => new { m.UserId, m.Date }).HasDatabaseName("ix_meal_plan_items_user_date");
         builder.HasIndex(m => new { m.UserId, m.Date, m.Slot }).HasDatabaseName("ix_meal_plan_items_user_date_slot");
     }

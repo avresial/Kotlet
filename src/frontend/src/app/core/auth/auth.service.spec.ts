@@ -15,6 +15,9 @@ describe('AuthService', () => {
     preferredLanguage: null,
     createdAtUtc: '2026-06-27T00:00:00Z',
     lastLoginAtUtc: null,
+    defaultHouseId: null,
+    activeHouseId: null,
+    hasHome: false,
   };
   const authResponse = {
     user,

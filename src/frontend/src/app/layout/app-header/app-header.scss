@@ -19,6 +19,17 @@ footer { position: relative; margin-top: auto; padding: 1rem .25rem .25rem; bord
 .account-menu a:hover, .account-menu button:hover { background: #f1ebe2; }
 .account-menu button:disabled { opacity: .55; cursor: default; }
 .logout-error { margin-top: .5rem; display: block; color: #912018; font-size: .72rem; }
+.homes-section { padding: .15rem .15rem .35rem; border-bottom: 1px solid #ece3d6; margin-bottom: .15rem; }
+.homes-label { margin: .35rem .5rem .25rem; color: #8b8175; font-size: .66rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.homes-empty { margin: .25rem .5rem; color: #8b8175; font-size: .76rem; }
+.home-item { width: 100%; min-height: 2.2rem; padding: .4rem .65rem; border: 0; border-radius: .45rem; display: flex; align-items: center; gap: .55rem; color: #514a42; background: transparent; font: inherit; font-size: .82rem; font-weight: 700; text-align: left; cursor: pointer; }
+.home-item:hover:not(:disabled) { background: #f1ebe2; }
+.home-item.active { color: #9a3a2a; }
+.home-item:disabled { opacity: .55; cursor: default; }
+.home-check { flex: 0 0 auto; font-size: .7rem; }
+.home-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-default { flex: 0 0 auto; padding: .05rem .35rem; border-radius: .35rem; background: #f6e3d8; color: #9a3a2a; font-size: .6rem; font-weight: 800; text-transform: uppercase; }
+.invite-badge { margin-left: auto; min-width: 1.2rem; padding: .05rem .35rem; border-radius: 1rem; background: #b9533f; color: #fff; font-size: .7rem; font-weight: 800; text-align: center; }
 .public-header { max-width: 72rem; min-height: var(--app-header-height); margin: 0 auto; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .public-header nav { display: flex; align-items: center; gap: .75rem; }
 .public-header .brand-mark { width: 7rem; }

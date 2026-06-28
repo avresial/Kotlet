@@ -43,6 +43,10 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at_utc");
 
+                    b.Property<Guid?>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
                     b.Property<Guid?>("ReplacedByTokenId")
                         .HasColumnType("uuid")
                         .HasColumnName("replaced_by_token_id");
@@ -91,6 +95,10 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at_utc");
 
+                    b.Property<Guid?>("DefaultHouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("default_house_id");
+
                     b.Property<string>("DisplayName")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
@@ -101,10 +109,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasMaxLength(320)
                         .HasColumnType("character varying(320)")
                         .HasColumnName("email");
-
-                    b.Property<Guid>("HouseId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("house_id");
 
                     b.Property<DateTime?>("LastLoginAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -132,8 +136,8 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("HouseId")
-                        .HasDatabaseName("ix_users_house_id");
+                    b.HasIndex("DefaultHouseId")
+                        .HasDatabaseName("ix_users_default_house_id");
 
                     b.HasIndex("NormalizedEmail")
                         .IsUnique()
@@ -158,13 +162,65 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("houses", "kotlet");
+                });
 
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("8a8c2f75-5998-45e8-8888-1d03d5b45275"),
-                            Name = "Default house"
-                        });
+            modelBuilder.Entity("Kotlet.Domain.Houses.HouseInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
+                    b.Property<Guid>("InvitedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invited_by_user_id");
+
+                    b.Property<Guid>("InvitedUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invited_user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvitedByUserId");
+
+                    b.HasIndex("InvitedUserId")
+                        .HasDatabaseName("ix_house_invitations_invited_user_id");
+
+                    b.HasIndex("HouseId", "InvitedUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_house_invitations_house_user");
+
+                    b.ToTable("house_invitations", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Houses.HouseMembership", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
+                    b.Property<DateTime>("JoinedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("joined_at_utc");
+
+                    b.HasKey("UserId", "HouseId");
+
+                    b.HasIndex("HouseId")
+                        .HasDatabaseName("ix_house_memberships_house_id");
+
+                    b.ToTable("house_memberships", "kotlet");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Ingredients.Ingredient", b =>
@@ -226,6 +282,10 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("guests");
 
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
                     b.Property<Guid?>("IngredientId")
                         .HasColumnType("uuid")
                         .HasColumnName("ingredient_id");
@@ -259,6 +319,9 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseId", "Date")
+                        .HasDatabaseName("ix_meal_plan_items_house_date");
 
                     b.HasIndex("UserId", "Date")
                         .HasDatabaseName("ix_meal_plan_items_user_date");
@@ -336,6 +399,10 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description_markdown");
 
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
                     b.Property<Guid>("OwnerUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("owner_user_id");
@@ -357,6 +424,9 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_at_utc");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("HouseId")
+                        .HasDatabaseName("ix_recipes_house_id");
 
                     b.HasIndex("OwnerUserId")
                         .HasDatabaseName("ix_recipes_owner_user_id");
@@ -535,13 +605,67 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Kotlet.Domain.Auth.User", b =>
                 {
+                    b.HasOne("Kotlet.Domain.Houses.House", "DefaultHouse")
+                        .WithMany()
+                        .HasForeignKey("DefaultHouseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("DefaultHouse");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Houses.HouseInvitation", b =>
+                {
                     b.HasOne("Kotlet.Domain.Houses.House", "House")
-                        .WithMany("Users")
+                        .WithMany("Invitations")
                         .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.Auth.User", "InvitedByUser")
+                        .WithMany()
+                        .HasForeignKey("InvitedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Kotlet.Domain.Auth.User", "InvitedUser")
+                        .WithMany()
+                        .HasForeignKey("InvitedUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("House");
+
+                    b.Navigation("InvitedByUser");
+
+                    b.Navigation("InvitedUser");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Houses.HouseMembership", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Houses.House", "House")
+                        .WithMany("Memberships")
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.Auth.User", "User")
+                        .WithMany("Memberships")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("House");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.MealPlanner.MealPlanItem", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Houses.House", null)
+                        .WithMany()
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Kotlet.Domain.MealPlanner.MealPlanItemParticipant", b =>
@@ -580,6 +704,15 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("House");
 
                     b.Navigation("Ingredient");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Recipes.Recipe", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Houses.House", null)
+                        .WithMany()
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImage", b =>
@@ -625,16 +758,20 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Kotlet.Domain.Auth.User", b =>
                 {
+                    b.Navigation("Memberships");
+
                     b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Houses.House", b =>
                 {
+                    b.Navigation("Invitations");
+
+                    b.Navigation("Memberships");
+
                     b.Navigation("PantryItems");
 
                     b.Navigation("ShoppingListItems");
-
-                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.MealPlanner.MealPlanItem", b =>

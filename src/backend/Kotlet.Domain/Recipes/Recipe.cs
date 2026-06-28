@@ -3,6 +3,7 @@ namespace Kotlet.Domain.Recipes;
 public sealed class Recipe
 {
     public Guid Id { get; set; }
+    public Guid HouseId { get; set; }
     public Guid OwnerUserId { get; set; }
     public required string Title { get; set; }
     public required string Slug { get; set; }

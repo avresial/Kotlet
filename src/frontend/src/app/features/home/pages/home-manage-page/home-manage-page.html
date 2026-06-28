@@ -1,0 +1,80 @@
+<main class="home-page">
+  <a class="back" routerLink="/dashboard">← {{ 'common.backOverview' | t }}</a>
+
+  @if (loading()) {
+    <p class="muted">{{ 'home.manage.loading' | t }}</p>
+  } @else if (home(); as home) {
+    <header>
+      <p class="eyebrow">{{ 'home.manage.eyebrow' | t }}</p>
+      @if (renaming()) {
+        <form class="rename" (ngSubmit)="saveName()">
+          <input type="text" [ngModel]="nameDraft()" (ngModelChange)="nameDraft.set($event)" name="name" maxlength="150" />
+          <button type="submit" class="primary" [disabled]="!nameDraft().trim() || savingName()">{{ 'home.manage.save' | t }}</button>
+          <button type="button" class="ghost" (click)="cancelRename()">{{ 'home.manage.cancel' | t }}</button>
+        </form>
+      } @else {
+        <div class="title-row">
+          <h1>{{ home.name }}</h1>
+          <button type="button" class="ghost" (click)="startRename()">{{ 'home.manage.rename' | t }}</button>
+        </div>
+      }
+    </header>
+
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+    <section class="card">
+      <h2>{{ 'home.manage.members' | t }}</h2>
+      <ul class="members">
+        @for (member of home.members; track member.id) {
+          <li>
+            <div>
+              <strong>{{ memberName(member) }}</strong>
+              <span>{{ member.email }}</span>
+            </div>
+            <button type="button" class="ghost danger" (click)="removeMember(member)" [disabled]="busyMemberId() !== null">
+              {{ (member.isCurrentUser ? 'home.manage.leave' : 'home.manage.remove') | t }}
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>{{ 'home.invite.title' | t }}</h2>
+      <p class="muted">{{ 'home.invite.help' | t }}</p>
+      <form class="invite" (ngSubmit)="invite()">
+        <input type="email" [ngModel]="inviteEmail()" (ngModelChange)="inviteEmail.set($event)" name="email"
+          [placeholder]="'home.invite.placeholder' | t" autocomplete="off" />
+        <button type="submit" class="primary" [disabled]="!inviteEmail().trim() || inviting()">{{ 'home.invite.send' | t }}</button>
+      </form>
+      @if (inviteError()) { <p class="error" role="alert">{{ inviteError() }}</p> }
+
+      @if (home.pendingInvitations.length) {
+        <h3>{{ 'home.invite.pending' | t }}</h3>
+        <ul class="members">
+          @for (invitation of home.pendingInvitations; track invitation.id) {
+            <li>
+              <div>
+                <strong>{{ invitation.displayName?.trim() || invitation.email }}</strong>
+                <span>{{ invitation.email }}</span>
+              </div>
+              <button type="button" class="ghost" (click)="cancelInvitation(invitation.id)" [disabled]="busyInvitationId() !== null">
+                {{ 'home.invite.cancel' | t }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="card danger-zone">
+      <h2>{{ 'home.manage.dangerZone' | t }}</h2>
+      <p class="muted">{{ 'home.manage.deleteHelp' | t }}</p>
+      <button type="button" class="danger-solid" (click)="deleteHome()" [disabled]="deleting()">
+        {{ (deleting() ? 'home.manage.deleting' : 'home.manage.delete') | t }}
+      </button>
+    </section>
+  } @else if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+</main>

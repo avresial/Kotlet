@@ -145,8 +145,7 @@ public sealed class MealPlannerEndpointTests(TestWebApplicationFactory factory) 
     [Fact]
     public async Task HouseMembers_CanSeeAndManageTheSameMealPlan()
     {
-        var creator = await CreateAuthenticatedClient("mp-house-creator");
-        var houseMember = await CreateAuthenticatedClient("mp-house-member");
+        var (creator, houseMember, _) = await TestAuth.HouseholdAsync(factory, "mp-house");
         var ingredientId = await CreateIngredient(creator);
         var created = await AddIngredientMeal(creator, ingredientId);
         var itemId = created.GetProperty("id").GetGuid();
@@ -191,6 +190,7 @@ public sealed class MealPlannerEndpointTests(TestWebApplicationFactory factory) 
         });
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());
+        await TestAuth.CreateHomeAsync(client);
         return client;
     }
 }

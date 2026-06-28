@@ -24,7 +24,26 @@
       </button>
       @if (isAccountMenuOpen()) {
         <div class="account-menu" role="menu" (click)="$event.stopPropagation()">
+          <div class="homes-section">
+            <p class="homes-label">{{ 'home.switch.label' | t }}</p>
+            @if (homesLoading()) {
+              <p class="homes-empty">{{ 'home.switch.loading' | t }}</p>
+            } @else {
+              @for (house of homes(); track house.id) {
+                <button role="menuitemradio" type="button" class="home-item" [class.active]="house.isActive"
+                  [attr.aria-checked]="house.isActive" (click)="switchHome(house)" [disabled]="switchingHouseId() !== null">
+                  <span class="home-check" aria-hidden="true">{{ house.isActive ? '●' : '○' }}</span>
+                  <span class="home-name">{{ house.name }}</span>
+                  @if (house.isDefault) { <span class="home-default">{{ 'home.switch.default' | t }}</span> }
+                </button>
+              }
+            }
+          </div>
           <app-language-switcher />
+          <a role="menuitem" routerLink="/home" (click)="closeAccountMenu()">
+            <span aria-hidden="true">⌂</span>{{ 'nav.home' | t }}
+            @if (invitationCount() > 0) { <span class="invite-badge">{{ invitationCount() }}</span> }
+          </a>
           <a role="menuitem" routerLink="/settings" (click)="closeAccountMenu()"><span aria-hidden="true">⚙</span>{{ 'nav.settings' | t }}</a>
           <a role="menuitem" routerLink="/admin" (click)="closeAccountMenu()"><span aria-hidden="true">♜</span>{{ 'nav.admin' | t }}</a>
           <button role="menuitem" type="button" (click)="logout()" [disabled]="isLoggingOut()">

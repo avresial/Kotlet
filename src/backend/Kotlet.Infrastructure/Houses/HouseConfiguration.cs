@@ -12,6 +12,5 @@ internal sealed class HouseConfiguration : IEntityTypeConfiguration<House>
         builder.HasKey(house => house.Id);
         builder.Property(house => house.Id).HasColumnName("id");
         builder.Property(house => house.Name).HasColumnName("name").HasMaxLength(150).IsRequired();
-        builder.HasData(new House { Id = DefaultHouse.Id, Name = DefaultHouse.Name });
     }
 }
