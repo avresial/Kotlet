@@ -31,7 +31,11 @@
         @else { <ul class="menu-list">
           @for (meal of todaysMenu(); track meal.id) {
             <li class="menu-item">
-              <span class="menu-emoji" aria-hidden="true">{{ meal.emoji }}</span>
+              @if (meal.recipeId && menuAvatarUrls()[meal.recipeId]; as avatarUrl) {
+                <img class="menu-avatar" [src]="avatarUrl" [alt]="meal.name" />
+              } @else {
+                <span class="menu-emoji" aria-hidden="true">{{ meal.emoji }}</span>
+              }
               <div class="menu-text">
                 <p class="meal-time">{{ meal.time }}</p>
                 <strong>{{ meal.name }}</strong>
@@ -134,6 +138,36 @@
               <button class="add-low" type="button" [disabled]="shoppingSaving() || isOnShoppingList(ingredient.ingredientId)" (click)="addToShoppingList(ingredient.ingredientId, 1)">
                 {{ isOnShoppingList(ingredient.ingredientId) ? 'Added' : '+ List' }}
               </button>
+            </li>
+          }
+        </ul> }
+      </article>
+
+      <!-- Your home -->
+      <article class="card" aria-labelledby="home-title">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Your home</p>
+            <h2 id="home-title">{{ houseName() || 'Household' }}</h2>
+          </div>
+          @if (!houseLoading() && !houseError()) {
+            <span class="status muted">{{ houseMembers().length }} member{{ houseMembers().length === 1 ? '' : 's' }}</span>
+          }
+        </div>
+        @if (houseLoading()) { <p class="recipe-state">Loading household…</p> }
+        @else if (houseError()) { <p class="recipe-state error" role="alert">Unable to load your household.</p> }
+        @else if (houseMembers().length === 0) { <p class="recipe-state">No one else is in your home yet.</p> }
+        @else { <ul class="member-list">
+          @for (member of houseMembers(); track member.id) {
+            <li class="member-item">
+              <span class="member-avatar" aria-hidden="true">{{ memberInitials(member) }}</span>
+              <div class="member-text">
+                <strong>{{ memberName(member) }}@if (member.isCurrentUser) { <span class="member-you">You</span> }</strong>
+                <p>{{ member.email }}</p>
+              </div>
+              <span class="member-meta">
+                @if (member.lastLoginAtUtc) { Active {{ relativeTime(member.lastLoginAtUtc) }} } @else { Never signed in }
+              </span>
             </li>
           }
         </ul> }

@@ -16,6 +16,7 @@ public static class AuthEndpoints
         auth.MapPost("/refresh", Refresh);
         auth.MapPost("/logout", Logout);
         auth.MapGet("/me", Me).RequireAuthorization();
+        auth.MapGet("/house", House).RequireAuthorization();
         auth.MapPut("/profile", UpdateProfile).RequireAuthorization();
         auth.MapPost("/password", ChangePassword).RequireAuthorization();
         return endpoints;
@@ -91,6 +92,20 @@ public static class AuthEndpoints
         if (currentUser.UserId is not { } id) return Results.Unauthorized();
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         return user is null ? Results.Unauthorized() : Results.Ok(ToResponse(user));
+    }
+
+    private static async Task<IResult> House(ICurrentUser currentUser, KotletDbContext db, CancellationToken cancellationToken)
+    {
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var house = await db.Houses.AsNoTracking().SingleOrDefaultAsync(x => x.Id == houseId, cancellationToken);
+        if (house is null) return Results.Unauthorized();
+        var members = await db.Users.AsNoTracking()
+            .Where(x => x.HouseId == houseId)
+            .OrderByDescending(x => x.Id == userId)
+            .ThenBy(x => x.DisplayName ?? x.Email)
+            .Select(x => new HouseMemberResponse(x.Id, x.Email, x.DisplayName, x.LastLoginAtUtc, x.Id == userId))
+            .ToListAsync(cancellationToken);
+        return Results.Ok(new HouseResponse(house.Id, house.Name, members));
     }
 
     private static async Task<IResult> UpdateProfile(UpdateProfileRequest request, ICurrentUser currentUser, KotletDbContext db, CancellationToken cancellationToken)

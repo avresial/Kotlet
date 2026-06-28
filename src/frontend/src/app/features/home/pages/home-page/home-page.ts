@@ -15,9 +15,12 @@ import { RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { DailyMealPlan, MealSlot } from '../../../meal-planner/models/meal-planner.models';
 import { MealPlannerService } from '../../../meal-planner/services/meal-planner.service';
+import { HouseMember } from '../../home.models';
+import { HomeService } from '../../home.service';
 
 interface TodaysMenuEntry {
   id: string;
+  recipeId: string | null;
   time: string;
   emoji: string;
   name: string;
@@ -38,6 +41,7 @@ export class HomePage implements OnInit {
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly recipeService = inject(RecipeService);
   private readonly mealPlannerService = inject(MealPlannerService);
+  private readonly homeService = inject(HomeService);
   private readonly destroyRef = inject(DestroyRef);
   readonly lowStock = signal<PantryItem[]>([]);
   readonly pantryLoading = signal(true);
@@ -69,8 +73,14 @@ export class HomePage implements OnInit {
   }).format(new Date());
 
   readonly todaysMenu = signal<TodaysMenuEntry[]>([]);
+  readonly menuAvatarUrls = signal<Record<string, string>>({});
   readonly menuLoading = signal(true);
   readonly menuError = signal(false);
+
+  readonly houseName = signal<string | null>(null);
+  readonly houseMembers = signal<HouseMember[]>([]);
+  readonly houseLoading = signal(true);
+  readonly houseError = signal(false);
 
   private readonly slotMeta: Record<MealSlot, { time: string; emoji: string }> = {
     breakfast: { time: 'BREAKFAST', emoji: '🍳' },
@@ -82,6 +92,7 @@ export class HomePage implements OnInit {
   ngOnInit(): void {
     this.destroyRef.onDestroy(() => {
       Object.values(this.recipeAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
+      Object.values(this.menuAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
     });
     this.recipeService.listRecent(4).pipe(finalize(() => this.recipesLoading.set(false))).subscribe({
       next: recipes => {
@@ -91,8 +102,16 @@ export class HomePage implements OnInit {
       error: () => this.recipesError.set(true),
     });
     this.mealPlannerService.getForDate(this.todayString()).pipe(finalize(() => this.menuLoading.set(false))).subscribe({
-      next: plan => this.todaysMenu.set(this.buildMenu(plan)),
+      next: plan => {
+        const menu = this.buildMenu(plan);
+        this.todaysMenu.set(menu);
+        this.loadMenuAvatars(menu);
+      },
       error: () => this.menuError.set(true),
+    });
+    this.homeService.getHouse().pipe(finalize(() => this.houseLoading.set(false))).subscribe({
+      next: house => { this.houseName.set(house.name); this.houseMembers.set(house.members); },
+      error: () => this.houseError.set(true),
     });
     forkJoin({ pantry: this.pantryService.getAll(), ingredients: this.ingredientService.getAll(), shopping: this.shoppingListService.getAll() })
       .pipe(finalize(() => { this.pantryLoading.set(false); this.shoppingLoading.set(false); }))
@@ -131,6 +150,24 @@ export class HomePage implements OnInit {
         .subscribe(blob => {
           const url = URL.createObjectURL(blob);
           this.recipeAvatarUrls.update(urls => ({ ...urls, [recipe.id]: url }));
+        });
+    }
+  }
+
+  private loadMenuAvatars(entries: TodaysMenuEntry[]): void {
+    const recipeIds = [...new Set(entries.map(entry => entry.recipeId).filter((id): id is string => !!id))];
+    for (const recipeId of recipeIds) {
+      this.recipeService.listImages(recipeId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(images => {
+          const first = images[0];
+          if (!first) return;
+          this.recipeService.imageContent(first.contentUrl)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(blob => {
+              const url = URL.createObjectURL(blob);
+              this.menuAvatarUrls.update(urls => ({ ...urls, [recipeId]: url }));
+            });
         });
     }
   }
@@ -183,6 +220,17 @@ export class HomePage implements OnInit {
     });
   }
 
+  memberName(member: HouseMember): string {
+    return member.displayName?.trim() || member.email.split('@')[0];
+  }
+
+  memberInitials(member: HouseMember): string {
+    const name = this.memberName(member);
+    const parts = name.split(/\s+/).filter(Boolean);
+    const initials = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2);
+    return initials.toUpperCase();
+  }
+
   isOnShoppingList(ingredientId: string): boolean {
     return this.shoppingItems().some(item => item.ingredientId === ingredientId);
   }
@@ -192,7 +240,7 @@ export class HomePage implements OnInit {
     for (const slot of this.slotOrder) {
       const meta = this.slotMeta[slot];
       for (const item of plan.meals[slot] ?? []) {
-        entries.push({ id: item.id, time: meta.time, emoji: meta.emoji, name: item.displayName, note: item.note ?? null });
+        entries.push({ id: item.id, recipeId: item.recipeId ?? null, time: meta.time, emoji: meta.emoji, name: item.displayName, note: item.note ?? null });
       }
     }
     return entries;
