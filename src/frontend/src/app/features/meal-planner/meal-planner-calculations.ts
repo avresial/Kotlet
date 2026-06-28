@@ -12,6 +12,17 @@ export function recipePricePerServing(recipe: RecipeDetail, ingredients: readonl
   return batchPrice / recipe.servings;
 }
 
+export function recipeCaloriesPerServing(recipe: RecipeDetail, ingredients: readonly Ingredient[]): number {
+  const batchCalories = recipe.ingredients.reduce((total, recipeIngredient) => {
+    const ingredient = ingredients.find((candidate) => candidate.id === recipeIngredient.ingredientId);
+    return total + (ingredient
+      ? ingredient.caloriesPer100BaseUnits * recipeIngredient.normalizedQuantity / 100
+      : 0);
+  }, 0);
+
+  return batchCalories / recipe.servings;
+}
+
 export function scaleRecipeQuantity(quantity: number, recipeServings: number, peopleServed: number): number {
   return quantity / recipeServings * peopleServed;
 }
@@ -21,4 +32,8 @@ export function directIngredientQuantity(ingredient: Ingredient, servings: numbe
     ? ingredient.measurementUnitsPerPiece ?? 0
     : 1;
   return quantityPerServing * Math.max(servings, 1);
+}
+
+export function directIngredientCaloriesPerServing(ingredient: Ingredient): number {
+  return ingredient.caloriesPer100BaseUnits * directIngredientQuantity(ingredient, 1) / 100;
 }

@@ -11,7 +11,19 @@ import { RecipeService } from '../../../recipes/services/recipe.service';
 import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
 import { DailyMealPlan, HouseMember, MealPlanItem, MealPlanItemType, MealPlanOverviewDay, MealSlot } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
-import { directIngredientQuantity, recipePricePerServing, scaleRecipeQuantity } from '../../meal-planner-calculations';
+import {
+  directIngredientCaloriesPerServing,
+  directIngredientQuantity,
+  recipeCaloriesPerServing,
+  recipePricePerServing,
+  scaleRecipeQuantity,
+} from '../../meal-planner-calculations';
+
+interface PersonCalories {
+  id: string;
+  name: string;
+  calories: number;
+}
 
 @Component({
   selector: 'app-meal-planner-page',
@@ -56,6 +68,41 @@ export class MealPlannerPage implements OnInit {
 
   readonly dayTotal = computed(() => this.allItems().reduce((total, item) => total + (this.itemCost(item) ?? 0), 0));
   readonly dayServings = computed(() => this.allItems().reduce((total, item) => total + item.servings, 0));
+  readonly dayCalories = computed(() => this.allItems().reduce(
+    (total, item) => total + (this.caloriesPerServing(item) ?? 0) * item.servings,
+    0,
+  ));
+  readonly caloriesByPerson = computed<PersonCalories[]>(() => {
+    const totals = new Map<string, PersonCalories>();
+    let guestCalories = 0;
+    let unassignedCalories = 0;
+
+    for (const item of this.allItems()) {
+      const caloriesPerServing = this.caloriesPerServing(item);
+      if (caloriesPerServing === null || item.servings === 0) continue;
+      const headcount = item.participants.length + item.guests;
+      if (headcount === 0) {
+        unassignedCalories += caloriesPerServing * item.servings;
+        continue;
+      }
+
+      const caloriesPerPerson = caloriesPerServing * item.servings / headcount;
+      for (const participant of item.participants) {
+        const existing = totals.get(participant.userId);
+        totals.set(participant.userId, {
+          id: participant.userId,
+          name: participant.displayName,
+          calories: (existing?.calories ?? 0) + caloriesPerPerson,
+        });
+      }
+      guestCalories += caloriesPerPerson * item.guests;
+    }
+
+    const result = [...totals.values()].sort((a, b) => b.calories - a.calories || a.name.localeCompare(b.name));
+    if (guestCalories > 0) result.push({ id: 'guests', name: 'Guests', calories: guestCalories });
+    if (unassignedCalories > 0) result.push({ id: 'unassigned', name: 'Unassigned servings', calories: unassignedCalories });
+    return result;
+  });
 
   ngOnInit(): void {
     this.loadOptions();
@@ -291,6 +338,16 @@ export class MealPlannerPage implements OnInit {
 
     const detail = item.recipeId ? this.recipeDetails()[item.recipeId] : undefined;
     return detail ? recipePricePerServing(detail, this.ingredients()) : null;
+  }
+
+  caloriesPerServing(item: MealPlanItem): number | null {
+    if (item.type === 'ingredient') {
+      const ingredient = this.ingredients().find((candidate) => candidate.id === item.ingredientId);
+      return ingredient ? directIngredientCaloriesPerServing(ingredient) : null;
+    }
+
+    const detail = item.recipeId ? this.recipeDetails()[item.recipeId] : undefined;
+    return detail ? recipeCaloriesPerServing(detail, this.ingredients()) : null;
   }
 
   addToShoppingList(item: MealPlanItem): void {
