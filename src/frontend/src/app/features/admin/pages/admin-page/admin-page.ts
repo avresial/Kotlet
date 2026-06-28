@@ -26,6 +26,10 @@ export class AdminPage {
   private readonly router = inject(Router);
   private readonly translations = inject(TranslationService);
   readonly users = signal<AdminUser[]>([]);
+  readonly search = signal('');
+  readonly page = signal(1);
+  readonly totalCount = signal(0);
+  readonly pageSize = 10;
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly editingId = signal<string | null>(null);
@@ -35,13 +39,21 @@ export class AdminPage {
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
     displayName: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(100)] }),
     preferredLanguage: new FormControl<'en' | 'pl' | ''>('', { nonNullable: true }),
+    userRole: new FormControl(false, { nonNullable: true }),
+    adminRole: new FormControl(false, { nonNullable: true }),
   });
 
   constructor() { this.loadUsers(); }
 
   edit(user: AdminUser): void {
     this.editingId.set(user.id);
-    this.form.setValue({ email: user.email, displayName: user.displayName ?? '', preferredLanguage: user.preferredLanguage ?? '' });
+    this.form.setValue({
+      email: user.email,
+      displayName: user.displayName ?? '',
+      preferredLanguage: user.preferredLanguage ?? '',
+      userRole: user.roles.includes('User'),
+      adminRole: user.roles.includes('Admin'),
+    });
   }
 
   cancel(): void { this.editingId.set(null); this.form.reset(); this.error.set(null); }
@@ -51,7 +63,8 @@ export class AdminPage {
     if (!id || this.form.invalid) { this.form.markAllAsTouched(); return; }
     const value = this.form.getRawValue();
     this.saving.set(true); this.error.set(null);
-    this.admin.updateUser(id, { email: value.email.trim(), displayName: value.displayName.trim() || null, preferredLanguage: value.preferredLanguage || null })
+    const roles = [value.userRole && 'User', value.adminRole && 'Admin'].filter((role): role is string => Boolean(role));
+    this.admin.updateUser(id, { email: value.email.trim(), displayName: value.displayName.trim() || null, preferredLanguage: value.preferredLanguage || null, roles })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: (user) => { this.users.update((users) => users.map((item) => item.id === user.id ? user : item)); this.cancel(); },
@@ -64,19 +77,28 @@ export class AdminPage {
     this.deletingId.set(user.id); this.error.set(null);
     this.admin.deleteUser(user.id).pipe(finalize(() => this.deletingId.set(null))).subscribe({
       next: () => {
-        this.users.update((users) => users.filter((item) => item.id !== user.id));
         if (this.auth.currentUser()?.id === user.id) {
           this.auth.logout().subscribe({ next: () => void this.router.navigateByUrl('/login') });
+          return;
         }
+        const remaining = this.totalCount() - 1;
+        if (this.page() > 1 && (this.page() - 1) * this.pageSize >= remaining) this.page.update((page) => page - 1);
+        this.loadUsers();
       },
       error: (error) => this.error.set(getApiError(error, this.translations.translate('admin.deleteError'))),
     });
   }
 
+  searchUsers(): void { this.page.set(1); this.loadUsers(); }
+  clearSearch(): void { this.search.set(''); this.searchUsers(); }
+  previousPage(): void { if (this.page() > 1) { this.page.update((page) => page - 1); this.loadUsers(); } }
+  nextPage(): void { if (this.hasNextPage) { this.page.update((page) => page + 1); this.loadUsers(); } }
+  get hasNextPage(): boolean { return this.page() * this.pageSize < this.totalCount(); }
+
   private loadUsers(): void {
     this.loading.set(true); this.error.set(null);
-    this.admin.getUsers().pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: (users) => this.users.set(users),
+    this.admin.getUsers(this.page(), this.search().trim() || undefined).pipe(finalize(() => this.loading.set(false))).subscribe({
+      next: (response) => { this.users.set(response.items); this.totalCount.set(response.totalCount); },
       error: (error) => this.error.set(getApiError(error, this.translations.translate('admin.loadError'))),
     });
   }

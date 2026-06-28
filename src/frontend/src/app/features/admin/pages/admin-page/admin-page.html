@@ -8,10 +8,11 @@
   </section>
 
   <section class="card" aria-labelledby="users-title">
-    <div class="section-heading"><div><h2 id="users-title">{{ 'admin.users' | t }}</h2><p>{{ 'admin.usersHelp' | t }}</p></div><span class="count">{{ users().length }}</span></div>
+    <div class="section-heading"><div><h2 id="users-title">{{ 'admin.users' | t }}</h2><p>{{ 'admin.usersHelp' | t }}</p></div><span class="count">{{ totalCount() }}</span></div>
+    <div class="search"><input pInputText type="search" [value]="search()" (input)="search.set($any($event.target).value)" (keyup.enter)="searchUsers()" [placeholder]="'admin.searchPlaceholder' | t" /><p-button [label]="'admin.search' | t" (onClick)="searchUsers()" />@if (search()) { <p-button [label]="'admin.clearSearch' | t" severity="secondary" (onClick)="clearSearch()" /> }</div>
     @if (error()) { <p-message severity="error" role="alert">{{ error() }}</p-message> }
     @if (loading()) { <p>{{ 'admin.loading' | t }}</p> }
-    @else if (users().length === 0) { <p>{{ 'admin.empty' | t }}</p> }
+    @else if (users().length === 0) { <p>{{ (search() ? 'admin.searchEmpty' : 'admin.empty') | t }}</p> }
     @else {
       <div class="user-list">
         @for (user of users(); track user.id) {
@@ -21,15 +22,17 @@
                 <label>{{ 'auth.email' | t }}<input pInputText type="email" formControlName="email" /></label>
                 <label>{{ 'settings.displayName' | t }}<input pInputText type="text" formControlName="displayName" /></label>
                 <label>{{ 'settings.preferredLanguage' | t }}<select formControlName="preferredLanguage"><option value="">—</option><option value="en">{{ 'settings.languageEnglish' | t }}</option><option value="pl">{{ 'settings.languagePolish' | t }}</option></select></label>
+                <fieldset><legend>{{ 'admin.roles' | t }}</legend><label><input type="checkbox" formControlName="userRole" /> {{ 'admin.roleUser' | t }}</label><label><input type="checkbox" formControlName="adminRole" /> {{ 'admin.roleAdmin' | t }}</label></fieldset>
                 <div class="actions"><p-button type="submit" [label]="'admin.save' | t" [loading]="saving()" /><p-button type="button" [label]="'admin.cancel' | t" severity="secondary" (onClick)="cancel()" /></div>
               </form>
             } @else {
-              <div class="identity"><strong>{{ user.displayName || user.email }}</strong><span>{{ user.email }}</span><small>{{ 'admin.joined' | t }} {{ user.createdAtUtc | date: 'mediumDate' }} · {{ 'settings.lastSignIn' | t }}: {{ user.lastLoginAtUtc ? (user.lastLoginAtUtc | date: 'medium') : ('settings.never' | t) }}</small></div>
+              <div class="identity"><strong>{{ user.displayName || user.email }}</strong><span>{{ user.email }}</span><div class="roles">@for (role of user.roles; track role) { <span class="badge">{{ role }}</span> }</div><small>{{ 'admin.joined' | t }} {{ user.createdAtUtc | date: 'mediumDate' }} · {{ 'settings.lastSignIn' | t }}: {{ user.lastLoginAtUtc ? (user.lastLoginAtUtc | date: 'medium') : ('settings.never' | t) }}</small></div>
               <div class="actions"><p-button [label]="'admin.edit' | t" severity="secondary" (onClick)="edit(user)" /><p-button [label]="'common.remove' | t" severity="danger" [loading]="deletingId() === user.id" (onClick)="remove(user)" /></div>
             }
           </article>
         }
       </div>
+      <nav class="pagination" [attr.aria-label]="'admin.pagination' | t"><p-button [label]="'admin.previous' | t" severity="secondary" [disabled]="page() <= 1" (onClick)="previousPage()" /><span>{{ 'admin.page' | t }} {{ page() }}</span><p-button [label]="'admin.next' | t" severity="secondary" [disabled]="!hasNextPage" (onClick)="nextPage()" /></nav>
     }
   </section>
 </main>

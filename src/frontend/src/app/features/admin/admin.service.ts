@@ -1,14 +1,16 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { apiUrl } from '../../core/http/api-url';
-import { AdminUser, UpdateAdminUserRequest } from './admin.models';
+import { AdminUser, AdminUserPage, UpdateAdminUserRequest } from './admin.models';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly http = inject(HttpClient);
 
-  getUsers() {
-    return this.http.get<AdminUser[]>(apiUrl('/api/admin/users'));
+  getUsers(page: number, search?: string) {
+    let params = new HttpParams().set('page', page);
+    if (search) params = params.set('search', search);
+    return this.http.get<AdminUserPage>(apiUrl('/api/admin/users'), { params });
   }
 
   updateUser(id: string, request: UpdateAdminUserRequest) {
