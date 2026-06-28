@@ -36,8 +36,8 @@
       <div class="table-wrap"><table>
         <thead><tr><th>Name</th><th>Unit</th><th>kcal / 100 g</th><th>Price / unit</th><th><span class="sr-only">Actions</span></th></tr></thead>
         <tbody>@for (ingredient of filteredIngredients(); track ingredient.id) {
-          <tr><td><strong>{{ ingredient.name }}</strong></td><td>{{ unitLabel(ingredient.measurementUnit) }}</td><td>{{ ingredient.caloriesPer100Grams }}</td><td>{{ ingredient.price.toFixed(2) }}</td>
-          <td class="row-actions"><button type="button" (click)="edit(ingredient)">Edit</button><button class="delete" type="button" [disabled]="deletingId() === ingredient.id" (click)="remove(ingredient)">{{ deletingId() === ingredient.id ? 'Deleting…' : 'Delete' }}</button></td></tr>
+          <tr><td data-label="Name"><strong>{{ ingredient.name }}</strong></td><td data-label="Unit">{{ unitLabel(ingredient.measurementUnit) }}</td><td data-label="kcal / 100 g">{{ ingredient.caloriesPer100Grams }}</td><td data-label="Price / unit">{{ ingredient.price.toFixed(2) }}</td>
+          <td class="row-actions" data-label="Actions"><button type="button" (click)="edit(ingredient)">Edit</button><button class="delete" type="button" [disabled]="deletingId() === ingredient.id" (click)="remove(ingredient)">{{ deletingId() === ingredient.id ? 'Deleting…' : 'Delete' }}</button></td></tr>
         }</tbody>
       </table></div>
     }

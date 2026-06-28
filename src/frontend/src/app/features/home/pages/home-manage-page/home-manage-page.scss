@@ -138,3 +138,14 @@ button {
   color: var(--danger, #dc2626);
   margin: 0.5rem 0 0;
 }
+
+@media (max-width: 32rem) {
+  .home-page { padding: 1.5rem 0.75rem; }
+  .card { padding: 1rem; }
+  .title-row h1, .members li > div { min-width: 0; overflow-wrap: anywhere; }
+  .rename { display: grid; grid-template-columns: 1fr 1fr; }
+  .rename input { min-width: 0; grid-column: 1 / -1; }
+  .invite { align-items: stretch; flex-direction: column; }
+  .invite input { min-width: 0; }
+  .invite .primary { min-height: 2.75rem; }
+}

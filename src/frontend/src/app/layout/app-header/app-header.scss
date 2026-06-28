@@ -53,3 +53,9 @@ footer { position: relative; margin-top: auto; padding: 1rem .25rem .25rem; bord
   .public-header .brand-mark { width: 6.25rem; }
   .account-link { min-height: 2.35rem; padding: .5rem .7rem; font-size: .74rem; }
 }
+@media (max-width: 30rem) {
+  .public-header { padding-inline: .75rem; }
+  .public-header .brand-mark { width: 5.25rem; }
+  .public-header nav { gap: .25rem; }
+  .account-link { padding-inline: .5rem; }
+}
