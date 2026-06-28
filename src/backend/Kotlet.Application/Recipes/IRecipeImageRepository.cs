@@ -7,6 +7,7 @@ public interface IRecipeImageRepository
     Task<bool> RecipeExistsAsync(Guid recipeId, Guid ownerUserId, CancellationToken cancellationToken);
     Task<int> CountAsync(Guid recipeId, CancellationToken cancellationToken);
     Task<IReadOnlyList<RecipeImage>> ListAsync(Guid recipeId, bool tracked, CancellationToken cancellationToken);
+    Task<IReadOnlyDictionary<Guid, Guid>> GetFirstImageIdsAsync(IReadOnlyList<Guid> recipeIds, CancellationToken cancellationToken);
     Task<RecipeImage?> GetAsync(Guid recipeId, Guid imageId, bool includeContent, CancellationToken cancellationToken);
     Task<int> UpdateAltTextAsync(Guid recipeId, Guid imageId, string? altText, DateTimeOffset updatedAtUtc, CancellationToken cancellationToken);
     Task<int> DeleteAsync(Guid recipeId, Guid imageId, CancellationToken cancellationToken);

@@ -1,0 +1,184 @@
+<main class="meal-planner-page">
+  <a class="back" routerLink="/dashboard">← Back to overview</a>
+  <header>
+    <div>
+      <p class="eyebrow">Plan your meals</p>
+      <h1>Meal Planner</h1>
+    </div>
+  </header>
+
+  <div class="date-picker">
+    <label for="plan-date">Select date</label>
+    <input
+      id="plan-date"
+      type="date"
+      [(ngModel)]="selectedDate"
+      (ngModelChange)="onDateChange()"
+    />
+  </div>
+
+  @if (planError()) {
+    <div class="error" role="alert">{{ planError() }}</div>
+  }
+
+  @if (isLoadingPlan()) {
+    <p class="empty">Loading meal plan…</p>
+  } @else {
+    <div class="slots">
+      @for (slot of slots; track slot) {
+        <section class="slot-section">
+          <h2>{{ slotLabels[slot] }}</h2>
+
+          <ul class="item-list" aria-label="{{ slotLabels[slot] }} items">
+            @for (item of itemsForSlot(slot); track item.id) {
+              <li class="meal-item">
+                <div class="meal-item-header">
+                  <span class="item-type">{{ item.type === 'recipe' ? '▤' : '◉' }}</span>
+                  <span class="item-name">{{ item.displayName }}</span>
+                  @if (item.note) {
+                    <span class="item-note">{{ item.note }}</span>
+                  }
+                  <button
+                    type="button"
+                    class="button danger small"
+                    [disabled]="removingId() === item.id"
+                    (click)="removeItem(item)"
+                  >
+                    {{ removingId() === item.id ? '…' : '✕' }}
+                  </button>
+                </div>
+
+                <div class="meal-item-details">
+                  <div class="people">
+                    @if (item.participants.length) {
+                      <ul class="chips" aria-label="People eating {{ item.displayName }}">
+                        @for (person of item.participants; track person.userId) {
+                          <li class="chip" [class.is-me]="person.isCurrentUser">
+                            <span>{{ person.displayName }}</span>
+                            <button
+                              type="button"
+                              class="chip-remove"
+                              aria-label="Remove {{ person.displayName }}"
+                              [disabled]="busyItemId() === item.id"
+                              (click)="removeParticipant(item, person.userId)"
+                            >✕</button>
+                          </li>
+                        }
+                      </ul>
+                    } @else {
+                      <span class="no-people">No one assigned yet</span>
+                    }
+
+                    <div class="people-actions">
+                      @if (availableMembers(item).length) {
+                        <select
+                          aria-label="Add a person to {{ item.displayName }}"
+                          [disabled]="busyItemId() === item.id"
+                          [ngModel]="''"
+                          (ngModelChange)="addParticipant(item, $event)"
+                        >
+                          <option value="">+ Add person</option>
+                          @for (member of availableMembers(item); track member.userId) {
+                            <option [value]="member.userId">{{ member.displayName }}</option>
+                          }
+                        </select>
+                      }
+                      <button
+                        type="button"
+                        class="button secondary small"
+                        [disabled]="busyItemId() === item.id || isHouseFull(item) || !members().length"
+                        (click)="addHouse(item)"
+                      >🏠 Add whole house</button>
+                      @if (item.participants.length) {
+                        <button
+                          type="button"
+                          class="button danger small"
+                          [disabled]="busyItemId() === item.id"
+                          (click)="clearParticipants(item)"
+                        >Clear</button>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="servings">
+                    <label for="servings-{{ item.id }}">Serves</label>
+                    <input
+                      id="servings-{{ item.id }}"
+                      type="number"
+                      min="0"
+                      max="99"
+                      [value]="item.servings"
+                      [disabled]="busyItemId() === item.id"
+                      (change)="onServingsInput(item, $any($event.target).value)"
+                    />
+                    @if (item.servingsOverridden) {
+                      <button
+                        type="button"
+                        class="link-button"
+                        [disabled]="busyItemId() === item.id"
+                        (click)="resetServings(item)"
+                        title="Use the number of assigned people"
+                      >auto</button>
+                    } @else {
+                      <span class="servings-hint">from {{ item.participants.length }} {{ item.participants.length === 1 ? 'person' : 'people' }}</span>
+                    }
+                  </div>
+                </div>
+              </li>
+            } @empty {
+              <li class="empty-slot">No items yet.</li>
+            }
+          </ul>
+
+          @if (!isLoadingOptions()) {
+            <div class="add-actions">
+              <div class="add-row">
+                <select
+                  [ngModel]="selectedRecipeId()[slot]"
+                  (ngModelChange)="setSelectedRecipeId(slot, $event)"
+                  [disabled]="isAdding('recipe', slot)"
+                  aria-label="Select recipe for {{ slotLabels[slot] }}"
+                >
+                  <option value="">— pick a recipe —</option>
+                  @for (recipe of recipes(); track recipe.id) {
+                    <option [value]="recipe.id">{{ recipe.title }}</option>
+                  }
+                </select>
+                <button
+                  type="button"
+                  class="button secondary small"
+                  [disabled]="!selectedRecipeId()[slot] || !!addingSlot()"
+                  (click)="addRecipe(slot)"
+                >
+                  {{ isAdding('recipe', slot) ? 'Adding…' : '+ Add recipe' }}
+                </button>
+              </div>
+
+              <div class="add-row">
+                <select
+                  [ngModel]="selectedIngredientId()[slot]"
+                  (ngModelChange)="setSelectedIngredientId(slot, $event)"
+                  [disabled]="isAdding('ingredient', slot)"
+                  aria-label="Select ingredient for {{ slotLabels[slot] }}"
+                >
+                  <option value="">— pick an ingredient —</option>
+                  @for (ingredient of ingredients(); track ingredient.id) {
+                    <option [value]="ingredient.id">{{ ingredient.name }}</option>
+                  }
+                </select>
+                <button
+                  type="button"
+                  class="button secondary small"
+                  [disabled]="!selectedIngredientId()[slot] || !!addingSlot()"
+                  (click)="addIngredient(slot)"
+                >
+                  {{ isAdding('ingredient', slot) ? 'Adding…' : '+ Add ingredient' }}
+                </button>
+              </div>
+            </div>
+          }
+        </section>
+      }
+    </div>
+  }
+</main>

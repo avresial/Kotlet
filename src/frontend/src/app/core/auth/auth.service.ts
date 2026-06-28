@@ -1,7 +1,14 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom, tap } from 'rxjs';
-import { AuthResponse, CurrentUser, LoginRequest, RegisterRequest } from './auth.models';
+import {
+  AuthResponse,
+  ChangePasswordRequest,
+  CurrentUser,
+  LoginRequest,
+  RegisterRequest,
+  UpdateProfileRequest,
+} from './auth.models';
 import { apiUrl } from '../http/api-url';
 
 @Injectable({ providedIn: 'root' })
@@ -9,12 +16,23 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly currentUserState = signal<CurrentUser | null>(null);
   private readonly accessTokenState = signal<string | null>(null);
+  private restoration: Promise<void> | null = null;
 
   readonly currentUser = this.currentUserState.asReadonly();
   readonly isAuthenticated = computed(() => this.currentUserState() !== null);
   readonly accessToken = this.accessTokenState.asReadonly();
 
-  async restoreSession(): Promise<void> {
+  /**
+   * Attempts to restore the session from the refresh-token cookie. The work is
+   * memoized so the app initializer and the route guards share a single refresh
+   * call: guards await this promise before deciding, which prevents a redirect
+   * to the login page while the refresh request is still in flight on reload.
+   */
+  restoreSession(): Promise<void> {
+    return (this.restoration ??= this.restoreFromRefreshToken());
+  }
+
+  private async restoreFromRefreshToken(): Promise<void> {
     try {
       const response = await firstValueFrom(this.refresh());
       this.setSession(response);
@@ -41,6 +59,16 @@ export class AuthService {
 
   refresh() {
     return this.http.post<AuthResponse>(apiUrl('/api/auth/refresh'), null, { withCredentials: true });
+  }
+
+  updateProfile(request: UpdateProfileRequest) {
+    return this.http
+      .put<CurrentUser>(apiUrl('/api/auth/profile'), request, { withCredentials: true })
+      .pipe(tap((user) => this.currentUserState.set(user)));
+  }
+
+  changePassword(request: ChangePasswordRequest) {
+    return this.http.post<void>(apiUrl('/api/auth/password'), request, { withCredentials: true });
   }
 
   logout() {

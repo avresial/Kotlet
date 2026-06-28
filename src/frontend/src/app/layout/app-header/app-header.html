@@ -1,21 +1,21 @@
 @if (auth.currentUser(); as user) {
   <aside class="app-sidebar">
-    <a class="brand" routerLink="/" aria-label="Kotlet dashboard">
+    <a class="brand" routerLink="/dashboard" aria-label="Kotlet dashboard">
       <img class="brand-mark" src="kotlet-logo.svg" alt="Kotlet" />
     </a>
 
     <nav aria-label="Main navigation">
-      <a class="nav-item" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+      <a class="nav-item" routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
         <span class="icon" aria-hidden="true">⌂</span><span>Dashboard</span>
       </a>
       <a class="nav-item" routerLink="/recipes" routerLinkActive="active"><span class="icon" aria-hidden="true">▤</span><span>Recipes</span></a>
-      <button class="nav-item" type="button" disabled title="Coming soon"><span class="icon" aria-hidden="true">▦</span><span>Week plan</span></button>
+      <a class="nav-item" routerLink="/meal-planner" routerLinkActive="active"><span class="icon" aria-hidden="true">▦</span><span>Meal Planner</span></a>
       <a class="nav-item" routerLink="/shopping-list" routerLinkActive="active"><span class="icon" aria-hidden="true">✓</span><span>Shopping list</span></a>
       <a class="nav-item" routerLink="/pantry" routerLinkActive="active"><span class="icon" aria-hidden="true">□</span><span>Pantry</span></a>
       <a class="nav-item" routerLink="/ingredients" routerLinkActive="active">
         <span class="icon" aria-hidden="true">◉</span><span>Ingredients</span>
       </a>
-      <button class="nav-item settings" type="button" disabled title="Coming soon"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></button>
+      <a class="nav-item settings" routerLink="/settings" routerLinkActive="active"><span class="icon" aria-hidden="true">⚙</span><span>Settings</span></a>
     </nav>
 
     <footer>
@@ -30,8 +30,8 @@
   <header class="public-header">
     <a class="brand" routerLink="/"><img class="brand-mark" src="kotlet-logo.svg" alt="Kotlet" /></a>
     <nav aria-label="Account">
-      <a pButton routerLink="/login" severity="secondary" variant="text">Log in</a>
-      <a pButton routerLink="/register">Create account</a>
+      <a class="account-link login-link" routerLink="/login">Log in</a>
+      <a class="account-link create-link" routerLink="/register">Create account</a>
     </nav>
   </header>
 }

@@ -200,6 +200,86 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.ToTable("ingredients", "kotlet");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.MealPlanner.MealPlanItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("planned_date");
+
+                    b.Property<Guid?>("IngredientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ingredient_id");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text")
+                        .HasColumnName("note");
+
+                    b.Property<Guid?>("RecipeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipe_id");
+
+                    b.Property<int?>("Servings")
+                        .HasColumnType("integer")
+                        .HasColumnName("servings");
+
+                    b.Property<int>("Slot")
+                        .HasColumnType("integer")
+                        .HasColumnName("slot");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Date")
+                        .HasDatabaseName("ix_meal_plan_items_user_date");
+
+                    b.HasIndex("UserId", "Date", "Slot")
+                        .HasDatabaseName("ix_meal_plan_items_user_date_slot");
+
+                    b.ToTable("meal_plan_items", "kotlet", t =>
+                        {
+                            t.HasCheckConstraint("CK_meal_plan_items_recipe_or_ingredient",
+                                "(recipe_id IS NOT NULL AND ingredient_id IS NULL) OR (recipe_id IS NULL AND ingredient_id IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.MealPlanner.MealPlanItemParticipant", b =>
+                {
+                    b.Property<Guid>("MealPlanItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("meal_plan_item_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("MealPlanItemId", "UserId");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_meal_plan_item_participants_user_id");
+
+                    b.ToTable("meal_plan_item_participants", "kotlet");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.Pantry.PantryItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -454,6 +534,25 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("House");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.MealPlanner.MealPlanItemParticipant", b =>
+                {
+                    b.HasOne("Kotlet.Domain.MealPlanner.MealPlanItem", "MealPlanItem")
+                        .WithMany("Participants")
+                        .HasForeignKey("MealPlanItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.Auth.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MealPlanItem");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.Pantry.PantryItem", b =>
                 {
                     b.HasOne("Kotlet.Domain.Houses.House", "House")
@@ -526,6 +625,11 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("ShoppingListItems");
 
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.MealPlanner.MealPlanItem", b =>
+                {
+                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Recipes.Recipe", b =>

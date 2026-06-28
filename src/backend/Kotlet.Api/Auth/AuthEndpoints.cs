@@ -16,6 +16,9 @@ public static class AuthEndpoints
         auth.MapPost("/refresh", Refresh);
         auth.MapPost("/logout", Logout);
         auth.MapGet("/me", Me).RequireAuthorization();
+        auth.MapGet("/house", House).RequireAuthorization();
+        auth.MapPut("/profile", UpdateProfile).RequireAuthorization();
+        auth.MapPost("/password", ChangePassword).RequireAuthorization();
         return endpoints;
     }
 
@@ -89,6 +92,52 @@ public static class AuthEndpoints
         if (currentUser.UserId is not { } id) return Results.Unauthorized();
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         return user is null ? Results.Unauthorized() : Results.Ok(ToResponse(user));
+    }
+
+    private static async Task<IResult> House(ICurrentUser currentUser, KotletDbContext db, CancellationToken cancellationToken)
+    {
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var house = await db.Houses.AsNoTracking().SingleOrDefaultAsync(x => x.Id == houseId, cancellationToken);
+        if (house is null) return Results.Unauthorized();
+        var members = await db.Users.AsNoTracking()
+            .Where(x => x.HouseId == houseId)
+            .OrderByDescending(x => x.Id == userId)
+            .ThenBy(x => x.DisplayName ?? x.Email)
+            .Select(x => new HouseMemberResponse(x.Id, x.Email, x.DisplayName, x.LastLoginAtUtc, x.Id == userId))
+            .ToListAsync(cancellationToken);
+        return Results.Ok(new HouseResponse(house.Id, house.Name, members));
+    }
+
+    private static async Task<IResult> UpdateProfile(UpdateProfileRequest request, ICurrentUser currentUser, KotletDbContext db, CancellationToken cancellationToken)
+    {
+        if (currentUser.UserId is not { } id) return Results.Unauthorized();
+        var displayName = request.DisplayName?.Trim();
+        if (displayName?.Length > 100)
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["displayName"] = ["Display name cannot exceed 100 characters."] });
+        var user = await db.Users.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (user is null) return Results.Unauthorized();
+        user.DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName;
+        user.UpdatedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.Ok(ToResponse(user));
+    }
+
+    private static async Task<IResult> ChangePassword(ChangePasswordRequest request, ICurrentUser currentUser, KotletDbContext db, IPasswordHasher<User> hasher, CancellationToken cancellationToken)
+    {
+        if (currentUser.UserId is not { } id) return Results.Unauthorized();
+        var errors = new Dictionary<string, string[]>();
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword)) errors["currentPassword"] = ["Current password is required."];
+        if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8) errors["newPassword"] = ["Password must be at least 8 characters long."];
+        if (request.NewPassword != request.ConfirmPassword) errors["confirmPassword"] = ["Passwords do not match."];
+        if (errors.Count > 0) return Results.ValidationProblem(errors);
+        var user = await db.Users.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (user is null) return Results.Unauthorized();
+        if (hasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword) == PasswordVerificationResult.Failed)
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["currentPassword"] = ["Current password is incorrect."] });
+        user.PasswordHash = hasher.HashPassword(user, request.NewPassword);
+        user.UpdatedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task IssueTokens(User user, KotletDbContext db, TokenService tokens, HttpContext context, IWebHostEnvironment environment, CancellationToken ct)

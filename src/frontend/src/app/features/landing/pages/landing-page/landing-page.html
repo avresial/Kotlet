@@ -1,0 +1,133 @@
+<main class="landing-page">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <p class="eyebrow"><span aria-hidden="true"></span> A calmer way to run your kitchen</p>
+      <h1 id="hero-title">Good food starts with a kitchen that <em>works together.</em></h1>
+      <p class="hero-intro">
+        Keep your recipes, pantry, meal plans, and shopping list in one thoughtful place—so you can spend less time organizing and more time cooking.
+      </p>
+      <div class="hero-actions">
+        <a class="button button-primary" routerLink="/register">
+          Start organizing <span aria-hidden="true">→</span>
+        </a>
+        <a class="button button-secondary" href="#how-it-works">See how it works</a>
+      </div>
+      <p class="hero-note"><span aria-hidden="true">✓</span> Simple to start &nbsp; <span aria-hidden="true">✓</span> Made for real home kitchens</p>
+    </div>
+
+    <div class="product-preview" aria-label="Preview of the Kotlet dashboard">
+      <div class="preview-glow"></div>
+      <div class="preview-window">
+        <div class="preview-sidebar" aria-hidden="true">
+          <div class="mini-brand"><span>K</span></div>
+          <div class="mini-nav active"><span>⌂</span></div>
+          <div class="mini-nav"><span>▤</span></div>
+          <div class="mini-nav"><span>✓</span></div>
+          <div class="mini-nav"><span>□</span></div>
+        </div>
+        <div class="preview-content">
+          <div class="preview-topline"><span>MONDAY, JUNE 29</span><i></i></div>
+          <h2>Good morning, Marta.</h2>
+          <p>Here’s what’s cooking at home today.</p>
+
+          <div class="preview-grid">
+            <article class="preview-card menu-card">
+              <div class="card-kicker">TODAY'S MENU</div>
+              <h3>What’s on the table</h3>
+              <div class="meal-row"><span class="food-icon green">◌</span><div><small>BREAKFAST</small><strong>Oatmeal & berries</strong></div></div>
+              <div class="meal-row"><span class="food-icon gold">◒</span><div><small>DINNER</small><strong>Roasted vegetables</strong></div></div>
+            </article>
+            <article class="preview-card shopping-card">
+              <div class="card-kicker">SHOPPING LIST</div>
+              <h3>3 of 5 bought</h3>
+              <div class="progress"><span></span></div>
+              <ul>
+                <li class="done"><span>✓</span> Tomatoes <b>1 kg</b></li>
+                <li><span></span> Sourdough <b>1 loaf</b></li>
+                <li class="done"><span>✓</span> Fresh basil <b>1 bunch</b></li>
+              </ul>
+            </article>
+            <article class="preview-card pantry-card">
+              <div><div class="card-kicker">PANTRY</div><h3>Running low</h3></div>
+              <div class="stock"><span>Rice</span><b>240 g</b></div>
+            </article>
+          </div>
+        </div>
+      </div>
+      <div class="floating-chip chip-recipes"><span aria-hidden="true">▤</span><strong>48 recipes</strong><small>Always within reach</small></div>
+      <div class="floating-chip chip-stock"><span aria-hidden="true">✓</span><strong>Pantry updated</strong><small>You’re all set</small></div>
+    </div>
+  </section>
+
+  <section class="value-strip" aria-label="What Kotlet brings together">
+    <p>Everything your kitchen needs, connected in one place</p>
+    <div><span>Recipe box</span><i></i><span>Meal planning</span><i></i><span>Smart shopping</span><i></i><span>Pantry tracking</span></div>
+  </section>
+
+  <section class="features section-shell" id="how-it-works" aria-labelledby="features-title">
+    <div class="section-heading">
+      <p class="eyebrow"><span aria-hidden="true"></span> One home for every meal</p>
+      <h2 id="features-title">From “what should we eat?”<br />to dinner on the table.</h2>
+      <p>Kotlet keeps the small decisions connected, so planning food at home feels lighter every day.</p>
+    </div>
+
+    <div class="feature-grid">
+      <article class="feature-card feature-recipes">
+        <div class="feature-icon" aria-hidden="true">▤</div>
+        <p class="feature-number">01</p>
+        <h3>Your recipes, beautifully kept</h3>
+        <p>Save family favorites and new discoveries with ingredients, instructions, and photos in one easy-to-find collection.</p>
+        <a routerLink="/register" aria-label="Create an account to organize recipes">Organize your recipes <span aria-hidden="true">→</span></a>
+        <div class="recipe-stack" aria-hidden="true">
+          <div class="recipe-paper back"></div>
+          <div class="recipe-paper front"><span class="recipe-photo">✦</span><small>FAMILY FAVORITE</small><strong>Sunday tomato soup</strong><i>6 ingredients · 40 min</i></div>
+        </div>
+      </article>
+
+      <article class="feature-card feature-pantry">
+        <div class="feature-icon" aria-hidden="true">◉</div>
+        <p class="feature-number">02</p>
+        <h3>Know what you already have</h3>
+        <p>See what’s in the pantry at a glance and spot what’s running low before it becomes a last-minute surprise.</p>
+        <a routerLink="/register" aria-label="Create an account to track your pantry">Track your pantry <span aria-hidden="true">→</span></a>
+        <div class="pantry-visual" aria-hidden="true">
+          <div><span>Oats</span><i><b style="width: 78%"></b></i><small>780 g</small></div>
+          <div><span>Olive oil</span><i><b style="width: 42%"></b></i><small>420 ml</small></div>
+          <div><span>Rice</span><i class="low"><b style="width: 18%"></b></i><small>Low</small></div>
+        </div>
+      </article>
+
+      <article class="feature-card feature-shopping">
+        <div class="feature-icon" aria-hidden="true">✓</div>
+        <p class="feature-number">03</p>
+        <h3>A shopping list that makes sense</h3>
+        <p>Keep one clear list with quantities and prices, check items off as you shop, and stay focused on what you actually need.</p>
+        <a routerLink="/register" aria-label="Create an account to simplify shopping">Simplify shopping <span aria-hidden="true">→</span></a>
+        <div class="list-visual" aria-hidden="true">
+          <div class="list-head"><span>THIS WEEK</span><b>60%</b></div>
+          <i><b></b></i>
+          <p class="checked"><span>✓</span> Seasonal vegetables</p>
+          <p><span></span> Fresh bread</p>
+          <p><span></span> Greek yoghurt</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="closing-cta section-shell" aria-labelledby="closing-title">
+    <div>
+      <p class="eyebrow"><span aria-hidden="true"></span> Make room for what matters</p>
+      <h2 id="closing-title">A little less planning.<br /><em>A lot more cooking.</em></h2>
+    </div>
+    <div class="closing-copy">
+      <p>Bring your kitchen together with a tool designed around the way home cooking actually works.</p>
+      <a class="button button-light" routerLink="/register">Create your kitchen <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    <a class="footer-brand" routerLink="/" aria-label="Kotlet home"><span>K</span> Kotlet</a>
+    <p>Thoughtfully made for everyday home cooking.</p>
+    <div><a routerLink="/login">Log in</a><a routerLink="/register">Create account</a></div>
+  </footer>
+</main>

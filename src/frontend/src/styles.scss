@@ -1,4 +1,4 @@
 :root { --app-header-height: 4.5rem; --app-sidebar-width: 15.5rem; color: #29251f; background: #f6f1e8; font-family: system-ui, sans-serif; }
-html { min-width: 20rem; min-height: 100%; }
+html { min-width: 20rem; min-height: 100%; overflow-x: hidden; }
 body { min-height: 100vh; margin: 0; }
 button, input { font: inherit; }

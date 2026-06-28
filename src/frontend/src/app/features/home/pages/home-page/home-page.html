@@ -19,20 +19,40 @@
             <p class="section-label">Today’s menu</p>
             <h2 id="today-title">What’s on the table</h2>
           </div>
-          <span class="status"><span></span> Planned</span>
+          @if (todaysMenu().length > 0) {
+            <span class="status"><span></span> Planned</span>
+          } @else if (!menuLoading() && !menuError()) {
+            <span class="status muted"><span></span> Nothing planned</span>
+          }
         </div>
-        <ul class="menu-list">
-          @for (meal of todaysMenu; track meal.time) {
+        @if (menuLoading()) { <p class="recipe-state">Loading today’s menu…</p> }
+        @else if (menuError()) { <p class="recipe-state error" role="alert">Unable to load today’s menu.</p> }
+        @else if (todaysMenu().length === 0) { <p class="recipe-state">Nothing planned for today. <a routerLink="/meal-planner">Plan your meals</a>.</p> }
+        @else { <ul class="menu-list">
+          @for (meal of todaysMenu(); track meal.id) {
             <li class="menu-item">
-              <span class="menu-emoji" aria-hidden="true">{{ meal.emoji }}</span>
+              @if (meal.recipeId && menuAvatarUrls()[meal.recipeId]; as avatarUrl) {
+                <img class="menu-avatar" [src]="avatarUrl" [alt]="meal.name" />
+              } @else {
+                <span class="menu-emoji" aria-hidden="true">{{ meal.emoji }}</span>
+              }
               <div class="menu-text">
                 <p class="meal-time">{{ meal.time }}</p>
                 <strong>{{ meal.name }}</strong>
-                <p class="menu-note">{{ meal.note }}</p>
+                @if (meal.note) { <p class="menu-note">{{ meal.note }}</p> }
               </div>
+              @if (meal.participants.length) {
+                <ul class="menu-people" aria-label="People eating {{ meal.name }}">
+                  @for (person of meal.participants; track person.userId) {
+                    <li class="menu-person" [class.is-me]="person.isCurrentUser" [attr.title]="person.displayName" [attr.aria-label]="person.displayName">
+                      {{ participantInitials(person.displayName) }}
+                    </li>
+                  }
+                </ul>
+              }
             </li>
           }
-        </ul>
+        </ul> }
       </article>
 
       <!-- Newest recipes -->
@@ -51,7 +71,11 @@
           @for (recipe of newestRecipes(); track recipe.id) {
             <li>
               <a class="recipe-item" [routerLink]="['/recipes', recipe.id]">
-              <span class="recipe-emoji" aria-hidden="true">🍽️</span>
+              @if (recipeAvatarUrls()[recipe.id]; as avatarUrl) {
+                <img class="recipe-avatar" [src]="avatarUrl" [alt]="recipe.title" />
+              } @else {
+                <span class="recipe-emoji" aria-hidden="true">🍽️</span>
+              }
               <div class="recipe-text">
                 <strong>{{ recipe.title }}</strong>
                 <p>{{ recipe.ingredientCount }} ingredient{{ recipe.ingredientCount === 1 ? '' : 's' }}</p>
@@ -123,6 +147,36 @@
               <button class="add-low" type="button" [disabled]="shoppingSaving() || isOnShoppingList(ingredient.ingredientId)" (click)="addToShoppingList(ingredient.ingredientId, 1)">
                 {{ isOnShoppingList(ingredient.ingredientId) ? 'Added' : '+ List' }}
               </button>
+            </li>
+          }
+        </ul> }
+      </article>
+
+      <!-- Your home -->
+      <article class="card" aria-labelledby="home-title">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Your home</p>
+            <h2 id="home-title">{{ houseName() || 'Household' }}</h2>
+          </div>
+          @if (!houseLoading() && !houseError()) {
+            <span class="status muted">{{ houseMembers().length }} member{{ houseMembers().length === 1 ? '' : 's' }}</span>
+          }
+        </div>
+        @if (houseLoading()) { <p class="recipe-state">Loading household…</p> }
+        @else if (houseError()) { <p class="recipe-state error" role="alert">Unable to load your household.</p> }
+        @else if (houseMembers().length === 0) { <p class="recipe-state">No one else is in your home yet.</p> }
+        @else { <ul class="member-list">
+          @for (member of houseMembers(); track member.id) {
+            <li class="member-item">
+              <span class="member-avatar" aria-hidden="true">{{ memberInitials(member) }}</span>
+              <div class="member-text">
+                <strong>{{ memberName(member) }}@if (member.isCurrentUser) { <span class="member-you">You</span> }</strong>
+                <p>{{ member.email }}</p>
+              </div>
+              <span class="member-meta">
+                @if (member.lastLoginAtUtc) { Active {{ relativeTime(member.lastLoginAtUtc) }} } @else { Never signed in }
+              </span>
             </li>
           }
         </ul> }

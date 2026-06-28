@@ -44,7 +44,7 @@ export class RegisterPage {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.auth.register(this.form.getRawValue()).pipe(finalize(() => this.isLoading.set(false))).subscribe({
-      next: () => void this.router.navigateByUrl('/'),
+      next: () => void this.router.navigateByUrl('/dashboard'),
       error: (error) => this.errorMessage.set(getApiError(error, 'Unable to create the account. Please try again.')),
     });
   }

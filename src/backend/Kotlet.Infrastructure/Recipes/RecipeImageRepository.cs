@@ -35,6 +35,18 @@ internal sealed class RecipeImageRepository(KotletDbContext dbContext) : IRecipe
                 SortOrder = i.SortOrder, CreatedAtUtc = i.CreatedAtUtc, UpdatedAtUtc = i.UpdatedAtUtc
             }).SingleOrDefaultAsync(ct);
     }
+    public async Task<IReadOnlyDictionary<Guid, Guid>> GetFirstImageIdsAsync(IReadOnlyList<Guid> recipeIds, CancellationToken ct)
+    {
+        var images = await dbContext.RecipeImages
+            .AsNoTracking()
+            .Where(i => recipeIds.Contains(i.RecipeId))
+            .Select(i => new { i.RecipeId, i.Id, i.SortOrder })
+            .OrderBy(i => i.SortOrder)
+            .ToListAsync(ct);
+        return images
+            .GroupBy(i => i.RecipeId)
+            .ToDictionary(g => g.Key, g => g.First().Id);
+    }
     public Task<int> UpdateAltTextAsync(Guid recipeId, Guid imageId, string? altText, DateTimeOffset updatedAtUtc, CancellationToken ct) =>
         dbContext.RecipeImages.Where(i => i.RecipeId == recipeId && i.Id == imageId)
             .ExecuteUpdateAsync(setters => setters.SetProperty(i => i.AltText, altText).SetProperty(i => i.UpdatedAtUtc, updatedAtUtc), ct);
