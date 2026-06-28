@@ -7,7 +7,7 @@
     <div><h2 id="add-title">Add a product</h2><p>Choose an ingredient from your catalogue.</p></div>
     <form [formGroup]="form" (ngSubmit)="add()">
       <label>Ingredient<app-ingredient-picker formControlName="ingredientId" [ingredients]="availableIngredients()" /></label>
-      <label>Quantity<input type="number" min="0" step="0.001" formControlName="quantity" /></label>
+      <label>Quantity @if (selectedIngredient(); as ingredient) { <span class="selected-unit">({{ ingredient.measurementUnit }})</span> }<input type="number" min="0" step="0.001" formControlName="quantity" /></label>
       <button class="primary" type="submit" [disabled]="isSaving() || availableIngredients().length === 0">{{ isSaving() ? 'Adding…' : 'Add to pantry' }}</button>
     </form>
   </section>

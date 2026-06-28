@@ -60,6 +60,8 @@ export class HomePage implements OnInit {
   readonly newQuantity = signal(1);
   readonly availableIngredients = computed(() => this.ingredients().filter(ingredient =>
     !this.shoppingItems().some(item => item.ingredientId === ingredient.id)));
+  readonly selectedShoppingIngredient = computed(() =>
+    this.ingredients().find(ingredient => ingredient.id === this.selectedIngredientId()));
   readonly purchasedCount = computed(() => this.shoppingItems().filter(item => item.isPurchased).length);
   readonly totalPrice = computed(() => this.shoppingItems().reduce((total, item) => total + item.totalPrice, 0));
   readonly shoppingProgress = computed(() => this.shoppingItems().length

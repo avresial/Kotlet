@@ -118,8 +118,26 @@
   }
 
   @media (max-width: 640px) {
-    .ingredient-row { flex-wrap: wrap; }
-    .ingredient-row .row-actions { margin-left: 32px; }
+    .ingredient-row {
+      display: grid;
+      grid-template-columns: 1.25rem minmax(0, 1fr) 1.75rem;
+      gap: 6px;
+    }
+    .ingredient-row .row-index { min-width: 0; padding-top: .75rem; }
+    .ingredient-row .row-fields { min-width: 0; gap: 6px; }
+    .ingredient-row .row-actions {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding: 0;
+    }
+    .ingredient-row .row-actions button {
+      width: 1.75rem;
+      min-height: 1.75rem;
+      border-radius: 6px;
+    }
+    .ingredient-row .row-fields input,
+    .ingredient-row .row-fields select { min-height: 2.4rem; padding: 6px 8px; }
   }
 
   .sr-only {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Ingredient } from '../ingredients/ingredient.models';
 import { RecipeDetail } from '../recipes/models/recipe.models';
-import { recipePricePerServing, scaleRecipeQuantity } from './meal-planner-calculations';
+import { directIngredientQuantity, recipePricePerServing, scaleRecipeQuantity } from './meal-planner-calculations';
 
 const ingredient: Ingredient = {
   id: 'pasta',
@@ -39,6 +39,13 @@ const recipe: RecipeDetail = {
 };
 
 describe('meal planner calculations', () => {
+  it('uses one piece per serving for a countable direct ingredient', () => {
+    const countable = { ...ingredient, isCountable: true, measurementUnitsPerPiece: 150 };
+
+    expect(directIngredientQuantity(countable, 3)).toBe(450);
+    expect(directIngredientQuantity(countable, 0)).toBe(150);
+  });
+
   it('calculates recipe price for one serving from the recipe yield', () => {
     expect(recipePricePerServing(recipe, [ingredient])).toBe(5);
   });

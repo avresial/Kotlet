@@ -15,3 +15,10 @@ export function recipePricePerServing(recipe: RecipeDetail, ingredients: readonl
 export function scaleRecipeQuantity(quantity: number, recipeServings: number, peopleServed: number): number {
   return quantity / recipeServings * peopleServed;
 }
+
+export function directIngredientQuantity(ingredient: Ingredient, servings: number): number {
+  const quantityPerServing = ingredient.isCountable
+    ? ingredient.measurementUnitsPerPiece ?? 0
+    : 1;
+  return quantityPerServing * Math.max(servings, 1);
+}

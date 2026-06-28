@@ -11,7 +11,7 @@ import { RecipeService } from '../../../recipes/services/recipe.service';
 import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
 import { DailyMealPlan, HouseMember, MealPlanItem, MealPlanItemType, MealPlanOverviewDay, MealSlot } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
-import { recipePricePerServing, scaleRecipeQuantity } from '../../meal-planner-calculations';
+import { directIngredientQuantity, recipePricePerServing, scaleRecipeQuantity } from '../../meal-planner-calculations';
 
 @Component({
   selector: 'app-meal-planner-page',
@@ -285,7 +285,8 @@ export class MealPlannerPage implements OnInit {
   pricePerServing(item: MealPlanItem): number | null {
     if (item.type === 'ingredient') {
       const ingredient = this.ingredients().find((candidate) => candidate.id === item.ingredientId);
-      return ingredient ? ingredient.pricePer100BaseUnits / 100 : null;
+      if (!ingredient) return null;
+      return ingredient.pricePer100BaseUnits * directIngredientQuantity(ingredient, 1) / 100;
     }
 
     const detail = item.recipeId ? this.recipeDetails()[item.recipeId] : undefined;
@@ -332,7 +333,9 @@ export class MealPlannerPage implements OnInit {
   private shoppingQuantities(item: MealPlanItem): { ingredient: Ingredient; quantity: number }[] {
     if (item.type === 'ingredient') {
       const ingredient = this.ingredients().find((candidate) => candidate.id === item.ingredientId);
-      return ingredient ? [{ ingredient, quantity: item.servings }] : [];
+      if (!ingredient) return [];
+      const quantity = directIngredientQuantity(ingredient, item.servings);
+      return quantity > 0 ? [{ ingredient, quantity }] : [];
     }
 
     const detail = item.recipeId ? this.recipeDetails()[item.recipeId] : undefined;
