@@ -14,7 +14,7 @@
 
     <nav [attr.aria-label]="'nav.mainAria' | t">
       <a class="nav-item" routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeDrawer()">
-        <span class="icon" aria-hidden="true">⌂</span><span>{{ 'nav.dashboard' | t }}</span>
+        <span class="icon" aria-hidden="true">⌂</span><span>{{ activeHomeName() || ('nav.dashboard' | t) }}</span>
       </a>
       <a class="nav-item" routerLink="/recipes" routerLinkActive="active" (click)="closeDrawer()"><span class="icon" aria-hidden="true">▤</span><span>{{ 'nav.recipes' | t }}</span></a>
       <a class="nav-item" routerLink="/meal-planner" routerLinkActive="active" (click)="closeDrawer()"><span class="icon" aria-hidden="true">▦</span><span>{{ 'nav.mealPlanner' | t }}</span></a>

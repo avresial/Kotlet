@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -32,6 +32,14 @@ export class AppHeader {
   readonly homesLoading = signal(false);
   readonly invitations = signal<IncomingInvitation[]>([]);
   readonly switchingHouseId = signal<string | null>(null);
+  readonly activeHomeName = computed(() => {
+    const activeHouseId = this.auth.currentUser()?.activeHouseId;
+    return this.homes().find((house) => house.id === activeHouseId)?.name ?? null;
+  });
+
+  constructor() {
+    this.loadHomeSummaries();
+  }
 
   toggleAccountMenu(event: MouseEvent): void {
     event.stopPropagation();
@@ -43,14 +51,18 @@ export class AppHeader {
   }
 
   private loadHomes(): void {
+    this.loadHomeSummaries();
+    this.homeService.listMyInvitations().subscribe({
+      next: (invitations) => this.invitations.set(invitations),
+      error: () => this.invitations.set([]),
+    });
+  }
+
+  private loadHomeSummaries(): void {
     this.homesLoading.set(true);
     this.homeService.listHomes().pipe(finalize(() => this.homesLoading.set(false))).subscribe({
       next: (homes) => this.homes.set(homes),
       error: () => this.homes.set([]),
-    });
-    this.homeService.listMyInvitations().subscribe({
-      next: (invitations) => this.invitations.set(invitations),
-      error: () => this.invitations.set([]),
     });
   }
 
