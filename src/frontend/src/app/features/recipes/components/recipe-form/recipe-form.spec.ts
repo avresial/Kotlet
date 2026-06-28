@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RecipeForm } from './recipe-form';
+import { IngredientListEditor } from '../ingredient-list-editor/ingredient-list-editor';
 
 describe('RecipeForm image picker', () => {
   let fixture: ComponentFixture<RecipeForm>;
@@ -27,5 +28,34 @@ describe('RecipeForm image picker', () => {
 
     expect(fixture.componentInstance.selectedImage).toBe(file);
     expect(emitted).toEqual([file]);
+  });
+
+  it('accepts an existing ingredient by its stable id when its display name changed', () => {
+    const editor = fixture.debugElement.query(
+      (debugElement) => debugElement.componentInstance instanceof IngredientListEditor,
+    ).componentInstance as IngredientListEditor;
+    editor.ingredients.set([{
+      id: 'ingredient-1',
+      name: 'Localized name',
+      defaultName: 'Original name',
+      translation: 'Localized name',
+      measurementUnit: 'g',
+      isCountable: false,
+      measurementUnitsPerPiece: null,
+      caloriesPer100BaseUnits: 0,
+      pricePer100BaseUnits: 0,
+      svgIcon: null,
+    }]);
+    editor.isLoadingIngredients.set(false);
+
+    editor.writeValue([{
+      ingredientId: 'ingredient-1',
+      name: 'Original name',
+      quantity: 100,
+      unit: 'g',
+      note: null,
+    }]);
+
+    expect(editor.validate(fixture.componentInstance.form.controls.ingredients)).toBeNull();
   });
 });
