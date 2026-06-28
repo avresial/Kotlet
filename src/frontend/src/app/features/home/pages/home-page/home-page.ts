@@ -20,6 +20,7 @@ import { HomeService } from '../../home.service';
 
 interface TodaysMenuEntry {
   id: string;
+  recipeId: string | null;
   time: string;
   emoji: string;
   name: string;
@@ -72,6 +73,7 @@ export class HomePage implements OnInit {
   }).format(new Date());
 
   readonly todaysMenu = signal<TodaysMenuEntry[]>([]);
+  readonly menuAvatarUrls = signal<Record<string, string>>({});
   readonly menuLoading = signal(true);
   readonly menuError = signal(false);
 
@@ -90,6 +92,7 @@ export class HomePage implements OnInit {
   ngOnInit(): void {
     this.destroyRef.onDestroy(() => {
       Object.values(this.recipeAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
+      Object.values(this.menuAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
     });
     this.recipeService.listRecent(4).pipe(finalize(() => this.recipesLoading.set(false))).subscribe({
       next: recipes => {
@@ -99,7 +102,11 @@ export class HomePage implements OnInit {
       error: () => this.recipesError.set(true),
     });
     this.mealPlannerService.getForDate(this.todayString()).pipe(finalize(() => this.menuLoading.set(false))).subscribe({
-      next: plan => this.todaysMenu.set(this.buildMenu(plan)),
+      next: plan => {
+        const menu = this.buildMenu(plan);
+        this.todaysMenu.set(menu);
+        this.loadMenuAvatars(menu);
+      },
       error: () => this.menuError.set(true),
     });
     this.homeService.getHouse().pipe(finalize(() => this.houseLoading.set(false))).subscribe({
@@ -143,6 +150,24 @@ export class HomePage implements OnInit {
         .subscribe(blob => {
           const url = URL.createObjectURL(blob);
           this.recipeAvatarUrls.update(urls => ({ ...urls, [recipe.id]: url }));
+        });
+    }
+  }
+
+  private loadMenuAvatars(entries: TodaysMenuEntry[]): void {
+    const recipeIds = [...new Set(entries.map(entry => entry.recipeId).filter((id): id is string => !!id))];
+    for (const recipeId of recipeIds) {
+      this.recipeService.listImages(recipeId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(images => {
+          const first = images[0];
+          if (!first) return;
+          this.recipeService.imageContent(first.contentUrl)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(blob => {
+              const url = URL.createObjectURL(blob);
+              this.menuAvatarUrls.update(urls => ({ ...urls, [recipeId]: url }));
+            });
         });
     }
   }
@@ -215,7 +240,7 @@ export class HomePage implements OnInit {
     for (const slot of this.slotOrder) {
       const meta = this.slotMeta[slot];
       for (const item of plan.meals[slot] ?? []) {
-        entries.push({ id: item.id, time: meta.time, emoji: meta.emoji, name: item.displayName, note: item.note ?? null });
+        entries.push({ id: item.id, recipeId: item.recipeId ?? null, time: meta.time, emoji: meta.emoji, name: item.displayName, note: item.note ?? null });
       }
     }
     return entries;

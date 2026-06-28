@@ -31,7 +31,11 @@
         @else { <ul class="menu-list">
           @for (meal of todaysMenu(); track meal.id) {
             <li class="menu-item">
-              <span class="menu-emoji" aria-hidden="true">{{ meal.emoji }}</span>
+              @if (meal.recipeId && menuAvatarUrls()[meal.recipeId]; as avatarUrl) {
+                <img class="menu-avatar" [src]="avatarUrl" [alt]="meal.name" />
+              } @else {
+                <span class="menu-emoji" aria-hidden="true">{{ meal.emoji }}</span>
+              }
               <div class="menu-text">
                 <p class="meal-time">{{ meal.time }}</p>
                 <strong>{{ meal.name }}</strong>
