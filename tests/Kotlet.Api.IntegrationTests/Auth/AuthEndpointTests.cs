@@ -99,14 +99,27 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
         var client = _factory.CreateClient();
         await Authenticate(client);
 
-        var response = await client.PutAsJsonAsync("/api/auth/profile", new { displayName = "Head Chef" });
+        var response = await client.PutAsJsonAsync("/api/auth/profile", new { displayName = "Head Chef", preferredLanguage = "pl" });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("Head Chef", body.GetProperty("displayName").GetString());
+        Assert.Equal("pl", body.GetProperty("preferredLanguage").GetString());
 
         var me = await client.GetFromJsonAsync<JsonElement>("/api/auth/me");
         Assert.Equal("Head Chef", me.GetProperty("displayName").GetString());
+        Assert.Equal("pl", me.GetProperty("preferredLanguage").GetString());
+    }
+
+    [Fact]
+    public async Task UpdateProfile_RejectsUnsupportedLanguage()
+    {
+        var client = _factory.CreateClient();
+        await Authenticate(client);
+
+        var response = await client.PutAsJsonAsync("/api/auth/profile", new { displayName = "Chef", preferredLanguage = "de" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]

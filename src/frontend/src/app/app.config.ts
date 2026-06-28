@@ -8,6 +8,7 @@ import { AuthService } from './core/auth/auth.service';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { routes } from './app.routes';
 import { KotletPreset } from './theme/kotlet-preset';
+import { TranslationService } from './core/i18n/translation.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -16,6 +17,7 @@ export const appConfig: ApplicationConfig = {
     providePrimeNG({ theme: { preset: KotletPreset, options: { darkModeSelector: false } }, ripple: true }),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideRouter(routes),
+    provideAppInitializer(() => inject(TranslationService).initialize()),
     provideAppInitializer(() => inject(AuthService).restoreSession()),
   ]
 };
