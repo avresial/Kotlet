@@ -9,24 +9,21 @@ namespace Kotlet.Infrastructure.Translations;
 /// <summary>
 /// Stores the translation dictionary and keeps the whole table cached as a single key/value map.
 /// Because keys are flat strings, the entire dictionary can be cached and looked up in memory.
+/// Cache eviction is handled by <see cref="TranslationCacheInterceptor"/> at the commit boundary,
+/// so this repository only stages writes and serves cached reads.
 /// </summary>
 internal sealed class TranslationRepository(KotletDbContext dbContext, IMemoryCache cache) : ITranslationRepository
 {
-    private const string CacheKey = "translations:all";
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
-
-    private bool _cacheInvalidationPending;
-
     public async Task<IReadOnlyDictionary<string, string>> GetAllAsync(CancellationToken cancellationToken)
     {
-        if (cache.TryGetValue(CacheKey, out IReadOnlyDictionary<string, string>? cached) && cached is not null)
+        if (cache.TryGetValue(TranslationCache.Key, out IReadOnlyDictionary<string, string>? cached) && cached is not null)
             return cached;
 
         var dictionary = await dbContext.Translations
             .AsNoTracking()
             .ToDictionaryAsync(translation => translation.Key, translation => translation.Value, cancellationToken);
 
-        cache.Set(CacheKey, (IReadOnlyDictionary<string, string>)dictionary, CacheDuration);
+        cache.Set(TranslationCache.Key, (IReadOnlyDictionary<string, string>)dictionary, TranslationCache.Duration);
         return dictionary;
     }
 
@@ -37,7 +34,6 @@ internal sealed class TranslationRepository(KotletDbContext dbContext, IMemoryCa
             dbContext.Translations.Add(new Translation { Key = key, Value = value });
         else
             existing.Value = value;
-        _cacheInvalidationPending = true;
     }
 
     public async Task RemoveByPrefixAsync(string keyPrefix, CancellationToken cancellationToken)
@@ -45,18 +41,9 @@ internal sealed class TranslationRepository(KotletDbContext dbContext, IMemoryCa
         var matches = await dbContext.Translations
             .Where(translation => translation.Key.StartsWith(keyPrefix))
             .ToListAsync(cancellationToken);
-        if (matches.Count == 0)
-            return;
-        dbContext.Translations.RemoveRange(matches);
-        _cacheInvalidationPending = true;
+        if (matches.Count > 0)
+            dbContext.Translations.RemoveRange(matches);
     }
 
-    public async Task SaveChangesAsync(CancellationToken cancellationToken)
-    {
-        await dbContext.SaveChangesAsync(cancellationToken);
-        if (!_cacheInvalidationPending)
-            return;
-        cache.Remove(CacheKey);
-        _cacheInvalidationPending = false;
-    }
+    public Task SaveChangesAsync(CancellationToken cancellationToken) => dbContext.SaveChangesAsync(cancellationToken);
 }

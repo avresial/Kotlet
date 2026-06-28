@@ -60,10 +60,11 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             PricePer100BaseUnits = command.PricePer100BaseUnits
         };
         repository.Add(ingredient);
-        await repository.SaveChangesAsync(cancellationToken);
-
+        // Stage the translation (when any) so the ingredient row and its translation are persisted
+        // in a single commit on the shared DbContext, keeping the two writes atomic.
         if (!isDefaultLanguage)
-            await SaveTranslationAsync(ingredient.Id, languageCode, displayName, cancellationToken);
+            await translations.SetAsync(TranslationKeys.Ingredient(ingredient.Id, languageCode), displayName, cancellationToken);
+        await repository.SaveChangesAsync(cancellationToken);
 
         return new(IngredientOperationStatus.Success, ToDto(ingredient, displayName));
     }
@@ -98,10 +99,9 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
         ingredient.MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null;
         ingredient.CaloriesPer100BaseUnits = command.CaloriesPer100BaseUnits;
         ingredient.PricePer100BaseUnits = command.PricePer100BaseUnits;
-        await repository.SaveChangesAsync(cancellationToken);
-
         if (!isDefaultLanguage)
-            await SaveTranslationAsync(ingredient.Id, languageCode, displayName, cancellationToken);
+            await translations.SetAsync(TranslationKeys.Ingredient(ingredient.Id, languageCode), displayName, cancellationToken);
+        await repository.SaveChangesAsync(cancellationToken);
 
         return new(IngredientOperationStatus.Success, ToDto(ingredient, displayName));
     }
@@ -115,17 +115,10 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             return IngredientOperationStatus.Conflict;
 
         repository.Remove(ingredient);
-        await repository.SaveChangesAsync(cancellationToken);
-
+        // Remove the ingredient and all of its translations in a single commit.
         await translations.RemoveByPrefixAsync(TranslationKeys.IngredientPrefix(id), cancellationToken);
-        await translations.SaveChangesAsync(cancellationToken);
+        await repository.SaveChangesAsync(cancellationToken);
         return IngredientOperationStatus.Success;
-    }
-
-    private async Task SaveTranslationAsync(Guid id, string languageCode, string value, CancellationToken cancellationToken)
-    {
-        await translations.SetAsync(TranslationKeys.Ingredient(id, languageCode), value, cancellationToken);
-        await translations.SaveChangesAsync(cancellationToken);
     }
 
     private Task<IReadOnlyDictionary<string, string>> LoadTranslationsAsync(string languageCode, CancellationToken cancellationToken) =>

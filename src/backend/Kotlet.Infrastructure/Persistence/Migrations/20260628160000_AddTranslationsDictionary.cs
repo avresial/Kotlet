@@ -38,21 +38,14 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "translations",
-                schema: "kotlet");
-
-            migrationBuilder.DropIndex(
-                name: "ix_ingredients_name",
-                schema: "kotlet",
-                table: "ingredients");
-
-            migrationBuilder.CreateIndex(
-                name: "ux_ingredients_name",
-                schema: "kotlet",
-                table: "ingredients",
-                column: "name",
-                unique: true);
+            // This migration is intentionally irreversible. Once the unique index on
+            // ingredients.name is relaxed, duplicate names become valid data (most notably the
+            // "Unknown" placeholder used for ingredients created in a non-default language).
+            // Recreating the unique index during rollback would fail against that data, so a safe
+            // automatic Down cannot be guaranteed without destructive de-duplication.
+            throw new NotSupportedException(
+                "Rolling back AddTranslationsDictionary is not supported: restoring the unique " +
+                "ingredients.name index is unsafe once duplicate names (e.g. \"Unknown\") exist.");
         }
     }
 }
