@@ -5,6 +5,7 @@ using Kotlet.Domain.Pantry;
 using Kotlet.Domain.Houses;
 using Kotlet.Domain.Recipes;
 using Kotlet.Domain.Shopping;
+using Kotlet.Domain.Translations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -27,6 +28,7 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<RecipeImage> RecipeImages => Set<RecipeImage>();
     public DbSet<MealPlanItem> MealPlanItems => Set<MealPlanItem>();
     public DbSet<MealPlanItemParticipant> MealPlanItemParticipants => Set<MealPlanItemParticipant>();
+    public DbSet<Translation> Translations => Set<Translation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

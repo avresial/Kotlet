@@ -52,6 +52,36 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
     }
 
     [Fact]
+    public async Task Create_InPolish_StoresUnknownDefaultNameAndShowsTranslationToPolishUsers()
+    {
+        var client = await CreateAuthenticatedClient();
+        var polishName = $"Skladnik {Guid.NewGuid():N}";
+
+        client.DefaultRequestHeaders.AcceptLanguage.Clear();
+        client.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("pl"));
+        var create = await client.PostAsJsonAsync("/api/ingredients", new
+        {
+            name = polishName, measurementUnit = "g", isCountable = false, measurementUnitsPerPiece = (decimal?)null,
+            caloriesPer100BaseUnits = 50m, pricePer100BaseUnits = 2m
+        });
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await create.Content.ReadFromJsonAsync<JsonElement>();
+        var id = created.GetProperty("id").GetGuid();
+        // The Polish user sees the name they typed.
+        Assert.Equal(polishName, created.GetProperty("name").GetString());
+
+        // A Polish user keeps seeing the translation.
+        var polishList = await client.GetFromJsonAsync<JsonElement[]>("/api/ingredients");
+        Assert.Equal(polishName, polishList!.Single(x => x.GetProperty("id").GetGuid() == id).GetProperty("name").GetString());
+
+        // An English user sees the default "Unknown" placeholder instead.
+        client.DefaultRequestHeaders.AcceptLanguage.Clear();
+        client.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("en"));
+        var englishList = await client.GetFromJsonAsync<JsonElement[]>("/api/ingredients");
+        Assert.Equal("Unknown", englishList!.Single(x => x.GetProperty("id").GetGuid() == id).GetProperty("name").GetString());
+    }
+
+    [Fact]
     public async Task Create_RejectsInvalidValues()
     {
         var client = await CreateAuthenticatedClient();
