@@ -38,6 +38,23 @@ public sealed class MealPlannerService(
         Guid houseId, CancellationToken cancellationToken) =>
         await repository.GetHouseMembersAsync(houseId, cancellationToken);
 
+    public async Task<IReadOnlyList<MealPlanOverviewDay>> GetOverviewAsync(
+        Guid houseId, DateOnly from, int days, CancellationToken cancellationToken)
+    {
+        var to = from.AddDays(days - 1);
+        var items = await repository.GetByDateRangeAsync(houseId, from, to, cancellationToken);
+        var slotsByDate = items
+            .GroupBy(item => item.Date)
+            .ToDictionary(group => group.Key, group => group.Select(item => SlotToString(item.Slot)).Distinct().ToHashSet());
+
+        return Enumerable.Range(0, days)
+            .Select(offset => from.AddDays(offset))
+            .Select(date => new MealPlanOverviewDay(
+                date.ToString("yyyy-MM-dd"),
+                slotsByDate.TryGetValue(date, out var slots) ? slots.Order().ToList() : []))
+            .ToList();
+    }
+
     public async Task<MealPlannerOperationResult> AddItemAsync(
         Guid userId, Guid houseId, AddMealPlanItemRequest request, CancellationToken cancellationToken)
     {

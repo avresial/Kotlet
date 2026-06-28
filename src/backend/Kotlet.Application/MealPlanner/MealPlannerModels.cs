@@ -33,6 +33,10 @@ public sealed record DailyMealPlanResponse(
     string Date,
     IReadOnlyDictionary<string, IReadOnlyList<MealPlanItemResponse>> Meals);
 
+public sealed record MealPlanOverviewDay(
+    string Date,
+    IReadOnlyList<string> PlannedSlots);
+
 /// <summary>A member of the current user's house, available to assign to meals.</summary>
 public sealed record MealHouseMember(Guid UserId, string DisplayName);
 

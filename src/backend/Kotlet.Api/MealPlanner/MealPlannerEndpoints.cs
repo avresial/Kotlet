@@ -9,6 +9,7 @@ public static class MealPlannerEndpoints
     {
         var group = endpoints.MapGroup("/api/meal-planner").WithTags("MealPlanner").RequireAuthorization();
         group.MapGet("", GetForDate).WithName("GetMealPlan");
+        group.MapGet("/overview", GetOverview).WithName("GetMealPlanOverview");
         group.MapGet("/members", GetMembers).WithName("GetMealPlanHouseMembers");
         group.MapPost("/items", AddItem).WithName("AddMealPlanItem");
         group.MapDelete("/items/{id:guid}", RemoveItem).WithName("RemoveMealPlanItem");
@@ -39,6 +40,24 @@ public static class MealPlannerEndpoints
     {
         if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
         return Results.Ok(await service.GetHouseMembersAsync(houseId, cancellationToken));
+    }
+
+    private static async Task<IResult> GetOverview(
+        string? from,
+        int days,
+        ICurrentUser currentUser,
+        MealPlannerService service,
+        CancellationToken cancellationToken)
+    {
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (!DateOnly.TryParse(from, out var parsedFrom))
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+                { ["from"] = ["from query parameter is required and must be in yyyy-MM-dd format."] });
+        if (days is < 1 or > 62)
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+                { ["days"] = ["days must be between 1 and 62."] });
+
+        return Results.Ok(await service.GetOverviewAsync(houseId, parsedFrom, days, cancellationToken));
     }
 
     private static async Task<IResult> AddItem(

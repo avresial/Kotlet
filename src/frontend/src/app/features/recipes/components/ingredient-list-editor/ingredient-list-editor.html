@@ -1,7 +1,4 @@
 <div class="ingredient-list-editor" role="group" [attr.aria-labelledby]="ariaLabelledby()">
-  @if (rows.length === 0) {
-    <p class="empty">No ingredients added yet.</p>
-  } @else {
     <div class="ingredient-rows">
       @for (row of rows; track $index) {
         <div class="ingredient-row" [formGroup]="row">
@@ -9,12 +6,7 @@
           <div class="row-fields">
             <label class="field-name">
               <span class="sr-only">Name</span>
-              <select formControlName="name" (change)="selectIngredient(row)" [class.invalid]="row.get('name')?.invalid && row.get('name')?.touched">
-                <option value="" disabled>Select ingredient</option>
-                @for (ingredient of ingredients(); track ingredient.id) {
-                  <option [value]="ingredient.name">{{ ingredient.name }}</option>
-                }
-              </select>
+              <app-ingredient-picker formControlName="name" [ingredients]="ingredients()" valueMode="name" placeholder="Start typing an ingredient…" (ingredientSelected)="selectIngredient(row)" />
               @if (row.get('name')?.invalid && row.get('name')?.touched) {
                 <span class="field-error">
                   @if (row.get('name')?.errors?.['required']) { Name is required }
@@ -26,6 +18,9 @@
             <label class="field-qty">
               <span class="sr-only">Quantity</span>
               <input type="number" formControlName="quantity" placeholder="Qty" min="0.001" step="any" />
+              @if (row.get('quantity')?.invalid && row.get('quantity')?.touched) {
+                <span class="field-error">Quantity must be positive</span>
+              }
             </label>
             <label class="field-unit">
               <span class="sr-only">Unit</span>
@@ -37,18 +32,14 @@
             </label>
           </div>
           <div class="row-actions">
-            <button type="button" [disabled]="$index === 0 || isDisabled()" (click)="moveUp($index)" title="Move up" aria-label="Move ingredient up">↑</button>
-            <button type="button" [disabled]="$index === rows.length - 1 || isDisabled()" (click)="moveDown($index)" title="Move down" aria-label="Move ingredient down">↓</button>
+            <button type="button" [disabled]="$index === 0 || $index === rows.length - 1 || isDisabled()" (click)="moveUp($index)" title="Move up" aria-label="Move ingredient up">↑</button>
+            <button type="button" [disabled]="$index >= rows.length - 2 || isDisabled()" (click)="moveDown($index)" title="Move down" aria-label="Move ingredient down">↓</button>
             <button type="button" class="delete" [disabled]="isDisabled()" (click)="removeRow($index)" title="Remove" aria-label="Remove ingredient">×</button>
           </div>
         </div>
       }
     </div>
-  }
   @if (ingredientLoadError()) {
     <p class="catalogue-error" role="alert">Ingredients could not be loaded. Try refreshing the page.</p>
   }
-  <button type="button" class="add-row" [disabled]="isDisabled() || isLoadingIngredients() || ingredientLoadError()" (click)="addRow()">
-    <span aria-hidden="true">+</span> {{ isLoadingIngredients() ? 'Loading ingredients…' : 'Add ingredient' }}
-  </button>
 </div>

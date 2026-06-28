@@ -31,6 +31,24 @@ public sealed class MealPlannerEndpointTests(TestWebApplicationFactory factory) 
     }
 
     [Fact]
+    public async Task Overview_ReturnsEveryDayAndMarksPlannedSlots()
+    {
+        var client = await CreateAuthenticatedClient("mp-overview");
+        var ingredientId = await CreateIngredient(client);
+        await AddIngredientMeal(client, ingredientId);
+
+        var overview = await client.GetFromJsonAsync<JsonElement[]>(
+            $"/api/meal-planner/overview?from={Date}&days=3");
+
+        Assert.NotNull(overview);
+        Assert.Equal(3, overview.Length);
+        Assert.Equal(Date, overview[0].GetProperty("date").GetString());
+        Assert.Contains("dinner", overview[0].GetProperty("plannedSlots").EnumerateArray().Select(slot => slot.GetString()));
+        Assert.Empty(overview[1].GetProperty("plannedSlots").EnumerateArray());
+        Assert.Equal("2026-07-03", overview[2].GetProperty("date").GetString());
+    }
+
+    [Fact]
     public async Task AddingPeople_ScalesServingsByHeadcount()
     {
         var client = await CreateAuthenticatedClient("mp-people");

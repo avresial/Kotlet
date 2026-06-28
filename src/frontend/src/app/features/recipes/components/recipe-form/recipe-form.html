@@ -40,7 +40,7 @@
 
   <div class="form-actions">
     <button type="button" class="secondary" (click)="cancel()">Cancel</button>
-    <button type="submit" class="primary" [disabled]="isSaving()">
+    <button type="submit" class="primary" [disabled]="isSaving() || form.invalid">
       {{ isSaving() ? 'Saving…' : submitLabel() }}
     </button>
   </div>

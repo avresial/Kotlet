@@ -5,6 +5,7 @@ import {
   AddMealPlanItemRequest,
   DailyMealPlan,
   HouseMember,
+  MealPlanOverviewDay,
   MealPlanItem,
 } from '../models/meal-planner.models';
 
@@ -19,6 +20,11 @@ export class MealPlannerService {
 
   getHouseMembers() {
     return this.http.get<HouseMember[]>(apiUrl('/api/meal-planner/members'));
+  }
+
+  getOverview(from: string, days: number) {
+    const params = new HttpParams().set('from', from).set('days', days);
+    return this.http.get<MealPlanOverviewDay[]>(apiUrl('/api/meal-planner/overview'), { params });
   }
 
   addItem(request: AddMealPlanItemRequest) {
