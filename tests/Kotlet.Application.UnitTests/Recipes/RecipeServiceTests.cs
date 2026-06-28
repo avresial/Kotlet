@@ -294,7 +294,6 @@ public sealed class RecipeServiceTests
             Task.FromResult<IReadOnlyDictionary<Guid, Ingredient>>(ingredients.Where(x => ids.Contains(x.Id)).ToDictionary(x => x.Id));
         public Task<Ingredient?> GetByIdAsync(Guid id, bool tracked, CancellationToken cancellationToken) =>
             Task.FromResult(ingredients.SingleOrDefault(x => x.Id == id));
-        public Task<bool> NameExistsAsync(string name, Guid? excludedId, CancellationToken cancellationToken) => Task.FromResult(false);
         public Task<bool> IsInUseAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(false);
         public void Add(Ingredient ingredient) => throw new NotSupportedException();
         public void Remove(Ingredient ingredient) => throw new NotSupportedException();

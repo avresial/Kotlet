@@ -9,13 +9,14 @@ import { authInterceptor } from './core/auth/auth.interceptor';
 import { routes } from './app.routes';
 import { KotletPreset } from './theme/kotlet-preset';
 import { TranslationService } from './core/i18n/translation.service';
+import { languageInterceptor } from './core/i18n/language.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideAnimationsAsync(),
     providePrimeNG({ theme: { preset: KotletPreset, options: { darkModeSelector: false } }, ripple: true }),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, languageInterceptor])),
     provideRouter(routes),
     provideAppInitializer(() => inject(TranslationService).initialize()),
     provideAppInitializer(() => inject(AuthService).restoreSession()),
