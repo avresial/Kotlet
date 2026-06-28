@@ -22,11 +22,6 @@ internal sealed class IngredientRepository(KotletDbContext dbContext) : IIngredi
         return query.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public Task<bool> NameExistsAsync(string name, Guid? excludedId, CancellationToken cancellationToken) =>
-        dbContext.Ingredients.AnyAsync(
-            x => x.Name.ToLower() == name.ToLower() && x.Id != excludedId,
-            cancellationToken);
-
     public async Task<bool> IsInUseAsync(Guid id, CancellationToken cancellationToken) =>
         await dbContext.RecipeIngredients.AnyAsync(x => x.IngredientId == id, cancellationToken)
         || await dbContext.PantryItems.AnyAsync(x => x.IngredientId == id, cancellationToken)

@@ -3,6 +3,7 @@ using System;
 using Kotlet.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Kotlet.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(KotletDbContext))]
-    partial class KotletDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260628153422_AddIngredientSvgIcon")]
+    partial class AddIngredientSvgIcon
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -268,7 +271,8 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
-                        .HasDatabaseName("ix_ingredients_name");
+                        .IsUnique()
+                        .HasDatabaseName("ux_ingredients_name");
 
                     b.ToTable("ingredients", "kotlet");
                 });
@@ -597,23 +601,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ux_shopping_list_items_house_ingredient");
 
                     b.ToTable("shopping_list_items", "kotlet");
-                });
-
-            modelBuilder.Entity("Kotlet.Domain.Translations.Translation", b =>
-                {
-                    b.Property<string>("Key")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("key");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("value");
-
-                    b.HasKey("Key");
-
-                    b.ToTable("translations", "kotlet");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Auth.RefreshToken", b =>

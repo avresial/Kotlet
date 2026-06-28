@@ -9,4 +9,5 @@ public sealed class Ingredient
     public decimal? MeasurementUnitsPerPiece { get; set; }
     public decimal CaloriesPer100BaseUnits { get; set; }
     public decimal PricePer100BaseUnits { get; set; }
+    public string? SvgIcon { get; set; }
 }

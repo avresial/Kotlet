@@ -3,8 +3,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 import { Ingredient, IngredientRequest, measurementUnits } from '../../ingredient.models';
 import { IngredientService } from '../../ingredient.service';
+
+const DEFAULT_LANGUAGE = 'en';
 
 @Component({
   selector: 'app-ingredients-page',
@@ -16,6 +19,11 @@ import { IngredientService } from '../../ingredient.service';
 export class IngredientsPage implements OnInit {
   private readonly service = inject(IngredientService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly translation = inject(TranslationService);
+  readonly language = this.translation.language;
+  /** The translation field is only relevant when editing in a non-default language. */
+  readonly showTranslation = computed(() => this.language() !== DEFAULT_LANGUAGE);
+  readonly languageBadge = computed(() => this.language().toUpperCase());
   readonly ingredients = signal<Ingredient[]>([]);
   readonly search = signal('');
   readonly filteredIngredients = computed(() => {
@@ -33,6 +41,7 @@ export class IngredientsPage implements OnInit {
 
   readonly form = this.formBuilder.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(150)]],
+    translation: ['', [Validators.maxLength(150)]],
     measurementUnit: ['g', Validators.required],
     isCountable: [false],
     measurementUnitsPerPiece: [null as number | null, [Validators.min(0.001), Validators.max(999999999.999)]],
@@ -40,7 +49,11 @@ export class IngredientsPage implements OnInit {
     pricePer100BaseUnits: [0, [Validators.required, Validators.min(0), Validators.max(99999999.99)]],
   });
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    if (this.showTranslation())
+      this.form.controls.translation.addValidators(Validators.required);
+    this.load();
+  }
 
   load(): void {
     this.isLoading.set(true);
@@ -55,7 +68,8 @@ export class IngredientsPage implements OnInit {
     this.editingId.set(ingredient.id);
     this.error.set(null);
     this.form.setValue({
-      name: ingredient.name, measurementUnit: ingredient.measurementUnit,
+      name: ingredient.defaultName, translation: ingredient.translation ?? '',
+      measurementUnit: ingredient.measurementUnit,
       isCountable: ingredient.isCountable, measurementUnitsPerPiece: ingredient.measurementUnitsPerPiece,
       caloriesPer100BaseUnits: ingredient.caloriesPer100BaseUnits,
       pricePer100BaseUnits: ingredient.pricePer100BaseUnits,
@@ -65,7 +79,7 @@ export class IngredientsPage implements OnInit {
 
   cancelEdit(): void {
     this.editingId.set(null);
-    this.form.reset({ name: '', measurementUnit: 'g', isCountable: false, measurementUnitsPerPiece: null,
+    this.form.reset({ name: '', translation: '', measurementUnit: 'g', isCountable: false, measurementUnitsPerPiece: null,
       caloriesPer100BaseUnits: 0, pricePer100BaseUnits: 0 });
   }
 
@@ -79,7 +93,15 @@ export class IngredientsPage implements OnInit {
       this.form.controls.measurementUnitsPerPiece.markAsTouched();
       return;
     }
-    const request = { ...value, measurementUnitsPerPiece: value.isCountable ? value.measurementUnitsPerPiece : null } as IngredientRequest;
+    const request: IngredientRequest = {
+      name: value.name,
+      measurementUnit: value.measurementUnit,
+      isCountable: value.isCountable,
+      measurementUnitsPerPiece: value.isCountable ? value.measurementUnitsPerPiece : null,
+      caloriesPer100BaseUnits: value.caloriesPer100BaseUnits,
+      pricePer100BaseUnits: value.pricePer100BaseUnits,
+      ...(this.showTranslation() ? { translation: value.translation.trim() } : {}),
+    };
     const id = this.editingId();
     const operation = id ? this.service.update(id, request) : this.service.create(request);
     operation.pipe(finalize(() => this.isSaving.set(false))).subscribe({

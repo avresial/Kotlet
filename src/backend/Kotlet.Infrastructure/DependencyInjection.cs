@@ -11,8 +11,10 @@ using Kotlet.Infrastructure.Pantry;
 using Kotlet.Application.Recipes;
 using Kotlet.Infrastructure.Recipes;
 using Kotlet.Application.Shopping;
+using Kotlet.Application.Translations;
 using Kotlet.Application.Measurements;
 using Kotlet.Infrastructure.Shopping;
+using Kotlet.Infrastructure.Translations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +28,10 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IMenuReader, InMemoryMenuReader>();
+        services.AddMemoryCache();
         services.AddScoped<IIngredientRepository, IngredientRepository>();
+        services.AddScoped<ITranslationRepository, TranslationRepository>();
+        services.AddScoped<TranslationCacheInterceptor>();
         services.AddScoped<IPantryRepository, PantryRepository>();
         services.AddScoped<IShoppingListRepository, ShoppingListRepository>();
         services.AddScoped<IRecipeRepository, RecipeRepository>();
@@ -47,11 +52,12 @@ public static class DependencyInjection
 
         if (provider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
         {
-            services.AddDbContext<KotletDbContext>(options =>
+            services.AddDbContext<KotletDbContext>((sp, options) =>
                 options.UseNpgsql(
-                    configuration.GetConnectionString("kotletdb")
-                        ?? throw new InvalidOperationException("Connection string 'kotletdb' is not configured."),
-                    npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", DatabaseSchemas.Kotlet)));
+                        configuration.GetConnectionString("kotletdb")
+                            ?? throw new InvalidOperationException("Connection string 'kotletdb' is not configured."),
+                        npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", DatabaseSchemas.Kotlet))
+                    .AddInterceptors(sp.GetRequiredService<TranslationCacheInterceptor>()));
             return;
         }
 
@@ -61,7 +67,9 @@ public static class DependencyInjection
             var keepAliveConnection = new SqliteConnection(connectionString);
             keepAliveConnection.Open();
             services.AddSingleton(keepAliveConnection);
-            services.AddDbContext<KotletDbContext>(options => options.UseSqlite(connectionString));
+            services.AddDbContext<KotletDbContext>((sp, options) =>
+                options.UseSqlite(connectionString)
+                    .AddInterceptors(sp.GetRequiredService<TranslationCacheInterceptor>()));
             return;
         }
 

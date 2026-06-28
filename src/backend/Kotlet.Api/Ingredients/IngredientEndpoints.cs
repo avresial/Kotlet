@@ -1,3 +1,4 @@
+using Kotlet.Api.Localization;
 using Kotlet.Application.Ingredients;
 
 namespace Kotlet.Api.Ingredients;
@@ -7,10 +8,10 @@ public static class IngredientEndpoints
     public static IEndpointRouteBuilder MapIngredientEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var ingredients = endpoints.MapGroup("/api/ingredients").WithTags("Ingredients").RequireAuthorization();
-        ingredients.MapGet("", async (IngredientService service, CancellationToken ct) =>
-            Results.Ok(await service.GetAllAsync(ct))).WithName("GetIngredients");
-        ingredients.MapGet("/{id:guid}", async (Guid id, IngredientService service, CancellationToken ct) =>
-            await service.GetByIdAsync(id, ct) is { } ingredient ? Results.Ok(ingredient) : Results.NotFound())
+        ingredients.MapGet("", async (IngredientService service, ILanguageContext language, CancellationToken ct) =>
+            Results.Ok(await service.GetAllAsync(language.Language, ct))).WithName("GetIngredients");
+        ingredients.MapGet("/{id:guid}", async (Guid id, IngredientService service, ILanguageContext language, CancellationToken ct) =>
+            await service.GetByIdAsync(id, language.Language, ct) is { } ingredient ? Results.Ok(ingredient) : Results.NotFound())
             .WithName("GetIngredient");
         ingredients.MapPost("", Create).WithName("CreateIngredient");
         ingredients.MapPut("/{id:guid}", Update).WithName("UpdateIngredient");
@@ -21,9 +22,10 @@ public static class IngredientEndpoints
     private static async Task<IResult> Create(
         SaveIngredientCommand command,
         IngredientService service,
+        ILanguageContext language,
         CancellationToken cancellationToken)
     {
-        var result = await service.CreateAsync(command, cancellationToken);
+        var result = await service.CreateAsync(command, language.Language, cancellationToken);
         return ToHttpResult(result, created: true);
     }
 
@@ -31,9 +33,10 @@ public static class IngredientEndpoints
         Guid id,
         SaveIngredientCommand command,
         IngredientService service,
+        ILanguageContext language,
         CancellationToken cancellationToken)
     {
-        var result = await service.UpdateAsync(id, command, cancellationToken);
+        var result = await service.UpdateAsync(id, command, language.Language, cancellationToken);
         return ToHttpResult(result, created: false);
     }
 

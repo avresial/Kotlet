@@ -5,6 +5,7 @@ using Kotlet.Api.Auth;
 using Kotlet.Api.Admin;
 using Kotlet.Api.Houses;
 using Kotlet.Api.Ingredients;
+using Kotlet.Api.Localization;
 using Kotlet.Api.MealPlanner;
 using Kotlet.Api.Persistence;
 using Kotlet.Application.Pantry;
@@ -81,6 +82,7 @@ builder.Services.AddCors(options =>
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<ILanguageContext, LanguageContext>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<MigrationReadySignal>();
 builder.Services.AddHostedService<DatabaseMigrationWorker>();
