@@ -1,39 +1,39 @@
 <main class="shopping-page">
-  <a class="back" routerLink="/dashboard">← Back to overview</a>
+  <a class="back" routerLink="/dashboard">← {{ 'common.backOverview' | t }}</a>
   <header>
-    <div><p class="eyebrow">Plan the next shop</p><h1>Shopping list</h1><p>Add what you need and keep the expected cost under control.</p></div>
-    <div class="summary"><strong>{{ totalPrice().toFixed(2) }} zł</strong><span>{{ purchasedCount() }} of {{ items().length }} bought</span></div>
+    <div><p class="eyebrow">{{ 'shopping.eyebrow' | t }}</p><h1>{{ 'nav.shoppingList' | t }}</h1><p>{{ 'shopping.intro' | t }}</p></div>
+    <div class="summary"><strong>{{ totalPrice().toFixed(2) }} zł</strong><span>{{ purchasedCount() }} {{ 'common.of' | t }} {{ items().length }} {{ 'shopping.bought' | t }}</span></div>
   </header>
 
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
   <section class="add-panel" aria-labelledby="add-title">
-    <div><h2 id="add-title">Add an ingredient</h2><p>Prices are taken from the ingredient catalogue.</p></div>
+    <div><h2 id="add-title">{{ 'common.addIngredient' | t }}</h2><p>{{ 'shopping.priceHelp' | t }}</p></div>
     <form [formGroup]="form" (ngSubmit)="add()">
-      <label>Ingredient<app-ingredient-picker formControlName="ingredientId" [ingredients]="availableIngredients()" /></label>
-      <label>Quantity<input type="number" min="0.001" step="0.001" formControlName="quantity" /></label>
-      <button class="primary" type="submit" [disabled]="isSaving() || availableIngredients().length === 0">{{ isSaving() ? 'Adding…' : 'Add to list' }}</button>
+      <label>{{ 'common.ingredient' | t }}<app-ingredient-picker formControlName="ingredientId" [ingredients]="availableIngredients()" /></label>
+      <label>{{ 'common.quantity' | t }}<input type="number" min="0.001" step="0.001" formControlName="quantity" /></label>
+      <button class="primary" type="submit" [disabled]="isSaving() || availableIngredients().length === 0">{{ (isSaving() ? 'common.adding' : 'shopping.addToList') | t }}</button>
     </form>
   </section>
 
   <section class="receipt" aria-labelledby="receipt-title">
-    <div class="receipt-heading"><div><p class="eyebrow">Shopping receipt</p><h2 id="receipt-title">Items to buy</h2></div><div class="receipt-actions"><span>{{ items().length }} items</span><button type="button" [disabled]="isSaving() || purchasedCount() === 0" (click)="clearChecked()">Clear checked</button></div></div>
-    @if (isLoading()) { <p class="empty">Loading shopping list…</p> }
-    @else if (items().length === 0) { <p class="empty">Your shopping list is empty. Add an ingredient above.</p> }
+    <div class="receipt-heading"><div><p class="eyebrow">{{ 'shopping.receipt' | t }}</p><h2 id="receipt-title">{{ 'shopping.itemsToBuy' | t }}</h2></div><div class="receipt-actions"><span>{{ items().length }} {{ 'common.items' | t }}</span><button type="button" [disabled]="isSaving() || purchasedCount() === 0" (click)="clearChecked()">{{ 'shopping.clearChecked' | t }}</button></div></div>
+    @if (isLoading()) { <p class="empty">{{ 'shopping.loading' | t }}</p> }
+    @else if (items().length === 0) { <p class="empty">{{ 'shopping.empty' | t }}</p> }
     @else {
       <div class="receipt-lines">
         @for (item of items(); track item.id) {
           <article class="receipt-line" [class.is-purchased]="item.isPurchased">
-            <button class="check" type="button" [disabled]="isSaving()" (click)="update(item, { isPurchased: !item.isPurchased })" [attr.aria-label]="item.isPurchased ? 'Mark not bought' : 'Mark bought'">{{ item.isPurchased ? '✓' : '○' }}</button>
+            <button class="check" type="button" [disabled]="isSaving()" (click)="update(item, { isPurchased: !item.isPurchased })" [attr.aria-label]="(item.isPurchased ? 'shopping.markNotBought' : 'shopping.markBought') | t">{{ item.isPurchased ? '✓' : '○' }}</button>
             <div class="product"><strong>{{ item.ingredientName }}</strong><span>{{ item.unitPrice.toFixed(2) }} zł / {{ item.measurementUnit }}</span></div>
-            <input type="number" min="0.001" step="0.001" [value]="item.quantity" [disabled]="isSaving()" (change)="update(item, { quantity: +$any($event.target).value })" aria-label="Quantity for {{ item.ingredientName }}" />
+            <input type="number" min="0.001" step="0.001" [value]="item.quantity" [disabled]="isSaving()" (change)="update(item, { quantity: +$any($event.target).value })" [attr.aria-label]="('common.quantity' | t) + ': ' + item.ingredientName" />
             <span class="unit">{{ item.measurementUnit }}</span>
             <strong class="line-price">{{ item.totalPrice.toFixed(2) }} zł</strong>
-            <button class="remove" type="button" [disabled]="isSaving()" (click)="remove(item)" aria-label="Remove {{ item.ingredientName }}">×</button>
+            <button class="remove" type="button" [disabled]="isSaving()" (click)="remove(item)" [attr.aria-label]="('common.remove' | t) + ' ' + item.ingredientName">×</button>
           </article>
         }
       </div>
     }
-    <div class="total"><span>TOTAL</span><strong>{{ totalPrice().toFixed(2) }} zł</strong></div>
+    <div class="total"><span>{{ 'common.total' | t }}</span><strong>{{ totalPrice().toFixed(2) }} zł</strong></div>
   </section>
 </main>

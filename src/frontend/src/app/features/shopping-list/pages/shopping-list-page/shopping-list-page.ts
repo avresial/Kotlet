@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
@@ -11,7 +12,7 @@ import { ShoppingListService } from '../../shopping-list.service';
 
 @Component({
   selector: 'app-shopping-list-page',
-  imports: [ReactiveFormsModule, RouterLink, IngredientPicker],
+  imports: [ReactiveFormsModule, RouterLink, IngredientPicker, TranslatePipe],
   templateUrl: './shopping-list-page.html',
   styleUrl: './shopping-list-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,14 +1,15 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { catchError, finalize, forkJoin, Observable, of, switchMap, tap } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
-import { RecipeSummary } from '../../../recipes/models/recipe.models';
+import { RecipeDetail, RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
-import { DailyMealPlan, HouseMember, MealPlanItem, MealSlot } from '../../models/meal-planner.models';
+import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
+import { DailyMealPlan, HouseMember, MealPlanItem, MealPlanItemType, MealSlot } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
 
 @Component({
@@ -22,6 +23,7 @@ export class MealPlannerPage implements OnInit {
   private readonly service = inject(MealPlannerService);
   private readonly recipeService = inject(RecipeService);
   private readonly ingredientService = inject(IngredientService);
+  private readonly shoppingListService = inject(ShoppingListService);
 
   readonly slots: MealSlot[] = ['breakfast', 'dinner', 'supper'];
   readonly slotLabels: Record<MealSlot, string> = {
@@ -36,6 +38,7 @@ export class MealPlannerPage implements OnInit {
   readonly planError = signal<string | null>(null);
 
   readonly recipes = signal<RecipeSummary[]>([]);
+  readonly recipeDetails = signal<Record<string, RecipeDetail>>({});
   readonly ingredients = signal<Ingredient[]>([]);
   readonly isLoadingOptions = signal(true);
 
@@ -46,6 +49,11 @@ export class MealPlannerPage implements OnInit {
   readonly addingSlot = signal<string | null>(null);
   readonly removingId = signal<string | null>(null);
   readonly busyItemId = signal<string | null>(null);
+  readonly composer = signal<Record<MealSlot, MealPlanItemType | null>>({ breakfast: null, dinner: null, supper: null });
+  readonly shoppingItemState = signal<Record<string, 'adding' | 'added'>>({});
+
+  readonly dayTotal = computed(() => this.allItems().reduce((total, item) => total + (this.itemCost(item) ?? 0), 0));
+  readonly dayServings = computed(() => this.allItems().reduce((total, item) => total + item.servings, 0));
 
   ngOnInit(): void {
     this.loadOptions();
@@ -87,7 +95,10 @@ export class MealPlannerPage implements OnInit {
     this.service.getForDate(date)
       .pipe(finalize(() => this.isLoadingPlan.set(false)))
       .subscribe({
-        next: (plan) => this.plan.set(plan),
+        next: (plan) => {
+          this.plan.set(plan);
+          this.loadRecipeDetails(plan);
+        },
         error: (err) => this.planError.set(getApiError(err, 'Unable to load meal plan.')),
       });
   }
@@ -110,6 +121,8 @@ export class MealPlannerPage implements OnInit {
       next: (item) => {
         this.plan.update((p) => p ? this.appendItem(p, slot, item) : p);
         this.selectedRecipeId.update((s) => ({ ...s, [slot]: '' }));
+        this.composer.update((value) => ({ ...value, [slot]: null }));
+        if (item.recipeId) this.loadRecipeDetail(item.recipeId);
       },
       error: (err) => this.planError.set(getApiError(err, 'Unable to add recipe.')),
     });
@@ -125,6 +138,7 @@ export class MealPlannerPage implements OnInit {
       next: (item) => {
         this.plan.update((p) => p ? this.appendItem(p, slot, item) : p);
         this.selectedIngredientId.update((s) => ({ ...s, [slot]: '' }));
+        this.composer.update((value) => ({ ...value, [slot]: null }));
       },
       error: (err) => this.planError.set(getApiError(err, 'Unable to add ingredient.')),
     });
@@ -212,10 +226,122 @@ export class MealPlannerPage implements OnInit {
 
   setSelectedRecipeId(slot: MealSlot, value: string): void {
     this.selectedRecipeId.update((s) => ({ ...s, [slot]: value }));
+    if (value) this.addRecipe(slot);
   }
 
   setSelectedIngredientId(slot: MealSlot, value: string): void {
     this.selectedIngredientId.update((s) => ({ ...s, [slot]: value }));
+    if (value) this.addIngredient(slot);
+  }
+
+  openComposer(slot: MealSlot, type: MealPlanItemType): void {
+    this.composer.update((value) => ({ ...value, [slot]: type }));
+  }
+
+  closeComposer(slot: MealSlot): void {
+    this.selectedRecipeId.update((value) => ({ ...value, [slot]: '' }));
+    this.selectedIngredientId.update((value) => ({ ...value, [slot]: '' }));
+    this.composer.update((value) => ({ ...value, [slot]: null }));
+  }
+
+  itemCost(item: MealPlanItem): number | null {
+    if (item.type === 'ingredient') {
+      const ingredient = this.ingredients().find((candidate) => candidate.id === item.ingredientId);
+      return ingredient?.price ?? null;
+    }
+
+    const detail = item.recipeId ? this.recipeDetails()[item.recipeId] : undefined;
+    if (!detail) return null;
+    return detail.ingredients.reduce((total, recipeIngredient) => {
+      const ingredient = this.findIngredient(recipeIngredient.name);
+      return total + (ingredient ? ingredient.price * (recipeIngredient.quantity ?? 1) : 0);
+    }, 0);
+  }
+
+  pricePerServing(item: MealPlanItem): number | null {
+    const cost = this.itemCost(item);
+    return cost === null ? null : cost / Math.max(item.servings, 1);
+  }
+
+  addToShoppingList(item: MealPlanItem): void {
+    if (this.shoppingItemState()[item.id] === 'adding') return;
+    this.shoppingItemState.update((state) => ({ ...state, [item.id]: 'adding' }));
+    this.planError.set(null);
+
+    const ready: Observable<RecipeDetail | null> = item.type === 'recipe' && item.recipeId && !this.recipeDetails()[item.recipeId]
+      ? this.recipeService.get(item.recipeId).pipe(tap((detail) => this.cacheRecipeDetail(detail)))
+      : of(null);
+
+    ready.pipe(
+      switchMap(() => {
+        const quantities = this.shoppingQuantities(item);
+        if (!quantities.length) throw new Error('No catalogue ingredients were found for this meal.');
+        return this.shoppingListService.getAll().pipe(
+          switchMap((current) => forkJoin(quantities.map(({ ingredient, quantity }) => {
+            const existing = current.find((entry) => entry.ingredientId === ingredient.id);
+            return existing
+              ? this.shoppingListService.update(existing, { quantity: existing.quantity + quantity, isPurchased: false })
+              : this.shoppingListService.create(ingredient.id, quantity);
+          })))
+        );
+      }),
+      finalize(() => {
+        if (this.shoppingItemState()[item.id] === 'adding') {
+          this.shoppingItemState.update((state) => {
+            const next = { ...state };
+            delete next[item.id];
+            return next;
+          });
+        }
+      })
+    ).subscribe({
+      next: () => this.shoppingItemState.update((state) => ({ ...state, [item.id]: 'added' })),
+      error: (error: unknown) => this.planError.set(getApiError(error, error instanceof Error ? error.message : 'Unable to add this meal to the shopping list.')),
+    });
+  }
+
+  private shoppingQuantities(item: MealPlanItem): { ingredient: Ingredient; quantity: number }[] {
+    if (item.type === 'ingredient') {
+      const ingredient = this.ingredients().find((candidate) => candidate.id === item.ingredientId);
+      return ingredient ? [{ ingredient, quantity: 1 }] : [];
+    }
+
+    const detail = item.recipeId ? this.recipeDetails()[item.recipeId] : undefined;
+    const totals = new Map<string, { ingredient: Ingredient; quantity: number }>();
+    for (const recipeIngredient of detail?.ingredients ?? []) {
+      const ingredient = this.findIngredient(recipeIngredient.name);
+      if (!ingredient) continue;
+      const existing = totals.get(ingredient.id);
+      totals.set(ingredient.id, { ingredient, quantity: (existing?.quantity ?? 0) + (recipeIngredient.quantity ?? 1) });
+    }
+    return [...totals.values()];
+  }
+
+  private findIngredient(name: string): Ingredient | undefined {
+    const normalized = name.trim().toLocaleLowerCase();
+    return this.ingredients().find((ingredient) => ingredient.name.trim().toLocaleLowerCase() === normalized);
+  }
+
+  private allItems(): MealPlanItem[] {
+    return this.slots.flatMap((slot) => this.itemsForSlot(slot));
+  }
+
+  private loadRecipeDetails(plan: DailyMealPlan): void {
+    const ids = [...new Set(this.slots.flatMap((slot) => plan.meals[slot])
+      .map((item) => item.recipeId)
+      .filter((id): id is string => !!id))];
+    for (const id of ids) this.loadRecipeDetail(id);
+  }
+
+  private loadRecipeDetail(id: string): void {
+    if (this.recipeDetails()[id]) return;
+    this.recipeService.get(id).pipe(catchError(() => of(null))).subscribe((detail) => {
+      if (detail) this.cacheRecipeDetail(detail);
+    });
+  }
+
+  private cacheRecipeDetail(detail: RecipeDetail): void {
+    this.recipeDetails.update((details) => ({ ...details, [detail.id]: detail }));
   }
 
   private appendItem(plan: DailyMealPlan, slot: MealSlot, item: MealPlanItem): DailyMealPlan {
