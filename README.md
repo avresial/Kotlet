@@ -1,164 +1,197 @@
 # Kotlet
 
-Kotlet is a personal web application for storing recipes, tracking ingredient prices,
-and planning a home menu and cooking calendar.
+**A calmer way to run your kitchen.**
 
-## Technology
+Kotlet keeps your recipes, pantry, meal plans, and shopping list in one thoughtful
+place — so you can spend less time organizing and more time cooking. It's built for
+real home kitchens, where the small daily question *"what should we eat?"* turns into
+dinner on the table.
 
-- Backend: ASP.NET Core on .NET 10
-- Frontend: Angular 21
-- Database: Supabase (PostgreSQL)
-- Local orchestration and observability: .NET Aspire
+![Kotlet landing page](docs/screenshots/landing.png)
 
-The initial runnable version uses an in-memory menu reader. Supabase integration will
-be added behind the interfaces owned by the Application layer, keeping database code
-inside Infrastructure.
+---
 
-## Architecture
+## What you can do with Kotlet
 
-The backend follows Clean Architecture. Dependencies point inward:
+Everything in Kotlet is connected. Plan a meal and its ingredients flow into your
+shopping list; track your pantry and see what's running low before it becomes a
+last-minute surprise.
 
-```text
-Api -> Application <- Infrastructure
-          |
-          v
-        Domain
-```
+### A dashboard for your day
 
-- `Domain` contains business entities and rules.
-- `Application` contains use cases and contracts required by those use cases.
-- `Infrastructure` implements Application contracts, including future Supabase access.
-- `Api` is the HTTP entry point and composition root.
+Open Kotlet and see what's cooking today — the planned menu, your shopping progress,
+the newest recipes, and what's running low in the pantry, all at a glance.
 
-Each layer is organized by vertical business modules rather than technical folders.
-For example, the current menu use case lives under `Application/Menu/GetMenu`; future
-modules will include `Recipes`, `Calendar`, `Ingredients`, and `Pricing`. A feature's
-commands, queries, handlers, validation, and contracts stay together within its slice.
+![Dashboard](docs/screenshots/dashboard.png)
 
-## Repository structure
+### Your recipes, beautifully kept
 
-```text
-src/
-  backend/
-    Kotlet.Domain/
-    Kotlet.Application/
-    Kotlet.Infrastructure/
-    Kotlet.Api/
-  frontend/                 # Angular application
-  aspire/
-    Kotlet.AppHost/         # Development orchestrator
-    Kotlet.ServiceDefaults/ # Health checks, telemetry, service discovery
-```
+Save family favorites and new discoveries with ingredients, step-by-step instructions
+(written in Markdown), and photos — all in one easy-to-find collection.
 
-## Run locally
+![Recipe list](docs/screenshots/recipes.png)
+![Recipe detail](docs/screenshots/recipe-detail.png)
 
-Prerequisites: .NET 10 SDK, Node.js 22.22+ or 24.x, npm, and a Docker-compatible container runtime.
+### Plan meals for the week ahead
+
+Lay out breakfast, lunch, and dinner across the next two weeks. Add recipes or single
+ingredients to any day, set how many people you're serving, and Kotlet works out the
+cost per meal and a daily "receipt" so there are no surprises.
+
+![Meal planner](docs/screenshots/meal-planner.png)
+
+### A shopping list that makes sense
+
+Keep one clear list with quantities and prices pulled straight from your ingredient
+catalogue. Check items off as you shop and watch the expected total stay under control.
+
+![Shopping list](docs/screenshots/shopping-list.png)
+
+### Know what you already have
+
+Keep your pantry stock current so you always know what's on hand and what needs
+restocking — one tap moves a low item onto your shopping list.
+
+![Pantry](docs/screenshots/pantry.png)
+
+### A shared ingredient catalogue
+
+Recipes, planning, and shopping all draw on a single catalogue of ingredients with
+their units, calories, and prices — so calorie and cost estimates stay consistent
+everywhere.
+
+![Ingredients](docs/screenshots/ingredients.png)
+
+Kotlet also supports **multiple accounts in one household**, **English and Polish**,
+and an **admin area** for managing users.
+
+---
+
+## Try it locally
+
+You'll need: the **.NET 10 SDK**, **Node.js 22.22+ or 24.x** with npm, and a
+Docker-compatible container runtime.
 
 ```powershell
 dotnet run --project src/aspire/Kotlet.AppHost
 ```
 
-Aspire starts the API and Angular development server and displays their endpoints in
-the Aspire dashboard. It also starts PostgreSQL and supplies the `kotletdb` connection
-string to the API. A background worker applies EF Core migrations when the API starts.
-The sample API endpoint is `GET /api/menu`; authentication endpoints are under
-`/api/auth`. In development, the interactive Scalar API client is available at
-`/scalar/v1`.
+This starts everything together — the API, the Angular app, and a local PostgreSQL
+database — and shows their addresses in the .NET Aspire dashboard. Open the Angular
+app's URL to use Kotlet.
 
-After migrations, the development database seeder creates two local accounts if
-they do not already exist:
+In development, two sample accounts are created automatically so you can sign in right
+away:
 
-- `admin@kotlet.local` / `Admin123!`
-- `testuser@kotlet.local` / `TestUser123!`
+| Email | Password | Role |
+| --- | --- | --- |
+| `testuser@kotlet.local` | `TestUser123!` | Regular user |
+| `admin@kotlet.local` | `Admin123!` | Administrator |
 
-The seeder does not run outside the Development environment.
+> Sample accounts are only created in the Development environment.
 
-To run the API without Aspire, configure `ConnectionStrings__kotletdb` with a
-PostgreSQL connection string.
+### Run without Docker
 
-## Shared Supabase database
-
-Kotlet isolates every application table and its EF Core migration history in the
-`kotlet` PostgreSQL schema. The API is the only component that connects to the
-database; do not put the database connection string in Angular configuration or
-allow the browser to write directly to Supabase tables.
-
-The shared Supabase project (`FinanceManager`, schema `kotlet`) is already
-provisioned. See [docs/supabase-connection.md](docs/supabase-connection.md) for
-the project host, the exact connection-string settings, and how to apply future
-migrations.
-
-Configure the Supabase PostgreSQL connection string as a secret on the backend host:
-
-```powershell
-$env:ConnectionStrings__kotletdb = 'Host=<host>;Port=5432;Database=postgres;Username=<user>;Password=<password>;SSL Mode=Require;Trust Server Certificate=true'
-```
-
-Use a local environment variable, .NET user secrets, or an Azure App Service
-application setting. Never commit the database password. Apply migrations from a
-trusted machine with network access to Supabase:
-
-```powershell
-dotnet ef database update --project src/backend/Kotlet.Infrastructure --startup-project src/backend/Kotlet.Api
-```
-
-Review the SQL first when targeting a shared project:
-
-```powershell
-dotnet ef migrations script --idempotent --project src/backend/Kotlet.Infrastructure --startup-project src/backend/Kotlet.Api --output kotlet-migrations.sql
-```
-
-The script must only create or modify objects in `kotlet`, including
-`kotlet.__EFMigrationsHistory`. Existing application schemas and Supabase-managed
-objects must remain untouched. If the `kotlet` schema is ever exposed through the
-Supabase Data API, review and enable appropriate Row Level Security policies first.
-
-## Authentication configuration
-
-Access tokens are short-lived JWTs. Refresh tokens are sent only through the
-`kotlet_refresh` HTTP-only cookie and persisted as SHA-256 hashes. Production must
-provide a unique signing key of at least 32 bytes through secure configuration; do
-not add it to an appsettings file:
-
-```powershell
-$env:Jwt__SigningKey = '<a-random-secret-of-at-least-32-bytes>'
-```
-
-The issuer, audience, access-token lifetime, refresh-token lifetime, and cookie name
-are configured under `Jwt` and `Auth` in `appsettings.json`. Aspire generates an
-ephemeral development signing key on every run and supplies it to the API; restarting
-Aspire therefore invalidates existing access tokens. For direct local API launches,
-set `Jwt__SigningKey` in the environment or .NET user secrets.
-
-PostgreSQL is the default database provider. For temporary development with an
-in-memory SQLite database, use the API's `sqlite` launch profile:
+For a quick spin without a container runtime, the API can use a temporary in-memory
+SQLite database:
 
 ```powershell
 dotnet run --project src/backend/Kotlet.Api --launch-profile sqlite
 ```
 
-The same provider can be selected when running through Aspire. The SQLite database
-exists only for the lifetime of the API process, and Aspire will not start PostgreSQL:
+Then start the frontend in a second terminal:
 
 ```powershell
-$env:Database__Provider = 'Sqlite'
-dotnet run --project src/aspire/Kotlet.AppHost
+npm --prefix src/frontend start
 ```
 
-Remove the environment variable to return to the default PostgreSQL setup.
+---
 
-To create a new PostgreSQL migration after changing the model:
+## How Kotlet is built
+
+- **Frontend:** Angular 21 (single-page app)
+- **Backend:** ASP.NET Core on .NET 10, following Clean Architecture
+- **Database:** PostgreSQL (hosted on Supabase)
+- **Local orchestration:** .NET Aspire
+
+The backend is organized by feature (Recipes, Meal Planner, Ingredients, Pantry,
+Shopping, Auth, …) with dependencies pointing inward to the domain. The API is the
+only component that talks to the database; the browser never connects to it directly.
+For more detail see [docs/frontend-architecture.md](docs/frontend-architecture.md) and
+[docs/supabase-connection.md](docs/supabase-connection.md).
+
+---
+
+## Deployment
+
+Kotlet is deployed as two pieces — an API and a static frontend — backed by a managed
+PostgreSQL database. Pushing to the `main` branch deploys both automatically through
+GitHub Actions.
+
+### Where each piece runs
+
+| Piece | Hosted on | Workflow | Trigger |
+| --- | --- | --- | --- |
+| Backend API | Azure Web App | [`main_kotlet.yml`](.github/workflows/main_kotlet.yml) | push to `main` |
+| Frontend | GitHub Pages | [`github-pages.yml`](.github/workflows/github-pages.yml) | push to `main` (frontend changes) |
+| Database | Supabase (PostgreSQL) | applied manually (see below) | — |
+
+Every pull request and every push to `develop` also runs the
+[CI workflow](.github/workflows/ci.yml), which builds and tests both the frontend and
+the backend.
+
+### 1. Backend → Azure Web App
+
+On a push to `main`, the workflow builds the frontend, publishes the .NET API, signs
+in to Azure with a federated identity, and deploys to the **Kotlet** Web App.
+
+Configure these as secure settings on the Web App (never commit them):
 
 ```powershell
-dotnet ef migrations add <MigrationName> --project src/backend/Kotlet.Infrastructure --startup-project src/backend/Kotlet.Api --output-dir Persistence/Migrations
+# PostgreSQL connection string (Supabase)
+$env:ConnectionStrings__kotletdb = 'Host=<host>;Port=5432;Database=postgres;Username=<user>;Password=<password>;SSL Mode=Require;Trust Server Certificate=true'
+
+# JWT signing key — a unique random secret of at least 32 bytes
+$env:Jwt__SigningKey = '<a-random-secret-of-at-least-32-bytes>'
 ```
 
-### Visual Studio Code
+Access tokens are short-lived JWTs; refresh tokens are delivered only through the
+HTTP-only `kotlet_refresh` cookie and stored as SHA-256 hashes.
 
-1. Open the repository root in VS Code and install the recommended extensions.
-2. Press `F5` and select `.NET Aspire AppHost` to run with the debugger.
-3. Alternatively, run `Tasks: Run Task` -> `run Aspire AppHost` from the Command
-   Palette. `Ctrl+Shift+B` builds the complete solution.
+### 2. Frontend → GitHub Pages
+
+On a push to `main` that touches the frontend, the workflow builds the Angular app
+with the correct base href, adds an SPA fallback, and publishes it to GitHub Pages.
+The production build points at the deployed Azure API
+(`src/frontend/src/environments/environment.ts`).
+
+### 3. Database → Supabase
+
+The database lives in a Supabase PostgreSQL project, isolated in the `kotlet` schema
+(application tables and their EF Core migration history). Apply migrations from a
+trusted machine with network access to Supabase:
+
+```powershell
+# Review the SQL first when targeting a shared project
+dotnet ef migrations script --idempotent `
+  --project src/backend/Kotlet.Infrastructure `
+  --startup-project src/backend/Kotlet.Api `
+  --output kotlet-migrations.sql
+
+# Apply
+dotnet ef database update `
+  --project src/backend/Kotlet.Infrastructure `
+  --startup-project src/backend/Kotlet.Api
+```
+
+Migrations must only create or modify objects inside the `kotlet` schema (including
+`kotlet.__EFMigrationsHistory`); existing schemas and Supabase-managed objects must
+stay untouched. If the `kotlet` schema is ever exposed through the Supabase Data API,
+review and enable appropriate Row Level Security policies first. See
+[docs/supabase-connection.md](docs/supabase-connection.md) for the exact connection
+settings.
+
+---
 
 ## Build
 
