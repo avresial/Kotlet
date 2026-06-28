@@ -7,8 +7,10 @@ namespace Kotlet.Infrastructure.Recipes;
 
 internal sealed class RecipeImageRepository(KotletDbContext dbContext) : IRecipeImageRepository
 {
-    public Task<bool> RecipeExistsAsync(Guid recipeId, Guid ownerUserId, CancellationToken ct) =>
-        dbContext.Recipes.AnyAsync(r => r.Id == recipeId && r.OwnerUserId == ownerUserId, ct);
+    public Task<bool> RecipeExistsAsync(Guid recipeId, Guid houseId, CancellationToken ct) =>
+        dbContext.Recipes.AnyAsync(
+            r => r.Id == recipeId && dbContext.Users.Any(u => u.Id == r.OwnerUserId && u.HouseId == houseId),
+            ct);
     public Task<int> CountAsync(Guid recipeId, CancellationToken ct) =>
         dbContext.RecipeImages.CountAsync(i => i.RecipeId == recipeId, ct);
     public async Task<IReadOnlyList<RecipeImage>> ListAsync(Guid recipeId, bool tracked, CancellationToken ct)

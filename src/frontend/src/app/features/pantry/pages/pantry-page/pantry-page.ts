@@ -5,11 +5,12 @@ import { finalize, forkJoin } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
+import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { PantryItem } from '../../pantry.models';
 import { PantryService } from '../../pantry.service';
 
 @Component({
-  selector: 'app-pantry-page', imports: [ReactiveFormsModule, RouterLink],
+  selector: 'app-pantry-page', imports: [ReactiveFormsModule, RouterLink, IngredientPicker],
   templateUrl: './pantry-page.html', styleUrl: './pantry-page.scss', changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PantryPage implements OnInit {

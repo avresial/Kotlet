@@ -5,12 +5,13 @@ import { finalize, forkJoin } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
+import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
 
 @Component({
   selector: 'app-shopping-list-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, IngredientPicker],
   templateUrl: './shopping-list-page.html',
   styleUrl: './shopping-list-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

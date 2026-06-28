@@ -35,7 +35,7 @@ public sealed class RecipeServiceTests
         var repo = new FakeRecipeRepository();
         var service = new RecipeService(repo);
 
-        var result = await service.CreateAsync(OwnerId, ValidCreateRequest(), CancellationToken.None);
+        var result = await service.CreateAsync(OwnerId, OwnerId, ValidCreateRequest(), CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.Success, result.Status);
         Assert.NotNull(result.Recipe);
@@ -51,7 +51,7 @@ public sealed class RecipeServiceTests
         var repo = new FakeRecipeRepository();
         var service = new RecipeService(repo);
 
-        await service.CreateAsync(OwnerId, ValidCreateRequest(), CancellationToken.None);
+        await service.CreateAsync(OwnerId, OwnerId, ValidCreateRequest(), CancellationToken.None);
 
         Assert.Equal(OwnerId, repo.Recipes.Single().OwnerUserId);
     }
@@ -62,7 +62,7 @@ public sealed class RecipeServiceTests
         var repo = new FakeRecipeRepository();
         var service = new RecipeService(repo);
 
-        var result = await service.CreateAsync(OwnerId,
+        var result = await service.CreateAsync(OwnerId, OwnerId,
             new CreateRecipeRequest("", null, []), CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.ValidationFailed, result.Status);
@@ -76,7 +76,7 @@ public sealed class RecipeServiceTests
         var repo = new FakeRecipeRepository();
         var service = new RecipeService(repo);
 
-        var result = await service.CreateAsync(OwnerId,
+        var result = await service.CreateAsync(OwnerId, OwnerId,
             new CreateRecipeRequest(new string('A', 161), null, []), CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.ValidationFailed, result.Status);
@@ -89,7 +89,7 @@ public sealed class RecipeServiceTests
         var repo = new FakeRecipeRepository();
         var service = new RecipeService(repo);
 
-        var result = await service.CreateAsync(OwnerId,
+        var result = await service.CreateAsync(OwnerId, OwnerId,
             new CreateRecipeRequest("Soup", null, [new("", null, null, null)]), CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.ValidationFailed, result.Status);
@@ -102,7 +102,7 @@ public sealed class RecipeServiceTests
         var repo = new FakeRecipeRepository();
         var service = new RecipeService(repo);
 
-        var result = await service.CreateAsync(OwnerId,
+        var result = await service.CreateAsync(OwnerId, OwnerId,
             new CreateRecipeRequest("Soup", null, [new("Tomatoes", -1, "g", null)]), CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.ValidationFailed, result.Status);
@@ -116,7 +116,7 @@ public sealed class RecipeServiceTests
         repo.Recipes.Add(MakeRecipe("Tomato Soup", "tomato-soup", OwnerId));
         var service = new RecipeService(repo);
 
-        var result = await service.CreateAsync(OwnerId, ValidCreateRequest(), CancellationToken.None);
+        var result = await service.CreateAsync(OwnerId, OwnerId, ValidCreateRequest(), CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.Success, result.Status);
         Assert.Equal("tomato-soup-2", result.Recipe!.Slug);
@@ -129,7 +129,7 @@ public sealed class RecipeServiceTests
         repo.Recipes.Add(MakeRecipe("Tomato Soup", "tomato-soup", OtherOwnerId));
         var service = new RecipeService(repo);
 
-        var result = await service.CreateAsync(OwnerId, ValidCreateRequest(), CancellationToken.None);
+        var result = await service.CreateAsync(OwnerId, OwnerId, ValidCreateRequest(), CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.Success, result.Status);
         Assert.Equal("tomato-soup", result.Recipe!.Slug);

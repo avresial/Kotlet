@@ -26,28 +26,28 @@ public static class RecipeEndpoints
     private static async Task<IResult> UploadImage(Guid recipeId, IFormFile file, string? altText,
         ICurrentUser currentUser, RecipeImageService service, CancellationToken ct)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
         if (file.Length > RecipeImageService.MaxFileSizeBytes)
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["file"] = ["Image file cannot exceed 5 MB."] });
         await using var stream = file.OpenReadStream();
         using var memory = new MemoryStream();
         await stream.CopyToAsync(memory, ct);
-        return ToImageHttpResult(await service.AddAsync(recipeId, userId, file.FileName, file.ContentType,
+        return ToImageHttpResult(await service.AddAsync(recipeId, houseId, file.FileName, file.ContentType,
             memory.ToArray(), altText, ct), true);
     }
 
     private static async Task<IResult> ListImages(Guid recipeId, ICurrentUser currentUser, RecipeImageService service, CancellationToken ct)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        var images = await service.ListAsync(recipeId, userId, ct);
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var images = await service.ListAsync(recipeId, houseId, ct);
         return images is null ? Results.NotFound() : Results.Ok(images);
     }
 
     private static async Task<IResult> GetImageContent(Guid recipeId, Guid imageId, ICurrentUser currentUser,
         RecipeImageService service, HttpContext context, CancellationToken ct)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        var image = await service.GetContentAsync(recipeId, imageId, userId, ct);
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var image = await service.GetContentAsync(recipeId, imageId, houseId, ct);
         if (image is null) return Results.NotFound();
         context.Response.Headers.CacheControl = "private,max-age=86400";
         return Results.File(image.Content, image.ContentType, image.FileName, enableRangeProcessing: true);
@@ -56,8 +56,8 @@ public static class RecipeEndpoints
     private static async Task<IResult> ReorderImages(Guid recipeId, ReorderRecipeImagesRequest request,
         ICurrentUser currentUser, RecipeImageService service, CancellationToken ct)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        return await service.ReorderAsync(recipeId, userId, request.ImageIds, ct) switch
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        return await service.ReorderAsync(recipeId, houseId, request.ImageIds, ct) switch
         {
             RecipeImageOperationStatus.Success => Results.NoContent(),
             RecipeImageOperationStatus.NotFound => Results.NotFound(),
@@ -68,15 +68,15 @@ public static class RecipeEndpoints
     private static async Task<IResult> UpdateImage(Guid recipeId, Guid imageId, UpdateRecipeImageRequest request,
         ICurrentUser currentUser, RecipeImageService service, CancellationToken ct)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        return ToImageHttpResult(await service.UpdateAsync(recipeId, imageId, userId, request.AltText, ct), false);
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        return ToImageHttpResult(await service.UpdateAsync(recipeId, imageId, houseId, request.AltText, ct), false);
     }
 
     private static async Task<IResult> DeleteImage(Guid recipeId, Guid imageId, ICurrentUser currentUser,
         RecipeImageService service, CancellationToken ct)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        return await service.DeleteAsync(recipeId, imageId, userId, ct) is RecipeImageOperationStatus.Success
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        return await service.DeleteAsync(recipeId, imageId, houseId, ct) is RecipeImageOperationStatus.Success
             ? Results.NoContent() : Results.NotFound();
     }
 
@@ -88,8 +88,8 @@ public static class RecipeEndpoints
         string? search = null,
         CancellationToken cancellationToken = default)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        var result = await service.ListAsync(userId, page, pageSize, search, cancellationToken);
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var result = await service.ListAsync(houseId, page, pageSize, search, cancellationToken);
         return Results.Ok(result);
     }
 
@@ -99,8 +99,8 @@ public static class RecipeEndpoints
         int limit = 4,
         CancellationToken cancellationToken = default)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        return Results.Ok(await service.ListRecentAsync(userId, limit, cancellationToken));
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        return Results.Ok(await service.ListRecentAsync(houseId, limit, cancellationToken));
     }
 
     private static async Task<IResult> Create(
@@ -109,8 +109,8 @@ public static class RecipeEndpoints
         RecipeService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        var result = await service.CreateAsync(userId, request, cancellationToken);
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var result = await service.CreateAsync(userId, houseId, request, cancellationToken);
         return ToHttpResult(result, created: true);
     }
 
@@ -120,8 +120,8 @@ public static class RecipeEndpoints
         RecipeService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        var recipe = await service.GetByIdAsync(id, userId, cancellationToken);
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var recipe = await service.GetByIdAsync(id, houseId, cancellationToken);
         return recipe is null ? Results.NotFound() : Results.Ok(recipe);
     }
 
@@ -132,8 +132,8 @@ public static class RecipeEndpoints
         RecipeService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        var result = await service.UpdateAsync(id, userId, request, cancellationToken);
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var result = await service.UpdateAsync(id, houseId, request, cancellationToken);
         return ToHttpResult(result, created: false);
     }
 
@@ -143,8 +143,8 @@ public static class RecipeEndpoints
         RecipeService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        return await service.DeleteAsync(id, userId, cancellationToken) is RecipeOperationStatus.Success
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        return await service.DeleteAsync(id, houseId, cancellationToken) is RecipeOperationStatus.Success
             ? Results.NoContent()
             : Results.NotFound();
     }

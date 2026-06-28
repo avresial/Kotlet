@@ -95,6 +95,28 @@ public sealed class MealPlannerEndpointTests(TestWebApplicationFactory factory) 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task HouseMembers_CanSeeAndManageTheSameMealPlan()
+    {
+        var creator = await CreateAuthenticatedClient("mp-house-creator");
+        var houseMember = await CreateAuthenticatedClient("mp-house-member");
+        var ingredientId = await CreateIngredient(creator);
+        var created = await AddIngredientMeal(creator, ingredientId);
+        var itemId = created.GetProperty("id").GetGuid();
+
+        var plan = await houseMember.GetFromJsonAsync<JsonElement>($"/api/meal-planner?date={Date}");
+        var visibleItem = plan.GetProperty("meals").GetProperty("dinner").EnumerateArray()
+            .Single(item => item.GetProperty("id").GetGuid() == itemId);
+        Assert.Equal(created.GetProperty("displayName").GetString(), visibleItem.GetProperty("displayName").GetString());
+
+        var servingsResponse = await houseMember.PutAsJsonAsync(
+            $"/api/meal-planner/items/{itemId}/servings", new { servings = 4 });
+        Assert.Equal(HttpStatusCode.OK, servingsResponse.StatusCode);
+
+        var deleteResponse = await houseMember.DeleteAsync($"/api/meal-planner/items/{itemId}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+    }
+
     private async Task<JsonElement> AddIngredientMeal(HttpClient client, Guid ingredientId)
     {
         var response = await client.PostAsJsonAsync("/api/meal-planner/items",

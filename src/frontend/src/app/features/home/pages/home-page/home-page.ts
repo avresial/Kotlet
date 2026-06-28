@@ -8,6 +8,7 @@ import { PantryItem } from '../../../pantry/pantry.models';
 import { PantryService } from '../../../pantry/pantry.service';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
+import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { ShoppingListItem } from '../../../shopping-list/shopping-list.models';
 import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
 import { getApiError } from '../../../../core/http/api-error';
@@ -30,7 +31,7 @@ interface TodaysMenuEntry {
 
 @Component({
   selector: 'app-home-page',
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, IngredientPicker],
   templateUrl: './home-page.html',
   styleUrl: './home-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

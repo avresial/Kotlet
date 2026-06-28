@@ -30,6 +30,9 @@
     <div class="recipe-grid">
       @for (recipe of recipes(); track recipe.id) {
         <article class="recipe-card">
+          @if (imageUrls()[recipe.id]; as imageUrl) {
+            <img class="recipe-image" [src]="imageUrl" [alt]="recipe.title" />
+          }
           <div class="card-body" (click)="navigateTo(recipe)" role="button" tabindex="0" (keyup.enter)="navigateTo(recipe)" [attr.aria-label]="'View ' + recipe.title">
             <h2>{{ recipe.title }}</h2>
             <p class="meta">{{ recipe.ingredientCount }} ingredient{{ recipe.ingredientCount !== 1 ? 's' : '' }}</p>

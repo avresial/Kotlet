@@ -5,6 +5,7 @@ import { finalize } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
+import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { DailyMealPlan, HouseMember, MealPlanItem, MealSlot } from '../../models/meal-planner.models';
@@ -12,7 +13,7 @@ import { MealPlannerService } from '../../services/meal-planner.service';
 
 @Component({
   selector: 'app-meal-planner-page',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, IngredientPicker],
   templateUrl: './meal-planner-page.html',
   styleUrl: './meal-planner-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -10,12 +10,15 @@
     <header>
       <div class="title-row">
         <h1>{{ r.title }}</h1>
-        <div class="header-actions">
-          <a [routerLink]="['/recipes', r.id, 'edit']" class="button secondary">Edit</a>
-          <button type="button" class="button danger" [disabled]="isDeleting()" (click)="delete()">
-            {{ isDeleting() ? 'Deleting…' : 'Delete' }}
-          </button>
-        </div>
+        <details class="actions-menu">
+          <summary class="actions-trigger" aria-label="Recipe actions" title="Recipe actions">⋮</summary>
+          <div class="actions-dropdown">
+            <a [routerLink]="['/recipes', r.id, 'edit']">Edit</a>
+            <button type="button" class="delete-action" [disabled]="isDeleting()" (click)="delete()">
+              {{ isDeleting() ? 'Deleting…' : 'Delete' }}
+            </button>
+          </div>
+        </details>
       </div>
       <p class="meta">{{ r.ingredients.length }} ingredient{{ r.ingredients.length !== 1 ? 's' : '' }} · Updated {{ r.updatedAtUtc | date:'mediumDate' }}</p>
     </header>
