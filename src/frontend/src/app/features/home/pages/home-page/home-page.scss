@@ -18,8 +18,12 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 
 /* Today's menu */
 .menu-list, .recipe-list, .shopping-list, .ingredient-list { margin: 1.25rem 0 0; padding: 0; list-style: none; }
-.menu-item { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 1rem; padding: .85rem 0; border-top: 1px solid #e4dbcf; }
+.menu-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 1rem; padding: .85rem 0; border-top: 1px solid #e4dbcf; }
 .menu-item:first-child { border-top: 0; }
+.menu-people { margin: 0; padding: 0 0 0 .5rem; display: flex; list-style: none; }
+.menu-person { width: 1.9rem; height: 1.9rem; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: .68rem; font-weight: 750; letter-spacing: .02em; background: linear-gradient(135deg, #c06a3e, #963827); border: 2px solid #fffaf2; margin-left: -.5rem; }
+.menu-person:first-child { margin-left: 0; }
+.menu-person.is-me { background: linear-gradient(135deg, #7a9270, #496244); }
 .menu-emoji { width: 2.8rem; height: 2.8rem; border-radius: .7rem; display: grid; place-items: center; font-size: 1.4rem; background: radial-gradient(circle at 50% 45%, #f7d999 0 30%, transparent 31%), linear-gradient(135deg, #d9a052, #9d4f2d); }
 .menu-avatar { width: 2.8rem; height: 2.8rem; border-radius: .7rem; object-fit: cover; flex-shrink: 0; }
 .menu-text strong { font-family: Georgia, serif; font-size: 1.15rem; font-weight: 500; }
