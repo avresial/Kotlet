@@ -118,6 +118,7 @@
   }
 
   @media (max-width: 640px) {
+    .ingredient-rows { gap: 16px; }
     .ingredient-row {
       display: grid;
       grid-template-columns: 1.25rem minmax(0, 1fr) 1.75rem;
@@ -125,6 +126,9 @@
     }
     .ingredient-row .row-index { min-width: 0; padding-top: .75rem; }
     .ingredient-row .row-fields { min-width: 0; gap: 6px; }
+    .ingredient-row .row-fields .field-name { grid-column: 1 / -1; }
+    .ingredient-row .row-fields .field-unit { grid-column: 1; grid-row: 2; }
+    .ingredient-row .row-fields .field-qty { grid-column: 2; grid-row: 2; }
     .ingredient-row .row-actions {
       display: grid;
       gap: 4px;

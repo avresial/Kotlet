@@ -5,6 +5,7 @@ import { guestGuard } from './core/auth/guest.guard';
 import { authRoutes } from './features/auth/auth.routes';
 import { mealPlannerRoutes } from './features/meal-planner/meal-planner.routes';
 import { recipeRoutes } from './features/recipes/recipes.routes';
+import { adminGuard } from './core/auth/admin.guard';
 
 export const routes: Routes = [
   ...authRoutes,
@@ -60,7 +61,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
-    canActivate: [authGuard],
+    canActivate: [adminGuard],
     loadComponent: () =>
       import('./features/admin/pages/admin-page/admin-page').then((m) => m.AdminPage),
   },

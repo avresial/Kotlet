@@ -9,7 +9,6 @@ namespace Kotlet.Infrastructure.Persistence;
 public sealed class DatabaseSeeder(
     KotletDbContext dbContext,
     IPasswordHasher<User> passwordHasher,
-    IngredientCsvSeeder ingredientSeeder,
     ILogger<DatabaseSeeder> logger)
 {
     private static readonly SeedUser[] Users =
@@ -20,6 +19,7 @@ public sealed class DatabaseSeeder(
 
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
+        var roles = await dbContext.Roles.ToDictionaryAsync(role => role.Name, cancellationToken);
         var hasDefaultHouse = await dbContext.Houses.AnyAsync(house => house.Id == DefaultHouse.Id, cancellationToken);
         var createDefaultHouse = false;
 
@@ -38,6 +38,9 @@ public sealed class DatabaseSeeder(
                 NormalizedEmail = normalizedEmail,
                 PasswordHash = string.Empty,
                 DisplayName = seedUser.DisplayName,
+                Roles = seedUser.Email == "admin@kotlet.local"
+                    ? [roles[RoleNames.User], roles[RoleNames.Admin]]
+                    : [roles[RoleNames.User]],
                 CreatedAtUtc = now,
                 UpdatedAtUtc = now
             };
@@ -51,10 +54,9 @@ public sealed class DatabaseSeeder(
             dbContext.Houses.Add(new House { Id = DefaultHouse.Id, Name = DefaultHouse.Name });
 
         var createdUserCount = await dbContext.SaveChangesAsync(cancellationToken);
-        var createdIngredientCount = await ingredientSeeder.SeedAsync(cancellationToken);
         logger.LogInformation(
-            "Development database seeding completed; {UserCount} users and {IngredientCount} ingredients created",
-            createdUserCount, createdIngredientCount);
+            "Development database seeding completed; {UserCount} users created",
+            createdUserCount);
     }
 
     private sealed record SeedUser(string Email, string Password, string DisplayName);

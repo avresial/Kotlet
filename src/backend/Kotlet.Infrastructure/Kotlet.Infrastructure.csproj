@@ -10,7 +10,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>SeedData\ingredients.csv</TargetPath>
     </Content>
-    <EmbeddedResource Include="Resources\ingredients.csv" />
   </ItemGroup>
 
   <ItemGroup>

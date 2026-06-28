@@ -13,19 +13,18 @@ public sealed class IngredientCsvSeeder(
 
     public async Task<int> SeedAsync(CancellationToken cancellationToken)
     {
+        if (await dbContext.Ingredients.AnyAsync(cancellationToken))
+        {
+            logger.LogInformation("Ingredient seeding skipped; the table is not empty");
+            return 0;
+        }
+
         var path = Path.Combine(AppContext.BaseDirectory, RelativeFilePath);
         if (!File.Exists(path))
             throw new FileNotFoundException("The ingredient seed CSV was not copied to the application output.", path);
 
         var seeds = await ReadAsync(path, cancellationToken);
-        var existingNames = (await dbContext.Ingredients
-                .AsNoTracking()
-                .Select(ingredient => ingredient.Name)
-                .ToListAsync(cancellationToken))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
         var ingredients = seeds
-            .Where(seed => existingNames.Add(seed.Name))
             .Select(seed => new Ingredient
             {
                 Id = Guid.NewGuid(),
@@ -37,12 +36,6 @@ public sealed class IngredientCsvSeeder(
                 PricePer100BaseUnits = seed.PricePer100BaseUnits
             })
             .ToList();
-
-        if (ingredients.Count == 0)
-        {
-            logger.LogInformation("Ingredient seed data is already up to date");
-            return 0;
-        }
 
         dbContext.Ingredients.AddRange(ingredients);
         await dbContext.SaveChangesAsync(cancellationToken);

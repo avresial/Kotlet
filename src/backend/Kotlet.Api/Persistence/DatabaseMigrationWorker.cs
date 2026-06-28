@@ -29,7 +29,7 @@ public sealed class DatabaseMigrationWorker(
         // connection-pooled database, so seed everywhere except the Test environment.
         if (!environment.IsEnvironment("Test"))
         {
-            var ingredientsSeeder = scope.ServiceProvider.GetRequiredService<IngredientsSeeder>();
+            var ingredientsSeeder = scope.ServiceProvider.GetRequiredService<IngredientCsvSeeder>();
             await ingredientsSeeder.SeedAsync(stoppingToken);
         }
 

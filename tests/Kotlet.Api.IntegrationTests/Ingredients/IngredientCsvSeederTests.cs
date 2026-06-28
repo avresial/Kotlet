@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using Kotlet.Domain.Ingredients;
 
 namespace Kotlet.Api.IntegrationTests.Ingredients;
 
@@ -30,5 +31,26 @@ public sealed class IngredientCsvSeederTests
         Assert.Empty(await dbContext.Ingredients
             .Where(x => x.MeasurementUnit != "g" && x.MeasurementUnit != "ml")
             .ToListAsync());
+    }
+
+    [Fact]
+    public async Task Seed_SkipsWhenAnyIngredientExists()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<KotletDbContext>().UseSqlite(connection).Options;
+        await using var dbContext = new KotletDbContext(options);
+        await dbContext.Database.EnsureCreatedAsync();
+        dbContext.Ingredients.Add(new Ingredient
+        {
+            Id = Guid.NewGuid(), Name = "Custom", MeasurementUnit = "g"
+        });
+        await dbContext.SaveChangesAsync();
+
+        var count = await new IngredientCsvSeeder(dbContext, NullLogger<IngredientCsvSeeder>.Instance)
+            .SeedAsync(CancellationToken.None);
+
+        Assert.Equal(0, count);
+        Assert.Single(await dbContext.Ingredients.ToListAsync());
     }
 }
