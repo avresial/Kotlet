@@ -9,7 +9,7 @@ import { IngredientPicker } from '../../../ingredients/components/ingredient-pic
 import { RecipeDetail, RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
-import { DailyMealPlan, HouseMember, MealPlanItem, MealPlanItemType, MealSlot } from '../../models/meal-planner.models';
+import { DailyMealPlan, HouseMember, MealPlanItem, MealPlanItemType, MealPlanOverviewDay, MealSlot } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
 
 @Component({
@@ -33,6 +33,7 @@ export class MealPlannerPage implements OnInit {
   };
 
   readonly selectedDate = signal(this.todayString());
+  readonly overview = signal<MealPlanOverviewDay[]>([]);
   readonly plan = signal<DailyMealPlan | null>(null);
   readonly isLoadingPlan = signal(false);
   readonly planError = signal<string | null>(null);
@@ -58,7 +59,32 @@ export class MealPlannerPage implements OnInit {
   ngOnInit(): void {
     this.loadOptions();
     this.loadMembers();
+    this.loadOverview();
     this.loadPlan();
+  }
+
+  loadOverview(): void {
+    this.service.getOverview(this.todayString(), 14).subscribe({
+      next: (days) => this.overview.set(days),
+      error: () => this.overview.set([]),
+    });
+  }
+
+  selectOverviewDay(date: string): void {
+    this.selectedDate.set(date);
+    this.loadPlan();
+  }
+
+  isPlanned(day: MealPlanOverviewDay, slot: MealSlot): boolean {
+    return day.plannedSlots.includes(slot);
+  }
+
+  dayName(date: string): string {
+    return new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(this.localDate(date));
+  }
+
+  dayNumber(date: string): string {
+    return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(this.localDate(date));
   }
 
   private loadMembers(): void {
@@ -123,6 +149,7 @@ export class MealPlannerPage implements OnInit {
         this.selectedRecipeId.update((s) => ({ ...s, [slot]: '' }));
         this.composer.update((value) => ({ ...value, [slot]: null }));
         if (item.recipeId) this.loadRecipeDetail(item.recipeId);
+        this.loadOverview();
       },
       error: (err) => this.planError.set(getApiError(err, 'Unable to add recipe.')),
     });
@@ -139,6 +166,7 @@ export class MealPlannerPage implements OnInit {
         this.plan.update((p) => p ? this.appendItem(p, slot, item) : p);
         this.selectedIngredientId.update((s) => ({ ...s, [slot]: '' }));
         this.composer.update((value) => ({ ...value, [slot]: null }));
+        this.loadOverview();
       },
       error: (err) => this.planError.set(getApiError(err, 'Unable to add ingredient.')),
     });
@@ -152,6 +180,7 @@ export class MealPlannerPage implements OnInit {
     ).subscribe({
       next: () => {
         this.plan.update((p) => p ? this.filterItem(p, item.id) : p);
+        this.loadOverview();
       },
       error: (err) => this.planError.set(getApiError(err, 'Unable to remove item.')),
     });
@@ -371,5 +400,10 @@ export class MealPlannerPage implements OnInit {
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private localDate(value: string): Date {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
   }
 }

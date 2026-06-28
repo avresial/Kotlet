@@ -24,6 +24,16 @@ internal sealed class MealPlanRepository(KotletDbContext dbContext) : IMealPlanR
                 m => m.Id == id && dbContext.Users.Any(u => u.Id == m.UserId && u.HouseId == houseId),
                 cancellationToken);
 
+    public async Task<IReadOnlyList<MealPlanItem>> GetByDateRangeAsync(
+        Guid houseId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+        await dbContext.MealPlanItems
+            .AsNoTracking()
+            .Where(m => m.Date >= from && m.Date <= to &&
+                dbContext.Users.Any(u => u.Id == m.UserId && u.HouseId == houseId))
+            .OrderBy(m => m.Date)
+            .ThenBy(m => m.Slot)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<MealHouseMember>> GetHouseMembersAsync(
         Guid houseId, CancellationToken cancellationToken) =>
         await dbContext.Users

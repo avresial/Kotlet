@@ -26,6 +26,11 @@ export interface DailyMealPlan {
   meals: Record<MealSlot, MealPlanItem[]>;
 }
 
+export interface MealPlanOverviewDay {
+  date: string;
+  plannedSlots: MealSlot[];
+}
+
 export interface AddMealPlanItemRequest {
   date: string;
   slot: MealSlot;

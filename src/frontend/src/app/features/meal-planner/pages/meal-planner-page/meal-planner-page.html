@@ -7,6 +7,48 @@
     </div>
   </header>
 
+  @if (overview().length) {
+    <section class="meal-overview" aria-labelledby="meal-overview-title">
+      <div class="overview-heading">
+        <div>
+          <p class="eyebrow">Next 14 days</p>
+          <h2 id="meal-overview-title">Planned meals</h2>
+        </div>
+        <div class="overview-legend"><span aria-hidden="true"></span> Meal planned</div>
+      </div>
+      <div class="overview-scroll">
+        <div class="overview-grid" [style.--day-count]="overview().length">
+          <div class="overview-corner" aria-hidden="true"></div>
+          @for (day of overview(); track day.date) {
+            <button
+              type="button"
+              class="overview-day"
+              [class.is-selected]="selectedDate() === day.date"
+              [attr.aria-label]="'Open meal plan for ' + dayNumber(day.date)"
+              (click)="selectOverviewDay(day.date)"
+            >
+              <span>{{ dayName(day.date) }}</span>
+              <strong>{{ dayNumber(day.date) }}</strong>
+            </button>
+          }
+          @for (slot of slots.slice().reverse(); track slot) {
+            <div class="overview-row-label">{{ slotLabels[slot] }}</div>
+            @for (day of overview(); track day.date) {
+              <button
+                type="button"
+                class="overview-cell"
+                [class.is-planned]="isPlanned(day, slot)"
+                [class.is-selected]="selectedDate() === day.date"
+                [attr.aria-label]="slotLabels[slot] + (isPlanned(day, slot) ? ' planned for ' : ' not planned for ') + dayNumber(day.date)"
+                (click)="selectOverviewDay(day.date)"
+              ></button>
+            }
+          }
+        </div>
+      </div>
+    </section>
+  }
+
   <div class="date-picker">
     <label for="plan-date">Select date</label>
     <input id="plan-date" type="date" [(ngModel)]="selectedDate" (ngModelChange)="onDateChange()" />
