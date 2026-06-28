@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, forwardRef, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, forwardRef, input, output, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Ingredient } from '../../ingredient.models';
 
@@ -17,6 +17,8 @@ export class IngredientPicker implements ControlValueAccessor {
   readonly ingredients = input.required<readonly Ingredient[]>();
   readonly placeholder = input('Start typing an ingredient…');
   readonly ariaLabel = input('Ingredient');
+  readonly valueMode = input<'id' | 'name'>('id');
+  readonly ingredientSelected = output<Ingredient>();
   readonly query = signal('');
   readonly isOpen = signal(false);
   readonly activeIndex = signal(0);
@@ -41,7 +43,9 @@ export class IngredientPicker implements ControlValueAccessor {
 
   writeValue(value: string | null): void {
     this.value = value ?? '';
-    this.query.set(this.ingredients().find(ingredient => ingredient.id === this.value)?.name ?? '');
+    this.query.set(this.ingredients().find(ingredient =>
+      this.valueMode() === 'name' ? ingredient.name === this.value : ingredient.id === this.value
+    )?.name ?? (this.valueMode() === 'name' ? this.value : ''));
   }
 
   registerOnChange(fn: (value: string) => void): void { this.onChange = fn; }
@@ -59,11 +63,12 @@ export class IngredientPicker implements ControlValueAccessor {
   }
 
   select(ingredient: Ingredient): void {
-    this.value = ingredient.id;
+    this.value = this.valueMode() === 'name' ? ingredient.name : ingredient.id;
     this.query.set(ingredient.name);
     this.isOpen.set(false);
-    this.onChange(ingredient.id);
+    this.onChange(this.value);
     this.onTouched();
+    this.ingredientSelected.emit(ingredient);
   }
 
   onBlur(): void {

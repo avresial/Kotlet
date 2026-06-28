@@ -24,11 +24,12 @@ import { Subscription } from 'rxjs';
 import { RecipeIngredientRequest } from '../../models/recipe.models';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
+import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-ingredient-list-editor',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, IngredientPicker],
   templateUrl: './ingredient-list-editor.html',
   styleUrl: './ingredient-list-editor.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -59,6 +60,7 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
 
   private onChange: (value: RecipeIngredientRequest[]) => void = () => {};
   private onTouched: () => void = () => {};
+  private onValidatorChange: () => void = () => {};
   private changeSubscription?: Subscription;
 
   constructor() {
@@ -81,12 +83,17 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
   writeValue(value: RecipeIngredientRequest[] | null): void {
     this.formArray.clear({ emitEvent: false });
     (value ?? []).forEach((ing) => this.formArray.push(this.createRow(ing), { emitEvent: false }));
+    this.ensureTrailingEmptyRow();
   }
 
   registerOnChange(fn: (value: RecipeIngredientRequest[]) => void): void {
     this.onChange = fn;
     this.changeSubscription?.unsubscribe();
-    this.changeSubscription = this.formArray.valueChanges.subscribe(() => this.emitChange());
+    this.changeSubscription = this.formArray.valueChanges.subscribe(() => {
+      this.ensureTrailingEmptyRow();
+      this.emitChange();
+      this.onValidatorChange();
+    });
   }
 
   registerOnTouched(fn: () => void): void {
@@ -102,12 +109,9 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
     return this.formArray.valid ? null : { ingredients: true };
   }
 
-  get rows() { return this.formArray.controls as FormGroup[]; }
+  registerOnValidatorChange(fn: () => void): void { this.onValidatorChange = fn; }
 
-  addRow(): void {
-    this.formArray.push(this.createRow());
-    this.onTouched();
-  }
+  get rows() { return this.formArray.controls as FormGroup[]; }
 
   selectIngredient(row: FormGroup): void {
     const ingredient = this.ingredients().find((item) => item.name === row.get('name')?.value);
@@ -117,6 +121,7 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
 
   removeRow(index: number): void {
     this.formArray.removeAt(index);
+    this.ensureTrailingEmptyRow();
     this.onTouched();
   }
 
@@ -135,22 +140,37 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
   }
 
   private createRow(ing?: RecipeIngredientRequest): FormGroup {
-    return this.fb.group({
-      name: [ing?.name ?? '', [
-        Validators.required,
-        Validators.maxLength(200),
-        (control: AbstractControl) => this.isLoadingIngredients()
-          || this.ingredients().some((item) => item.name === control.value)
-          ? null
-          : { unknownIngredient: true },
-      ]],
-      quantity: [ing?.quantity ?? null],
+    const row = this.fb.group({
+      name: [ing?.name ?? ''],
+      quantity: [ing?.quantity ?? null, Validators.min(0.001)],
       unit: [ing?.unit ?? null, Validators.maxLength(40)],
       note: [ing?.note ?? null, Validators.maxLength(300)],
     });
+    row.get('name')?.setValidators([
+        (control: AbstractControl) => this.rowHasData(row) && !control.value ? { required: true } : null,
+        Validators.maxLength(200),
+        (control: AbstractControl) => this.isLoadingIngredients()
+          || !control.value
+          || this.ingredients().some((item) => item.name === control.value)
+          ? null
+          : { unknownIngredient: true },
+      ]);
+    return row;
   }
 
   private emitChange(): void {
-    this.onChange(this.formArray.value as RecipeIngredientRequest[]);
+    this.onChange(this.formArray.getRawValue().filter(row => this.rowHasData(row)) as RecipeIngredientRequest[]);
+  }
+
+  private ensureTrailingEmptyRow(): void {
+    if (this.rows.length === 0 || this.rowHasData(this.rows[this.rows.length - 1])) {
+      this.formArray.push(this.createRow(), { emitEvent: false });
+    }
+    this.rows.forEach(row => row.get('name')?.updateValueAndValidity({ emitEvent: false }));
+  }
+
+  private rowHasData(row: FormGroup | Record<string, unknown>): boolean {
+    const value = row instanceof FormGroup ? row.getRawValue() : row;
+    return value['name'] !== '' || value['quantity'] != null || value['note'] != null && value['note'] !== '';
   }
 }
