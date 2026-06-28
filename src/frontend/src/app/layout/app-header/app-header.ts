@@ -7,11 +7,12 @@ import { LanguageSwitcher } from '../../core/i18n/language-switcher/language-swi
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { TranslationService } from '../../core/i18n/translation.service';
 import { HomeService } from '../../features/home/home.service';
-import { HomeSummary } from '../../features/home/home.models';
+import { HomeSummary, IncomingInvitation } from '../../features/home/home.models';
+import { InvitationInbox } from '../../features/home/components/invitation-inbox/invitation-inbox';
 
 @Component({
   selector: 'app-header',
-  imports: [LanguageSwitcher, RouterLink, RouterLinkActive, TranslatePipe],
+  imports: [InvitationInbox, LanguageSwitcher, RouterLink, RouterLinkActive, TranslatePipe],
   templateUrl: './app-header.html',
   styleUrl: './app-header.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -25,10 +26,11 @@ export class AppHeader {
   readonly logoutError = signal<string | null>(null);
   readonly isAccountMenuOpen = signal(false);
   readonly isDrawerOpen = signal(false);
+  readonly isInviteModalOpen = signal(false);
 
   readonly homes = signal<HomeSummary[]>([]);
   readonly homesLoading = signal(false);
-  readonly invitationCount = signal(0);
+  readonly invitations = signal<IncomingInvitation[]>([]);
   readonly switchingHouseId = signal<string | null>(null);
 
   toggleAccountMenu(event: MouseEvent): void {
@@ -47,9 +49,27 @@ export class AppHeader {
       error: () => this.homes.set([]),
     });
     this.homeService.listMyInvitations().subscribe({
-      next: (invitations) => this.invitationCount.set(invitations.length),
-      error: () => this.invitationCount.set(0),
+      next: (invitations) => this.invitations.set(invitations),
+      error: () => this.invitations.set([]),
     });
+  }
+
+  openInviteInbox(): void {
+    this.closeAccountMenu();
+    this.isInviteModalOpen.set(true);
+  }
+
+  closeInviteInbox(): void {
+    this.isInviteModalOpen.set(false);
+  }
+
+  invitationHandled(invitationId: string, joined: boolean): void {
+    this.invitations.update((invitations) => invitations.filter((invitation) => invitation.id !== invitationId));
+    if (!this.invitations().length) this.closeInviteInbox();
+    if (joined) {
+      this.loadHomes();
+      this.reloadCurrentRoute();
+    }
   }
 
   switchHome(house: HomeSummary): void {

@@ -1,0 +1,35 @@
+<div class="backdrop" (click)="close()">
+  <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="invitation-inbox-title" (click)="$event.stopPropagation()">
+    <header>
+      <h2 id="invitation-inbox-title">{{ 'home.invite.inboxTitle' | t }}</h2>
+      <button class="close" type="button" (click)="close()" [disabled]="busyInvitationId() !== null"
+        [attr.aria-label]="'home.invite.close' | t">×</button>
+    </header>
+
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+    @if (invitations().length) {
+      <ul>
+        @for (invitation of invitations(); track invitation.id) {
+          <li>
+            <div class="details">
+              <strong>{{ invitation.houseName }}</strong>
+              <span>{{ 'home.invite.from' | t }} {{ invitation.invitedByName }}</span>
+              <span>{{ 'home.invite.invitedOn' | t }} {{ invitation.invitedAtUtc | date:'medium' }}</span>
+            </div>
+            <div class="actions">
+              <button class="primary" type="button" (click)="join(invitation)" [disabled]="busyInvitationId() !== null">
+                {{ 'home.invite.join' | t }}
+              </button>
+              <button class="secondary" type="button" (click)="reject(invitation)" [disabled]="busyInvitationId() !== null">
+                {{ 'home.invite.reject' | t }}
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="empty">{{ 'home.invite.inboxEmpty' | t }}</p>
+    }
+  </section>
+</div>
