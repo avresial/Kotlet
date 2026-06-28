@@ -31,8 +31,10 @@ public sealed class IngredientCsvSeeder(
                 Id = Guid.NewGuid(),
                 Name = seed.Name,
                 MeasurementUnit = seed.MeasurementUnit,
-                CaloriesPer100Grams = seed.CaloriesPer100Grams,
-                Price = seed.Price
+                IsCountable = seed.MeasurementUnitsPerPiece.HasValue,
+                MeasurementUnitsPerPiece = seed.MeasurementUnitsPerPiece,
+                CaloriesPer100BaseUnits = seed.CaloriesPer100BaseUnits,
+                PricePer100BaseUnits = seed.PricePer100BaseUnits
             })
             .ToList();
 
@@ -52,7 +54,7 @@ public sealed class IngredientCsvSeeder(
         string path, CancellationToken cancellationToken)
     {
         var lines = await File.ReadAllLinesAsync(path, cancellationToken);
-        if (lines.Length == 0 || lines[0].TrimStart('\uFEFF') != "name,measurement_unit,calories_per_100_grams,price")
+        if (lines.Length == 0 || lines[0].TrimStart('\uFEFF') != "name,measurement_unit,calories_per_100_base_units,price_per_100_base_units")
             throw new InvalidDataException($"Ingredient seed CSV '{path}' has an invalid header.");
 
         var result = new List<IngredientSeed>();
@@ -79,7 +81,7 @@ public sealed class IngredientCsvSeeder(
             if (!names.Add(name))
                 throw InvalidRow(path, index + 1, $"duplicate ingredient name '{name}'");
 
-            result.Add(new IngredientSeed(name, unit, calories, price));
+            result.Add(new IngredientSeed(name, unit, SeedIngredientDefaults.MeasurementUnitsPerPiece(name, unit), calories, price));
         }
 
         return result;
@@ -89,5 +91,6 @@ public sealed class IngredientCsvSeeder(
         new($"Invalid ingredient seed CSV '{path}' at line {line}: {reason}.");
 
     internal sealed record IngredientSeed(
-        string Name, string MeasurementUnit, decimal CaloriesPer100Grams, decimal Price);
+        string Name, string MeasurementUnit, decimal? MeasurementUnitsPerPiece,
+        decimal CaloriesPer100BaseUnits, decimal PricePer100BaseUnits);
 }

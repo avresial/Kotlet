@@ -34,8 +34,10 @@ export class IngredientsPage implements OnInit {
   readonly form = this.formBuilder.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(150)]],
     measurementUnit: ['g', Validators.required],
-    caloriesPer100Grams: [0, [Validators.required, Validators.min(0), Validators.max(999999.99)]],
-    price: [0, [Validators.required, Validators.min(0), Validators.max(99999999.99)]],
+    isCountable: [false],
+    measurementUnitsPerPiece: [null as number | null, [Validators.min(0.001), Validators.max(999999999.999)]],
+    caloriesPer100BaseUnits: [0, [Validators.required, Validators.min(0), Validators.max(999999.99)]],
+    pricePer100BaseUnits: [0, [Validators.required, Validators.min(0), Validators.max(99999999.99)]],
   });
 
   ngOnInit(): void { this.load(); }
@@ -54,21 +56,30 @@ export class IngredientsPage implements OnInit {
     this.error.set(null);
     this.form.setValue({
       name: ingredient.name, measurementUnit: ingredient.measurementUnit,
-      caloriesPer100Grams: ingredient.caloriesPer100Grams, price: ingredient.price,
+      isCountable: ingredient.isCountable, measurementUnitsPerPiece: ingredient.measurementUnitsPerPiece,
+      caloriesPer100BaseUnits: ingredient.caloriesPer100BaseUnits,
+      pricePer100BaseUnits: ingredient.pricePer100BaseUnits,
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   cancelEdit(): void {
     this.editingId.set(null);
-    this.form.reset({ name: '', measurementUnit: 'g', caloriesPer100Grams: 0, price: 0 });
+    this.form.reset({ name: '', measurementUnit: 'g', isCountable: false, measurementUnitsPerPiece: null,
+      caloriesPer100BaseUnits: 0, pricePer100BaseUnits: 0 });
   }
 
   save(): void {
     if (this.form.invalid || this.isSaving()) { this.form.markAllAsTouched(); return; }
     this.isSaving.set(true);
     this.error.set(null);
-    const request = this.form.getRawValue() as IngredientRequest;
+    const value = this.form.getRawValue();
+    if (value.isCountable && !value.measurementUnitsPerPiece) {
+      this.form.controls.measurementUnitsPerPiece.setErrors({ required: true });
+      this.form.controls.measurementUnitsPerPiece.markAsTouched();
+      return;
+    }
+    const request = { ...value, measurementUnitsPerPiece: value.isCountable ? value.measurementUnitsPerPiece : null } as IngredientRequest;
     const id = this.editingId();
     const operation = id ? this.service.update(id, request) : this.service.create(request);
     operation.pipe(finalize(() => this.isSaving.set(false))).subscribe({

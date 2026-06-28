@@ -57,13 +57,19 @@ public sealed class IngredientsSeeder(
             if (!decimal.TryParse(parts[3], NumberStyles.Number, CultureInfo.InvariantCulture, out var price))
                 continue;
 
+            var name = parts[0].Trim();
+            var unit = parts[1].Trim().ToLowerInvariant();
+            if (unit == "piece") unit = "g";
+            var pieceSize = SeedIngredientDefaults.MeasurementUnitsPerPiece(name, unit);
             yield return new Ingredient
             {
                 Id = Guid.NewGuid(),
-                Name = parts[0].Trim(),
-                MeasurementUnit = parts[1].Trim(),
-                CaloriesPer100Grams = calories,
-                Price = price
+                Name = name,
+                MeasurementUnit = unit,
+                IsCountable = pieceSize.HasValue,
+                MeasurementUnitsPerPiece = pieceSize,
+                CaloriesPer100BaseUnits = calories,
+                PricePer100BaseUnits = price
             };
         }
     }

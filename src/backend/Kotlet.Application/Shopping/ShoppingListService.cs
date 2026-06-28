@@ -49,5 +49,6 @@ public sealed class ShoppingListService(IShoppingListRepository repository)
         ValidationErrors: new Dictionary<string, string[]> { ["quantity"] = ["Quantity must be greater than 0 and no more than 99999999.999."] });
     private static ShoppingListItemDto ToDto(ShoppingListItem item) => new(
         item.Id, item.IngredientId, item.Ingredient.Name, item.Ingredient.MeasurementUnit,
-        item.Quantity, item.Ingredient.Price, decimal.Round(item.Quantity * item.Ingredient.Price, 2), item.IsPurchased);
+        item.Quantity, item.Ingredient.PricePer100BaseUnits,
+        decimal.Round(item.Quantity / 100m * item.Ingredient.PricePer100BaseUnits, 2), item.IsPurchased);
 }

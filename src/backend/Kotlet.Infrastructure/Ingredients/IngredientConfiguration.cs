@@ -13,8 +13,10 @@ internal sealed class IngredientConfiguration : IEntityTypeConfiguration<Ingredi
         builder.Property(ingredient => ingredient.Id).HasColumnName("id");
         builder.Property(ingredient => ingredient.Name).HasColumnName("name").HasMaxLength(150).IsRequired();
         builder.Property(ingredient => ingredient.MeasurementUnit).HasColumnName("measurement_unit").HasMaxLength(30).IsRequired();
-        builder.Property(ingredient => ingredient.CaloriesPer100Grams).HasColumnName("calories_per_100_grams").HasPrecision(8, 2);
-        builder.Property(ingredient => ingredient.Price).HasColumnName("price").HasPrecision(10, 2);
+        builder.Property(ingredient => ingredient.IsCountable).HasColumnName("is_countable").IsRequired();
+        builder.Property(ingredient => ingredient.MeasurementUnitsPerPiece).HasColumnName("measurement_units_per_piece").HasPrecision(12, 3);
+        builder.Property(ingredient => ingredient.CaloriesPer100BaseUnits).HasColumnName("calories_per_100_base_units").HasPrecision(8, 2);
+        builder.Property(ingredient => ingredient.PricePer100BaseUnits).HasColumnName("price_per_100_base_units").HasPrecision(10, 2);
         builder.HasIndex(ingredient => ingredient.Name).IsUnique().HasDatabaseName("ux_ingredients_name");
     }
 }

@@ -30,6 +30,15 @@
     <div class="recipe-grid">
       @for (recipe of recipes(); track recipe.id) {
         <article class="recipe-card">
+          <details class="card-menu">
+            <summary class="card-menu-trigger" aria-label="Manage {{ recipe.title }}" title="Manage recipe">⋮</summary>
+            <div class="card-menu-dropdown">
+              <a [routerLink]="['/recipes', recipe.id, 'edit']">Edit</a>
+              <button type="button" class="delete-action" [disabled]="deletingId() === recipe.id" (click)="delete(recipe)">
+                {{ deletingId() === recipe.id ? 'Deleting…' : 'Delete' }}
+              </button>
+            </div>
+          </details>
           @if (imageUrls()[recipe.id]; as imageUrl) {
             <img class="recipe-image" [src]="imageUrl" [alt]="recipe.title" />
           }
@@ -37,12 +46,6 @@
             <h2>{{ recipe.title }}</h2>
             <p class="meta">{{ recipe.ingredientCount }} ingredient{{ recipe.ingredientCount !== 1 ? 's' : '' }}</p>
             <p class="updated">Updated {{ recipe.updatedAtUtc | date:'mediumDate' }}</p>
-          </div>
-          <div class="card-actions">
-            <a [routerLink]="['/recipes', recipe.id, 'edit']" class="button secondary small">Edit</a>
-            <button type="button" class="button danger small" [disabled]="deletingId() === recipe.id" (click)="delete(recipe)">
-              {{ deletingId() === recipe.id ? 'Deleting…' : 'Delete' }}
-            </button>
           </div>
         </article>
       }

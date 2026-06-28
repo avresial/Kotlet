@@ -6,7 +6,7 @@ import { finalize } from 'rxjs';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { getApiError } from '../../../../core/http/api-error';
-import { RecipeDetail } from '../../models/recipe.models';
+import { RecipeDetail, RecipeIngredient } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { ImageGallery } from '../../components/image-gallery/image-gallery';
 
@@ -36,6 +36,19 @@ export class RecipeDetailPage implements OnInit {
   });
 
   get id(): string { return this.route.snapshot.paramMap.get('id')!; }
+
+  displayQuantity(ingredient: RecipeIngredient): number {
+    return Number.isInteger(ingredient.quantity) ? ingredient.quantity : ingredient.normalizedQuantity;
+  }
+
+  displayUnit(ingredient: RecipeIngredient): string {
+    return Number.isInteger(ingredient.quantity) ? ingredient.unit : ingredient.normalizedUnit;
+  }
+
+  hasConvertedMeasurement(ingredient: RecipeIngredient): boolean {
+    return this.displayQuantity(ingredient) !== ingredient.normalizedQuantity
+      || this.displayUnit(ingredient) !== ingredient.normalizedUnit;
+  }
 
   ngOnInit(): void {
     this.service.get(this.id)

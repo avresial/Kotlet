@@ -102,7 +102,9 @@
       border-radius: 6px;
 
       .ing-name { font-weight: 500; }
+      .ing-measurement { display: inline-flex; flex-direction: column; }
       .ing-qty { color: var(--text-secondary, #555); font-size: 0.9rem; }
+      .ing-measurement small { color: var(--text-secondary, #888); font-size: 0.72rem; }
       .ing-note { color: var(--text-secondary, #888); font-size: 0.85rem; font-style: italic; }
     }
   }

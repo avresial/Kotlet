@@ -1,4 +1,7 @@
 using Kotlet.Application.Recipes;
+using Kotlet.Application.Ingredients;
+using Kotlet.Application.Measurements;
+using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.Recipes;
 using Xunit;
 
@@ -8,11 +11,14 @@ public sealed class RecipeServiceTests
 {
     private static readonly Guid OwnerId = Guid.NewGuid();
     private static readonly Guid OtherOwnerId = Guid.NewGuid();
+    private static readonly Ingredient Tomatoes = Ingredient("Tomatoes");
+    private static readonly Ingredient Garlic = Ingredient("Garlic");
+    private static readonly Ingredient Pasta = Ingredient("Pasta");
 
     private static CreateRecipeRequest ValidCreateRequest(string title = "Tomato Soup") =>
         new(title, "Simple **tomato soup**.", [
-            new("Tomatoes", 800, "g", "canned"),
-            new("Garlic", 2, "cloves", null)
+            new(Tomatoes.Id, 800, "g", "canned"),
+            new(Garlic.Id, 2, "g", null)
         ]);
 
     // ---- Slug generation ----
@@ -33,7 +39,7 @@ public sealed class RecipeServiceTests
     public async Task Create_WithValidData_PersistsAndReturnsRecipe()
     {
         var repo = new FakeRecipeRepository();
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var result = await service.CreateAsync(OwnerId, OwnerId, ValidCreateRequest(), CancellationToken.None);
 
@@ -49,7 +55,7 @@ public sealed class RecipeServiceTests
     public async Task Create_SetsOwnerUserId()
     {
         var repo = new FakeRecipeRepository();
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         await service.CreateAsync(OwnerId, OwnerId, ValidCreateRequest(), CancellationToken.None);
 
@@ -60,7 +66,7 @@ public sealed class RecipeServiceTests
     public async Task Create_WithEmptyTitle_ReturnsValidationFailed()
     {
         var repo = new FakeRecipeRepository();
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var result = await service.CreateAsync(OwnerId, OwnerId,
             new CreateRecipeRequest("", null, []), CancellationToken.None);
@@ -74,7 +80,7 @@ public sealed class RecipeServiceTests
     public async Task Create_WithTooLongTitle_ReturnsValidationFailed()
     {
         var repo = new FakeRecipeRepository();
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var result = await service.CreateAsync(OwnerId, OwnerId,
             new CreateRecipeRequest(new string('A', 161), null, []), CancellationToken.None);
@@ -87,10 +93,10 @@ public sealed class RecipeServiceTests
     public async Task Create_WithInvalidIngredient_ReturnsValidationFailed()
     {
         var repo = new FakeRecipeRepository();
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var result = await service.CreateAsync(OwnerId, OwnerId,
-            new CreateRecipeRequest("Soup", null, [new("", null, null, null)]), CancellationToken.None);
+            new CreateRecipeRequest("Soup", null, [new(Guid.Empty, 0, "", null)]), CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.ValidationFailed, result.Status);
         Assert.True(result.ValidationErrors!.ContainsKey("ingredients"));
@@ -100,10 +106,10 @@ public sealed class RecipeServiceTests
     public async Task Create_WithNegativeQuantity_ReturnsValidationFailed()
     {
         var repo = new FakeRecipeRepository();
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var result = await service.CreateAsync(OwnerId, OwnerId,
-            new CreateRecipeRequest("Soup", null, [new("Tomatoes", -1, "g", null)]), CancellationToken.None);
+            new CreateRecipeRequest("Soup", null, [new(Tomatoes.Id, -1, "g", null)]), CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.ValidationFailed, result.Status);
         Assert.True(result.ValidationErrors!.ContainsKey("ingredients"));
@@ -114,7 +120,7 @@ public sealed class RecipeServiceTests
     {
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(MakeRecipe("Tomato Soup", "tomato-soup", OwnerId));
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var result = await service.CreateAsync(OwnerId, OwnerId, ValidCreateRequest(), CancellationToken.None);
 
@@ -127,7 +133,7 @@ public sealed class RecipeServiceTests
     {
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(MakeRecipe("Tomato Soup", "tomato-soup", OtherOwnerId));
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var result = await service.CreateAsync(OwnerId, OwnerId, ValidCreateRequest(), CancellationToken.None);
 
@@ -143,7 +149,7 @@ public sealed class RecipeServiceTests
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(MakeRecipe("My Recipe", "my-recipe", OwnerId));
         repo.Recipes.Add(MakeRecipe("Other Recipe", "other-recipe", OtherOwnerId));
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var result = await service.ListAsync(OwnerId, 1, 20, null, CancellationToken.None);
 
@@ -160,7 +166,7 @@ public sealed class RecipeServiceTests
         var newer = MakeRecipe("Newer", "newer", OwnerId);
         repo.Recipes.AddRange([older, newer, MakeRecipe("Other", "other", OtherOwnerId)]);
 
-        var result = await new RecipeService(repo).ListRecentAsync(OwnerId, 1, CancellationToken.None);
+        var result = await CreateService(repo).ListRecentAsync(OwnerId, 1, CancellationToken.None);
 
         Assert.Single(result);
         Assert.Equal("Newer", result[0].Title);
@@ -174,7 +180,7 @@ public sealed class RecipeServiceTests
         var recipe = MakeRecipe("My Recipe", "my-recipe", OtherOwnerId);
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(recipe);
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var result = await service.GetByIdAsync(recipe.Id, OwnerId, CancellationToken.None);
 
@@ -187,7 +193,7 @@ public sealed class RecipeServiceTests
         var recipe = MakeRecipe("My Recipe", "my-recipe", OwnerId);
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(recipe);
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var result = await service.GetByIdAsync(recipe.Id, OwnerId, CancellationToken.None);
 
@@ -203,9 +209,9 @@ public sealed class RecipeServiceTests
         var recipe = MakeRecipe("Old Title", "old-title", OwnerId);
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(recipe);
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
-        var request = new UpdateRecipeRequest("New Title", "Updated desc", [new("Pasta", 200, "g", null)]);
+        var request = new UpdateRecipeRequest("New Title", "Updated desc", [new(Pasta.Id, 200, "g", null)]);
         var result = await service.UpdateAsync(recipe.Id, OwnerId, request, CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.Success, result.Status);
@@ -221,7 +227,7 @@ public sealed class RecipeServiceTests
         var recipe = MakeRecipe("Recipe", "recipe", OtherOwnerId);
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(recipe);
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var request = new UpdateRecipeRequest("New Title", null, []);
         var result = await service.UpdateAsync(recipe.Id, OwnerId, request, CancellationToken.None);
@@ -238,7 +244,7 @@ public sealed class RecipeServiceTests
         var recipe = MakeRecipe("Recipe", "recipe", OwnerId);
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(recipe);
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var status = await service.DeleteAsync(recipe.Id, OwnerId, CancellationToken.None);
 
@@ -253,7 +259,7 @@ public sealed class RecipeServiceTests
         var recipe = MakeRecipe("Recipe", "recipe", OtherOwnerId);
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(recipe);
-        var service = new RecipeService(repo);
+        var service = CreateService(repo);
 
         var status = await service.DeleteAsync(recipe.Id, OwnerId, CancellationToken.None);
 
@@ -271,6 +277,29 @@ public sealed class RecipeServiceTests
         CreatedAtUtc = DateTimeOffset.UtcNow,
         UpdatedAtUtc = DateTimeOffset.UtcNow,
     };
+
+    private static Ingredient Ingredient(string name) => new()
+    {
+        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g"
+    };
+
+    private static RecipeService CreateService(FakeRecipeRepository repository) =>
+        new(repository, new FakeIngredientRepository(Tomatoes, Garlic, Pasta), new MeasurementMappingService());
+
+    private sealed class FakeIngredientRepository(params Ingredient[] ingredients) : IIngredientRepository
+    {
+        public Task<IReadOnlyCollection<Ingredient>> GetAllAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyCollection<Ingredient>>(ingredients);
+        public Task<IReadOnlyDictionary<Guid, Ingredient>> GetByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, Ingredient>>(ingredients.Where(x => ids.Contains(x.Id)).ToDictionary(x => x.Id));
+        public Task<Ingredient?> GetByIdAsync(Guid id, bool tracked, CancellationToken cancellationToken) =>
+            Task.FromResult(ingredients.SingleOrDefault(x => x.Id == id));
+        public Task<bool> NameExistsAsync(string name, Guid? excludedId, CancellationToken cancellationToken) => Task.FromResult(false);
+        public Task<bool> IsInUseAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(false);
+        public void Add(Ingredient ingredient) => throw new NotSupportedException();
+        public void Remove(Ingredient ingredient) => throw new NotSupportedException();
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
 
     private sealed class FakeRecipeRepository : IRecipeRepository
     {

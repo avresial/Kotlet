@@ -279,14 +279,14 @@ export class MealPlannerPage implements OnInit {
   itemCost(item: MealPlanItem): number | null {
     if (item.type === 'ingredient') {
       const ingredient = this.ingredients().find((candidate) => candidate.id === item.ingredientId);
-      return ingredient?.price ?? null;
+      return ingredient ? ingredient.pricePer100BaseUnits / 100 : null;
     }
 
     const detail = item.recipeId ? this.recipeDetails()[item.recipeId] : undefined;
     if (!detail) return null;
     return detail.ingredients.reduce((total, recipeIngredient) => {
-      const ingredient = this.findIngredient(recipeIngredient.name);
-      return total + (ingredient ? ingredient.price * (recipeIngredient.quantity ?? 1) : 0);
+      const ingredient = this.ingredients().find((candidate) => candidate.id === recipeIngredient.ingredientId);
+      return total + (ingredient ? ingredient.pricePer100BaseUnits * recipeIngredient.normalizedQuantity / 100 : 0);
     }, 0);
   }
 
@@ -341,10 +341,10 @@ export class MealPlannerPage implements OnInit {
     const detail = item.recipeId ? this.recipeDetails()[item.recipeId] : undefined;
     const totals = new Map<string, { ingredient: Ingredient; quantity: number }>();
     for (const recipeIngredient of detail?.ingredients ?? []) {
-      const ingredient = this.findIngredient(recipeIngredient.name);
+      const ingredient = this.ingredients().find((candidate) => candidate.id === recipeIngredient.ingredientId);
       if (!ingredient) continue;
       const existing = totals.get(ingredient.id);
-      totals.set(ingredient.id, { ingredient, quantity: (existing?.quantity ?? 0) + (recipeIngredient.quantity ?? 1) });
+      totals.set(ingredient.id, { ingredient, quantity: (existing?.quantity ?? 0) + recipeIngredient.normalizedQuantity });
     }
     return [...totals.values()];
   }

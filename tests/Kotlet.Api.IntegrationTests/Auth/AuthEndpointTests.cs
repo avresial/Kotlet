@@ -239,7 +239,8 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
         var (owner, houseId) = await TestAuth.WithHomeAsync(_factory, "owner");
         var ingredient = await owner.PostAsJsonAsync("/api/ingredients", new
         {
-            name = $"Delete ingredient {Guid.NewGuid():N}", measurementUnit = "kg", caloriesPer100Grams = 10m, price = 1m
+            name = $"Delete ingredient {Guid.NewGuid():N}", measurementUnit = "g",
+            caloriesPer100BaseUnits = 10m, pricePer100BaseUnits = 1m
         });
         var ingredientId = (await ingredient.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         await owner.PostAsJsonAsync("/api/pantry", new { ingredientId, quantity = 2m });

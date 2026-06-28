@@ -25,8 +25,13 @@ export class RecipeForm implements OnInit {
   readonly isSaving = input(false);
   readonly error = input<string | null>(null);
   readonly submitLabel = input('Save recipe');
+  readonly showImagePicker = input(false);
   readonly submitted = output<CreateRecipeRequest>();
+  readonly imageSelected = output<File | null>();
   readonly cancelled = output<void>();
+
+  selectedImage: File | null = null;
+  imageError: string | null = null;
 
   readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(160)]],
@@ -41,6 +46,7 @@ export class RecipeForm implements OnInit {
         title: initial.title,
         descriptionMarkdown: initial.descriptionMarkdown ?? '',
         ingredients: initial.ingredients.map((i) => ({
+          ingredientId: i.ingredientId,
           name: i.name,
           quantity: i.quantity,
           unit: i.unit,
@@ -65,5 +71,33 @@ export class RecipeForm implements OnInit {
 
   cancel(): void {
     this.cancelled.emit();
+  }
+
+  chooseImage(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.imageError = null;
+
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      this.imageError = 'Choose a JPEG, PNG, or WebP image.';
+      input.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.imageError = 'Image cannot exceed 5 MB.';
+      input.value = '';
+      return;
+    }
+
+    this.selectedImage = file;
+    this.imageSelected.emit(file);
+  }
+
+  removeImage(input: HTMLInputElement): void {
+    input.value = '';
+    this.selectedImage = null;
+    this.imageError = null;
+    this.imageSelected.emit(null);
   }
 }

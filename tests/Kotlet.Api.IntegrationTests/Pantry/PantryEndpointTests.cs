@@ -54,7 +54,8 @@ public sealed class PantryEndpointTests(TestWebApplicationFactory factory) : ICl
     {
         var response = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name = $"Pantry ingredient {Guid.NewGuid():N}", measurementUnit = "kg", caloriesPer100Grams = 100m, price = 5m
+            name = $"Pantry ingredient {Guid.NewGuid():N}", measurementUnit = "g",
+            caloriesPer100BaseUnits = 100m, pricePer100BaseUnits = 5m
         });
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         return body.GetProperty("id").GetGuid();

@@ -34,9 +34,12 @@
           @for (ing of r.ingredients; track ing.id) {
             <li class="ingredient-item">
               <span class="ing-name">{{ ing.name }}</span>
-              @if (ing.quantity !== null) {
-                <span class="ing-qty">{{ ing.quantity }}{{ ing.unit ? ' ' + ing.unit : '' }}</span>
-              }
+              <span class="ing-measurement">
+                <span class="ing-qty">{{ displayQuantity(ing) }} {{ displayUnit(ing) }}</span>
+                @if (hasConvertedMeasurement(ing)) {
+                  <small>{{ ing.normalizedQuantity }} {{ ing.normalizedUnit }}</small>
+                }
+              </span>
               @if (ing.note) {
                 <span class="ing-note">({{ ing.note }})</span>
               }

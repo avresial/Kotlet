@@ -1,9 +1,16 @@
 using System.Text.RegularExpressions;
+using Kotlet.Application.Ingredients;
+using Kotlet.Application.Measurements;
+using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.Recipes;
 
 namespace Kotlet.Application.Recipes;
 
-public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepository? imageRepository = null)
+public sealed class RecipeService(
+    IRecipeRepository repository,
+    IIngredientRepository ingredientRepository,
+    MeasurementMappingService measurementMappingService,
+    IRecipeImageRepository? imageRepository = null)
 {
     private const int MaxIngredients = 100;
 
@@ -46,6 +53,10 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
+        var mappedIngredients = await MapIngredientsAsync(request.Ingredients, Guid.Empty, cancellationToken);
+        if (mappedIngredients.Errors.Count > 0)
+            return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: mappedIngredients.Errors);
+
         var title = request.Title.Trim();
         var baseSlug = GenerateSlug(title);
         if (baseSlug.Length == 0)
@@ -54,6 +65,7 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         var now = DateTimeOffset.UtcNow;
 
         var recipeId = Guid.NewGuid();
+        foreach (var ingredient in mappedIngredients.Items) ingredient.RecipeId = recipeId;
         var recipe = new Recipe
         {
             Id = recipeId,
@@ -64,11 +76,12 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
             DescriptionMarkdown = request.DescriptionMarkdown?.Trim(),
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
-            Ingredients = MapIngredients(request.Ingredients, recipeId)
+            Ingredients = mappedIngredients.Items
         };
 
         repository.Add(recipe);
         await repository.SaveChangesAsync(cancellationToken);
+        HydrateIngredientNavigation(mappedIngredients);
         return new(RecipeOperationStatus.Success, ToDetailResponse(recipe));
     }
 
@@ -78,6 +91,10 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
+
+        var mappedIngredients = await MapIngredientsAsync(request.Ingredients, id, cancellationToken);
+        if (mappedIngredients.Errors.Count > 0)
+            return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: mappedIngredients.Errors);
 
         var recipe = await repository.GetByIdAsync(id, houseId, tracked: true, cancellationToken);
         if (recipe is null)
@@ -95,9 +112,10 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         recipe.DescriptionMarkdown = request.DescriptionMarkdown?.Trim();
         recipe.UpdatedAtUtc = DateTimeOffset.UtcNow;
         recipe.Ingredients.Clear();
-        foreach (var ing in MapIngredients(request.Ingredients, id))
+        foreach (var ing in mappedIngredients.Items)
             recipe.Ingredients.Add(ing);
         await repository.SaveChangesAsync(cancellationToken);
+        HydrateIngredientNavigation(mappedIngredients);
         return new(RecipeOperationStatus.Success, ToDetailResponse(recipe));
     }
 
@@ -113,17 +131,51 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         return RecipeOperationStatus.Success;
     }
 
-    private static List<RecipeIngredient> MapIngredients(
-        IReadOnlyList<RecipeIngredientRequest> requests, Guid recipeId) =>
-        requests.Select((r, i) => new RecipeIngredient
+    private async Task<MappedIngredients> MapIngredientsAsync(
+        IReadOnlyList<RecipeIngredientRequest> requests, Guid recipeId, CancellationToken cancellationToken)
+    {
+        var ingredientIds = requests.Select(x => x.IngredientId).Distinct().ToArray();
+        var ingredients = await ingredientRepository.GetByIdsAsync(ingredientIds, cancellationToken);
+        var items = new List<RecipeIngredient>(requests.Count);
+        var errors = new List<string>();
+
+        for (var index = 0; index < requests.Count; index++)
         {
-            RecipeId = recipeId,
-            SortOrder = i,
-            Name = r.Name.Trim(),
-            Quantity = r.Quantity,
-            Unit = r.Unit?.Trim(),
-            Note = r.Note?.Trim()
-        }).ToList();
+            var request = requests[index];
+            if (!ingredients.TryGetValue(request.IngredientId, out var ingredient))
+            {
+                errors.Add($"Ingredient at position {index + 1}: ingredient does not exist.");
+                continue;
+            }
+
+            var normalized = measurementMappingService.Normalize(request.Quantity, request.Unit, ingredient);
+            if (normalized is null || normalized.Quantity > 999999999.999m)
+            {
+                errors.Add($"Ingredient at position {index + 1}: measurement is unsupported or exceeds the maximum quantity.");
+                continue;
+            }
+
+            items.Add(new RecipeIngredient
+            {
+                RecipeId = recipeId,
+                IngredientId = ingredient.Id,
+                SortOrder = index,
+                NormalizedQuantity = normalized.Quantity,
+                NormalizedUnit = normalized.Unit,
+                Note = request.Note?.Trim()
+            });
+        }
+
+        return new(items, ingredients, errors.Count == 0
+            ? new Dictionary<string, string[]>()
+            : new Dictionary<string, string[]> { ["ingredients"] = errors.ToArray() });
+    }
+
+    private static void HydrateIngredientNavigation(MappedIngredients mapped)
+    {
+        foreach (var item in mapped.Items)
+            item.Ingredient = mapped.Ingredients[item.IngredientId];
+    }
 
     private async Task<string> ResolveSlugAsync(
         Guid houseId, string baseSlug, Guid? excludedId, CancellationToken cancellationToken)
@@ -170,16 +222,14 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         for (var i = 0; i < ingredients.Count; i++)
         {
             var ing = ingredients[i];
-            if (string.IsNullOrWhiteSpace(ing.Name))
-                ingredientErrors.Add($"Ingredient at position {i + 1}: name is required.");
-            else if (ing.Name.Trim().Length > 200)
-                ingredientErrors.Add($"Ingredient at position {i + 1}: name cannot exceed 200 characters.");
+            if (ing.IngredientId == Guid.Empty)
+                ingredientErrors.Add($"Ingredient at position {i + 1}: ingredient is required.");
 
-            if (ing.Quantity.HasValue && ing.Quantity.Value <= 0)
+            if (ing.Quantity <= 0)
                 ingredientErrors.Add($"Ingredient at position {i + 1}: quantity must be positive.");
 
-            if (ing.Unit is not null && ing.Unit.Trim().Length > 40)
-                ingredientErrors.Add($"Ingredient at position {i + 1}: unit cannot exceed 40 characters.");
+            if (string.IsNullOrWhiteSpace(ing.Unit) || ing.Unit.Trim().Length > 40)
+                ingredientErrors.Add($"Ingredient at position {i + 1}: unit is required and cannot exceed 40 characters.");
 
             if (ing.Note is not null && ing.Note.Trim().Length > 300)
                 ingredientErrors.Add($"Ingredient at position {i + 1}: note cannot exceed 300 characters.");
@@ -190,11 +240,16 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         return errors;
     }
 
-    private static RecipeDetailResponse ToDetailResponse(Recipe recipe, IReadOnlyList<RecipeImageResponse>? images = null) =>
+    private RecipeDetailResponse ToDetailResponse(Recipe recipe, IReadOnlyList<RecipeImageResponse>? images = null) =>
         new(recipe.Id, recipe.Title, recipe.Slug, recipe.DescriptionMarkdown,
             recipe.Ingredients
                 .OrderBy(i => i.SortOrder)
-                .Select(i => new RecipeIngredientResponse(i.Id, i.SortOrder, i.Name, i.Quantity, i.Unit, i.Note))
+                .Select(i =>
+                {
+                    var display = measurementMappingService.ToDisplay(i.NormalizedQuantity, i.NormalizedUnit, i.Ingredient);
+                    return new RecipeIngredientResponse(i.Id, i.SortOrder, i.IngredientId, i.Ingredient.Name,
+                        display.Quantity, display.Unit, i.NormalizedQuantity, i.NormalizedUnit, i.Note);
+                })
                 .ToList(),
             images ?? [],
             recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
@@ -220,4 +275,9 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
     private static RecipeImageResponse ToImageResponse(RecipeImage i) => new(i.Id, i.RecipeId, i.FileName,
         i.ContentType, i.FileSizeBytes, i.AltText, i.SortOrder,
         $"/api/recipes/{i.RecipeId}/images/{i.Id}/content", i.CreatedAtUtc);
+
+    private sealed record MappedIngredients(
+        List<RecipeIngredient> Items,
+        IReadOnlyDictionary<Guid, Ingredient> Ingredients,
+        Dictionary<string, string[]> Errors);
 }

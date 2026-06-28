@@ -25,7 +25,8 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
 
         var create = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name, measurementUnit = "g", caloriesPer100Grams = 165.5m, price = 12.99m
+            name, measurementUnit = "g", isCountable = false, measurementUnitsPerPiece = (decimal?)null,
+            caloriesPer100BaseUnits = 165.5m, pricePer100BaseUnits = 12.99m
         });
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
         var created = await create.Content.ReadFromJsonAsync<JsonElement>();
@@ -36,11 +37,13 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
 
         var update = await client.PutAsJsonAsync($"/api/ingredients/{id}", new
         {
-            name = $"{name} updated", measurementUnit = "kg", caloriesPer100Grams = 170m, price = 15m
+            name = $"{name} updated", measurementUnit = "ml", isCountable = true, measurementUnitsPerPiece = 250m,
+            caloriesPer100BaseUnits = 170m, pricePer100BaseUnits = 15m
         });
         Assert.Equal(HttpStatusCode.OK, update.StatusCode);
         var updated = await update.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("kg", updated.GetProperty("measurementUnit").GetString());
+        Assert.Equal("ml", updated.GetProperty("measurementUnit").GetString());
+        Assert.True(updated.GetProperty("isCountable").GetBoolean());
 
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/ingredients/{id}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/ingredients/{id}")).StatusCode);
@@ -52,7 +55,8 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
         var client = await CreateAuthenticatedClient();
         var response = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name = "", measurementUnit = "bucket", caloriesPer100Grams = -1, price = -1
+            name = "", measurementUnit = "bucket", isCountable = true, measurementUnitsPerPiece = (decimal?)null,
+            caloriesPer100BaseUnits = -1, pricePer100BaseUnits = -1
         });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
