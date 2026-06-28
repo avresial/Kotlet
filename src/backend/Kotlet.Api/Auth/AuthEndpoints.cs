@@ -114,9 +114,13 @@ public static class AuthEndpoints
         var displayName = request.DisplayName?.Trim();
         if (displayName?.Length > 100)
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["displayName"] = ["Display name cannot exceed 100 characters."] });
+        var preferredLanguage = request.PreferredLanguage?.Trim().ToLowerInvariant();
+        if (preferredLanguage is not null and not ("en" or "pl"))
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["preferredLanguage"] = ["Preferred language must be 'en' or 'pl'."] });
         var user = await db.Users.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (user is null) return Results.Unauthorized();
         user.DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName;
+        user.PreferredLanguage = preferredLanguage;
         user.UpdatedAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return Results.Ok(ToResponse(user));
@@ -153,6 +157,6 @@ public static class AuthEndpoints
     private static IResult Unauthorized(TokenService tokens, HttpContext context, IWebHostEnvironment env) { tokens.ClearRefreshCookie(context.Response, IsSecure(env)); return Results.Unauthorized(); }
     private static async Task RevokeTokenFamily(Guid userId, KotletDbContext db, CancellationToken ct) { var active = await db.RefreshTokens.Where(x => x.UserId == userId && x.RevokedAtUtc == null).ToListAsync(ct); var now = DateTime.UtcNow; active.ForEach(x => x.RevokedAtUtc = now); await db.SaveChangesAsync(ct); }
     private static string NormalizeEmail(string email) => email.Trim().ToUpperInvariant();
-    private static CurrentUserResponse ToResponse(User user) => new(user.Id, user.Email, user.DisplayName, user.CreatedAtUtc, user.LastLoginAtUtc);
+    private static CurrentUserResponse ToResponse(User user) => new(user.Id, user.Email, user.DisplayName, user.PreferredLanguage, user.CreatedAtUtc, user.LastLoginAtUtc);
     private static Dictionary<string, string[]> ValidateRegistration(RegisterRequest r) { var e = new Dictionary<string, string[]>(); if (string.IsNullOrWhiteSpace(r.Email) || !System.Net.Mail.MailAddress.TryCreate(r.Email.Trim(), out _)) e["email"] = ["A valid email is required."]; if (string.IsNullOrWhiteSpace(r.Password) || r.Password.Length < 8) e["password"] = ["Password must be at least 8 characters long."]; if (r.Password != r.ConfirmPassword) e["confirmPassword"] = ["Passwords do not match."]; if (r.DisplayName?.Trim().Length > 100) e["displayName"] = ["Display name cannot exceed 100 characters."]; return e; }
 }
