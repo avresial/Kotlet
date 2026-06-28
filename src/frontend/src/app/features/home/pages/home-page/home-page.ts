@@ -13,7 +13,7 @@ import { ShoppingListService } from '../../../shopping-list/shopping-list.servic
 import { getApiError } from '../../../../core/http/api-error';
 import { RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
-import { DailyMealPlan, MealSlot } from '../../../meal-planner/models/meal-planner.models';
+import { DailyMealPlan, MealParticipant, MealSlot } from '../../../meal-planner/models/meal-planner.models';
 import { MealPlannerService } from '../../../meal-planner/services/meal-planner.service';
 import { HouseMember } from '../../home.models';
 import { HomeService } from '../../home.service';
@@ -25,6 +25,7 @@ interface TodaysMenuEntry {
   emoji: string;
   name: string;
   note: string | null;
+  participants: MealParticipant[];
 }
 
 @Component({
@@ -231,6 +232,13 @@ export class HomePage implements OnInit {
     return initials.toUpperCase();
   }
 
+  participantInitials(displayName: string): string {
+    const name = displayName.trim();
+    const parts = name.split(/\s+/).filter(Boolean);
+    const initials = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2);
+    return initials.toUpperCase();
+  }
+
   isOnShoppingList(ingredientId: string): boolean {
     return this.shoppingItems().some(item => item.ingredientId === ingredientId);
   }
@@ -240,7 +248,7 @@ export class HomePage implements OnInit {
     for (const slot of this.slotOrder) {
       const meta = this.slotMeta[slot];
       for (const item of plan.meals[slot] ?? []) {
-        entries.push({ id: item.id, recipeId: item.recipeId ?? null, time: meta.time, emoji: meta.emoji, name: item.displayName, note: item.note ?? null });
+        entries.push({ id: item.id, recipeId: item.recipeId ?? null, time: meta.time, emoji: meta.emoji, name: item.displayName, note: item.note ?? null, participants: item.participants ?? [] });
       }
     }
     return entries;

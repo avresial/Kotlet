@@ -41,6 +41,15 @@
                 <strong>{{ meal.name }}</strong>
                 @if (meal.note) { <p class="menu-note">{{ meal.note }}</p> }
               </div>
+              @if (meal.participants.length) {
+                <ul class="menu-people" aria-label="People eating {{ meal.name }}">
+                  @for (person of meal.participants; track person.userId) {
+                    <li class="menu-person" [class.is-me]="person.isCurrentUser" [attr.title]="person.displayName" [attr.aria-label]="person.displayName">
+                      {{ participantInitials(person.displayName) }}
+                    </li>
+                  }
+                </ul>
+              }
             </li>
           }
         </ul> }
