@@ -24,13 +24,14 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.False(string.IsNullOrWhiteSpace(body.GetProperty("accessToken").GetString()));
         var userId = body.GetProperty("user").GetProperty("id").GetGuid();
+        // New users start without a home: no membership, no default, hasHome=false.
+        Assert.False(body.GetProperty("user").GetProperty("hasHome").GetBoolean());
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<KotletDbContext>();
             var user = await db.Users.AsNoTracking().SingleAsync(item => item.Id == userId);
-            var house = await db.Houses.AsNoTracking().SingleAsync(item => item.Id == user.HouseId);
-            Assert.Equal(DefaultHouse.Id, user.HouseId);
-            Assert.Equal(DefaultHouse.Name, house.Name);
+            Assert.Null(user.DefaultHouseId);
+            Assert.False(await db.HouseMemberships.AsNoTracking().AnyAsync(m => m.UserId == userId));
         }
         var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"));
         Assert.Contains("kotlet_refresh=", cookie);
@@ -185,28 +186,81 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
     }
 
     [Fact]
-    public async Task House_RequiresAuthentication()
+    public async Task Houses_RequireAuthentication()
     {
         var client = _factory.CreateClient();
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/house")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/houses")).StatusCode);
     }
 
     [Fact]
-    public async Task House_ReturnsMembersOfCurrentUsersHouseWithCurrentUserFirst()
+    public async Task CreateHome_MakesUserAMemberAndActivatesIt()
     {
-        var client = _factory.CreateClient();
-        var email = await Authenticate(client);
+        var authed = await TestAuth.RegisterAsync(_factory, "cook");
+        var houseId = await TestAuth.CreateHomeAsync(authed.Client, "My Kitchen");
 
-        var house = await client.GetFromJsonAsync<JsonElement>("/api/auth/house");
+        var homes = await authed.Client.GetFromJsonAsync<JsonElement>("/api/houses");
+        var home = Assert.Single(homes.EnumerateArray());
+        Assert.Equal(houseId, home.GetProperty("id").GetGuid());
+        Assert.True(home.GetProperty("isActive").GetBoolean());
+        Assert.True(home.GetProperty("isDefault").GetBoolean());
 
-        Assert.Equal(DefaultHouse.Id, house.GetProperty("id").GetGuid());
-        Assert.Equal(DefaultHouse.Name, house.GetProperty("name").GetString());
-        var members = house.GetProperty("members").EnumerateArray().ToList();
-        Assert.NotEmpty(members);
-        var current = Assert.Single(members, member => member.GetProperty("email").GetString() == email);
+        var detail = await authed.Client.GetFromJsonAsync<JsonElement>($"/api/houses/{houseId}");
+        Assert.Equal("My Kitchen", detail.GetProperty("name").GetString());
+        var members = detail.GetProperty("members").EnumerateArray().ToList();
+        var current = Assert.Single(members, m => m.GetProperty("email").GetString() == authed.Email);
         Assert.True(current.GetProperty("isCurrentUser").GetBoolean());
-        Assert.True(members[0].GetProperty("isCurrentUser").GetBoolean());
-        Assert.Contains(members, member => member.GetProperty("email").GetString() == email);
+    }
+
+    [Fact]
+    public async Task InviteAccept_LetsAnotherUserJoinAndSeeTheHome()
+    {
+        var (owner, houseId) = await TestAuth.WithHomeAsync(_factory, "owner");
+        var member = await TestAuth.RegisterAsync(_factory, "joiner");
+        await TestAuth.JoinHomeAsync(owner, houseId, member);
+
+        var detail = await owner.GetFromJsonAsync<JsonElement>($"/api/houses/{houseId}");
+        Assert.Equal(2, detail.GetProperty("members").EnumerateArray().Count());
+
+        var memberHomes = await member.Client.GetFromJsonAsync<JsonElement>("/api/houses");
+        Assert.Contains(memberHomes.EnumerateArray(), h => h.GetProperty("id").GetGuid() == houseId);
+    }
+
+    [Fact]
+    public async Task Invite_RejectsUnknownEmail()
+    {
+        var (owner, houseId) = await TestAuth.WithHomeAsync(_factory, "owner");
+        var response = await owner.PostAsJsonAsync($"/api/houses/{houseId}/members", new { email = $"ghost-{Guid.NewGuid():N}@example.com" });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteHome_RemovesHouseDataButKeepsUsers()
+    {
+        var (owner, houseId) = await TestAuth.WithHomeAsync(_factory, "owner");
+        var ingredient = await owner.PostAsJsonAsync("/api/ingredients", new
+        {
+            name = $"Delete ingredient {Guid.NewGuid():N}", measurementUnit = "kg", caloriesPer100Grams = 10m, price = 1m
+        });
+        var ingredientId = (await ingredient.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        await owner.PostAsJsonAsync("/api/pantry", new { ingredientId, quantity = 2m });
+        var recipe = await owner.PostAsJsonAsync("/api/recipes", new
+        {
+            title = $"Doomed recipe {Guid.NewGuid():N}", descriptionMarkdown = (string?)null, ingredients = Array.Empty<object>()
+        });
+        var recipeId = (await recipe.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        await owner.PostAsJsonAsync("/api/meal-planner/items",
+            new { date = "2026-07-01", slot = "dinner", ingredientId });
+
+        var delete = await owner.DeleteAsync($"/api/houses/{houseId}");
+        Assert.Equal(HttpStatusCode.OK, delete.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<KotletDbContext>();
+        Assert.False(await db.Houses.AsNoTracking().AnyAsync(h => h.Id == houseId));
+        Assert.False(await db.PantryItems.AsNoTracking().AnyAsync(p => p.HouseId == houseId));
+        Assert.False(await db.Recipes.AsNoTracking().AnyAsync(r => r.Id == recipeId));
+        Assert.False(await db.MealPlanItems.AsNoTracking().AnyAsync(m => m.HouseId == houseId));
+        Assert.True(await db.Users.AsNoTracking().AnyAsync());
     }
 
     private static async Task<string> Authenticate(HttpClient client)

@@ -1,0 +1,51 @@
+<main class="setup-page">
+  <header>
+    <p class="eyebrow">{{ 'home.setup.eyebrow' | t }}</p>
+    <h1>{{ 'home.setup.title' | t }}</h1>
+    <p>{{ 'home.setup.intro' | t }}</p>
+  </header>
+
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+  <section class="card">
+    <h2>{{ 'home.setup.createTitle' | t }}</h2>
+    <p>{{ 'home.setup.createHelp' | t }}</p>
+    <form (ngSubmit)="create()">
+      <input
+        type="text"
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+        name="homeName"
+        [placeholder]="'home.setup.namePlaceholder' | t"
+        maxlength="150"
+        autocomplete="off" />
+      <button type="submit" [disabled]="!name().trim() || creating()">
+        {{ (creating() ? 'home.setup.creating' : 'home.setup.createButton') | t }}
+      </button>
+    </form>
+  </section>
+
+  @if (!invitationsLoading() && invitations().length) {
+    <section class="card">
+      <h2>{{ 'home.setup.invitationsTitle' | t }}</h2>
+      <ul class="invitations">
+        @for (invitation of invitations(); track invitation.id) {
+          <li>
+            <div>
+              <strong>{{ invitation.houseName }}</strong>
+              <span>{{ 'home.invite.from' | t }} {{ invitation.invitedByName }}</span>
+            </div>
+            <div class="actions">
+              <button type="button" class="primary" (click)="accept(invitation)" [disabled]="busyInvitationId() !== null">
+                {{ 'home.invite.accept' | t }}
+              </button>
+              <button type="button" class="ghost" (click)="decline(invitation)" [disabled]="busyInvitationId() !== null">
+                {{ 'home.invite.decline' | t }}
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</main>

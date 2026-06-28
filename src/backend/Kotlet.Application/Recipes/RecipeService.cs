@@ -57,6 +57,7 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         var recipe = new Recipe
         {
             Id = recipeId,
+            HouseId = houseId,
             OwnerUserId = ownerUserId,
             Title = title,
             Slug = slug,

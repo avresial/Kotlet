@@ -31,6 +31,16 @@
             <option value="pl">{{ 'settings.languagePolish' | t }}</option>
           </select>
         </label>
+        @if (homes().length) {
+          <label>
+            {{ 'settings.defaultHome' | t }}
+            <select formControlName="defaultHouseId">
+              @for (home of homes(); track home.id) {
+                <option [value]="home.id">{{ home.name }}</option>
+              }
+            </select>
+          </label>
+        }
         @if (profileError()) { <p-message severity="error" role="alert">{{ profileError() }}</p-message> }
         @if (profileSaved()) { <p-message severity="success" role="status">{{ 'settings.profileSaved' | t }}</p-message> }
         <p-button type="submit" [label]="'settings.saveProfile' | t" [loading]="profileSaving()" />

@@ -65,6 +65,7 @@ public sealed class ShoppingListEndpointTests(TestWebApplicationFactory factory)
         });
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());
+        await TestAuth.CreateHomeAsync(client);
         return client;
     }
 }

@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, OnInit, signal } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -12,6 +12,8 @@ import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { Language } from '../../../../core/i18n/language';
+import { HomeService } from '../../../home/home.service';
+import { HomeSummary } from '../../../home/home.models';
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   return control.get('newPassword')?.value === control.get('confirmPassword')?.value ? null : { passwordMismatch: true };
@@ -24,9 +26,12 @@ function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   styleUrl: './settings-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SettingsPage {
+export class SettingsPage implements OnInit {
   readonly auth = inject(AuthService);
   private readonly translations = inject(TranslationService);
+  private readonly homeService = inject(HomeService);
+
+  readonly homes = signal<HomeSummary[]>([]);
 
   readonly profileSaving = signal(false);
   readonly profileError = signal<string | null>(null);
@@ -39,6 +44,7 @@ export class SettingsPage {
   readonly profileForm = new FormGroup({
     displayName: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(100)] }),
     preferredLanguage: new FormControl<Language>('en', { nonNullable: true }),
+    defaultHouseId: new FormControl<string>('', { nonNullable: true }),
   });
 
   readonly passwordForm = new FormGroup(
@@ -56,7 +62,15 @@ export class SettingsPage {
       if (user) {
         this.profileForm.controls.displayName.setValue(user.displayName ?? '', { emitEvent: false });
         this.profileForm.controls.preferredLanguage.setValue(user.preferredLanguage ?? this.translations.language(), { emitEvent: false });
+        this.profileForm.controls.defaultHouseId.setValue(user.defaultHouseId ?? '', { emitEvent: false });
       }
+    });
+  }
+
+  ngOnInit(): void {
+    this.homeService.listHomes().subscribe({
+      next: (homes) => this.homes.set(homes),
+      error: () => this.homes.set([]),
     });
   }
 
@@ -71,7 +85,8 @@ export class SettingsPage {
     this.profileSaved.set(false);
     const displayName = this.profileForm.controls.displayName.value.trim();
     const preferredLanguage = this.profileForm.controls.preferredLanguage.value;
-    this.auth.updateProfile({ displayName: displayName.length > 0 ? displayName : null, preferredLanguage })
+    const defaultHouseId = this.profileForm.controls.defaultHouseId.value || null;
+    this.auth.updateProfile({ displayName: displayName.length > 0 ? displayName : null, preferredLanguage, defaultHouseId })
       .pipe(finalize(() => this.profileSaving.set(false)))
       .subscribe({
         next: () => {

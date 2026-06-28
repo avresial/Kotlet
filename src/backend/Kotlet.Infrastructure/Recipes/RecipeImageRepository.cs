@@ -9,7 +9,7 @@ internal sealed class RecipeImageRepository(KotletDbContext dbContext) : IRecipe
 {
     public Task<bool> RecipeExistsAsync(Guid recipeId, Guid houseId, CancellationToken ct) =>
         dbContext.Recipes.AnyAsync(
-            r => r.Id == recipeId && dbContext.Users.Any(u => u.Id == r.OwnerUserId && u.HouseId == houseId),
+            r => r.Id == recipeId && r.HouseId == houseId,
             ct);
     public Task<int> CountAsync(Guid recipeId, CancellationToken ct) =>
         dbContext.RecipeImages.CountAsync(i => i.RecipeId == recipeId, ct);

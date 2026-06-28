@@ -13,24 +13,28 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions, IOptions<AuthO
     private readonly JwtOptions _jwt = jwtOptions.Value;
     private readonly AuthOptions _auth = authOptions.Value;
 
-    public (string Token, DateTime ExpiresAtUtc) CreateAccessToken(User user)
+    public (string Token, DateTime ExpiresAtUtc) CreateAccessToken(User user, Guid? activeHouseId)
     {
         var now = DateTime.UtcNow;
         var expires = now.AddMinutes(_jwt.AccessTokenMinutes);
-        var token = new JwtSecurityToken(_jwt.Issuer, _jwt.Audience,
-            [new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()), new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(KotletClaimTypes.HouseId, user.HouseId.ToString())],
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Email, user.Email)
+        };
+        if (activeHouseId is { } houseId) claims.Add(new Claim(KotletClaimTypes.HouseId, houseId.ToString()));
+        var token = new JwtSecurityToken(_jwt.Issuer, _jwt.Audience, claims,
             now, expires, new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.SigningKey)), SecurityAlgorithms.HmacSha256));
         return (new JwtSecurityTokenHandler().WriteToken(token), expires);
     }
 
-    public (string RawToken, RefreshToken Entity) CreateRefreshToken(User user, HttpContext context)
+    public (string RawToken, RefreshToken Entity) CreateRefreshToken(User user, HttpContext context, Guid? activeHouseId)
     {
         var raw = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
         var now = DateTime.UtcNow;
         return (raw, new RefreshToken
         {
-            Id = Guid.NewGuid(), UserId = user.Id, TokenHash = Hash(raw), CreatedAtUtc = now,
+            Id = Guid.NewGuid(), UserId = user.Id, HouseId = activeHouseId, TokenHash = Hash(raw), CreatedAtUtc = now,
             ExpiresAtUtc = now.AddDays(_auth.RefreshTokenDays),
             CreatedByIp = context.Connection.RemoteIpAddress?.ToString(),
             UserAgent = context.Request.Headers.UserAgent.ToString() is { Length: > 0 } value ? value[..Math.Min(value.Length, 512)] : null
@@ -50,6 +54,8 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions, IOptions<AuthO
     private static CookieOptions CookieOptions(DateTime expires, bool secure) => new()
     {
         HttpOnly = true, Secure = secure, SameSite = secure ? SameSiteMode.None : SameSiteMode.Lax, Expires = expires,
-        Path = "/api/auth"
+        // Broadened from "/api/auth" so house switching (under /api/houses) can read and update the
+        // active-home pointer on the live refresh token, keeping a switch sticky across silent refreshes.
+        Path = "/"
     };
 }

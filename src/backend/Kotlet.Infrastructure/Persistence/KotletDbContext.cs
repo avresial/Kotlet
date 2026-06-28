@@ -19,6 +19,8 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<PantryItem> PantryItems => Set<PantryItem>();
     public DbSet<House> Houses => Set<House>();
+    public DbSet<HouseMembership> HouseMemberships => Set<HouseMembership>();
+    public DbSet<HouseInvitation> HouseInvitations => Set<HouseInvitation>();
     public DbSet<ShoppingListItem> ShoppingListItems => Set<ShoppingListItem>();
     public DbSet<Recipe> Recipes => Set<Recipe>();
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();

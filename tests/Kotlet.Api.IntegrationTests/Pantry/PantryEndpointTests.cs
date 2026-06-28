@@ -38,8 +38,7 @@ public sealed class PantryEndpointTests(TestWebApplicationFactory factory) : ICl
     [Fact]
     public async Task Pantry_IsSharedByUsersInTheSameHouse()
     {
-        var owner = await CreateAuthenticatedClient("owner");
-        var other = await CreateAuthenticatedClient("other");
+        var (owner, other, _) = await TestAuth.HouseholdAsync(factory, "pantry-house");
         var ingredientId = await CreateIngredient(owner);
         var response = await owner.PostAsJsonAsync("/api/pantry", new { ingredientId, quantity = 3m });
         var created = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -70,6 +69,7 @@ public sealed class PantryEndpointTests(TestWebApplicationFactory factory) : ICl
         });
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());
+        await TestAuth.CreateHomeAsync(client);
         return client;
     }
 }

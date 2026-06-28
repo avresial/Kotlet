@@ -5,6 +5,9 @@ export interface CurrentUser {
   preferredLanguage: 'en' | 'pl' | null;
   createdAtUtc: string;
   lastLoginAtUtc: string | null;
+  defaultHouseId: string | null;
+  activeHouseId: string | null;
+  hasHome: boolean;
 }
 
 export interface AuthResponse {
@@ -26,6 +29,7 @@ export interface RegisterRequest extends LoginRequest {
 export interface UpdateProfileRequest {
   displayName: string | null;
   preferredLanguage: 'en' | 'pl' | null;
+  defaultHouseId?: string | null;
 }
 
 export interface ChangePasswordRequest {

@@ -69,6 +69,18 @@ export class AuthService {
       .pipe(tap((user) => this.currentUserState.set(user)));
   }
 
+  /** Replaces the access token in use, e.g. after switching the active home. */
+  applyToken(accessToken: string): void {
+    this.accessTokenState.set(accessToken);
+  }
+
+  /** Re-fetches the current user so derived fields (active home, hasHome) stay in sync. */
+  reloadUser() {
+    return this.http
+      .get<CurrentUser>(apiUrl('/api/auth/me'), { withCredentials: true })
+      .pipe(tap((user) => this.currentUserState.set(user)));
+  }
+
   changePassword(request: ChangePasswordRequest) {
     return this.http.post<void>(apiUrl('/api/auth/password'), request, { withCredentials: true });
   }

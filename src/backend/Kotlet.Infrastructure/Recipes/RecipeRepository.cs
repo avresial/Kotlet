@@ -13,7 +13,7 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
         var query = dbContext.Recipes
             .AsNoTracking()
             .Include(r => r.Ingredients)
-            .Where(r => dbContext.Users.Any(u => u.Id == r.OwnerUserId && u.HouseId == houseId));
+            .Where(r => r.HouseId == houseId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -37,7 +37,7 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
         await dbContext.Recipes
             .AsNoTracking()
             .Include(r => r.Ingredients)
-            .Where(r => dbContext.Users.Any(u => u.Id == r.OwnerUserId && u.HouseId == houseId))
+            .Where(r => r.HouseId == houseId)
             .OrderByDescending(r => r.CreatedAtUtc)
             .ThenByDescending(r => r.Id)
             .Take(limit)
@@ -49,13 +49,13 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
             ? dbContext.Recipes.Include(r => r.Ingredients)
             : dbContext.Recipes.AsNoTracking().Include(r => r.Ingredients);
         return query.SingleOrDefaultAsync(
-            r => r.Id == id && dbContext.Users.Any(u => u.Id == r.OwnerUserId && u.HouseId == houseId),
+            r => r.Id == id && r.HouseId == houseId,
             cancellationToken);
     }
 
     public Task<bool> SlugExistsAsync(Guid houseId, string slug, Guid? excludedId, CancellationToken cancellationToken) =>
         dbContext.Recipes.AnyAsync(
-            r => dbContext.Users.Any(u => u.Id == r.OwnerUserId && u.HouseId == houseId)
+            r => r.HouseId == houseId
                 && r.Slug == slug && r.Id != excludedId,
             cancellationToken);
 

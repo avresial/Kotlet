@@ -68,6 +68,7 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
         });
         var body = await registration.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());
+        await TestAuth.CreateHomeAsync(client);
         return client;
     }
 }

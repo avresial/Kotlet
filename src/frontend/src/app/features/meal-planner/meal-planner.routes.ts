@@ -1,10 +1,10 @@
 import { Routes } from '@angular/router';
-import { authGuard } from '../../core/auth/auth.guard';
+import { homeGuard } from '../../core/home/home.guard';
 
 export const mealPlannerRoutes: Routes = [
   {
     path: 'meal-planner',
-    canActivate: [authGuard],
+    canActivate: [homeGuard],
     loadComponent: () =>
       import('./pages/meal-planner-page/meal-planner-page').then((m) => m.MealPlannerPage),
   },

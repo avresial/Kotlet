@@ -1,4 +1,3 @@
-using Kotlet.Domain.Auth;
 using Kotlet.Domain.Pantry;
 using Kotlet.Domain.Shopping;
 
@@ -8,7 +7,8 @@ public sealed class House
 {
     public Guid Id { get; set; }
     public required string Name { get; set; }
-    public ICollection<User> Users { get; set; } = [];
+    public ICollection<HouseMembership> Memberships { get; set; } = [];
+    public ICollection<HouseInvitation> Invitations { get; set; } = [];
     public ICollection<PantryItem> PantryItems { get; set; } = [];
     public ICollection<ShoppingListItem> ShoppingListItems { get; set; } = [];
 }

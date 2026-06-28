@@ -3,6 +3,7 @@ namespace Kotlet.Domain.MealPlanner;
 public sealed class MealPlanItem
 {
     public Guid Id { get; set; }
+    public Guid HouseId { get; set; }
     public Guid UserId { get; set; }
     public DateOnly Date { get; set; }
     public MealSlot Slot { get; set; }

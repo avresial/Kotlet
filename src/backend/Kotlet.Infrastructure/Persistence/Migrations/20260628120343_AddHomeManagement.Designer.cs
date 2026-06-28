@@ -3,6 +3,7 @@ using System;
 using Kotlet.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Kotlet.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(KotletDbContext))]
-    partial class KotletDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260628120343_AddHomeManagement")]
+    partial class AddHomeManagement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -282,10 +285,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(0)
                         .HasColumnName("guests");
 
-                    b.Property<Guid>("HouseId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("house_id");
-
                     b.Property<Guid?>("IngredientId")
                         .HasColumnType("uuid")
                         .HasColumnName("ingredient_id");
@@ -319,9 +318,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("HouseId", "Date")
-                        .HasDatabaseName("ix_meal_plan_items_house_date");
 
                     b.HasIndex("UserId", "Date")
                         .HasDatabaseName("ix_meal_plan_items_user_date");
@@ -399,10 +395,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description_markdown");
 
-                    b.Property<Guid>("HouseId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("house_id");
-
                     b.Property<Guid>("OwnerUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("owner_user_id");
@@ -424,9 +416,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnName("updated_at_utc");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("HouseId")
-                        .HasDatabaseName("ix_recipes_house_id");
 
                     b.HasIndex("OwnerUserId")
                         .HasDatabaseName("ix_recipes_owner_user_id");
@@ -659,15 +648,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Kotlet.Domain.MealPlanner.MealPlanItem", b =>
-                {
-                    b.HasOne("Kotlet.Domain.Houses.House", null)
-                        .WithMany()
-                        .HasForeignKey("HouseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Kotlet.Domain.MealPlanner.MealPlanItemParticipant", b =>
                 {
                     b.HasOne("Kotlet.Domain.MealPlanner.MealPlanItem", "MealPlanItem")
@@ -704,15 +684,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("House");
 
                     b.Navigation("Ingredient");
-                });
-
-            modelBuilder.Entity("Kotlet.Domain.Recipes.Recipe", b =>
-                {
-                    b.HasOne("Kotlet.Domain.Houses.House", null)
-                        .WithMany()
-                        .HasForeignKey("HouseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImage", b =>

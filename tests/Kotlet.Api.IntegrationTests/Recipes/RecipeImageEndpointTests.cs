@@ -47,8 +47,7 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
     [Fact]
     public async Task Images_AreSharedWithinHouseAndValidated()
     {
-        var owner = await AuthenticatedClient();
-        var other = await AuthenticatedClient();
+        var (owner, other, _) = await TestAuth.HouseholdAsync(factory, "images");
         var recipeId = await CreateRecipe(owner);
         var upload = await Upload(owner, recipeId, "photo.png", "image/png", [1], null);
         var imageId = (await upload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
@@ -92,6 +91,7 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
         var response = await client.PostAsJsonAsync("/api/auth/register", new { email = $"images-{Guid.NewGuid():N}@example.com", password = "Password1!", confirmPassword = "Password1!" });
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", json.GetProperty("accessToken").GetString());
+        await TestAuth.CreateHomeAsync(client);
         return client;
     }
 }

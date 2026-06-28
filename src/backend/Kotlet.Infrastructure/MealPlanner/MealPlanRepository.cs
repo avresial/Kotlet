@@ -12,7 +12,7 @@ internal sealed class MealPlanRepository(KotletDbContext dbContext) : IMealPlanR
         await dbContext.MealPlanItems
             .AsNoTracking()
             .Include(m => m.Participants)
-            .Where(m => m.Date == date && dbContext.Users.Any(u => u.Id == m.UserId && u.HouseId == houseId))
+            .Where(m => m.Date == date && m.HouseId == houseId)
             .OrderBy(m => m.Slot)
             .ThenBy(m => m.SortOrder)
             .ToListAsync(cancellationToken);
@@ -21,7 +21,7 @@ internal sealed class MealPlanRepository(KotletDbContext dbContext) : IMealPlanR
         dbContext.MealPlanItems
             .Include(m => m.Participants)
             .FirstOrDefaultAsync(
-                m => m.Id == id && dbContext.Users.Any(u => u.Id == m.UserId && u.HouseId == houseId),
+                m => m.Id == id && m.HouseId == houseId,
                 cancellationToken);
 
     public async Task<IReadOnlyList<MealPlanItem>> GetByDateRangeAsync(
@@ -29,16 +29,17 @@ internal sealed class MealPlanRepository(KotletDbContext dbContext) : IMealPlanR
         await dbContext.MealPlanItems
             .AsNoTracking()
             .Where(m => m.Date >= from && m.Date <= to &&
-                dbContext.Users.Any(u => u.Id == m.UserId && u.HouseId == houseId))
+                m.HouseId == houseId)
             .OrderBy(m => m.Date)
             .ThenBy(m => m.Slot)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<MealHouseMember>> GetHouseMembersAsync(
         Guid houseId, CancellationToken cancellationToken) =>
-        await dbContext.Users
+        await dbContext.HouseMemberships
             .AsNoTracking()
-            .Where(u => u.HouseId == houseId)
+            .Where(membership => membership.HouseId == houseId)
+            .Select(membership => membership.User)
             .OrderBy(u => u.DisplayName ?? u.Email)
             .Select(u => new MealHouseMember(u.Id, u.DisplayName ?? u.Email))
             .ToListAsync(cancellationToken);

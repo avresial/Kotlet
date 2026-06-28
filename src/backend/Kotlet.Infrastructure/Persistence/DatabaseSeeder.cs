@@ -20,6 +20,9 @@ public sealed class DatabaseSeeder(
 
     public async Task SeedAsync(CancellationToken cancellationToken)
     {
+        var hasDefaultHouse = await dbContext.Houses.AnyAsync(house => house.Id == DefaultHouse.Id, cancellationToken);
+        var createDefaultHouse = false;
+
         foreach (var seedUser in Users)
         {
             var normalizedEmail = seedUser.Email.ToUpperInvariant();
@@ -30,7 +33,7 @@ public sealed class DatabaseSeeder(
             var user = new User
             {
                 Id = Guid.NewGuid(),
-                HouseId = DefaultHouse.Id,
+                DefaultHouseId = DefaultHouse.Id,
                 Email = seedUser.Email,
                 NormalizedEmail = normalizedEmail,
                 PasswordHash = string.Empty,
@@ -40,7 +43,12 @@ public sealed class DatabaseSeeder(
             };
             user.PasswordHash = passwordHasher.HashPassword(user, seedUser.Password);
             dbContext.Users.Add(user);
+            dbContext.HouseMemberships.Add(new HouseMembership { UserId = user.Id, HouseId = DefaultHouse.Id, JoinedAtUtc = now });
+            createDefaultHouse = true;
         }
+
+        if (createDefaultHouse && !hasDefaultHouse)
+            dbContext.Houses.Add(new House { Id = DefaultHouse.Id, Name = DefaultHouse.Name });
 
         var createdUserCount = await dbContext.SaveChangesAsync(cancellationToken);
         var createdIngredientCount = await ingredientSeeder.SeedAsync(cancellationToken);

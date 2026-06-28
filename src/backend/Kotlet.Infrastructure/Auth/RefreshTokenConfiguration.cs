@@ -12,6 +12,7 @@ internal sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refre
         builder.HasKey(token => token.Id);
         builder.Property(token => token.Id).HasColumnName("id");
         builder.Property(token => token.UserId).HasColumnName("user_id");
+        builder.Property(token => token.HouseId).HasColumnName("house_id");
         builder.Property(token => token.TokenHash).HasColumnName("token_hash").HasMaxLength(64).IsRequired();
         builder.Property(token => token.CreatedAtUtc).HasColumnName("created_at_utc").HasColumnType("timestamp with time zone");
         builder.Property(token => token.ExpiresAtUtc).HasColumnName("expires_at_utc").HasColumnType("timestamp with time zone");
