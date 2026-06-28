@@ -13,9 +13,8 @@ if (databaseProvider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
 }
 else if (databaseProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
 {
-    var postgres = builder.AddPostgres("postgres").WithDataVolume();
-    var database = postgres.AddDatabase("kotletdb");
-    api.WithReference(database).WaitFor(database);
+    var database = builder.AddConnectionString("kotletdb");
+    api.WithReference(database); 
 }
 else
 {
