@@ -48,10 +48,13 @@
             }
           </div>
           <app-language-switcher />
-          <a role="menuitem" routerLink="/home" (click)="closeDrawer()">
-            <span aria-hidden="true">⌂</span>{{ 'nav.home' | t }}
-            @if (invitationCount() > 0) { <span class="invite-badge">{{ invitationCount() }}</span> }
-          </a>
+          @if (invitations().length) {
+            <button role="menuitem" type="button" (click)="openInviteInbox()">
+              <span aria-hidden="true">✉</span>{{ 'home.invite.inboxTitle' | t }}
+              <span class="invite-badge">{{ invitations().length }}</span>
+            </button>
+          }
+          <a role="menuitem" routerLink="/home" (click)="closeDrawer()"><span aria-hidden="true">⌂</span>{{ 'nav.home' | t }}</a>
           <a role="menuitem" routerLink="/settings" (click)="closeDrawer()"><span aria-hidden="true">⚙</span>{{ 'nav.settings' | t }}</a>
           <a role="menuitem" routerLink="/admin" (click)="closeDrawer()"><span aria-hidden="true">♜</span>{{ 'nav.admin' | t }}</a>
           <button role="menuitem" type="button" (click)="logout()" [disabled]="isLoggingOut()">
@@ -71,4 +74,9 @@
       <a class="account-link create-link" routerLink="/register">{{ 'auth.register.submit' | t }}</a>
     </nav>
   </header>
+}
+
+@if (isInviteModalOpen()) {
+  <app-invitation-inbox [invitations]="invitations()"
+    (joined)="invitationHandled($event, true)" (rejected)="invitationHandled($event, false)" (closed)="closeInviteInbox()" />
 }
