@@ -1,6 +1,12 @@
 export type MealSlot = 'breakfast' | 'dinner' | 'supper';
 export type MealPlanItemType = 'recipe' | 'ingredient';
 
+export interface MealParticipant {
+  userId: string;
+  displayName: string;
+  isCurrentUser: boolean;
+}
+
 export interface MealPlanItem {
   id: string;
   slot: MealSlot;
@@ -10,6 +16,9 @@ export interface MealPlanItem {
   displayName: string;
   note?: string | null;
   sortOrder: number;
+  participants: MealParticipant[];
+  servings: number;
+  servingsOverridden: boolean;
 }
 
 export interface DailyMealPlan {
@@ -23,4 +32,17 @@ export interface AddMealPlanItemRequest {
   recipeId?: string | null;
   ingredientId?: string | null;
   note?: string | null;
+}
+
+export interface HouseMember {
+  userId: string;
+  displayName: string;
+}
+
+export interface SetParticipantsRequest {
+  userIds: string[];
+}
+
+export interface SetServingsRequest {
+  servings: number | null;
 }

@@ -10,15 +10,17 @@ public sealed class MealPlannerService(
     IIngredientRepository ingredientRepository)
 {
     private static readonly HashSet<string> ValidSlots = ["breakfast", "dinner", "supper"];
+    private const int MaxServings = 99;
 
     public async Task<DailyMealPlanResponse> GetForDateAsync(
-        Guid userId, DateOnly date, CancellationToken cancellationToken)
+        Guid userId, Guid houseId, DateOnly date, CancellationToken cancellationToken)
     {
+        var members = await GetMemberNamesAsync(houseId, cancellationToken);
         var items = await repository.GetByDateAsync(userId, date, cancellationToken);
         var responses = new List<MealPlanItemResponse>();
         foreach (var item in items)
         {
-            var response = await ToResponseAsync(item, userId, cancellationToken);
+            var response = await ToResponseAsync(item, userId, members, cancellationToken);
             responses.Add(response);
         }
 
@@ -32,8 +34,12 @@ public sealed class MealPlannerService(
             });
     }
 
+    public async Task<IReadOnlyList<MealHouseMember>> GetHouseMembersAsync(
+        Guid houseId, CancellationToken cancellationToken) =>
+        await repository.GetHouseMembersAsync(houseId, cancellationToken);
+
     public async Task<MealPlannerOperationResult> AddItemAsync(
-        Guid userId, AddMealPlanItemRequest request, CancellationToken cancellationToken)
+        Guid userId, Guid houseId, AddMealPlanItemRequest request, CancellationToken cancellationToken)
     {
         var errors = await ValidateAddAsync(userId, request, cancellationToken);
         if (errors.Count > 0)
@@ -60,7 +66,8 @@ public sealed class MealPlannerService(
         repository.Add(item);
         await repository.SaveChangesAsync(cancellationToken);
 
-        var response = await ToResponseAsync(item, userId, cancellationToken);
+        var members = await GetMemberNamesAsync(houseId, cancellationToken);
+        var response = await ToResponseAsync(item, userId, members, cancellationToken);
         return new(MealPlannerOperationStatus.Success, response);
     }
 
@@ -73,6 +80,66 @@ public sealed class MealPlannerService(
         repository.Remove(item);
         await repository.SaveChangesAsync(cancellationToken);
         return MealPlannerOperationStatus.Success;
+    }
+
+    /// <summary>
+    /// Replaces the set of people assigned to a meal. Passing the full list of house
+    /// member ids implements the "add whole house" action; passing a subset removes the
+    /// omitted members. All ids must belong to the current user's house.
+    /// </summary>
+    public async Task<MealPlannerOperationResult> SetParticipantsAsync(
+        Guid userId, Guid houseId, Guid itemId, IReadOnlyList<Guid> userIds, CancellationToken cancellationToken)
+    {
+        var item = await repository.GetByIdAsync(itemId, userId, cancellationToken);
+        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+
+        var members = await GetMemberNamesAsync(houseId, cancellationToken);
+        var desired = userIds.Distinct().ToHashSet();
+
+        var unknown = desired.Where(id => !members.ContainsKey(id)).ToList();
+        if (unknown.Count > 0)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
+            {
+                ["userIds"] = ["One or more selected people are not members of your house."]
+            });
+
+        foreach (var participant in item.Participants.Where(p => !desired.Contains(p.UserId)).ToList())
+            item.Participants.Remove(participant);
+
+        var current = item.Participants.Select(p => p.UserId).ToHashSet();
+        foreach (var id in desired.Where(id => !current.Contains(id)))
+            item.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = item.Id, UserId = id });
+
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        await repository.SaveChangesAsync(cancellationToken);
+
+        var response = await ToResponseAsync(item, userId, members, cancellationToken);
+        return new(MealPlannerOperationStatus.Success, response);
+    }
+
+    /// <summary>
+    /// Sets an explicit serving count for a meal, or clears it (null) so the count is
+    /// derived from the number of assigned participants.
+    /// </summary>
+    public async Task<MealPlannerOperationResult> SetServingsAsync(
+        Guid userId, Guid houseId, Guid itemId, int? servings, CancellationToken cancellationToken)
+    {
+        if (servings is < 0 or > MaxServings)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
+            {
+                ["servings"] = [$"Servings must be between 0 and {MaxServings}."]
+            });
+
+        var item = await repository.GetByIdAsync(itemId, userId, cancellationToken);
+        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+
+        item.Servings = servings;
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        await repository.SaveChangesAsync(cancellationToken);
+
+        var members = await GetMemberNamesAsync(houseId, cancellationToken);
+        var response = await ToResponseAsync(item, userId, members, cancellationToken);
+        return new(MealPlannerOperationStatus.Success, response);
     }
 
     private async Task<Dictionary<string, string[]>> ValidateAddAsync(
@@ -104,8 +171,14 @@ public sealed class MealPlannerService(
         return errors;
     }
 
+    private async Task<Dictionary<Guid, string>> GetMemberNamesAsync(Guid houseId, CancellationToken cancellationToken)
+    {
+        var members = await repository.GetHouseMembersAsync(houseId, cancellationToken);
+        return members.ToDictionary(m => m.UserId, m => m.DisplayName);
+    }
+
     private async Task<MealPlanItemResponse> ToResponseAsync(
-        MealPlanItem item, Guid userId, CancellationToken cancellationToken)
+        MealPlanItem item, Guid userId, IReadOnlyDictionary<Guid, string> memberNames, CancellationToken cancellationToken)
     {
         string displayName;
         string type;
@@ -123,6 +196,15 @@ public sealed class MealPlannerService(
             type = "ingredient";
         }
 
+        var participants = item.Participants
+            .Select(p => new MealParticipantResponse(
+                p.UserId,
+                memberNames.TryGetValue(p.UserId, out var name) ? name : "Unknown",
+                p.UserId == userId))
+            .OrderByDescending(p => p.IsCurrentUser)
+            .ThenBy(p => p.DisplayName)
+            .ToList();
+
         return new MealPlanItemResponse(
             item.Id,
             SlotToString(item.Slot),
@@ -131,7 +213,10 @@ public sealed class MealPlannerService(
             item.IngredientId,
             displayName,
             item.Note,
-            item.SortOrder);
+            item.SortOrder,
+            participants,
+            item.EffectiveServings,
+            item.Servings.HasValue);
     }
 
     private static MealSlot ParseSlot(string slot) => slot.ToLower() switch

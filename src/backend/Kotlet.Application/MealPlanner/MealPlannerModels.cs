@@ -7,6 +7,15 @@ public sealed record AddMealPlanItemRequest(
     Guid? IngredientId,
     string? Note);
 
+public sealed record SetParticipantsRequest(IReadOnlyList<Guid> UserIds);
+
+public sealed record SetServingsRequest(int? Servings);
+
+public sealed record MealParticipantResponse(
+    Guid UserId,
+    string DisplayName,
+    bool IsCurrentUser);
+
 public sealed record MealPlanItemResponse(
     Guid Id,
     string Slot,
@@ -15,11 +24,17 @@ public sealed record MealPlanItemResponse(
     Guid? IngredientId,
     string DisplayName,
     string? Note,
-    int SortOrder);
+    int SortOrder,
+    IReadOnlyList<MealParticipantResponse> Participants,
+    int Servings,
+    bool ServingsOverridden);
 
 public sealed record DailyMealPlanResponse(
     string Date,
     IReadOnlyDictionary<string, IReadOnlyList<MealPlanItemResponse>> Meals);
+
+/// <summary>A member of the current user's house, available to assign to meals.</summary>
+public sealed record MealHouseMember(Guid UserId, string DisplayName);
 
 public enum MealPlannerOperationStatus
 {

@@ -32,19 +32,98 @@
           <ul class="item-list" aria-label="{{ slotLabels[slot] }} items">
             @for (item of itemsForSlot(slot); track item.id) {
               <li class="meal-item">
-                <span class="item-type">{{ item.type === 'recipe' ? '▤' : '◉' }}</span>
-                <span class="item-name">{{ item.displayName }}</span>
-                @if (item.note) {
-                  <span class="item-note">{{ item.note }}</span>
-                }
-                <button
-                  type="button"
-                  class="button danger small"
-                  [disabled]="removingId() === item.id"
-                  (click)="removeItem(item)"
-                >
-                  {{ removingId() === item.id ? '…' : '✕' }}
-                </button>
+                <div class="meal-item-header">
+                  <span class="item-type">{{ item.type === 'recipe' ? '▤' : '◉' }}</span>
+                  <span class="item-name">{{ item.displayName }}</span>
+                  @if (item.note) {
+                    <span class="item-note">{{ item.note }}</span>
+                  }
+                  <button
+                    type="button"
+                    class="button danger small"
+                    [disabled]="removingId() === item.id"
+                    (click)="removeItem(item)"
+                  >
+                    {{ removingId() === item.id ? '…' : '✕' }}
+                  </button>
+                </div>
+
+                <div class="meal-item-details">
+                  <div class="people">
+                    @if (item.participants.length) {
+                      <ul class="chips" aria-label="People eating {{ item.displayName }}">
+                        @for (person of item.participants; track person.userId) {
+                          <li class="chip" [class.is-me]="person.isCurrentUser">
+                            <span>{{ person.displayName }}</span>
+                            <button
+                              type="button"
+                              class="chip-remove"
+                              aria-label="Remove {{ person.displayName }}"
+                              [disabled]="busyItemId() === item.id"
+                              (click)="removeParticipant(item, person.userId)"
+                            >✕</button>
+                          </li>
+                        }
+                      </ul>
+                    } @else {
+                      <span class="no-people">No one assigned yet</span>
+                    }
+
+                    <div class="people-actions">
+                      @if (availableMembers(item).length) {
+                        <select
+                          aria-label="Add a person to {{ item.displayName }}"
+                          [disabled]="busyItemId() === item.id"
+                          [ngModel]="''"
+                          (ngModelChange)="addParticipant(item, $event)"
+                        >
+                          <option value="">+ Add person</option>
+                          @for (member of availableMembers(item); track member.userId) {
+                            <option [value]="member.userId">{{ member.displayName }}</option>
+                          }
+                        </select>
+                      }
+                      <button
+                        type="button"
+                        class="button secondary small"
+                        [disabled]="busyItemId() === item.id || isHouseFull(item) || !members().length"
+                        (click)="addHouse(item)"
+                      >🏠 Add whole house</button>
+                      @if (item.participants.length) {
+                        <button
+                          type="button"
+                          class="button danger small"
+                          [disabled]="busyItemId() === item.id"
+                          (click)="clearParticipants(item)"
+                        >Clear</button>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="servings">
+                    <label for="servings-{{ item.id }}">Serves</label>
+                    <input
+                      id="servings-{{ item.id }}"
+                      type="number"
+                      min="0"
+                      max="99"
+                      [value]="item.servings"
+                      [disabled]="busyItemId() === item.id"
+                      (change)="onServingsInput(item, $any($event.target).value)"
+                    />
+                    @if (item.servingsOverridden) {
+                      <button
+                        type="button"
+                        class="link-button"
+                        [disabled]="busyItemId() === item.id"
+                        (click)="resetServings(item)"
+                        title="Use the number of assigned people"
+                      >auto</button>
+                    } @else {
+                      <span class="servings-hint">from {{ item.participants.length }} {{ item.participants.length === 1 ? 'person' : 'people' }}</span>
+                    }
+                  </div>
+                </div>
               </li>
             } @empty {
               <li class="empty-slot">No items yet.</li>

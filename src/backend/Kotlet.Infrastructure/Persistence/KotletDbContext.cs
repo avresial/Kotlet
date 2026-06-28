@@ -24,6 +24,7 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<RecipeImage> RecipeImages => Set<RecipeImage>();
     public DbSet<MealPlanItem> MealPlanItems => Set<MealPlanItem>();
+    public DbSet<MealPlanItemParticipant> MealPlanItemParticipants => Set<MealPlanItemParticipant>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
