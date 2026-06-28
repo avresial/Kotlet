@@ -8,11 +8,11 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
     private const int MaxIngredients = 100;
 
     public async Task<PagedResponse<RecipeSummaryResponse>> ListAsync(
-        Guid ownerUserId, int page, int pageSize, string? search, CancellationToken cancellationToken)
+        Guid houseId, int page, int pageSize, string? search, CancellationToken cancellationToken)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
-        var (items, total) = await repository.GetPagedAsync(ownerUserId, page, pageSize, search, cancellationToken);
+        var (items, total) = await repository.GetPagedAsync(houseId, page, pageSize, search, cancellationToken);
         var firstImageIds = await GetFirstImageIdsAsync(items.Select(r => r.Id).ToList(), cancellationToken);
         return new PagedResponse<RecipeSummaryResponse>(
             items.Select(r => ToSummaryResponse(r, firstImageIds)).ToList(),
@@ -20,18 +20,18 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
     }
 
     public async Task<IReadOnlyList<RecipeSummaryResponse>> ListRecentAsync(
-        Guid ownerUserId, int limit, CancellationToken cancellationToken)
+        Guid houseId, int limit, CancellationToken cancellationToken)
     {
         limit = Math.Clamp(limit, 1, 20);
-        var recipes = await repository.GetRecentAsync(ownerUserId, limit, cancellationToken);
+        var recipes = await repository.GetRecentAsync(houseId, limit, cancellationToken);
         var firstImageIds = await GetFirstImageIdsAsync(recipes.Select(r => r.Id).ToList(), cancellationToken);
         return recipes.Select(r => ToSummaryResponse(r, firstImageIds)).ToList();
     }
 
     public async Task<RecipeDetailResponse?> GetByIdAsync(
-        Guid id, Guid ownerUserId, CancellationToken cancellationToken)
+        Guid id, Guid houseId, CancellationToken cancellationToken)
     {
-        var recipe = await repository.GetByIdAsync(id, ownerUserId, tracked: false, cancellationToken);
+        var recipe = await repository.GetByIdAsync(id, houseId, tracked: false, cancellationToken);
         if (recipe is null) return null;
         var images = imageRepository is null
             ? []
@@ -40,7 +40,7 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
     }
 
     public async Task<RecipeOperationResult> CreateAsync(
-        Guid ownerUserId, CreateRecipeRequest request, CancellationToken cancellationToken)
+        Guid ownerUserId, Guid houseId, CreateRecipeRequest request, CancellationToken cancellationToken)
     {
         var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients);
         if (errors.Count > 0)
@@ -50,7 +50,7 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         var baseSlug = GenerateSlug(title);
         if (baseSlug.Length == 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]> { ["title"] = ["Title must contain at least one letter or digit."] });
-        var slug = await ResolveSlugAsync(ownerUserId, baseSlug, null, cancellationToken);
+        var slug = await ResolveSlugAsync(houseId, baseSlug, null, cancellationToken);
         var now = DateTimeOffset.UtcNow;
 
         var recipeId = Guid.NewGuid();
@@ -72,13 +72,13 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
     }
 
     public async Task<RecipeOperationResult> UpdateAsync(
-        Guid id, Guid ownerUserId, UpdateRecipeRequest request, CancellationToken cancellationToken)
+        Guid id, Guid houseId, UpdateRecipeRequest request, CancellationToken cancellationToken)
     {
         var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
-        var recipe = await repository.GetByIdAsync(id, ownerUserId, tracked: true, cancellationToken);
+        var recipe = await repository.GetByIdAsync(id, houseId, tracked: true, cancellationToken);
         if (recipe is null)
             return new(RecipeOperationStatus.NotFound);
 
@@ -87,7 +87,7 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         if (newSlug.Length == 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]> { ["title"] = ["Title must contain at least one letter or digit."] });
         if (newSlug != recipe.Slug)
-            newSlug = await ResolveSlugAsync(ownerUserId, newSlug, id, cancellationToken);
+            newSlug = await ResolveSlugAsync(houseId, newSlug, id, cancellationToken);
 
         recipe.Title = title;
         recipe.Slug = newSlug;
@@ -101,9 +101,9 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
     }
 
     public async Task<RecipeOperationStatus> DeleteAsync(
-        Guid id, Guid ownerUserId, CancellationToken cancellationToken)
+        Guid id, Guid houseId, CancellationToken cancellationToken)
     {
-        var recipe = await repository.GetByIdAsync(id, ownerUserId, tracked: true, cancellationToken);
+        var recipe = await repository.GetByIdAsync(id, houseId, tracked: true, cancellationToken);
         if (recipe is null)
             return RecipeOperationStatus.NotFound;
 
@@ -125,15 +125,15 @@ public sealed class RecipeService(IRecipeRepository repository, IRecipeImageRepo
         }).ToList();
 
     private async Task<string> ResolveSlugAsync(
-        Guid ownerUserId, string baseSlug, Guid? excludedId, CancellationToken cancellationToken)
+        Guid houseId, string baseSlug, Guid? excludedId, CancellationToken cancellationToken)
     {
-        if (!await repository.SlugExistsAsync(ownerUserId, baseSlug, excludedId, cancellationToken))
+        if (!await repository.SlugExistsAsync(houseId, baseSlug, excludedId, cancellationToken))
             return baseSlug;
 
         for (var i = 2; i <= 1000; i++)
         {
             var candidate = $"{baseSlug}-{i}";
-            if (!await repository.SlugExistsAsync(ownerUserId, candidate, excludedId, cancellationToken))
+            if (!await repository.SlugExistsAsync(houseId, candidate, excludedId, cancellationToken))
                 return candidate;
         }
         return $"{baseSlug}-{Guid.NewGuid():N}";

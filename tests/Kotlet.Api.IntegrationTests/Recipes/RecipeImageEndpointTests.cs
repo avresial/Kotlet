@@ -45,7 +45,7 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
     }
 
     [Fact]
-    public async Task Images_ArePrivateAndValidated()
+    public async Task Images_AreSharedWithinHouseAndValidated()
     {
         var owner = await AuthenticatedClient();
         var other = await AuthenticatedClient();
@@ -53,8 +53,8 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
         var upload = await Upload(owner, recipeId, "photo.png", "image/png", [1], null);
         var imageId = (await upload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
-        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/recipes/{recipeId}/images")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/recipes/{recipeId}/images/{imageId}/content")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await other.GetAsync($"/api/recipes/{recipeId}/images")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await other.GetAsync($"/api/recipes/{recipeId}/images/{imageId}/content")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await Upload(owner, recipeId, "bad.gif", "image/gif", [1], null)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await Upload(owner, recipeId, "empty.png", "image/png", [], null)).StatusCode);
     }

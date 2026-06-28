@@ -114,7 +114,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
     }
 
     [Fact]
-    public async Task Get_Returns404_ForOtherUsersRecipe()
+    public async Task HouseMember_CanViewAnotherMembersRecipe()
     {
         var client1 = await CreateAuthenticatedClient();
         var client2 = await CreateAuthenticatedClient();
@@ -125,11 +125,11 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         });
         var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
-        Assert.Equal(HttpStatusCode.NotFound, (await client2.GetAsync($"/api/recipes/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client2.GetAsync($"/api/recipes/{id}")).StatusCode);
     }
 
     [Fact]
-    public async Task Update_Returns404_ForOtherUsersRecipe()
+    public async Task HouseMember_CanUpdateAnotherMembersRecipe()
     {
         var client1 = await CreateAuthenticatedClient();
         var client2 = await CreateAuthenticatedClient();
@@ -144,11 +144,11 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         {
             title = "Hacked Title", descriptionMarkdown = (string?)null, ingredients = Array.Empty<object>()
         });
-        Assert.Equal(HttpStatusCode.NotFound, update.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, update.StatusCode);
     }
 
     [Fact]
-    public async Task Delete_Returns404_ForOtherUsersRecipe()
+    public async Task HouseMember_CanDeleteAnotherMembersRecipe()
     {
         var client1 = await CreateAuthenticatedClient();
         var client2 = await CreateAuthenticatedClient();
@@ -159,11 +159,11 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         });
         var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
-        Assert.Equal(HttpStatusCode.NotFound, (await client2.DeleteAsync($"/api/recipes/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client2.DeleteAsync($"/api/recipes/{id}")).StatusCode);
     }
 
     [Fact]
-    public async Task List_ReturnsOnlyCurrentUsersRecipes()
+    public async Task List_IncludesRecipesFromHouseMembers()
     {
         var client1 = await CreateAuthenticatedClient();
         var client2 = await CreateAuthenticatedClient();
@@ -173,7 +173,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
 
         var list = await client2.GetFromJsonAsync<JsonElement>("/api/recipes");
         var items = list.GetProperty("items").EnumerateArray().ToList();
-        Assert.DoesNotContain(items, r => r.GetProperty("title").GetString() == uniqueTitle);
+        Assert.Contains(items, r => r.GetProperty("title").GetString() == uniqueTitle);
     }
 
     private async Task<HttpClient> CreateAuthenticatedClient()

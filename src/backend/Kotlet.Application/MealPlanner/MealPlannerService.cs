@@ -16,11 +16,11 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, DateOnly date, CancellationToken cancellationToken)
     {
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
-        var items = await repository.GetByDateAsync(userId, date, cancellationToken);
+        var items = await repository.GetByDateAsync(houseId, date, cancellationToken);
         var responses = new List<MealPlanItemResponse>();
         foreach (var item in items)
         {
-            var response = await ToResponseAsync(item, userId, members, cancellationToken);
+            var response = await ToResponseAsync(item, userId, houseId, members, cancellationToken);
             responses.Add(response);
         }
 
@@ -41,12 +41,12 @@ public sealed class MealPlannerService(
     public async Task<MealPlannerOperationResult> AddItemAsync(
         Guid userId, Guid houseId, AddMealPlanItemRequest request, CancellationToken cancellationToken)
     {
-        var errors = await ValidateAddAsync(userId, request, cancellationToken);
+        var errors = await ValidateAddAsync(houseId, request, cancellationToken);
         if (errors.Count > 0)
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: errors);
 
         var slot = ParseSlot(request.Slot);
-        var existingCount = (await repository.GetByDateAsync(userId, request.Date, cancellationToken))
+        var existingCount = (await repository.GetByDateAsync(houseId, request.Date, cancellationToken))
             .Count(i => i.Slot == slot);
 
         var item = new MealPlanItem
@@ -67,14 +67,14 @@ public sealed class MealPlannerService(
         await repository.SaveChangesAsync(cancellationToken);
 
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
-        var response = await ToResponseAsync(item, userId, members, cancellationToken);
+        var response = await ToResponseAsync(item, userId, houseId, members, cancellationToken);
         return new(MealPlannerOperationStatus.Success, response);
     }
 
     public async Task<MealPlannerOperationStatus> RemoveItemAsync(
-        Guid userId, Guid itemId, CancellationToken cancellationToken)
+        Guid houseId, Guid itemId, CancellationToken cancellationToken)
     {
-        var item = await repository.GetByIdAsync(itemId, userId, cancellationToken);
+        var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
         if (item is null) return MealPlannerOperationStatus.NotFound;
 
         repository.Remove(item);
@@ -90,7 +90,7 @@ public sealed class MealPlannerService(
     public async Task<MealPlannerOperationResult> SetParticipantsAsync(
         Guid userId, Guid houseId, Guid itemId, IReadOnlyList<Guid> userIds, CancellationToken cancellationToken)
     {
-        var item = await repository.GetByIdAsync(itemId, userId, cancellationToken);
+        var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
         if (item is null) return new(MealPlannerOperationStatus.NotFound);
 
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
@@ -113,7 +113,7 @@ public sealed class MealPlannerService(
         item.UpdatedAt = DateTimeOffset.UtcNow;
         await repository.SaveChangesAsync(cancellationToken);
 
-        var response = await ToResponseAsync(item, userId, members, cancellationToken);
+        var response = await ToResponseAsync(item, userId, houseId, members, cancellationToken);
         return new(MealPlannerOperationStatus.Success, response);
     }
 
@@ -130,7 +130,7 @@ public sealed class MealPlannerService(
                 ["servings"] = [$"Servings must be between 0 and {MaxServings}."]
             });
 
-        var item = await repository.GetByIdAsync(itemId, userId, cancellationToken);
+        var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
         if (item is null) return new(MealPlannerOperationStatus.NotFound);
 
         item.Servings = servings;
@@ -138,12 +138,12 @@ public sealed class MealPlannerService(
         await repository.SaveChangesAsync(cancellationToken);
 
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
-        var response = await ToResponseAsync(item, userId, members, cancellationToken);
+        var response = await ToResponseAsync(item, userId, houseId, members, cancellationToken);
         return new(MealPlannerOperationStatus.Success, response);
     }
 
     private async Task<Dictionary<string, string[]>> ValidateAddAsync(
-        Guid userId, AddMealPlanItemRequest request, CancellationToken cancellationToken)
+        Guid houseId, AddMealPlanItemRequest request, CancellationToken cancellationToken)
     {
         var errors = new Dictionary<string, string[]>();
 
@@ -159,7 +159,7 @@ public sealed class MealPlannerService(
             errors["item"] = ["Only one of recipeId or ingredientId may be provided."];
         else if (hasRecipe)
         {
-            var recipe = await recipeRepository.GetByIdAsync(request.RecipeId!.Value, userId, tracked: false, cancellationToken);
+            var recipe = await recipeRepository.GetByIdAsync(request.RecipeId!.Value, houseId, tracked: false, cancellationToken);
             if (recipe is null) errors["recipeId"] = ["Recipe not found."];
         }
         else
@@ -178,14 +178,14 @@ public sealed class MealPlannerService(
     }
 
     private async Task<MealPlanItemResponse> ToResponseAsync(
-        MealPlanItem item, Guid userId, IReadOnlyDictionary<Guid, string> memberNames, CancellationToken cancellationToken)
+        MealPlanItem item, Guid userId, Guid houseId, IReadOnlyDictionary<Guid, string> memberNames, CancellationToken cancellationToken)
     {
         string displayName;
         string type;
 
         if (item.RecipeId.HasValue)
         {
-            var recipe = await recipeRepository.GetByIdAsync(item.RecipeId.Value, userId, tracked: false, cancellationToken);
+            var recipe = await recipeRepository.GetByIdAsync(item.RecipeId.Value, houseId, tracked: false, cancellationToken);
             displayName = recipe?.Title ?? "Unknown recipe";
             type = "recipe";
         }

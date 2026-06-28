@@ -8,19 +8,21 @@ namespace Kotlet.Infrastructure.MealPlanner;
 internal sealed class MealPlanRepository(KotletDbContext dbContext) : IMealPlanRepository
 {
     public async Task<IReadOnlyList<MealPlanItem>> GetByDateAsync(
-        Guid userId, DateOnly date, CancellationToken cancellationToken) =>
+        Guid houseId, DateOnly date, CancellationToken cancellationToken) =>
         await dbContext.MealPlanItems
             .AsNoTracking()
             .Include(m => m.Participants)
-            .Where(m => m.UserId == userId && m.Date == date)
+            .Where(m => m.Date == date && dbContext.Users.Any(u => u.Id == m.UserId && u.HouseId == houseId))
             .OrderBy(m => m.Slot)
             .ThenBy(m => m.SortOrder)
             .ToListAsync(cancellationToken);
 
-    public Task<MealPlanItem?> GetByIdAsync(Guid id, Guid userId, CancellationToken cancellationToken) =>
+    public Task<MealPlanItem?> GetByIdAsync(Guid id, Guid houseId, CancellationToken cancellationToken) =>
         dbContext.MealPlanItems
             .Include(m => m.Participants)
-            .FirstOrDefaultAsync(m => m.Id == id && m.UserId == userId, cancellationToken);
+            .FirstOrDefaultAsync(
+                m => m.Id == id && dbContext.Users.Any(u => u.Id == m.UserId && u.HouseId == houseId),
+                cancellationToken);
 
     public async Task<IReadOnlyList<MealHouseMember>> GetHouseMembersAsync(
         Guid houseId, CancellationToken cancellationToken) =>

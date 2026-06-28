@@ -63,8 +63,8 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
-        return await service.RemoveItemAsync(userId, id, cancellationToken) is MealPlannerOperationStatus.Success
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        return await service.RemoveItemAsync(houseId, id, cancellationToken) is MealPlannerOperationStatus.Success
             ? Results.NoContent()
             : Results.NotFound();
     }
