@@ -1,4 +1,4 @@
-<div class="language-switcher" role="group" aria-label="Language">
+<div class="language-switcher" role="group" [attr.aria-label]="'common.language' | t">
   <button type="button" [class.active]="translations.language() === 'en'" [attr.aria-pressed]="translations.language() === 'en'" (click)="select('en')">EN</button>
   <button type="button" [class.active]="translations.language() === 'pl'" [attr.aria-pressed]="translations.language() === 'pl'" (click)="select('pl')">PL</button>
 </div>
