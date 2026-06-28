@@ -214,6 +214,11 @@
     gap: 8px;
     flex-wrap: wrap;
 
+    app-ingredient-picker {
+      flex: 1;
+      min-width: 180px;
+    }
+
     select {
       flex: 1;
       min-width: 180px;

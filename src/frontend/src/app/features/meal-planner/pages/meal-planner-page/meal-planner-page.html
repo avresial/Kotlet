@@ -155,17 +155,13 @@
               </div>
 
               <div class="add-row">
-                <select
+                <app-ingredient-picker
+                  [ingredients]="ingredients()"
                   [ngModel]="selectedIngredientId()[slot]"
                   (ngModelChange)="setSelectedIngredientId(slot, $event)"
                   [disabled]="isAdding('ingredient', slot)"
-                  aria-label="Select ingredient for {{ slotLabels[slot] }}"
-                >
-                  <option value="">— pick an ingredient —</option>
-                  @for (ingredient of ingredients(); track ingredient.id) {
-                    <option [value]="ingredient.id">{{ ingredient.name }}</option>
-                  }
-                </select>
+                  [ariaLabel]="'Select ingredient for ' + slotLabels[slot]"
+                />
                 <button
                   type="button"
                   class="button secondary small"

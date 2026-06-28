@@ -100,10 +100,7 @@
           <span [style.width.%]="shoppingProgress()"></span>
         </div>
         <form class="shopping-add" (ngSubmit)="addToShoppingList()">
-          <select name="ingredient" aria-label="Ingredient" [ngModel]="selectedIngredientId()" (ngModelChange)="selectedIngredientId.set($event)" required>
-            <option value="">Add ingredient…</option>
-            @for (ingredient of availableIngredients(); track ingredient.id) { <option [value]="ingredient.id">{{ ingredient.name }}</option> }
-          </select>
+          <app-ingredient-picker name="ingredient" [ingredients]="availableIngredients()" placeholder="Add ingredient…" [ngModel]="selectedIngredientId()" (ngModelChange)="selectedIngredientId.set($event)" />
           <input name="quantity" aria-label="Quantity" type="number" min="0.001" step="0.001" [ngModel]="newQuantity()" (ngModelChange)="newQuantity.set($event)" />
           <button type="submit" [disabled]="shoppingSaving() || !selectedIngredientId()">＋</button>
         </form>
