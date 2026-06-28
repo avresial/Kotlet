@@ -1,4 +1,13 @@
-@if (images().length === 0) {
+@if (immersive()) {
+  <section class="immersive-gallery" aria-label="Recipe cover image">
+    @if (images().length > 0 && urls()[images()[0].id]; as url) {
+      <img class="immersive-cover" [src]="url" [alt]="images()[0].altText || images()[0].fileName">
+    } @else {
+      <div class="immersive-empty" aria-hidden="true"><span>♨</span></div>
+    }
+    <ng-content></ng-content>
+  </section>
+} @else if (images().length === 0) {
   <div class="gallery-empty">No recipe images yet.</div>
 } @else {
   <section class="gallery" aria-label="Recipe images">

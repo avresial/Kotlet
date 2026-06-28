@@ -1,59 +1,72 @@
 <main class="recipe-detail-page">
-  <a class="back" routerLink="/recipes">← Back to recipes</a>
-
   @if (isLoading()) {
     <p class="loading">Loading recipe…</p>
   } @else if (error() && !recipe()) {
-    <div class="error" role="alert">{{ error() }}</div>
-    <a routerLink="/recipes" class="button secondary">Back to recipes</a>
+    <div class="load-error">
+      <div class="error" role="alert">{{ error() }}</div>
+      <a routerLink="/recipes" class="button secondary">Back to recipes</a>
+    </div>
   } @else if (recipe(); as r) {
-    <header>
-      <div class="title-row">
-        <h1>{{ r.title }}</h1>
-        <details class="actions-menu">
-          <summary class="actions-trigger" aria-label="Recipe actions" title="Recipe actions">⋮</summary>
-          <div class="actions-dropdown">
-            <a [routerLink]="['/recipes', r.id, 'edit']">Edit</a>
-            <button type="button" class="delete-action" [disabled]="isDeleting()" (click)="delete()">
-              {{ isDeleting() ? 'Deleting…' : 'Delete' }}
-            </button>
-          </div>
-        </details>
-      </div>
-      <p class="meta">{{ r.servings }} serving{{ r.servings !== 1 ? 's' : '' }} · {{ r.ingredients.length }} ingredient{{ r.ingredients.length !== 1 ? 's' : '' }} · Updated {{ r.updatedAtUtc | date:'mediumDate' }}</p>
-    </header>
+    <article class="recipe-card">
+      <app-image-gallery [images]="r.images" [immersive]="true">
+        <a class="back" routerLink="/recipes">← <span>Recipes</span></a>
+        <div class="hero-actions">
+          <a class="edit-action" [routerLink]="['/recipes', r.id, 'edit']"><span aria-hidden="true">✎</span> Edit</a>
+          <details class="actions-menu">
+            <summary class="actions-trigger" aria-label="Recipe actions" title="Recipe actions">⋮</summary>
+            <div class="actions-dropdown">
+              <button type="button" class="delete-action" [disabled]="isDeleting()" (click)="delete()">
+                {{ isDeleting() ? 'Deleting…' : 'Delete recipe' }}
+              </button>
+            </div>
+          </details>
+        </div>
+        <header class="hero-copy">
+          <p class="eyebrow">Recipe · {{ r.servings }} serving{{ r.servings !== 1 ? 's' : '' }}</p>
+          <h1>{{ r.title }}</h1>
+          <p class="meta">
+            <span>♧ {{ r.ingredients.length }} ingredient{{ r.ingredients.length !== 1 ? 's' : '' }}</span>
+            <span aria-hidden="true">·</span>
+            <span>◷ Updated {{ r.updatedAtUtc | date:'mediumDate' }}</span>
+          </p>
+        </header>
+      </app-image-gallery>
 
-    @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
+      <div class="content-card">
+        @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
-    <app-image-gallery [images]="r.images"></app-image-gallery>
-
-    @if (r.ingredients.length > 0) {
-      <section class="ingredients-section">
-        <h2>Ingredients</h2>
+        @if (r.ingredients.length > 0) {
+          <section class="ingredients-section">
+            <h2>Ingredients</h2>
         <ul class="ingredient-list">
           @for (ing of r.ingredients; track ing.id) {
             <li class="ingredient-item">
-              <span class="ing-name">{{ ing.name }}</span>
+              <span class="ingredient-copy">
+                <span class="ing-name">{{ ing.name }}</span>
+                @if (ing.note) { <span class="ing-note">{{ ing.note }}</span> }
+              </span>
               <span class="ing-measurement">
                 <span class="ing-qty">{{ displayQuantity(ing) }} {{ displayUnit(ing) }}</span>
                 @if (hasConvertedMeasurement(ing)) {
                   <small>{{ ing.normalizedQuantity }} {{ ing.normalizedUnit }}</small>
                 }
               </span>
-              @if (ing.note) {
-                <span class="ing-note">({{ ing.note }})</span>
-              }
             </li>
           }
         </ul>
-      </section>
-    }
+          </section>
+        }
 
-    @if (r.descriptionMarkdown) {
-      <section class="description-section">
-        <h2>Description</h2>
-        <div class="markdown-body" [innerHTML]="descriptionHtml()"></div>
-      </section>
-    }
+        @if (r.descriptionMarkdown) {
+          <section class="description-section">
+            <h2>Method</h2>
+            <div class="markdown-panel">
+              <p class="preview-label"><span aria-hidden="true">Aa</span> Recipe notes</p>
+              <div class="markdown-body" [innerHTML]="descriptionHtml()"></div>
+            </div>
+          </section>
+        }
+      </div>
+    </article>
   }
 </main>
