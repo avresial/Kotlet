@@ -92,6 +92,15 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 .add-low { padding: .3rem .5rem; border: 1px solid #c9ad91; border-radius: .35rem; color: #8e392b; background: transparent; font-size: .72rem; font-weight: 700; cursor: pointer; }
 .add-low:disabled { color: #8f877d; border-color: #d8d0c5; cursor: default; }
 
+/* Useless fact */
+.fact-card { grid-column: 1 / -1; background: linear-gradient(135deg, #fffaf2, #f4ead9); }
+.fact-card blockquote { margin: 1.5rem 0 .75rem; font-family: Georgia, serif; font-size: clamp(1.25rem, 2.5vw, 1.7rem); line-height: 1.45; }
+.fact-card blockquote::before { content: '“'; color: #b96554; }
+.fact-card blockquote::after { content: '”'; color: #b96554; }
+.fact-refresh { padding: .4rem 0; border: 0; color: #8e392b; background: transparent; font: inherit; font-size: .75rem; font-weight: 750; cursor: pointer; }
+.fact-refresh:disabled { color: #aaa095; cursor: default; }
+.fact-source { color: #746d63; font-size: .75rem; }
+
 @media (max-width: 52rem) { .dashboard { padding: 2rem 1.25rem; } .card-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 38rem) { .welcome { align-items: flex-start; flex-direction: column; } .primary-action { display: none; } .card-heading { display: block; } .status { display: inline-block; margin-top: .8rem; } }
 @media (max-width: 30rem) { .shopping-item { grid-template-columns: auto 1fr 3.4rem auto; } .shopping-price { grid-column: 2 / 4; text-align: left; } .ingredient-item { grid-template-columns: auto 1fr auto; } .ingredient-item > span:nth-of-type(3) { display: none; } }
