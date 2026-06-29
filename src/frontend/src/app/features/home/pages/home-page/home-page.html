@@ -176,6 +176,22 @@
           }
         </ul> }
       </article>
+
+      <article class="card fact-card" aria-labelledby="fact-title">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">Useless fact</p>
+            <h2 id="fact-title">Something you didn’t need to know</h2>
+          </div>
+          <button class="fact-refresh" type="button" [disabled]="factLoading()" (click)="loadFact()">Another one ↻</button>
+        </div>
+        @if (factLoading()) { <p class="recipe-state">Finding a fact…</p> }
+        @else if (factError()) { <p class="recipe-state error" role="alert">Unable to load a useless fact.</p> }
+        @else if (uselessFact(); as fact) {
+          <blockquote>{{ fact.text }}</blockquote>
+          <a class="fact-source" [href]="fact.source_url" target="_blank" rel="noopener noreferrer">Source: {{ fact.source }}</a>
+        }
+      </article>
     </section>
   </main>
 </div>

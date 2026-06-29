@@ -7,12 +7,13 @@ import { apiUrl } from '../http/api-url';
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
   const token = auth.accessToken();
+  const isApiRequest = request.url.startsWith(apiUrl('/api/'));
   const isAuthEndpoint = request.url.startsWith(apiUrl('/api/auth/'));
-  const authenticated = token ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : request;
+  const authenticated = token && isApiRequest ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : request;
 
   return next(authenticated).pipe(
     catchError((error: unknown) => {
-      if (!(error instanceof HttpErrorResponse) || error.status !== 401 || isAuthEndpoint) {
+      if (!(error instanceof HttpErrorResponse) || error.status !== 401 || !isApiRequest || isAuthEndpoint) {
         return throwError(() => error);
       }
       return auth.refresh().pipe(

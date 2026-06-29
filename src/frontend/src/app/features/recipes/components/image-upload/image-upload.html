@@ -1,6 +1,15 @@
 <div class="upload">
-  <label>Image <input type="file" accept="image/jpeg,image/png,image/webp" (change)="choose($event)"></label>
-  <label>Alt text <input type="text" maxlength="300" [value]="altText" (input)="altText = $any($event.target).value"></label>
+  <div class="file-picker">
+    <label class="file-button">
+      <input type="file" accept="image/jpeg,image/png,image/webp" (change)="choose($event)">
+      Choose image
+    </label>
+    <span class="file-name">{{ file?.name || 'JPEG, PNG or WebP · max 5 MB' }}</span>
+  </div>
+  <label class="field">
+    <span>Alt text <small>Optional</small></span>
+    <input type="text" maxlength="300" placeholder="Describe the image for accessibility" [value]="altText" (input)="altText = $any($event.target).value">
+  </label>
   @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
   <button type="button" [disabled]="!file" (click)="submit()">Upload image</button>
 </div>

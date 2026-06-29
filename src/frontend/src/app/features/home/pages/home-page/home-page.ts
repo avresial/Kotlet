@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -29,6 +30,8 @@ interface TodaysMenuEntry {
   participants: MealParticipant[];
 }
 
+interface UselessFact { text: string; source: string; source_url: string; }
+
 @Component({
   selector: 'app-home-page',
   imports: [RouterLink, FormsModule, IngredientPicker],
@@ -38,6 +41,7 @@ interface TodaysMenuEntry {
 })
 export class HomePage implements OnInit {
   readonly auth = inject(AuthService);
+  private readonly http = inject(HttpClient);
   private readonly pantryService = inject(PantryService);
   private readonly ingredientService = inject(IngredientService);
   private readonly shoppingListService = inject(ShoppingListService);
@@ -85,6 +89,9 @@ export class HomePage implements OnInit {
   readonly houseMembers = signal<HouseMember[]>([]);
   readonly houseLoading = signal(true);
   readonly houseError = signal(false);
+  readonly uselessFact = signal<UselessFact | null>(null);
+  readonly factLoading = signal(true);
+  readonly factError = signal(false);
 
   private readonly slotMeta: Record<MealSlot, { time: string; emoji: string }> = {
     breakfast: { time: 'BREAKFAST', emoji: '🍳' },
@@ -132,6 +139,15 @@ export class HomePage implements OnInit {
         },
         error: error => this.shoppingError.set(getApiError(error, 'Unable to load the dashboard.')),
       });
+    this.loadFact();
+  }
+
+  loadFact(): void {
+    this.factLoading.set(true);
+    this.factError.set(false);
+    this.http.get<UselessFact>('https://uselessfacts.jsph.pl/api/v2/facts/random?language=en')
+      .pipe(finalize(() => this.factLoading.set(false)), takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: fact => this.uselessFact.set(fact), error: () => this.factError.set(true) });
   }
 
   relativeTime(dateStr: string): string {
