@@ -11,6 +11,7 @@ public sealed class KotletDbContextFactory : IDesignTimeDbContextFactory<KotletD
             .UseNpgsql(
                 "Host=localhost;Database=kotletdb;Username=postgres;Password=postgres",
                 npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", DatabaseSchemas.Kotlet))
+            .UseOpenIddict()
             .Options;
 
         return new KotletDbContext(options);

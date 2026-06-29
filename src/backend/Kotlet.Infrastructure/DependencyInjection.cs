@@ -59,6 +59,7 @@ public static class DependencyInjection
                         configuration.GetConnectionString("kotletdb")
                             ?? throw new InvalidOperationException("Connection string 'kotletdb' is not configured."),
                         npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", DatabaseSchemas.Kotlet))
+                    .UseOpenIddict()
                     .AddInterceptors(sp.GetRequiredService<TranslationCacheInterceptor>()));
             return;
         }
@@ -71,6 +72,7 @@ public static class DependencyInjection
             services.AddSingleton(keepAliveConnection);
             services.AddDbContext<KotletDbContext>((sp, options) =>
                 options.UseSqlite(connectionString)
+                    .UseOpenIddict()
                     .AddInterceptors(sp.GetRequiredService<TranslationCacheInterceptor>()));
             return;
         }
