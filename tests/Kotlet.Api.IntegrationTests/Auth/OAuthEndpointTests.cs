@@ -99,6 +99,15 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
         Assert.Equal(HttpStatusCode.OK, mealPlanResponse.StatusCode);
         Assert.Contains("breakfast", await mealPlanResponse.Content.ReadAsStringAsync());
 
+        var weeklyPlanResponse = await CallTool(client, accessToken!, "add_weekly_meal_plan",
+            new { request = new { weekStart = "2026-06-29", meals = Array.Empty<object>() } });
+        Assert.Equal(HttpStatusCode.OK, weeklyPlanResponse.StatusCode);
+        Assert.Contains("added", await weeklyPlanResponse.Content.ReadAsStringAsync());
+
+        var shoppingListResponse = await CallTool(client, accessToken!, "get_shopping_list", new { });
+        Assert.Equal(HttpStatusCode.OK, shoppingListResponse.StatusCode);
+        Assert.DoesNotContain("isError\":true", await shoppingListResponse.Content.ReadAsStringAsync());
+
         var invalidResource = await client.GetAsync(authorization.Replace(
             Uri.EscapeDataString("http://localhost/mcp"),
             Uri.EscapeDataString("http://localhost/not-mcp"),

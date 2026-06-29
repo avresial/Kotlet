@@ -122,6 +122,42 @@ public sealed class MealPlannerServiceTests
         Assert.True(result.ValidationErrors!.ContainsKey("ingredientId"));
     }
 
+    [Fact]
+    public async Task AddWeek_AddsAtomicallyAndSkipsDuplicatesOnRetry()
+    {
+        var (service, meals) = CreateService();
+        var request = new AddWeeklyMealPlanRequest(Today,
+        [
+            new(Today, "breakfast", SoupRecipe.Id, null, null),
+            new(Today.AddDays(1), "dinner", null, Bread.Id, null)
+        ]);
+
+        var first = await service.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var retry = await service.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+
+        Assert.Equal(2, first.Plan!.Added.Count);
+        Assert.Equal(0, first.Plan.Skipped);
+        Assert.Empty(retry.Plan!.Added);
+        Assert.Equal(2, retry.Plan.Skipped);
+        Assert.Equal(2, meals.Items.Count);
+    }
+
+    [Fact]
+    public async Task AddWeek_WhenAnyMealIsInvalid_AddsNothing()
+    {
+        var (service, meals) = CreateService();
+        var request = new AddWeeklyMealPlanRequest(Today,
+        [
+            new(Today, "breakfast", SoupRecipe.Id, null, null),
+            new(Today.AddDays(7), "dinner", SoupRecipe.Id, null, null)
+        ]);
+
+        var result = await service.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
+        Assert.Empty(meals.Items);
+    }
+
     // ---- GetForDate ----
 
     [Fact]
