@@ -11,6 +11,9 @@
       <app-image-gallery [images]="r.images" [immersive]="true">
         <a class="back" routerLink="/recipes">← <span>Recipes</span></a>
         <div class="hero-actions">
+          @if (justCreated()) {
+            <button type="button" class="add-next-action" (click)="addNext()"><span aria-hidden="true">+</span> Add next</button>
+          }
           <a class="edit-action" [routerLink]="['/recipes', r.id, 'edit']"><span aria-hidden="true">✎</span> Edit</a>
           <details class="actions-menu">
             <summary class="actions-trigger" aria-label="Recipe actions" title="Recipe actions">⋮</summary>

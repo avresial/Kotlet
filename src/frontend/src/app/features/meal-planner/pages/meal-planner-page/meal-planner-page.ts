@@ -8,6 +8,7 @@ import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { RecipeDetail, RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
+import { RecipePicker } from '../../../recipes/components/recipe-picker/recipe-picker';
 import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
 import { DailyMealPlan, HouseMember, MealPlanItem, MealPlanItemType, MealPlanOverviewDay, MealSlot } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
@@ -27,7 +28,7 @@ interface PersonCalories {
 
 @Component({
   selector: 'app-meal-planner-page',
-  imports: [FormsModule, RouterLink, IngredientPicker],
+  imports: [FormsModule, RouterLink, IngredientPicker, RecipePicker],
   templateUrl: './meal-planner-page.html',
   styleUrl: './meal-planner-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,8 +46,16 @@ export class MealPlannerPage implements OnInit {
     supper: 'Dinner',
   };
 
+  private readonly overviewDays = 14;
   readonly selectedDate = signal(this.todayString());
+  readonly overviewFrom = signal(this.todayString());
   readonly overview = signal<MealPlanOverviewDay[]>([]);
+  readonly overviewLabel = computed(() => {
+    const from = this.overviewFrom();
+    if (from === this.todayString()) return `Next ${this.overviewDays} days`;
+    const to = this.addDays(from, this.overviewDays - 1);
+    return `${this.dayNumber(from)} – ${this.dayNumber(to)}`;
+  });
   readonly plan = signal<DailyMealPlan | null>(null);
   readonly isLoadingPlan = signal(false);
   readonly planError = signal<string | null>(null);
@@ -112,10 +121,20 @@ export class MealPlannerPage implements OnInit {
   }
 
   loadOverview(): void {
-    this.service.getOverview(this.todayString(), 14).subscribe({
+    this.service.getOverview(this.overviewFrom(), this.overviewDays).subscribe({
       next: (days) => this.overview.set(days),
       error: () => this.overview.set([]),
     });
+  }
+
+  /** Re-centers the overview window on the selected date when it falls outside the current range. */
+  private centerOverviewOnSelected(): void {
+    const date = this.selectedDate();
+    const from = this.overviewFrom();
+    const to = this.addDays(from, this.overviewDays - 1);
+    if (date >= from && date <= to) return;
+    this.overviewFrom.set(this.addDays(date, -Math.floor(this.overviewDays / 2)));
+    this.loadOverview();
   }
 
   selectOverviewDay(date: string): void {
@@ -178,6 +197,7 @@ export class MealPlannerPage implements OnInit {
   }
 
   onDateChange(): void {
+    this.centerOverviewOnSelected();
     this.loadPlan();
   }
 
@@ -460,10 +480,20 @@ export class MealPlannerPage implements OnInit {
   }
 
   private todayString(): string {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
+    return this.dateString(new Date());
+  }
+
+  /** Returns the date string offset from the given ISO date by the supplied number of days. */
+  private addDays(value: string, days: number): string {
+    const date = this.localDate(value);
+    date.setDate(date.getDate() + days);
+    return this.dateString(date);
+  }
+
+  private dateString(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
 

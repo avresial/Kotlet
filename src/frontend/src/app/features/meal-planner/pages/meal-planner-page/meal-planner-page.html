@@ -11,7 +11,7 @@
     <section class="meal-overview" aria-labelledby="meal-overview-title">
       <div class="overview-heading">
         <div>
-          <p class="eyebrow">Next 14 days</p>
+          <p class="eyebrow">{{ overviewLabel() }}</p>
           <h2 id="meal-overview-title">Planned meals</h2>
         </div>
         <div class="overview-legend"><span aria-hidden="true"></span> Meal planned</div>
@@ -215,16 +215,13 @@
               <li class="composer">
                 <span class="item-type" aria-hidden="true">{{ composer()[slot] === 'recipe' ? '▤' : '◉' }}</span>
                 @if (composer()[slot] === 'recipe') {
-                  <select
-                    autofocus
+                  <app-recipe-picker
+                    [recipes]="recipes()"
                     [ngModel]="selectedRecipeId()[slot]"
                     (ngModelChange)="setSelectedRecipeId(slot, $event)"
                     [disabled]="isAdding('recipe', slot)"
-                    aria-label="Select recipe for {{ slotLabels[slot] }}"
-                  >
-                    <option value="">Select a recipe…</option>
-                    @for (recipe of recipes(); track recipe.id) { <option [value]="recipe.id">{{ recipe.title }}</option> }
-                  </select>
+                    [ariaLabel]="'Select recipe for ' + slotLabels[slot]"
+                  />
                 } @else {
                   <app-ingredient-picker
                     [ingredients]="ingredients()"
