@@ -145,9 +145,9 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddMcpServer()
     .WithHttpTransport(options => options.Stateless = true)
-    .WithTools<IdentityTools>()
     .WithTools<KotletReadTools>()
-    .WithTools<KotletWriteTools>();
+    .WithTools<KotletWriteTools>()
+    .WithResources<KotletResources>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy => policy

@@ -21,13 +21,6 @@ public sealed class KotletWriteTools
         CancellationToken cancellationToken) =>
         service.AddWeekAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
 
-    [McpServerTool(Name = "get_shopping_list", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Lists the authenticated household's shopping-list items and their IDs.")]
-    public static Task<IReadOnlyCollection<ShoppingListItemDto>> GetShoppingList(
-        ShoppingListService service, ICurrentUser currentUser, ILanguageContext language,
-        CancellationToken cancellationToken) =>
-        service.GetAllAsync(RequireHouse(currentUser), language.Language, cancellationToken);
-
     [McpServerTool(Name = "add_shopping_list_item", ReadOnly = false, Destructive = false,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
      Description("Adds an ingredient to the authenticated household's shopping list. Repeating an existing ingredient does not create a duplicate.")]
@@ -42,7 +35,7 @@ public sealed class KotletWriteTools
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
      Description("Changes the quantity or purchased state of one shopping-list item.")]
     public static Task<ShoppingListOperationResult> UpdateShoppingListItem(
-        [Description("Shopping-list item ID returned by get_shopping_list.")] Guid itemId,
+        [Description("Shopping-list item ID from the kotlet://shopping-list resource.")] Guid itemId,
         [Description("New positive quantity and purchased state.")] UpdateShoppingListItemCommand request,
         ShoppingListService service, ICurrentUser currentUser, ILanguageContext language,
         CancellationToken cancellationToken) =>
@@ -52,7 +45,7 @@ public sealed class KotletWriteTools
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
      Description("Permanently removes one item from the authenticated household's shopping list.")]
     public static async Task<object> RemoveShoppingListItem(
-        [Description("Shopping-list item ID returned by get_shopping_list.")] Guid itemId,
+        [Description("Shopping-list item ID from the kotlet://shopping-list resource.")] Guid itemId,
         ShoppingListService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
         new { Removed = await service.DeleteAsync(itemId, RequireHouse(currentUser), cancellationToken)
             is ShoppingListOperationStatus.Success };

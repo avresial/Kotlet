@@ -4,6 +4,7 @@ using Kotlet.Api.Localization;
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.MealPlanner;
 using Kotlet.Application.Recipes;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace Kotlet.Api.Mcp;
@@ -11,63 +12,39 @@ namespace Kotlet.Api.Mcp;
 [McpServerToolType]
 public sealed class KotletReadTools
 {
-    [McpServerTool(Name = "get_ingredients", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Lists all ingredients available in Kotlet, localized for the current request.")]
-    public static Task<IReadOnlyCollection<IngredientDto>> GetIngredients(
+    [McpServerTool(Name = "get_ingredients", ReadOnly = true, OpenWorld = false),
+     Description("Finds ingredients and returns links to their complete MCP resources.")]
+    public static async Task<IReadOnlyList<ResourceLinkBlock>> GetIngredients(
         IngredientService service,
         ILanguageContext language,
-        CancellationToken cancellationToken) =>
-        service.GetAllAsync(language.Language, cancellationToken);
+        [Description("Optional text to search for in ingredient names.")] string? search = null,
+        CancellationToken cancellationToken = default) =>
+        (await service.GetAllAsync(language.Language, cancellationToken))
+        .Where(ingredient => string.IsNullOrWhiteSpace(search)
+            || ingredient.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
+        .Select(ingredient => Link(
+            $"kotlet://ingredients/{ingredient.Id}", ingredient.Name,
+            $"Ingredient measured in {ingredient.MeasurementUnit}."))
+        .ToList();
 
-    [McpServerTool(Name = "get_ingredient", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Gets one Kotlet ingredient by its ID.")]
-    public static async Task<IngredientDto> GetIngredient(
-        [Description("The ingredient ID.")] Guid ingredientId,
-        IngredientService service,
-        ILanguageContext language,
-        CancellationToken cancellationToken) =>
-        await service.GetByIdAsync(ingredientId, language.Language, cancellationToken)
-        ?? throw new KeyNotFoundException("Ingredient not found.");
-
-    [McpServerTool(Name = "get_recipes", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Lists recipes in the authenticated user's active household.")]
-    public static Task<PagedResponse<RecipeSummaryResponse>> GetRecipes(
+    [McpServerTool(Name = "get_recipes", ReadOnly = true, OpenWorld = false),
+     Description("Searches household recipes and returns links to their complete MCP resources.")]
+    public static async Task<IReadOnlyList<ResourceLinkBlock>> GetRecipes(
         RecipeService service,
         ICurrentUser currentUser,
         [Description("Page number, starting at 1.")] int page = 1,
         [Description("Recipes per page, from 1 to 100.")] int pageSize = 20,
         [Description("Optional text to search for in recipes.")] string? search = null,
         CancellationToken cancellationToken = default) =>
-        service.ListAsync(RequireHouse(currentUser), page, pageSize, search, cancellationToken);
+        (await service.ListAsync(RequireHouse(currentUser), page, pageSize, search, cancellationToken)).Items
+        .Select(recipe => Link(
+            $"kotlet://recipes/{recipe.Id}", recipe.Title,
+            $"Recipe for {recipe.Servings} serving(s) with {recipe.IngredientCount} ingredient(s)."))
+        .ToList();
 
-    [McpServerTool(Name = "get_recipe", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Gets one recipe from the authenticated user's active household by its ID.")]
-    public static async Task<RecipeDetailResponse> GetRecipe(
-        [Description("The recipe ID.")] Guid recipeId,
-        RecipeService service,
-        ICurrentUser currentUser,
-        CancellationToken cancellationToken) =>
-        await service.GetByIdAsync(recipeId, RequireHouse(currentUser), cancellationToken)
-        ?? throw new KeyNotFoundException("Recipe not found.");
-
-    [McpServerTool(Name = "get_meal_plan", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Gets the household meal plan for one date.")]
-    public static Task<DailyMealPlanResponse> GetMealPlan(
-        [Description("Date in yyyy-MM-dd format.")] string date,
-        MealPlannerService service,
-        ICurrentUser currentUser,
-        CancellationToken cancellationToken)
-    {
-        if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var parsedDate))
-            throw new ArgumentException("Date must use yyyy-MM-dd format.", nameof(date));
-
-        return service.GetForDateAsync(
-            RequireUser(currentUser), RequireHouse(currentUser), parsedDate, cancellationToken);
-    }
-
-    [McpServerTool(Name = "get_meal_plan_overview", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Gets a summary of planned household meal slots over a date range.")]
-    public static Task<IReadOnlyList<MealPlanOverviewDay>> GetMealPlanOverview(
+    [McpServerTool(Name = "get_meal_plan_overview", ReadOnly = true, OpenWorld = false),
+     Description("Finds household meal-plan days and returns links to their complete MCP resources.")]
+    public static async Task<IReadOnlyList<ResourceLinkBlock>> GetMealPlanOverview(
         [Description("First date in yyyy-MM-dd format.")] string from,
         [Description("Number of days to return, from 1 to 62.")] int days,
         MealPlannerService service,
@@ -79,21 +56,25 @@ public sealed class KotletReadTools
         if (days is < 1 or > 62)
             throw new ArgumentOutOfRangeException(nameof(days), "Days must be between 1 and 62.");
 
-        return service.GetOverviewAsync(RequireHouse(currentUser), parsedFrom, days, cancellationToken);
+        return (await service.GetOverviewAsync(RequireHouse(currentUser), parsedFrom, days, cancellationToken))
+            .Select(day => Link(
+                $"kotlet://meal-plans/days/{day.Date}", $"Meal plan for {day.Date}",
+                day.PlannedSlots.Count == 0
+                    ? "No meals planned."
+                    : $"Planned slots: {string.Join(", ", day.PlannedSlots)}."))
+            .ToList();
     }
-
-    [McpServerTool(Name = "get_meal_plan_members", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Lists household members who can participate in planned meals.")]
-    public static Task<IReadOnlyList<MealHouseMember>> GetMealPlanMembers(
-        MealPlannerService service,
-        ICurrentUser currentUser,
-        CancellationToken cancellationToken) =>
-        service.GetHouseMembersAsync(RequireHouse(currentUser), cancellationToken);
-
-    private static Guid RequireUser(ICurrentUser currentUser) =>
-        currentUser.UserId ?? throw new UnauthorizedAccessException("The authenticated user is unavailable.");
 
     private static Guid RequireHouse(ICurrentUser currentUser) =>
         currentUser.HouseId ?? throw new UnauthorizedAccessException(
             "No active household is available. Select a household in Kotlet and reconnect this MCP server.");
+
+    private static ResourceLinkBlock Link(string uri, string title, string description) => new()
+    {
+        Uri = uri,
+        Name = title,
+        Title = title,
+        Description = description,
+        MimeType = "application/json"
+    };
 }
