@@ -1,0 +1,35 @@
+<div class="picker">
+  <input
+    type="text"
+    role="combobox"
+    autocomplete="off"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-expanded]="isOpen()"
+    [attr.aria-controls]="isOpen() ? 'recipe-suggestions' : null"
+    [attr.aria-activedescendant]="isOpen() && suggestions().length ? 'recipe-option-' + activeIndex() : null"
+    [placeholder]="placeholder()"
+    [disabled]="formDisabled()"
+    [value]="query()"
+    (input)="onInput($any($event.target).value)"
+    (keydown)="onKeydown($event)"
+    (blur)="onBlur()"
+  />
+  @if (isOpen()) {
+    <ul id="recipe-suggestions" role="listbox">
+      @for (recipe of suggestions(); track recipe.id; let index = $index) {
+        <li
+          id="recipe-option-{{ index }}"
+          role="option"
+          [attr.aria-selected]="index === activeIndex()"
+          [class.active]="index === activeIndex()"
+          (mousedown)="$event.preventDefault(); select(recipe)"
+        >
+          <span>{{ recipe.title }}</span>
+          <small>{{ recipe.servings }} {{ recipe.servings === 1 ? 'serving' : 'servings' }}</small>
+        </li>
+      } @empty {
+        <li class="empty">No matching recipes</li>
+      }
+    </ul>
+  }
+</div>

@@ -215,16 +215,13 @@
               <li class="composer">
                 <span class="item-type" aria-hidden="true">{{ composer()[slot] === 'recipe' ? '▤' : '◉' }}</span>
                 @if (composer()[slot] === 'recipe') {
-                  <select
-                    autofocus
+                  <app-recipe-picker
+                    [recipes]="recipes()"
                     [ngModel]="selectedRecipeId()[slot]"
                     (ngModelChange)="setSelectedRecipeId(slot, $event)"
                     [disabled]="isAdding('recipe', slot)"
-                    aria-label="Select recipe for {{ slotLabels[slot] }}"
-                  >
-                    <option value="">Select a recipe…</option>
-                    @for (recipe of recipes(); track recipe.id) { <option [value]="recipe.id">{{ recipe.title }}</option> }
-                  </select>
+                    [ariaLabel]="'Select recipe for ' + slotLabels[slot]"
+                  />
                 } @else {
                   <app-ingredient-picker
                     [ingredients]="ingredients()"
