@@ -90,6 +90,67 @@ public sealed class MealPlannerService(
         return new(MealPlannerOperationStatus.Success, response);
     }
 
+    public async Task<WeeklyMealPlannerOperationResult> AddWeekAsync(
+        Guid userId, Guid houseId, AddWeeklyMealPlanRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Meals.Count > 21)
+            return WeeklyValidation("meals", "A weekly plan cannot contain more than 21 meals.");
+
+        var errors = new Dictionary<string, string[]>();
+        for (var index = 0; index < request.Meals.Count; index++)
+        {
+            var meal = request.Meals[index];
+            if (meal.Date < request.WeekStart || meal.Date > request.WeekStart.AddDays(6))
+                errors[$"meals[{index}].date"] = ["Date must be within the seven-day week starting at weekStart."];
+
+            foreach (var (field, messages) in await ValidateAddAsync(houseId, meal, cancellationToken))
+                errors[$"meals[{index}].{field}"] = messages;
+        }
+        if (errors.Count > 0)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: errors);
+
+        var existing = await repository.GetByDateRangeAsync(
+            houseId, request.WeekStart, request.WeekStart.AddDays(6), cancellationToken);
+        var keys = existing.Select(MealKey).ToHashSet();
+        var slotCounts = existing.GroupBy(item => (item.Date, item.Slot))
+            .ToDictionary(group => group.Key, group => group.Count());
+        var added = new List<MealPlanItem>();
+        var skipped = 0;
+        var now = DateTimeOffset.UtcNow;
+
+        foreach (var meal in request.Meals)
+        {
+            var slot = ParseSlot(meal.Slot);
+            var key = (meal.Date, slot, meal.RecipeId, meal.IngredientId);
+            if (!keys.Add(key))
+            {
+                skipped++;
+                continue;
+            }
+
+            var slotKey = (meal.Date, slot);
+            var item = new MealPlanItem
+            {
+                Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = meal.Date,
+                Slot = slot, RecipeId = meal.RecipeId, IngredientId = meal.IngredientId,
+                Note = meal.Note?.Trim(), SortOrder = slotCounts.GetValueOrDefault(slotKey),
+                CreatedAt = now, UpdatedAt = now
+            };
+            slotCounts[slotKey] = item.SortOrder + 1;
+            repository.Add(item);
+            added.Add(item);
+        }
+
+        if (added.Count > 0)
+            await repository.SaveChangesAsync(cancellationToken);
+
+        var members = await GetMemberNamesAsync(houseId, cancellationToken);
+        var responses = new List<MealPlanItemResponse>(added.Count);
+        foreach (var item in added)
+            responses.Add(await ToResponseAsync(item, userId, houseId, members, cancellationToken));
+        return new(MealPlannerOperationStatus.Success, new(responses, skipped));
+    }
+
     public async Task<MealPlannerOperationStatus> RemoveItemAsync(
         Guid houseId, Guid itemId, CancellationToken cancellationToken)
     {
@@ -279,4 +340,11 @@ public sealed class MealPlannerService(
         MealSlot.Supper => "supper",
         _ => throw new InvalidOperationException($"Unknown slot: {slot}")
     };
+
+    private static (DateOnly, MealSlot, Guid?, Guid?) MealKey(MealPlanItem item) =>
+        (item.Date, item.Slot, item.RecipeId, item.IngredientId);
+
+    private static WeeklyMealPlannerOperationResult WeeklyValidation(string field, string message) =>
+        new(MealPlannerOperationStatus.ValidationFailed,
+            ValidationErrors: new Dictionary<string, string[]> { [field] = [message] });
 }

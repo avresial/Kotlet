@@ -7,6 +7,14 @@ public sealed record AddMealPlanItemRequest(
     Guid? IngredientId,
     string? Note);
 
+public sealed record AddWeeklyMealPlanRequest(
+    DateOnly WeekStart,
+    IReadOnlyList<AddMealPlanItemRequest> Meals);
+
+public sealed record AddWeeklyMealPlanResponse(
+    IReadOnlyList<MealPlanItemResponse> Added,
+    int Skipped);
+
 public sealed record SetParticipantsRequest(IReadOnlyList<Guid> UserIds);
 
 public sealed record SetServingsRequest(int? Servings);
@@ -53,4 +61,9 @@ public enum MealPlannerOperationStatus
 public sealed record MealPlannerOperationResult(
     MealPlannerOperationStatus Status,
     MealPlanItemResponse? Item = null,
+    IReadOnlyDictionary<string, string[]>? ValidationErrors = null);
+
+public sealed record WeeklyMealPlannerOperationResult(
+    MealPlannerOperationStatus Status,
+    AddWeeklyMealPlanResponse? Plan = null,
     IReadOnlyDictionary<string, string[]>? ValidationErrors = null);
