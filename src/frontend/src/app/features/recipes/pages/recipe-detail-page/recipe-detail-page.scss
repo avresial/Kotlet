@@ -10,6 +10,9 @@
 .hero-actions { top: 1.4rem; right: 1.5rem; display: flex; align-items: flex-start; gap: .5rem; }
 .edit-action, .actions-trigger { border: 0; background: rgb(255 250 242 / 94%); color: #29251f; box-shadow: 0 .15rem .5rem rgb(41 37 31 / 10%); }
 .edit-action { min-height: 2.4rem; box-sizing: border-box; padding: .55rem .95rem; border-radius: 99rem; display: inline-flex; align-items: center; gap: .45rem; font-size: .82rem; font-weight: 700; text-decoration: none; }
+.add-next-action { min-height: 2.4rem; box-sizing: border-box; padding: .55rem .95rem; border: 0; border-radius: 99rem; display: inline-flex; align-items: center; gap: .45rem; font-size: .82rem; font-weight: 700; cursor: pointer; color: #fffaf2; background: #c2603f; box-shadow: 0 .15rem .5rem rgb(41 37 31 / 18%); }
+.add-next-action:hover { background: #ab4f31; }
+.add-next-action:focus-visible { outline: .15rem solid #e8b4a3; outline-offset: .15rem; }
 .actions-menu { position: relative; }
 .actions-trigger { width: 2.4rem; height: 2.4rem; border-radius: 50%; display: grid; place-items: center; cursor: pointer; font-size: 1.25rem; line-height: 1; list-style: none; }
 .actions-trigger::-webkit-details-marker { display: none; }

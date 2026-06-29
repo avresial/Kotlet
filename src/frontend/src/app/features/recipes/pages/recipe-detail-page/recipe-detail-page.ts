@@ -27,6 +27,7 @@ export class RecipeDetailPage implements OnInit {
   readonly isLoading = signal(true);
   readonly isDeleting = signal(false);
   readonly error = signal<string | null>(null);
+  readonly justCreated = signal(!!this.router.getCurrentNavigation()?.extras.state?.['justCreated']);
 
   readonly descriptionHtml = computed<SafeHtml>(() => {
     const md = this.recipe()?.descriptionMarkdown;
@@ -57,6 +58,10 @@ export class RecipeDetailPage implements OnInit {
         next: (recipe) => this.recipe.set(recipe),
         error: (err) => this.error.set(getApiError(err, 'Unable to load recipe.')),
       });
+  }
+
+  addNext(): void {
+    this.router.navigate(['/recipes/new']);
   }
 
   delete(): void {

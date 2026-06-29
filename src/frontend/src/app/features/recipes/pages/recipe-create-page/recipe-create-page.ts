@@ -26,12 +26,12 @@ export class RecipeCreatePage {
     this.service.create(request).subscribe({
       next: (recipe) => {
         if (!this.selectedImage) {
-          this.router.navigate(['/recipes', recipe.id]);
+          this.router.navigate(['/recipes', recipe.id], { state: { justCreated: true } });
           return;
         }
 
         this.service.uploadImage(recipe.id, this.selectedImage).subscribe({
-          next: () => this.router.navigate(['/recipes', recipe.id]),
+          next: () => this.router.navigate(['/recipes', recipe.id], { state: { justCreated: true } }),
           error: () => this.router.navigate(['/recipes', recipe.id, 'edit']),
         });
       },
