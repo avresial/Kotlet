@@ -27,36 +27,40 @@ public sealed class DatabaseMigrationWorker(
 
         var applications = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
         var oauth = oauthOptions.Value;
-        if (await applications.FindByClientIdAsync(oauth.ClientId, stoppingToken) is null)
+        var application = await applications.FindByClientIdAsync(oauth.ClientId, stoppingToken);
+        var client = new OpenIddictApplicationDescriptor
         {
-            var client = new OpenIddictApplicationDescriptor
-            {
-                ClientId = oauth.ClientId,
-                ClientType = ClientTypes.Public,
-                ConsentType = ConsentTypes.Implicit,
-                DisplayName = "Kotlet MCP development client"
-            };
-            foreach (var redirectUri in oauth.RedirectUris)
-                client.RedirectUris.Add(new Uri(redirectUri));
-            client.Permissions.UnionWith([
-                Permissions.Endpoints.Authorization,
-                Permissions.Endpoints.Token,
-                Permissions.GrantTypes.AuthorizationCode,
-                Permissions.GrantTypes.RefreshToken,
-                Permissions.ResponseTypes.Code,
-                Permissions.Prefixes.Scope + "mcp",
-                Permissions.Prefixes.Resource + oauth.Resource
-            ]);
+            ClientId = oauth.ClientId,
+            ClientType = ClientTypes.Public,
+            ConsentType = ConsentTypes.Implicit,
+            DisplayName = "Kotlet MCP client"
+        };
+        foreach (var redirectUri in oauth.RedirectUris)
+            client.RedirectUris.Add(new Uri(redirectUri));
+        client.Permissions.UnionWith([
+            Permissions.Endpoints.Authorization,
+            Permissions.Endpoints.Token,
+            Permissions.GrantTypes.AuthorizationCode,
+            Permissions.GrantTypes.RefreshToken,
+            Permissions.ResponseTypes.Code,
+            Permissions.Prefixes.Scope + "mcp",
+            Permissions.Prefixes.Resource + oauth.Resource
+        ]);
+        if (oauth.RequirePkce)
             client.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
+        if (application is null)
             await applications.CreateAsync(client, stoppingToken);
-        }
+        else
+            await applications.UpdateAsync(application, client, stoppingToken);
+
         var scopes = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
-        if (await scopes.FindByNameAsync("mcp", stoppingToken) is null)
-        {
-            var mcpScope = new OpenIddictScopeDescriptor { Name = "mcp", DisplayName = "Kotlet MCP API" };
-            mcpScope.Resources.Add(oauth.Resource);
+        var existingScope = await scopes.FindByNameAsync("mcp", stoppingToken);
+        var mcpScope = new OpenIddictScopeDescriptor { Name = "mcp", DisplayName = "Kotlet MCP API" };
+        mcpScope.Resources.Add(oauth.Resource);
+        if (existingScope is null)
             await scopes.CreateAsync(mcpScope, stoppingToken);
-        }
+        else
+            await scopes.UpdateAsync(existingScope, mcpScope, stoppingToken);
 
         migrationReady.SetReady();
         logger.LogInformation("Database migrations applied successfully");
