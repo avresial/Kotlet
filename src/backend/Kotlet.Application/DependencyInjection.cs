@@ -2,7 +2,6 @@ using Kotlet.Application.Ai;
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.MealPlanner;
 using Kotlet.Application.Measurements;
-using Kotlet.Application.Menu.GetMenu;
 using Kotlet.Application.Pantry;
 using Kotlet.Application.Recipes;
 using Kotlet.Application.Shopping;
@@ -18,7 +17,6 @@ public static class DependencyInjection
         services.AddScoped<IngredientService>();
         services.AddScoped<MealPlannerService>();
         services.AddSingleton<MeasurementMappingService>();
-        services.AddScoped<GetMenuQueryHandler>();
         services.AddScoped<PantryService>();
         services.AddScoped<RecipeService>();
         services.AddScoped<RecipeImageService>();

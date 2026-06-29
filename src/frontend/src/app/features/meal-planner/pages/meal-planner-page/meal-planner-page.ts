@@ -431,11 +431,6 @@ export class MealPlannerPage implements OnInit {
     return [...totals.values()];
   }
 
-  private findIngredient(name: string): Ingredient | undefined {
-    const normalized = name.trim().toLocaleLowerCase();
-    return this.ingredients().find((ingredient) => ingredient.name.trim().toLocaleLowerCase() === normalized);
-  }
-
   private allItems(): MealPlanItem[] {
     return this.slots.flatMap((slot) => this.itemsForSlot(slot));
   }

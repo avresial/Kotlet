@@ -6,7 +6,6 @@ using Kotlet.Api.Ingredients;
 using Kotlet.Api.Localization;
 using Kotlet.Api.Mcp;
 using Kotlet.Api.MealPlanner;
-using Kotlet.Api.Menu;
 using Kotlet.Api.OpenApi;
 using Kotlet.Api.Pantry;
 using Kotlet.Api.Persistence;
@@ -49,7 +48,6 @@ public static class DependencyInjection
         app.MapShoppingFeature();
         app.MapRecipesFeature();
         app.MapMealPlannerFeature();
-        app.MapMenuFeature();
         return app;
     }
 }

@@ -1,11 +1,9 @@
 using Kotlet.Application.MealPlanner;
 using Kotlet.Application.Ai;
 using Kotlet.Infrastructure.Ai;
-using Kotlet.Application.Menu.GetMenu;
 using Kotlet.Application.Ingredients;
 using Kotlet.Domain.Auth;
 using Kotlet.Infrastructure.MealPlanner;
-using Kotlet.Infrastructure.Menu;
 using Kotlet.Infrastructure.Ingredients;
 using Kotlet.Infrastructure.Persistence;
 using Kotlet.Application.Pantry;
@@ -28,7 +26,6 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddSingleton<IMenuReader, InMemoryMenuReader>();
         services.AddMemoryCache();
         services.AddScoped<IIngredientRepository, IngredientRepository>();
         services.AddScoped<IUserAiProviderRepository, UserAiProviderRepository>();
