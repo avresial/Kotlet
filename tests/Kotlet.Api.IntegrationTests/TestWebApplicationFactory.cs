@@ -18,6 +18,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncL
         builder.UseSetting("OAuth:Resource", "http://localhost/mcp");
         builder.UseSetting("OAuth:LoginUrl", "http://localhost:4200/login");
         builder.UseSetting("OAuth:ClientId", "kotlet-mcp-tests");
+        builder.UseSetting("OAuth:RequirePkce", "true");
         builder.UseSetting("OAuth:RedirectUris:0", "http://127.0.0.1/callback");
         builder.UseEnvironment("Test");
     }

@@ -74,7 +74,6 @@ builder.Services.AddOpenIddict()
             .SetTokenEndpointUris("/connect/token")
             .AllowAuthorizationCodeFlow()
             .AllowRefreshTokenFlow()
-            .RequireProofKeyForCodeExchange()
             .RegisterScopes("mcp")
             .RegisterResources(oauth.Resource)
             .DisableAccessTokenEncryption();
