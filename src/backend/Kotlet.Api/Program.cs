@@ -77,9 +77,12 @@ builder.Services.AddOpenIddict()
             .RequireProofKeyForCodeExchange()
             .RegisterScopes("mcp")
             .RegisterResources(oauth.Resource)
-            .DisableAccessTokenEncryption()
-            .AddDevelopmentEncryptionCertificate()
-            .AddDevelopmentSigningCertificate();
+            .DisableAccessTokenEncryption();
+        if (allowHttp)
+            options.AddDevelopmentEncryptionCertificate().AddDevelopmentSigningCertificate();
+        else
+            // ponytail: ephemeral keys avoid Azure certificate-store writes; use a persistent certificate when sessions must survive restarts.
+            options.AddEphemeralEncryptionKey().AddEphemeralSigningKey();
         var aspNetCore = options.UseAspNetCore().EnableAuthorizationEndpointPassthrough();
         if (allowHttp)
             aspNetCore.DisableTransportSecurityRequirement();
