@@ -27,7 +27,7 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
 .overview-legend span { width: .75rem; height: .75rem; border-radius: .18rem; background: #9a3a2a; }
 .overview-scroll { overflow-x: auto; padding-bottom: .25rem; }
 .overview-grid {
-  --cell-size: 2.25rem;
+  --cell-size: 2rem;
   display: grid;
   min-width: max-content;
   grid-template-columns: 4.75rem repeat(var(--day-count), var(--cell-size));

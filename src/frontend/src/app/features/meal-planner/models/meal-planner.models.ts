@@ -44,15 +44,3 @@ export interface HouseMember {
   userId: string;
   displayName: string;
 }
-
-export interface SetParticipantsRequest {
-  userIds: string[];
-}
-
-export interface SetServingsRequest {
-  servings: number | null;
-}
-
-export interface SetGuestsRequest {
-  guests: number;
-}

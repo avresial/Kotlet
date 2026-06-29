@@ -7,13 +7,13 @@
     <form [formGroup]="form" (ngSubmit)="login()" novalidate>
       <label>
         {{ 'auth.email' | t }}
-        <input pInputText type="email" formControlName="email" autocomplete="email" [invalid]="form.controls.email.invalid && form.controls.email.touched" />
+        <input pInputText id="email" name="email" type="email" formControlName="email" autocomplete="username" [invalid]="form.controls.email.invalid && form.controls.email.touched" />
         @if (form.controls.email.touched && form.controls.email.hasError('required')) { <p-message severity="error" size="small" variant="simple">{{ 'validation.emailRequired' | t }}</p-message> }
         @else if (form.controls.email.touched && form.controls.email.hasError('email')) { <p-message severity="error" size="small" variant="simple">{{ 'validation.invalidEmail' | t }}</p-message> }
       </label>
       <label>
         {{ 'auth.password' | t }}
-        <p-password formControlName="password" autocomplete="current-password" [feedback]="false" [toggleMask]="true" [fluid]="true" [invalid]="form.controls.password.invalid && form.controls.password.touched" />
+        <p-password inputId="password" formControlName="password" autocomplete="current-password" [feedback]="false" [toggleMask]="true" [fluid]="true" [invalid]="form.controls.password.invalid && form.controls.password.touched" />
         @if (form.controls.password.touched && form.controls.password.hasError('required')) { <p-message severity="error" size="small" variant="simple">{{ 'validation.passwordRequired' | t }}</p-message> }
       </label>
       @if (errorMessage()) { <p-message severity="error" role="alert">{{ errorMessage() }}</p-message> }

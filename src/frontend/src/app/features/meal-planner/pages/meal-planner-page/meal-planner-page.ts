@@ -46,7 +46,7 @@ export class MealPlannerPage implements OnInit {
     supper: 'Dinner',
   };
 
-  private readonly overviewDays = 14;
+  private readonly overviewDays = 28;
   readonly selectedDate = signal(this.todayString());
   readonly overviewFrom = signal(this.todayString());
   readonly overview = signal<MealPlanOverviewDay[]>([]);
@@ -429,11 +429,6 @@ export class MealPlannerPage implements OnInit {
       totals.set(ingredient.id, { ingredient, quantity: (existing?.quantity ?? 0) + quantity });
     }
     return [...totals.values()];
-  }
-
-  private findIngredient(name: string): Ingredient | undefined {
-    const normalized = name.trim().toLocaleLowerCase();
-    return this.ingredients().find((ingredient) => ingredient.name.trim().toLocaleLowerCase() === normalized);
   }
 
   private allItems(): MealPlanItem[] {

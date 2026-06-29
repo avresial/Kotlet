@@ -9,7 +9,6 @@ import {
 import {
   AbstractControl,
   ControlValueAccessor,
-  FormArray,
   FormBuilder,
   FormGroup,
   NG_VALIDATORS,
