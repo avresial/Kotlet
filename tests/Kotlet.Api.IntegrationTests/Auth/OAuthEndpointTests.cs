@@ -23,12 +23,20 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
             header => header.Parameter?.Contains("resource_metadata", StringComparison.Ordinal) == true);
 
         var email = $"oauth-{Guid.NewGuid():N}@example.com";
-        await client.PostAsJsonAsync("/api/auth/register", new
+        var registrationResponse = await client.PostAsJsonAsync("/api/auth/register", new
         {
             email,
             password = "Password1!",
             confirmPassword = "Password1!"
         });
+        registrationResponse.EnsureSuccessStatusCode();
+        var registrationToken = (await registrationResponse.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("accessToken").GetString();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", registrationToken);
+        var houseResponse = await client.PostAsJsonAsync("/api/houses", new { name = "OAuth home" });
+        houseResponse.EnsureSuccessStatusCode();
+        var houseId = (await houseResponse.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("house").GetProperty("id").GetGuid();
 
         var metadata = await client.GetFromJsonAsync<JsonElement>("/.well-known/openid-configuration");
         Assert.EndsWith("/connect/authorize", metadata.GetProperty("authorization_endpoint").GetString());
@@ -74,24 +82,22 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
         var token = await tokenResponse.Content.ReadFromJsonAsync<JsonElement>();
         var accessToken = token.GetProperty("access_token").GetString();
         Assert.False(string.IsNullOrWhiteSpace(accessToken));
-        Assert.Contains("http://localhost/mcp", new JwtSecurityTokenHandler().ReadJwtToken(accessToken).Audiences);
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
+        Assert.Contains("http://localhost/mcp", jwt.Audiences);
+        Assert.Equal(houseId.ToString(), jwt.Claims.Single(claim => claim.Type == "house_id").Value);
         Assert.False(string.IsNullOrWhiteSpace(token.GetProperty("refresh_token").GetString()));
 
-        using var toolRequest = new HttpRequestMessage(HttpMethod.Post, "/mcp");
-        toolRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        toolRequest.Headers.Accept.ParseAdd("application/json");
-        toolRequest.Headers.Accept.ParseAdd("text/event-stream");
-        toolRequest.Headers.Add("MCP-Protocol-Version", "2025-11-25");
-        toolRequest.Content = JsonContent.Create(new
-        {
-            jsonrpc = "2.0",
-            id = 1,
-            method = "tools/call",
-            @params = new { name = "who_am_i", arguments = new { } }
-        });
-        var toolResponse = await client.SendAsync(toolRequest);
+        var toolResponse = await CallTool(client, accessToken!, "who_am_i", new { });
         Assert.Equal(HttpStatusCode.OK, toolResponse.StatusCode);
         Assert.Contains(email, await toolResponse.Content.ReadAsStringAsync());
+
+        var recipesResponse = await CallTool(client, accessToken!, "get_recipes", new { });
+        Assert.Equal(HttpStatusCode.OK, recipesResponse.StatusCode);
+        Assert.Contains("totalCount", await recipesResponse.Content.ReadAsStringAsync());
+
+        var mealPlanResponse = await CallTool(client, accessToken!, "get_meal_plan", new { date = "2026-06-29" });
+        Assert.Equal(HttpStatusCode.OK, mealPlanResponse.StatusCode);
+        Assert.Contains("breakfast", await mealPlanResponse.Content.ReadAsStringAsync());
 
         var invalidResource = await client.GetAsync(authorization.Replace(
             Uri.EscapeDataString("http://localhost/mcp"),
@@ -119,5 +125,22 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
         }));
         Assert.Equal(HttpStatusCode.BadRequest, invalidVerifier.StatusCode);
         Assert.Equal("invalid_grant", (await invalidVerifier.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetString());
+    }
+
+    private static Task<HttpResponseMessage> CallTool(HttpClient client, string accessToken, string name, object arguments)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/mcp");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        request.Headers.Accept.ParseAdd("application/json");
+        request.Headers.Accept.ParseAdd("text/event-stream");
+        request.Headers.Add("MCP-Protocol-Version", "2025-11-25");
+        request.Content = JsonContent.Create(new
+        {
+            jsonrpc = "2.0",
+            id = 1,
+            method = "tools/call",
+            @params = new { name, arguments }
+        });
+        return client.SendAsync(request);
     }
 }

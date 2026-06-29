@@ -52,6 +52,8 @@ public static class OAuthEndpoints
         identity.AddClaim(OpenIddictConstants.Claims.Subject, refreshToken.UserId.ToString());
         identity.AddClaim(OpenIddictConstants.Claims.Name, refreshToken.User.DisplayName ?? refreshToken.User.Email);
         identity.AddClaim(OpenIddictConstants.Claims.Email, refreshToken.User.Email);
+        if (refreshToken.HouseId is { } houseId)
+            identity.AddClaim(KotletClaimTypes.HouseId, houseId.ToString());
         foreach (var role in refreshToken.User.Roles)
             identity.AddClaim(OpenIddictConstants.Claims.Role, role.Name);
 
