@@ -46,7 +46,7 @@ export class MealPlannerPage implements OnInit {
     supper: 'Dinner',
   };
 
-  private readonly overviewDays = 14;
+  private readonly overviewDays = 28;
   readonly selectedDate = signal(this.todayString());
   readonly overviewFrom = signal(this.todayString());
   readonly overview = signal<MealPlanOverviewDay[]>([]);
