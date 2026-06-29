@@ -8,6 +8,7 @@ using Kotlet.Api.Admin;
 using Kotlet.Api.Houses;
 using Kotlet.Api.Ingredients;
 using Kotlet.Api.Localization;
+using Kotlet.Api.Mcp;
 using Kotlet.Api.MealPlanner;
 using Kotlet.Api.Persistence;
 using Kotlet.Application.Pantry;
@@ -23,8 +24,12 @@ using Microsoft.EntityFrameworkCore;
 using Kotlet.Infrastructure.Persistence;
 using Kotlet.Domain.Auth;
 using Scalar.AspNetCore;
+using OpenIddict.Abstractions;
+using ModelContextProtocol.AspNetCore.Authentication;
+using OpenIddict.Validation.AspNetCore;
 using System.Security.Claims;
 using System.Text;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,10 +46,49 @@ builder.Services.AddScoped<RecipeImageService>();
 builder.Services.AddScoped<MealPlannerService>();
 builder.Services.AddOptions<JwtOptions>().BindConfiguration(JwtOptions.SectionName).ValidateOnStart();
 builder.Services.AddOptions<AuthOptions>().BindConfiguration(AuthOptions.SectionName).ValidateOnStart();
+builder.Services.AddOptions<OAuthOptions>().BindConfiguration(OAuthOptions.SectionName).ValidateOnStart();
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("JWT configuration is missing.");
+var oauth = builder.Configuration.GetSection(OAuthOptions.SectionName).Get<OAuthOptions>()
+    ?? throw new InvalidOperationException("OAuth configuration is missing.");
 if (string.IsNullOrWhiteSpace(jwt.SigningKey) || Encoding.UTF8.GetByteCount(jwt.SigningKey) < 32)
     throw new InvalidOperationException("Jwt:SigningKey must be at least 32 bytes.");
+var allowHttp = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test");
+if (!Uri.TryCreate(oauth.Issuer, UriKind.Absolute, out var oauthIssuer) ||
+    !Uri.TryCreate(oauth.Resource, UriKind.Absolute, out var oauthResource) ||
+    !Uri.TryCreate(oauth.LoginUrl, UriKind.Absolute, out var oauthLogin) ||
+    (!allowHttp && (oauthIssuer.Scheme != Uri.UriSchemeHttps || oauthResource.Scheme != Uri.UriSchemeHttps)))
+    throw new InvalidOperationException("OAuth issuer, resource and login URL must be absolute; issuer and resource require HTTPS outside development.");
+if (oauthLogin.Scheme != Uri.UriSchemeHttps && (!allowHttp || oauthLogin.Scheme != Uri.UriSchemeHttp || !oauthLogin.IsLoopback))
+    throw new InvalidOperationException("OAuth login URL must use HTTPS or loopback HTTP in development.");
+if (oauth.RedirectUris.Length == 0 || oauth.RedirectUris.Any(value =>
+        !Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
+        (uri.Scheme != Uri.UriSchemeHttps && (uri.Scheme != Uri.UriSchemeHttp || !uri.IsLoopback))))
+    throw new InvalidOperationException("OAuth redirect URIs must use HTTPS or loopback HTTP.");
+builder.Services.AddOpenIddict()
+    .AddCore(options => options.UseEntityFrameworkCore().UseDbContext<KotletDbContext>())
+    .AddServer(options =>
+    {
+        options.SetIssuer(oauthIssuer)
+            .SetAuthorizationEndpointUris("/connect/authorize")
+            .SetTokenEndpointUris("/connect/token")
+            .AllowAuthorizationCodeFlow()
+            .AllowRefreshTokenFlow()
+            .RequireProofKeyForCodeExchange()
+            .RegisterScopes("mcp")
+            .RegisterResources(oauth.Resource)
+            .DisableAccessTokenEncryption()
+            .AddDevelopmentEncryptionCertificate()
+            .AddDevelopmentSigningCertificate();
+        var aspNetCore = options.UseAspNetCore().EnableAuthorizationEndpointPassthrough();
+        if (allowHttp)
+            aspNetCore.DisableTransportSecurityRequirement();
+    })
+    .AddValidation(options =>
+    {
+        options.UseLocalServer();
+        options.UseAspNetCore();
+    });
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -75,9 +119,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     context.Fail("The user no longer exists.");
             }
         };
+    })
+    .AddPolicyScheme("McpOAuth", "MCP OAuth", options =>
+    {
+        options.ForwardAuthenticate = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+        options.ForwardChallenge = McpAuthenticationDefaults.AuthenticationScheme;
+        options.ForwardForbid = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+    })
+    .AddMcp(options => options.ResourceMetadata = new()
+    {
+        AuthorizationServers = { oauth.Issuer },
+        ScopesSupported = ["mcp"]
     });
-builder.Services.AddAuthorization(options => options.AddPolicy(RoleNames.Admin,
-    policy => policy.RequireRole(RoleNames.Admin)));
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(RoleNames.Admin, policy => policy.RequireRole(RoleNames.Admin));
+    options.AddPolicy("Mcp", policy =>
+    {
+        policy.AddAuthenticationSchemes("McpOAuth");
+        policy.RequireAuthenticatedUser();
+        policy.RequireAssertion(context => context.User.HasScope("mcp"));
+    });
+});
+builder.Services.AddMcpServer()
+    .WithHttpTransport(options => options.Stateless = true)
+    .WithTools<IdentityTools>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy => policy
@@ -110,6 +176,8 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuthEndpoints();
+app.MapOAuthEndpoints();
+app.MapMcp("/mcp").RequireAuthorization("Mcp");
 app.MapAiProviderEndpoints();
 app.MapHouseEndpoints();
 app.MapAdminEndpoints();

@@ -10,6 +10,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-login-page',
@@ -44,13 +45,32 @@ export class LoginPage {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.auth.login(this.form.getRawValue()).pipe(finalize(() => this.isLoading.set(false))).subscribe({
-      next: () => void this.router.navigateByUrl(this.safeReturnUrl()),
+      next: () => {
+        const returnUrl = this.safeReturnUrl();
+        if (returnUrl.startsWith('http')) {
+          window.location.assign(returnUrl);
+          return;
+        }
+        void this.router.navigateByUrl(returnUrl);
+      },
       error: (error) => this.errorMessage.set(getApiError(error, this.translations.translate('auth.login.error'))),
     });
   }
 
   private safeReturnUrl(): string {
     const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-    return returnUrl?.startsWith('/') && !returnUrl.startsWith('//') ? returnUrl : '/dashboard';
+    if (returnUrl?.startsWith('/') && !returnUrl.startsWith('//')) {
+      return returnUrl;
+    }
+    try {
+      const target = new URL(returnUrl ?? '');
+      const api = new URL(environment.apiBaseUrl);
+      if (target.origin === api.origin && target.pathname === '/connect/authorize') {
+        return target.href;
+      }
+    } catch {
+      // Invalid and relative URLs fall back to the dashboard.
+    }
+    return '/dashboard';
   }
 }

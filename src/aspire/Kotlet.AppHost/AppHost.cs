@@ -6,6 +6,9 @@ var databaseProvider = builder.Configuration["Database:Provider"] ?? "PostgreSQL
 var jwtSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 var api = builder.AddProject<Projects.Kotlet_Api>("api")
     .WithEnvironment("Jwt__SigningKey", jwtSigningKey);
+api.WithEnvironment("OAuth__Issuer", api.GetEndpoint("http"))
+    .WithEnvironment("OAuth__Resource", $"{api.GetEndpoint("http")}/mcp");
+
 
 if (databaseProvider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
 {
@@ -13,8 +16,11 @@ if (databaseProvider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
 }
 else if (databaseProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
 {
-    var database = builder.AddConnectionString("kotletdb");
-    api.WithReference(database); 
+    var database = builder.AddPostgres("postgres")
+        .WithDataVolume()
+        .AddDatabase("kotletdb");
+    api.WithReference(database)
+        .WaitFor(database);
 }
 else
 {
