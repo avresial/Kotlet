@@ -5,8 +5,11 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Kotlet.Domain.Ingredients;
+using Kotlet.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Kotlet.Api.IntegrationTests.Auth;
@@ -35,8 +38,29 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", registrationToken);
         var houseResponse = await client.PostAsJsonAsync("/api/houses", new { name = "OAuth home" });
         houseResponse.EnsureSuccessStatusCode();
-        var houseId = (await houseResponse.Content.ReadFromJsonAsync<JsonElement>())
-            .GetProperty("house").GetProperty("id").GetGuid();
+        var houseBody = await houseResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var houseId = houseBody.GetProperty("house").GetProperty("id").GetGuid();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer", houseBody.GetProperty("token").GetProperty("accessToken").GetString());
+
+        var ingredientId = Guid.NewGuid();
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<KotletDbContext>();
+            db.Ingredients.Add(new Ingredient
+            {
+                Id = ingredientId, Name = "OAuth tomato", MeasurementUnit = "g"
+            });
+            await db.SaveChangesAsync();
+        }
+        var recipeResponse = await client.PostAsJsonAsync("/api/recipes", new
+        {
+            title = "OAuth tomato soup",
+            servings = 2,
+            ingredients = new[] { new { ingredientId, quantity = 500, unit = "g" } }
+        });
+        recipeResponse.EnsureSuccessStatusCode();
+        var recipeId = (await recipeResponse.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
         var metadata = await client.GetFromJsonAsync<JsonElement>("/.well-known/openid-configuration");
         Assert.EndsWith("/connect/authorize", metadata.GetProperty("authorization_endpoint").GetString());
@@ -87,24 +111,28 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
         Assert.Equal(houseId.ToString(), jwt.Claims.Single(claim => claim.Type == "house_id").Value);
         Assert.False(string.IsNullOrWhiteSpace(token.GetProperty("refresh_token").GetString()));
 
-        var toolResponse = await CallTool(client, accessToken!, "who_am_i", new { });
-        Assert.Equal(HttpStatusCode.OK, toolResponse.StatusCode);
-        Assert.Contains(email, await toolResponse.Content.ReadAsStringAsync());
+        var identityResource = await ReadResource(client, accessToken!, "kotlet://identity");
+        Assert.Equal(HttpStatusCode.OK, identityResource.StatusCode);
+        Assert.Contains(email, await identityResource.Content.ReadAsStringAsync());
 
         var recipesResponse = await CallTool(client, accessToken!, "get_recipes", new { });
         Assert.Equal(HttpStatusCode.OK, recipesResponse.StatusCode);
-        Assert.Contains("totalCount", await recipesResponse.Content.ReadAsStringAsync());
+        Assert.Contains($"kotlet://recipes/{recipeId}", await recipesResponse.Content.ReadAsStringAsync());
 
-        var mealPlanResponse = await CallTool(client, accessToken!, "get_meal_plan", new { date = "2026-06-29" });
-        Assert.Equal(HttpStatusCode.OK, mealPlanResponse.StatusCode);
-        Assert.Contains("breakfast", await mealPlanResponse.Content.ReadAsStringAsync());
+        var recipeResource = await ReadResource(client, accessToken!, $"kotlet://recipes/{recipeId}");
+        Assert.Equal(HttpStatusCode.OK, recipeResource.StatusCode);
+        Assert.Contains("OAuth tomato soup", await recipeResource.Content.ReadAsStringAsync());
+
+        var mealPlanResource = await ReadResource(client, accessToken!, "kotlet://meal-plans/days/2026-06-29");
+        Assert.Equal(HttpStatusCode.OK, mealPlanResource.StatusCode);
+        Assert.Contains("breakfast", await mealPlanResource.Content.ReadAsStringAsync());
 
         var weeklyPlanResponse = await CallTool(client, accessToken!, "add_weekly_meal_plan",
             new { request = new { weekStart = "2026-06-29", meals = Array.Empty<object>() } });
         Assert.Equal(HttpStatusCode.OK, weeklyPlanResponse.StatusCode);
         Assert.Contains("added", await weeklyPlanResponse.Content.ReadAsStringAsync());
 
-        var shoppingListResponse = await CallTool(client, accessToken!, "get_shopping_list", new { });
+        var shoppingListResponse = await ReadResource(client, accessToken!, "kotlet://shopping-list");
         Assert.Equal(HttpStatusCode.OK, shoppingListResponse.StatusCode);
         Assert.DoesNotContain("isError\":true", await shoppingListResponse.Content.ReadAsStringAsync());
 
@@ -137,6 +165,13 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
     }
 
     private static Task<HttpResponseMessage> CallTool(HttpClient client, string accessToken, string name, object arguments)
+        => SendMcp(client, accessToken, "tools/call", new { name, arguments });
+
+    private static Task<HttpResponseMessage> ReadResource(HttpClient client, string accessToken, string uri)
+        => SendMcp(client, accessToken, "resources/read", new { uri });
+
+    private static Task<HttpResponseMessage> SendMcp(
+        HttpClient client, string accessToken, string method, object parameters)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/mcp");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -147,8 +182,8 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
         {
             jsonrpc = "2.0",
             id = 1,
-            method = "tools/call",
-            @params = new { name, arguments }
+            method,
+            @params = parameters
         });
         return client.SendAsync(request);
     }
