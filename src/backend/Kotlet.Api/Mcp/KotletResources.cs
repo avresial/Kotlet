@@ -34,6 +34,22 @@ public sealed class KotletResources
         Json(await service.GetByIdAsync(ingredientId, language.Language, cancellationToken)
              ?? throw new KeyNotFoundException("Ingredient not found."));
 
+    [McpServerResource(UriTemplate = "kotlet://recipes/new-recipe-guide", Name = "new-recipe-guide",
+        Title = "New recipe creation guide", MimeType = "text/markdown"),
+     Description("Instructions for creating a new Kotlet recipe through MCP without editing existing recipes.")]
+    public static string NewRecipeGuide() =>
+        """
+        # New recipe creation flow
+
+        Use this resource before calling the `add_recipe` tool. The MCP server intentionally exposes recipe creation only; it does not expose an edit recipe tool.
+
+        1. Understand the requested recipe and decide on a title, servings, and a Markdown description.
+        2. Write `descriptionMarkdown` with a short overview followed by numbered preparation/cooking steps.
+        3. Resolve every ingredient with `get_ingredients`, then use `kotlet://ingredients/{ingredientId}` when full measurement details are needed.
+        4. Call `add_recipe` exactly once when the recipe is complete. Include each ingredient's existing `ingredientId`, positive `quantity`, `unit`, and optional `note`.
+        5. Do not attempt to edit an existing recipe. If the result has validation errors, report them to the user instead of guessing a second creation attempt unless the user explicitly asks you to try again.
+        """;
+
     [McpServerResource(UriTemplate = "kotlet://recipes/{recipeId}", Name = "recipe",
         Title = "Kotlet recipe", MimeType = "application/json"),
      Description("Complete household recipe, including description, servings, ingredients, and images.")]
