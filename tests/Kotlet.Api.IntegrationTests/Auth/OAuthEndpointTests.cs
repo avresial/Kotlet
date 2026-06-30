@@ -123,6 +123,33 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
         Assert.Equal(HttpStatusCode.OK, recipeResource.StatusCode);
         Assert.Contains("OAuth tomato soup", await recipeResource.Content.ReadAsStringAsync());
 
+        var recipeGuideResource = await ReadResource(client, accessToken!, "kotlet://recipes/new-recipe-guide");
+        Assert.Equal(HttpStatusCode.OK, recipeGuideResource.StatusCode);
+        var recipeGuideBody = await recipeGuideResource.Content.ReadAsStringAsync();
+        Assert.Contains("add_recipe", recipeGuideBody);
+        Assert.Contains("does not expose an edit recipe tool", recipeGuideBody);
+
+        var recipePromptResponse = await GetPrompt(client, accessToken!, "create_recipe_flow");
+        Assert.Equal(HttpStatusCode.OK, recipePromptResponse.StatusCode);
+        var recipePromptBody = await recipePromptResponse.Content.ReadAsStringAsync();
+        Assert.Contains("one-shot operation", recipePromptBody);
+        Assert.Contains("add_recipe", recipePromptBody);
+
+        var addRecipeResponse = await CallTool(client, accessToken!, "add_recipe", new
+        {
+            request = new
+            {
+                title = "OAuth roasted tomato toast",
+                servings = 1,
+                descriptionMarkdown = "Roasted tomato toast.\n\n1. Roast the tomatoes.\n2. Spoon tomatoes over toast and serve.",
+                ingredients = new[] { new { ingredientId, quantity = 150, unit = "g", note = "roasted" } }
+            }
+        });
+        Assert.Equal(HttpStatusCode.OK, addRecipeResponse.StatusCode);
+        var addRecipeBody = await addRecipeResponse.Content.ReadAsStringAsync();
+        Assert.Contains("OAuth roasted tomato toast", addRecipeBody);
+        Assert.Contains("roasted", addRecipeBody);
+
         var mealPlanResource = await ReadResource(client, accessToken!, "kotlet://meal-plans/days/2026-06-29");
         Assert.Equal(HttpStatusCode.OK, mealPlanResource.StatusCode);
         Assert.Contains("breakfast", await mealPlanResource.Content.ReadAsStringAsync());
@@ -169,6 +196,9 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
 
     private static Task<HttpResponseMessage> ReadResource(HttpClient client, string accessToken, string uri)
         => SendMcp(client, accessToken, "resources/read", new { uri });
+
+    private static Task<HttpResponseMessage> GetPrompt(HttpClient client, string accessToken, string name)
+        => SendMcp(client, accessToken, "prompts/get", new { name });
 
     private static Task<HttpResponseMessage> SendMcp(
         HttpClient client, string accessToken, string method, object parameters)
