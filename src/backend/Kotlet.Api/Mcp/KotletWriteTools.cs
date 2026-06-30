@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Kotlet.Api.Auth;
 using Kotlet.Api.Localization;
 using Kotlet.Application.MealPlanner;
+using Kotlet.Application.Recipes;
 using Kotlet.Application.Shopping;
 using ModelContextProtocol.Server;
 
@@ -20,6 +21,17 @@ public sealed class KotletWriteTools
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.AddWeekAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
+
+    [McpServerTool(Name = "add_recipe", ReadOnly = false, Destructive = false,
+        Idempotent = false, OpenWorld = false, UseStructuredContent = true),
+     Description("Creates one new household recipe. This is an add-only one-shot tool: gather ingredient IDs first, include quantities, units, optional notes, servings, and a Markdown description with preparation steps before calling it.")]
+    public static Task<RecipeOperationResult> AddRecipe(
+        [Description("Complete recipe to create. DescriptionMarkdown should include a concise overview and numbered cooking steps. Ingredients must use existing ingredient IDs from get_ingredients or kotlet://ingredients/{ingredientId} resources.")]
+        CreateRecipeRequest request,
+        RecipeService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.CreateAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
 
     [McpServerTool(Name = "add_shopping_list_item", ReadOnly = false, Destructive = false,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),

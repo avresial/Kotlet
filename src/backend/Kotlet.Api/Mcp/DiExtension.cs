@@ -36,6 +36,7 @@ public static class DiExtension
             .WithHttpTransport(options => options.Stateless = true)
             .WithTools<KotletReadTools>()
             .WithTools<KotletWriteTools>()
+            .WithPrompts<KotletPrompts>()
             .WithResources<KotletResources>();
         return services;
     }
