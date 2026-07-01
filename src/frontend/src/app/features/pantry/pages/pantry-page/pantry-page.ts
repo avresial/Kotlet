@@ -10,6 +10,7 @@ import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { PantryItem, storageLocations } from '../../pantry.models';
 import { PantryService } from '../../pantry.service';
+import { DisplayUnit, displayMeasurement, toBaseQuantity, unitsForIngredient } from '../../../ingredients/display-units';
 
 @Component({
   selector: 'app-pantry-page', imports: [ReactiveFormsModule, RouterLink, IngredientPicker, TranslatePipe],
@@ -28,7 +29,7 @@ export class PantryPage implements OnInit {
   readonly updatingId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly locations = storageLocations;
-  readonly form = this.formBuilder.group({ ingredientId: ['', Validators.required], quantity: [1, [Validators.required, Validators.min(0)]], expirationDate: [null as string | null], storageLocation: [1, Validators.required] });
+  readonly form = this.formBuilder.group({ ingredientId: ['', Validators.required], quantity: [1, [Validators.required, Validators.min(0)]], unit: ['g', Validators.required], expirationDate: [null as string | null], storageLocation: [1, Validators.required] });
 
   ngOnInit(): void {
     forkJoin({ items: this.pantryService.getAll(), ingredients: this.ingredientService.getAll() })
@@ -41,9 +42,10 @@ export class PantryPage implements OnInit {
   add(): void {
     if (this.form.invalid || this.isSaving()) { this.form.markAllAsTouched(); return; }
     this.isSaving.set(true); this.error.set(null);
-    const { ingredientId, quantity, expirationDate, storageLocation } = this.form.getRawValue();
-    this.pantryService.create(ingredientId!, quantity!, expirationDate, storageLocation!).pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: item => { this.items.update(items => this.sort([...items, item])); this.form.reset({ ingredientId: '', quantity: 1, expirationDate: null, storageLocation: 1 }); },
+    const { ingredientId, quantity, unit, expirationDate, storageLocation } = this.form.getRawValue();
+    const ingredient = this.selectedIngredient()!;
+    this.pantryService.create(ingredientId!, toBaseQuantity(quantity!, unit as DisplayUnit, ingredient), expirationDate, storageLocation!).pipe(finalize(() => this.isSaving.set(false))).subscribe({
+      next: item => { this.items.update(items => this.sort([...items, item])); this.form.reset({ ingredientId: '', quantity: 1, unit: 'g', expirationDate: null, storageLocation: 1 }); },
       error: error => this.error.set(getApiError(error, this.translations.translate('pantry.addError'))),
     });
   }
@@ -72,7 +74,18 @@ export class PantryPage implements OnInit {
     return this.ingredients().find(ingredient => ingredient.id === this.form.controls.ingredientId.value);
   }
 
-  step(item: PantryItem): number { return ['kg', 'l'].includes(item.measurementUnit) ? 0.1 : 1; }
+  selectIngredient(ingredient: Ingredient): void { this.form.controls.unit.setValue(ingredient.measurementUnit); }
+  selectedUnits(): DisplayUnit[] { return this.selectedIngredient() ? unitsForIngredient(this.selectedIngredient()!) : ['g']; }
+  display(item: PantryItem) {
+    const ingredient = this.ingredients().find(value => value.id === item.ingredientId);
+    return ingredient ? displayMeasurement(item.quantity, ingredient) : { quantity: item.quantity, unit: item.measurementUnit as DisplayUnit };
+  }
+  setDisplayQuantity(item: PantryItem, quantity: number): void {
+    const ingredient = this.ingredients().find(value => value.id === item.ingredientId);
+    if (ingredient) this.setQuantity(item, toBaseQuantity(quantity, this.display(item).unit, ingredient));
+  }
+
+  step(item: PantryItem): number { return ['kg', 'l'].includes(this.display(item).unit) ? 0.1 : 1; }
   locationLabel(value: PantryItem['storageLocation']): string {
     return value ? this.translations.translate(this.locations.find(location => location.value === value)!.label) : '';
   }

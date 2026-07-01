@@ -22,14 +22,16 @@
         }
       </div>
       <div class="col">
-        <label>{{ 'ingredients.baseUnit' | t }}<select formControlName="measurementUnit">@for (unit of units; track unit.value) { <option [value]="unit.value">{{ unit.label | t }}</option> }</select></label>
+        <label>{{ 'ingredients.unit' | t }}<select formControlName="measurementUnit">@for (unit of displayUnits; track unit.value) { <option [value]="unit.value">{{ unit.label | t }}</option> }</select></label>
+        @if (form.controls.measurementUnit.value === 'piece') {
+          <label>{{ 'ingredients.baseUnit' | t }}<select formControlName="pieceBaseUnit">@for (unit of units; track unit.value) { <option [value]="unit.value">{{ unit.label | t }}</option> }</select></label>
+        }
         <label>{{ 'ingredients.category' | t }}<select formControlName="category">@for (category of categories; track category.value) { <option [ngValue]="category.value">{{ category.label | t }}</option> }</select></label>
-        <label>Calories per 100 {{ form.controls.measurementUnit.value }}<input type="number" min="0" max="999999.99" step="0.01" formControlName="caloriesPer100BaseUnits" /></label>
-        <label>Price per 100 {{ form.controls.measurementUnit.value }}<input type="number" min="0" max="99999999.99" step="0.01" formControlName="pricePer100BaseUnits" /></label>
+        <label>{{ 'ingredients.caloriesPer' | t }} {{ nutritionBasis() }}<input type="number" min="0" max="999999.99" step="0.01" formControlName="caloriesPer100BaseUnits" /></label>
+        <label>{{ 'ingredients.pricePer' | t }} {{ nutritionBasis() }}<input type="number" min="0" max="99999999.99" step="0.01" formControlName="pricePer100BaseUnits" /></label>
       </div>
       <div class="col">
-        <label class="checkbox-field"><input type="checkbox" formControlName="isCountable" /> {{ 'ingredients.countable' | t }}</label>
-        @if (form.controls.isCountable.value) {
+        @if (form.controls.measurementUnit.value === 'piece') {
           <label>{{ 'ingredients.unitsPerPiece' | t }}<input type="number" min="0.001" max="999999999.999" step="0.001" formControlName="measurementUnitsPerPiece" /></label>
         }
         <div class="actions">

@@ -6,8 +6,9 @@
   <section class="add-panel" aria-labelledby="add-title">
     <div><h2 id="add-title">{{ 'pantry.addProduct' | t }}</h2><p>{{ 'pantry.addHelp' | t }}</p></div>
     <form [formGroup]="form" (ngSubmit)="add()">
-      <label>{{ 'common.ingredient' | t }}<app-ingredient-picker formControlName="ingredientId" [ingredients]="availableIngredients()" /></label>
-      <label>Quantity @if (selectedIngredient(); as ingredient) { <span class="selected-unit">({{ ingredient.measurementUnit }})</span> }<input type="number" min="0" step="0.001" formControlName="quantity" /></label>
+      <label>{{ 'common.ingredient' | t }}<app-ingredient-picker formControlName="ingredientId" [ingredients]="availableIngredients()" (ingredientSelected)="selectIngredient($event)" /></label>
+      <label>{{ 'common.quantity' | t }}<input type="number" min="0" step="0.001" formControlName="quantity" /></label>
+      <label>{{ 'ingredients.unit' | t }}<select formControlName="unit">@for (unit of selectedUnits(); track unit) { <option [value]="unit">{{ ('units.' + (unit === 'g' ? 'grams' : unit === 'kg' ? 'kilograms' : unit === 'ml' ? 'millilitres' : unit === 'l' ? 'litres' : 'piece')) | t }}</option> }</select></label>
       <label>{{ 'pantry.expirationDate' | t }}<input type="date" formControlName="expirationDate" /></label>
       <label>{{ 'pantry.location' | t }}<select formControlName="storageLocation">@for (location of locations; track location.value) { <option [ngValue]="location.value">{{ location.label | t }}</option> }</select></label>
       <button class="primary" type="submit" [disabled]="isSaving() || availableIngredients().length === 0">{{ isSaving() ? 'Adding…' : 'Add to pantry' }}</button>
@@ -20,11 +21,11 @@
     @else if (items().length === 0) { <p class="empty">{{ 'pantry.empty' | t }}</p> }
     @else { <div class="item-grid">@for (item of items(); track item.id) {
       <article class="stock-card" [class.is-empty]="item.quantity === 0">
-        <div class="stock-main"><span class="product-icon" aria-hidden="true">◉</span><div><h3>{{ item.ingredientName }}</h3><p>{{ item.quantity }} {{ item.measurementUnit }}</p>@if (item.storageLocation) { <small>{{ locationLabel(item.storageLocation) }}</small> }@if (item.expirationDate) { <small>{{ 'pantry.expires' | t }} {{ item.expirationDate }}</small> }</div></div>
+        <div class="stock-main"><span class="product-icon" aria-hidden="true">◉</span><div><h3>{{ item.ingredientName }}</h3><p>{{ display(item).quantity }} {{ display(item).unit }}</p>@if (item.storageLocation) { <small>{{ locationLabel(item.storageLocation) }}</small> }@if (item.expirationDate) { <small>{{ 'pantry.expires' | t }} {{ item.expirationDate }}</small> }</div></div>
         <div class="quantity-control" [attr.aria-label]="('pantry.updateQuantity' | t) + ' ' + item.ingredientName">
-          <button type="button" (click)="setQuantity(item, item.quantity - step(item))" [disabled]="updatingId() !== null || item.quantity === 0" [attr.aria-label]="'pantry.decrease' | t">−</button>
-          <input #quantity type="number" min="0" step="0.001" [value]="item.quantity" (change)="setQuantity(item, quantity.valueAsNumber)" [disabled]="updatingId() !== null" />
-          <button type="button" (click)="setQuantity(item, item.quantity + step(item))" [disabled]="updatingId() !== null" [attr.aria-label]="'pantry.increase' | t">＋</button>
+          <button type="button" (click)="setDisplayQuantity(item, display(item).quantity - step(item))" [disabled]="updatingId() !== null || item.quantity === 0" [attr.aria-label]="'pantry.decrease' | t">−</button>
+          <input #quantity type="number" min="0" step="0.001" [value]="display(item).quantity" (change)="setDisplayQuantity(item, quantity.valueAsNumber)" [disabled]="updatingId() !== null" />
+          <button type="button" (click)="setDisplayQuantity(item, display(item).quantity + step(item))" [disabled]="updatingId() !== null" [attr.aria-label]="'pantry.increase' | t">＋</button>
         </div>
         <button class="remove" type="button" (click)="remove(item)" [disabled]="updatingId() !== null">{{ 'common.remove' | t }}</button>
       </article>

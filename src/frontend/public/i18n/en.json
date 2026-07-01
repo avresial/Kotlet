@@ -1,4 +1,5 @@
 {
+  "units.kilograms": "Kilograms (kg)", "units.litres": "Litres (l)", "ingredients.unit": "Unit", "ingredients.caloriesPer": "Calories per", "ingredients.pricePer": "Price per",
   "home.dashboard.quickStats": "Quick stats", "home.dashboard.atAGlance": "At a glance", "home.dashboard.statsLoading": "Loading statistics…", "home.dashboard.statsError": "Unable to load statistics.",
   "recipes.mealType": "Meal type", "recipes.mealTypeNone": "No meal type",
   "pantry.location": "Location", "pantry.location.refrigerator": "Refrigerator", "pantry.location.freezer": "Freezer", "pantry.location.cabinet": "Cabinet",
