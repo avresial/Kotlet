@@ -3,6 +3,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
@@ -10,13 +12,14 @@ import { PantryItem } from '../../pantry.models';
 import { PantryService } from '../../pantry.service';
 
 @Component({
-  selector: 'app-pantry-page', imports: [ReactiveFormsModule, RouterLink, IngredientPicker],
+  selector: 'app-pantry-page', imports: [ReactiveFormsModule, RouterLink, IngredientPicker, TranslatePipe],
   templateUrl: './pantry-page.html', styleUrl: './pantry-page.scss', changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PantryPage implements OnInit {
   private readonly pantryService = inject(PantryService);
   private readonly ingredientService = inject(IngredientService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly translations = inject(TranslationService);
   readonly items = signal<PantryItem[]>([]);
   readonly ingredients = signal<Ingredient[]>([]);
   readonly availableIngredients = computed(() => this.ingredients().filter(i => !this.items().some(item => item.ingredientId === i.id)));
@@ -30,7 +33,7 @@ export class PantryPage implements OnInit {
     forkJoin({ items: this.pantryService.getAll(), ingredients: this.ingredientService.getAll() })
       .pipe(finalize(() => this.isLoading.set(false))).subscribe({
         next: ({ items, ingredients }) => { this.items.set(items); this.ingredients.set(ingredients); },
-        error: error => this.error.set(getApiError(error, 'Unable to load your pantry.')),
+        error: error => this.error.set(getApiError(error, this.translations.translate('pantry.loadError'))),
       });
   }
 
@@ -40,7 +43,7 @@ export class PantryPage implements OnInit {
     const { ingredientId, quantity } = this.form.getRawValue();
     this.pantryService.create(ingredientId, quantity).pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: item => { this.items.update(items => this.sort([...items, item])); this.form.reset({ ingredientId: '', quantity: 1 }); },
-      error: error => this.error.set(getApiError(error, 'Unable to add this product.')),
+      error: error => this.error.set(getApiError(error, this.translations.translate('pantry.addError'))),
     });
   }
 
@@ -51,16 +54,16 @@ export class PantryPage implements OnInit {
     this.updatingId.set(item.id); this.error.set(null);
     this.pantryService.update(item.id, normalized).pipe(finalize(() => this.updatingId.set(null))).subscribe({
       next: updated => this.items.update(items => this.sort(items.map(current => current.id === updated.id ? updated : current))),
-      error: error => this.error.set(getApiError(error, 'Unable to update the quantity.')),
+      error: error => this.error.set(getApiError(error, this.translations.translate('pantry.updateError'))),
     });
   }
 
   remove(item: PantryItem): void {
-    if (this.updatingId() || !window.confirm(`Remove ${item.ingredientName} from your pantry?`)) return;
+    if (this.updatingId() || !window.confirm(this.translations.translate('pantry.removeConfirm').replace('{name}', item.ingredientName))) return;
     this.updatingId.set(item.id); this.error.set(null);
     this.pantryService.delete(item.id).pipe(finalize(() => this.updatingId.set(null))).subscribe({
       next: () => this.items.update(items => items.filter(current => current.id !== item.id)),
-      error: error => this.error.set(getApiError(error, 'Unable to remove this product.')),
+      error: error => this.error.set(getApiError(error, this.translations.translate('pantry.removeError'))),
     });
   }
 

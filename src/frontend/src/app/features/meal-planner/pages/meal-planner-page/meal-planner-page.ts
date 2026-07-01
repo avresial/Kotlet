@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, Observable, of, switchMap, tap } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
@@ -28,7 +30,7 @@ interface PersonCalories {
 
 @Component({
   selector: 'app-meal-planner-page',
-  imports: [FormsModule, RouterLink, IngredientPicker, RecipePicker],
+  imports: [FormsModule, RouterLink, IngredientPicker, RecipePicker, TranslatePipe],
   templateUrl: './meal-planner-page.html',
   styleUrl: './meal-planner-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,13 +40,14 @@ export class MealPlannerPage implements OnInit {
   private readonly recipeService = inject(RecipeService);
   private readonly ingredientService = inject(IngredientService);
   private readonly shoppingListService = inject(ShoppingListService);
+  private readonly translations = inject(TranslationService);
 
   readonly slots: MealSlot[] = ['breakfast', 'dinner', 'supper'];
-  readonly slotLabels: Record<MealSlot, string> = {
-    breakfast: 'Breakfast',
-    dinner: 'Lunch',
-    supper: 'Dinner',
-  };
+  readonly slotLabels = computed<Record<MealSlot, string>>(() => ({
+    breakfast: this.translations.translate('meal.breakfast'),
+    dinner: this.translations.translate('meal.lunch'),
+    supper: this.translations.translate('meal.dinner'),
+  }));
 
   private readonly overviewDays = 28;
   readonly selectedDate = signal(this.todayString());
@@ -52,7 +55,7 @@ export class MealPlannerPage implements OnInit {
   readonly overview = signal<MealPlanOverviewDay[]>([]);
   readonly overviewLabel = computed(() => {
     const from = this.overviewFrom();
-    if (from === this.todayString()) return `Next ${this.overviewDays} days`;
+    if (from === this.todayString()) return this.translations.translate('meal.nextDays').replace('{count}', String(this.overviewDays));
     const to = this.addDays(from, this.overviewDays - 1);
     return `${this.dayNumber(from)} – ${this.dayNumber(to)}`;
   });
@@ -108,8 +111,8 @@ export class MealPlannerPage implements OnInit {
     }
 
     const result = [...totals.values()].sort((a, b) => b.calories - a.calories || a.name.localeCompare(b.name));
-    if (guestCalories > 0) result.push({ id: 'guests', name: 'Guests', calories: guestCalories });
-    if (unassignedCalories > 0) result.push({ id: 'unassigned', name: 'Unassigned servings', calories: unassignedCalories });
+    if (guestCalories > 0) result.push({ id: 'guests', name: this.translations.translate('meal.guests'), calories: guestCalories });
+    if (unassignedCalories > 0) result.push({ id: 'unassigned', name: this.translations.translate('meal.unassignedServings'), calories: unassignedCalories });
     return result;
   });
 
@@ -147,11 +150,11 @@ export class MealPlannerPage implements OnInit {
   }
 
   dayName(date: string): string {
-    return new Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(this.localDate(date));
+    return new Intl.DateTimeFormat(this.translations.language(), { weekday: 'short' }).format(this.localDate(date));
   }
 
   dayNumber(date: string): string {
-    return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(this.localDate(date));
+    return new Intl.DateTimeFormat(this.translations.language(), { day: 'numeric', month: 'short' }).format(this.localDate(date));
   }
 
   private loadMembers(): void {
@@ -192,7 +195,7 @@ export class MealPlannerPage implements OnInit {
           this.plan.set(plan);
           this.loadRecipeDetails(plan);
         },
-        error: (err) => this.planError.set(getApiError(err, 'Unable to load meal plan.')),
+        error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.loadError'))),
       });
   }
 
@@ -219,7 +222,7 @@ export class MealPlannerPage implements OnInit {
         if (item.recipeId) this.loadRecipeDetail(item.recipeId);
         this.loadOverview();
       },
-      error: (err) => this.planError.set(getApiError(err, 'Unable to add recipe.')),
+      error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.addRecipeError'))),
     });
   }
 
@@ -236,7 +239,7 @@ export class MealPlannerPage implements OnInit {
         this.composer.update((value) => ({ ...value, [slot]: null }));
         this.loadOverview();
       },
-      error: (err) => this.planError.set(getApiError(err, 'Unable to add ingredient.')),
+      error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.addIngredientError'))),
     });
   }
 
@@ -250,7 +253,7 @@ export class MealPlannerPage implements OnInit {
         this.plan.update((p) => p ? this.filterItem(p, item.id) : p);
         this.loadOverview();
       },
-      error: (err) => this.planError.set(getApiError(err, 'Unable to remove item.')),
+      error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.removeError'))),
     });
   }
 
@@ -295,7 +298,7 @@ export class MealPlannerPage implements OnInit {
       finalize(() => this.busyItemId.set(null))
     ).subscribe({
       next: (updated) => this.plan.update((p) => p ? this.replaceItem(p, updated) : p),
-      error: (err) => this.planError.set(getApiError(err, 'Unable to update the people for this meal.')),
+      error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.peopleError'))),
     });
   }
 
@@ -320,7 +323,7 @@ export class MealPlannerPage implements OnInit {
       finalize(() => this.busyItemId.set(null))
     ).subscribe({
       next: (updated) => this.plan.update((p) => p ? this.replaceItem(p, updated) : p),
-      error: (err) => this.planError.set(getApiError(err, 'Unable to update guests.')),
+      error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.guestsError'))),
     });
   }
 
@@ -382,7 +385,7 @@ export class MealPlannerPage implements OnInit {
     ready.pipe(
       switchMap(() => {
         const quantities = this.shoppingQuantities(item);
-        if (!quantities.length) throw new Error('No catalogue ingredients were found for this meal.');
+        if (!quantities.length) throw new Error(this.translations.translate('meal.noCatalogueIngredients'));
         return this.shoppingListService.getAll().pipe(
           switchMap((current) => forkJoin(quantities.map(({ ingredient, quantity }) => {
             const existing = current.find((entry) => entry.ingredientId === ingredient.id);
@@ -403,7 +406,7 @@ export class MealPlannerPage implements OnInit {
       })
     ).subscribe({
       next: () => this.shoppingItemState.update((state) => ({ ...state, [item.id]: 'added' })),
-      error: (error: unknown) => this.planError.set(getApiError(error, error instanceof Error ? error.message : 'Unable to add this meal to the shopping list.')),
+      error: (error: unknown) => this.planError.set(getApiError(error, error instanceof Error ? error.message : this.translations.translate('meal.shoppingError'))),
     });
   }
 

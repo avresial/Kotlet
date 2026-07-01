@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
@@ -21,6 +22,7 @@ export class ShoppingListPage implements OnInit {
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly ingredientService = inject(IngredientService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly translations = inject(TranslationService);
   readonly items = signal<ShoppingListItem[]>([]);
   readonly ingredients = signal<Ingredient[]>([]);
   readonly isLoading = signal(true);
@@ -39,7 +41,7 @@ export class ShoppingListPage implements OnInit {
     forkJoin({ items: this.shoppingListService.getAll(), ingredients: this.ingredientService.getAll() })
       .pipe(finalize(() => this.isLoading.set(false))).subscribe({
         next: ({ items, ingredients }) => { this.items.set(items); this.ingredients.set(ingredients); },
-        error: error => this.error.set(getApiError(error, 'Unable to load your shopping list.')),
+        error: error => this.error.set(getApiError(error, this.translations.translate('shopping.loadError'))),
       });
   }
 
@@ -49,7 +51,7 @@ export class ShoppingListPage implements OnInit {
     const { ingredientId, quantity } = this.form.getRawValue();
     this.shoppingListService.create(ingredientId, quantity).pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: item => { this.items.update(items => [...items, item]); this.form.reset({ ingredientId: '', quantity: 1 }); },
-      error: error => this.error.set(getApiError(error, 'Unable to add this ingredient.')),
+      error: error => this.error.set(getApiError(error, this.translations.translate('shopping.addError'))),
     });
   }
 
@@ -58,7 +60,7 @@ export class ShoppingListPage implements OnInit {
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.update(item, changes).pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: updated => this.items.update(items => items.map(current => current.id === updated.id ? updated : current)),
-      error: error => this.error.set(getApiError(error, 'Unable to update this item.')),
+      error: error => this.error.set(getApiError(error, this.translations.translate('shopping.updateError'))),
     });
   }
 
@@ -67,7 +69,7 @@ export class ShoppingListPage implements OnInit {
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.delete(item.id).pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: () => this.items.update(items => items.filter(current => current.id !== item.id)),
-      error: error => this.error.set(getApiError(error, 'Unable to remove this item.')),
+      error: error => this.error.set(getApiError(error, this.translations.translate('shopping.removeError'))),
     });
   }
 
@@ -76,7 +78,7 @@ export class ShoppingListPage implements OnInit {
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.clearChecked().pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: () => this.items.update(items => items.filter(item => !item.isPurchased)),
-      error: error => this.error.set(getApiError(error, 'Unable to clear checked items.')),
+      error: error => this.error.set(getApiError(error, this.translations.translate('shopping.clearError'))),
     });
   }
 }

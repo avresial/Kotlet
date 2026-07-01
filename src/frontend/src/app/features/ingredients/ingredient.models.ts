@@ -27,6 +27,6 @@ export interface IngredientRequest {
 }
 
 export const measurementUnits = [
-  { label: 'Grams (g)', value: 'g' },
-  { label: 'Millilitres (ml)', value: 'ml' },
+  { label: 'units.grams', value: 'g' },
+  { label: 'units.millilitres', value: 'ml' },
 ] as const;

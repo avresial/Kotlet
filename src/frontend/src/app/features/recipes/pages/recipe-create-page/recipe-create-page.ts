@@ -1,13 +1,15 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 import { CreateRecipeRequest } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeForm } from '../../components/recipe-form/recipe-form';
 
 @Component({
   selector: 'app-recipe-create-page',
-  imports: [RouterLink, RecipeForm],
+  imports: [RouterLink, RecipeForm, TranslatePipe],
   templateUrl: './recipe-create-page.html',
   styleUrl: './recipe-create-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -15,6 +17,7 @@ import { RecipeForm } from '../../components/recipe-form/recipe-form';
 export class RecipeCreatePage {
   private readonly service = inject(RecipeService);
   private readonly router = inject(Router);
+  private readonly translations = inject(TranslationService);
 
   readonly isSaving = signal(false);
   readonly error = signal<string | null>(null);
@@ -36,7 +39,7 @@ export class RecipeCreatePage {
         });
       },
       error: (err) => {
-        this.error.set(getApiError(err, 'Unable to create recipe.'));
+        this.error.set(getApiError(err, this.translations.translate('recipes.createError')));
         this.isSaving.set(false);
       },
     });

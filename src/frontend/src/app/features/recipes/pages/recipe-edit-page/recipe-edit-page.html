@@ -1,12 +1,12 @@
 <main class="recipe-edit-page">
-  <a class="back" [routerLink]="['/recipes', id]">← Back to recipe</a>
+  <a class="back" [routerLink]="['/recipes', id]">← {{ 'recipes.backToRecipe' | t }}</a>
   <header>
-    <p class="eyebrow">Editing</p>
+    <p class="eyebrow">{{ 'recipes.editing' | t }}</p>
     <h1>{{ recipe()?.title ?? 'Edit recipe' }}</h1>
   </header>
 
   @if (isLoading()) {
-    <p class="loading">Loading recipe…</p>
+    <p class="loading">{{ 'recipes.loadingOne' | t }}</p>
   } @else if (!recipe() && error()) {
     <div class="error" role="alert">{{ error() }}</div>
   } @else if (recipe()) {
@@ -14,7 +14,7 @@
       [initialValue]="recipe()"
       [isSaving]="isSaving()"
       [error]="error()"
-      submitLabel="Save changes"
+      [submitLabel]="'recipes.saveChanges' | t"
       (submitted)="save($event)"
       (cancelled)="cancel()"
     ></app-recipe-form>

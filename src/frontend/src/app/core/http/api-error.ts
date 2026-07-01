@@ -7,7 +7,7 @@ interface ProblemDetails {
 
 export function getApiError(error: unknown, fallback: string): string {
   if (!(error instanceof HttpErrorResponse)) return fallback;
-  if (error.status === 0) return 'The server is unavailable. Please try again.';
+  if (error.status === 0) return fallback;
 
   const problem = error.error as ProblemDetails | null;
   if (problem?.message) return problem.message;

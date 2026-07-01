@@ -6,13 +6,15 @@ import { finalize } from 'rxjs';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 import { RecipeDetail, RecipeIngredient } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { ImageGallery } from '../../components/image-gallery/image-gallery';
 
 @Component({
   selector: 'app-recipe-detail-page',
-  imports: [RouterLink, DatePipe, ImageGallery],
+  imports: [RouterLink, DatePipe, ImageGallery, TranslatePipe],
   templateUrl: './recipe-detail-page.html',
   styleUrl: './recipe-detail-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,6 +24,7 @@ export class RecipeDetailPage implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly translations = inject(TranslationService);
 
   readonly recipe = signal<RecipeDetail | null>(null);
   readonly isLoading = signal(true);
@@ -56,7 +59,7 @@ export class RecipeDetailPage implements OnInit {
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: (recipe) => this.recipe.set(recipe),
-        error: (err) => this.error.set(getApiError(err, 'Unable to load recipe.')),
+        error: (err) => this.error.set(getApiError(err, this.translations.translate('recipes.loadOneError'))),
       });
   }
 
@@ -65,12 +68,12 @@ export class RecipeDetailPage implements OnInit {
   }
 
   delete(): void {
-    if (!window.confirm(`Delete "${this.recipe()?.title}"?`)) return;
+    if (!window.confirm(this.translations.translate('recipes.deleteConfirm').replace('{name}', this.recipe()?.title ?? ''))) return;
     this.isDeleting.set(true);
     this.service.delete(this.id).subscribe({
       next: () => this.router.navigate(['/recipes']),
       error: (err) => {
-        this.error.set(getApiError(err, 'Unable to delete recipe.'));
+        this.error.set(getApiError(err, this.translations.translate('recipes.deleteError')));
         this.isDeleting.set(false);
       },
     });

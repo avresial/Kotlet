@@ -7,9 +7,9 @@
     <span class="file-name">{{ file?.name || 'JPEG, PNG or WebP · max 5 MB' }}</span>
   </div>
   <label class="field">
-    <span>Alt text <small>Optional</small></span>
-    <input type="text" maxlength="300" placeholder="Describe the image for accessibility" [value]="altText" (input)="altText = $any($event.target).value">
+    <span>{{ 'recipes.altText' | t }} <small>{{ 'common.optional' | t }}</small></span>
+    <input type="text" maxlength="300" [placeholder]="'recipes.altPlaceholder' | t" [value]="altText" (input)="altText = $any($event.target).value">
   </label>
   @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-  <button type="button" [disabled]="!file" (click)="submit()">Upload image</button>
+  <button type="button" [disabled]="!file" (click)="submit()">{{ 'recipes.uploadImage' | t }}</button>
 </div>

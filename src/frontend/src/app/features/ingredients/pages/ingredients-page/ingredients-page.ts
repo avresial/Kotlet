@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslationService } from '../../../../core/i18n/translation.service';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { Ingredient, IngredientRequest, measurementUnits } from '../../ingredient.models';
 import { IngredientService } from '../../ingredient.service';
 
@@ -11,7 +12,7 @@ const DEFAULT_LANGUAGE = 'en';
 
 @Component({
   selector: 'app-ingredients-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe],
   templateUrl: './ingredients-page.html',
   styleUrl: './ingredients-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,7 +61,7 @@ export class IngredientsPage implements OnInit {
     this.error.set(null);
     this.service.getAll().pipe(finalize(() => this.isLoading.set(false))).subscribe({
       next: (ingredients) => this.ingredients.set(ingredients),
-      error: (error) => this.error.set(getApiError(error, 'Unable to load ingredients.')),
+      error: (error) => this.error.set(getApiError(error, this.translation.translate('ingredients.loadError'))),
     });
   }
 
@@ -111,12 +112,12 @@ export class IngredientsPage implements OnInit {
           : [...items, ingredient].sort(this.sortByName));
         this.cancelEdit();
       },
-      error: (error) => this.error.set(getApiError(error, 'Unable to save the ingredient.')),
+      error: (error) => this.error.set(getApiError(error, this.translation.translate('ingredients.saveError'))),
     });
   }
 
   remove(ingredient: Ingredient): void {
-    if (this.deletingId() || !window.confirm(`Delete ${ingredient.name}?`)) return;
+    if (this.deletingId() || !window.confirm(this.translation.translate('ingredients.deleteConfirm').replace('{name}', ingredient.name))) return;
     this.deletingId.set(ingredient.id);
     this.error.set(null);
     this.service.delete(ingredient.id).pipe(finalize(() => this.deletingId.set(null))).subscribe({
@@ -124,10 +125,10 @@ export class IngredientsPage implements OnInit {
         this.ingredients.update((items) => items.filter((item) => item.id !== ingredient.id));
         if (this.editingId() === ingredient.id) this.cancelEdit();
       },
-      error: (error) => this.error.set(getApiError(error, 'Unable to delete the ingredient.')),
+      error: (error) => this.error.set(getApiError(error, this.translation.translate('ingredients.deleteError'))),
     });
   }
 
-  unitLabel(value: string): string { return this.units.find((unit) => unit.value === value)?.label ?? value; }
+  unitLabel(value: string): string { return this.translation.translate(this.units.find((unit) => unit.value === value)?.label ?? value); }
   private readonly sortByName = (left: Ingredient, right: Ingredient) => left.name.localeCompare(right.name);
 }

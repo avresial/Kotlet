@@ -5,43 +5,43 @@
           <span class="row-index">{{ $index + 1 }}</span>
           <div class="row-fields">
             <label class="field-name">
-              <span class="sr-only">Name</span>
-              <app-ingredient-picker formControlName="name" [ingredients]="ingredients()" valueMode="name" placeholder="Start typing an ingredient…" (ingredientSelected)="selectIngredient(row)" />
+              <span class="sr-only">{{ 'ingredients.name' | t }}</span>
+              <app-ingredient-picker formControlName="name" [ingredients]="ingredients()" valueMode="name" [placeholder]="'recipes.ingredientPlaceholder' | t" (ingredientSelected)="selectIngredient(row)" />
               @if (row.get('name')?.invalid && row.get('name')?.touched) {
                 <span class="field-error">
-                  @if (row.get('name')?.errors?.['required']) { Name is required }
-                  @else if (row.get('name')?.errors?.['maxlength']) { Name cannot exceed 200 characters }
-                  @else if (row.get('name')?.errors?.['unknownIngredient']) { Choose an ingredient from the list }
+                  @if (row.get('name')?.errors?.['required']) { {{ 'recipes.ingredientRequired' | t }} }
+                  @else if (row.get('name')?.errors?.['maxlength']) { {{ 'recipes.ingredientLength' | t }} }
+                  @else if (row.get('name')?.errors?.['unknownIngredient']) { {{ 'recipes.ingredientUnknown' | t }} }
                 </span>
               }
             </label>
             <label class="field-qty">
-              <span class="sr-only">Quantity</span>
-              <input type="number" formControlName="quantity" placeholder="Qty" min="0.001" step="any" />
+              <span class="sr-only">{{ 'common.quantity' | t }}</span>
+              <input type="number" formControlName="quantity" [placeholder]="'recipes.quantityShort' | t" min="0.001" step="any" />
               @if (row.get('quantity')?.invalid && row.get('quantity')?.touched) {
-                <span class="field-error">Quantity must be positive</span>
+                <span class="field-error">{{ 'recipes.quantityPositive' | t }}</span>
               }
             </label>
             <label class="field-unit">
-              <span class="sr-only">Unit</span>
-              <select formControlName="unit" aria-label="Unit">
-                @for (unit of unitsFor(row); track unit.value) { <option [value]="unit.value">{{ unit.label }}</option> }
+              <span class="sr-only">{{ 'recipes.unit' | t }}</span>
+              <select formControlName="unit" [attr.aria-label]="'recipes.unit' | t">
+                @for (unit of unitsFor(row); track unit.value) { <option [value]="unit.value">{{ unit.label | t }}</option> }
               </select>
             </label>
             <label class="field-note">
-              <span class="sr-only">Note</span>
-              <input type="text" formControlName="note" placeholder="Note (optional)" />
+              <span class="sr-only">{{ 'recipes.note' | t }}</span>
+              <input type="text" formControlName="note" [placeholder]="'recipes.notePlaceholder' | t" />
             </label>
           </div>
           <div class="row-actions">
-            <button type="button" [disabled]="$index === 0 || $index === rows.length - 1 || isDisabled()" (click)="moveUp($index)" title="Move up" aria-label="Move ingredient up">↑</button>
-            <button type="button" [disabled]="$index >= rows.length - 2 || isDisabled()" (click)="moveDown($index)" title="Move down" aria-label="Move ingredient down">↓</button>
-            <button type="button" class="delete" [disabled]="isDisabled()" (click)="removeRow($index)" title="Remove" aria-label="Remove ingredient">×</button>
+            <button type="button" [disabled]="$index === 0 || $index === rows.length - 1 || isDisabled()" (click)="moveUp($index)" [title]="'common.moveUp' | t" [attr.aria-label]="'recipes.moveIngredientUp' | t">↑</button>
+            <button type="button" [disabled]="$index >= rows.length - 2 || isDisabled()" (click)="moveDown($index)" [title]="'common.moveDown' | t" [attr.aria-label]="'recipes.moveIngredientDown' | t">↓</button>
+            <button type="button" class="delete" [disabled]="isDisabled()" (click)="removeRow($index)" [title]="'common.remove' | t" [attr.aria-label]="'recipes.removeIngredient' | t">×</button>
           </div>
         </div>
       }
     </div>
   @if (ingredientLoadError()) {
-    <p class="catalogue-error" role="alert">Ingredients could not be loaded. Try refreshing the page.</p>
+    <p class="catalogue-error" role="alert">{{ 'recipes.ingredientsLoadError' | t }}</p>
   }
 </div>

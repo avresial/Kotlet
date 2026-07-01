@@ -25,10 +25,11 @@ import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-ingredient-list-editor',
-  imports: [ReactiveFormsModule, IngredientPicker],
+  imports: [ReactiveFormsModule, IngredientPicker, TranslatePipe],
   templateUrl: './ingredient-list-editor.html',
   styleUrl: './ingredient-list-editor.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -144,11 +145,11 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
     if (!ingredient) return [];
     const units = [
       { value: ingredient.measurementUnit, label: ingredient.measurementUnit },
-      { value: 'tsp', label: 'tsp' },
-      { value: 'tbsp', label: 'tbsp' },
-      { value: 'cup', label: 'cup' },
+      { value: 'tsp', label: 'units.teaspoon' },
+      { value: 'tbsp', label: 'units.tablespoon' },
+      { value: 'cup', label: 'units.cup' },
     ];
-    if (ingredient.isCountable) units.push({ value: 'piece', label: 'piece' });
+    if (ingredient.isCountable) units.push({ value: 'piece', label: 'units.piece' });
     return units;
   }
 

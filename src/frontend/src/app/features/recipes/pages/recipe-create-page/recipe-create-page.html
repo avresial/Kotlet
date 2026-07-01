@@ -1,14 +1,14 @@
 <main class="recipe-create-page">
-  <a class="back" routerLink="/recipes">← Back to recipes</a>
+  <a class="back" routerLink="/recipes">← {{ 'recipes.back' | t }}</a>
   <header>
-    <p class="eyebrow">New recipe</p>
-    <h1>Create recipe</h1>
+    <p class="eyebrow">{{ 'recipes.new' | t }}</p>
+    <h1>{{ 'recipes.create' | t }}</h1>
   </header>
   <app-recipe-form
     [isSaving]="isSaving()"
     [error]="error()"
     [showImagePicker]="true"
-    submitLabel="Create recipe"
+    [submitLabel]="'recipes.create' | t"
     (imageSelected)="selectImage($event)"
     (submitted)="save($event)"
     (cancelled)="cancel()"

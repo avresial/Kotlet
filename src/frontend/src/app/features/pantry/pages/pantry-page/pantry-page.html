@@ -1,30 +1,30 @@
 <main class="pantry-page">
-  <a class="back" routerLink="/dashboard">← Back to overview</a>
-  <header><div><p class="eyebrow">What is on hand</p><h1>Pantry</h1><p>Keep stock levels current so you always know what is running low.</p></div></header>
+  <a class="back" routerLink="/dashboard">← {{ 'common.backOverview' | t }}</a>
+  <header><div><p class="eyebrow">{{ 'pantry.eyebrow' | t }}</p><h1>{{ 'nav.pantry' | t }}</h1><p>{{ 'pantry.intro' | t }}</p></div></header>
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
   <section class="add-panel" aria-labelledby="add-title">
-    <div><h2 id="add-title">Add a product</h2><p>Choose an ingredient from your catalogue.</p></div>
+    <div><h2 id="add-title">{{ 'pantry.addProduct' | t }}</h2><p>{{ 'pantry.addHelp' | t }}</p></div>
     <form [formGroup]="form" (ngSubmit)="add()">
-      <label>Ingredient<app-ingredient-picker formControlName="ingredientId" [ingredients]="availableIngredients()" /></label>
+      <label>{{ 'common.ingredient' | t }}<app-ingredient-picker formControlName="ingredientId" [ingredients]="availableIngredients()" /></label>
       <label>Quantity @if (selectedIngredient(); as ingredient) { <span class="selected-unit">({{ ingredient.measurementUnit }})</span> }<input type="number" min="0" step="0.001" formControlName="quantity" /></label>
       <button class="primary" type="submit" [disabled]="isSaving() || availableIngredients().length === 0">{{ isSaving() ? 'Adding…' : 'Add to pantry' }}</button>
     </form>
   </section>
 
   <section class="inventory" aria-labelledby="inventory-title">
-    <div class="section-heading"><div><p class="eyebrow">Current stock</p><h2 id="inventory-title">Your products</h2></div><span>{{ items().length }} stored</span></div>
-    @if (isLoading()) { <p class="empty">Loading pantry…</p> }
-    @else if (items().length === 0) { <p class="empty">Your pantry is empty. Add a product above.</p> }
+    <div class="section-heading"><div><p class="eyebrow">{{ 'pantry.currentStock' | t }}</p><h2 id="inventory-title">{{ 'pantry.products' | t }}</h2></div><span>{{ items().length }} {{ 'pantry.stored' | t }}</span></div>
+    @if (isLoading()) { <p class="empty">{{ 'pantry.loading' | t }}</p> }
+    @else if (items().length === 0) { <p class="empty">{{ 'pantry.empty' | t }}</p> }
     @else { <div class="item-grid">@for (item of items(); track item.id) {
       <article class="stock-card" [class.is-empty]="item.quantity === 0">
         <div class="stock-main"><span class="product-icon" aria-hidden="true">◉</span><div><h3>{{ item.ingredientName }}</h3><p>{{ item.quantity }} {{ item.measurementUnit }}</p></div></div>
-        <div class="quantity-control" aria-label="Update quantity for {{ item.ingredientName }}">
-          <button type="button" (click)="setQuantity(item, item.quantity - step(item))" [disabled]="updatingId() !== null || item.quantity === 0" aria-label="Decrease">−</button>
+        <div class="quantity-control" [attr.aria-label]="('pantry.updateQuantity' | t) + ' ' + item.ingredientName">
+          <button type="button" (click)="setQuantity(item, item.quantity - step(item))" [disabled]="updatingId() !== null || item.quantity === 0" [attr.aria-label]="'pantry.decrease' | t">−</button>
           <input #quantity type="number" min="0" step="0.001" [value]="item.quantity" (change)="setQuantity(item, quantity.valueAsNumber)" [disabled]="updatingId() !== null" />
-          <button type="button" (click)="setQuantity(item, item.quantity + step(item))" [disabled]="updatingId() !== null" aria-label="Increase">＋</button>
+          <button type="button" (click)="setQuantity(item, item.quantity + step(item))" [disabled]="updatingId() !== null" [attr.aria-label]="'pantry.increase' | t">＋</button>
         </div>
-        <button class="remove" type="button" (click)="remove(item)" [disabled]="updatingId() !== null">Remove</button>
+        <button class="remove" type="button" (click)="remove(item)" [disabled]="updatingId() !== null">{{ 'common.remove' | t }}</button>
       </article>
     }</div> }
   </section>

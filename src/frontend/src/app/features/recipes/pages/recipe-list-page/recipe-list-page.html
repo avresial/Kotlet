@@ -1,39 +1,39 @@
 <main class="recipe-list-page">
-  <a class="back" routerLink="/dashboard">← Back to overview</a>
+  <a class="back" routerLink="/dashboard">← {{ 'common.backOverview' | t }}</a>
   <header>
     <div>
-      <p class="eyebrow">Your kitchen</p>
-      <h1>Recipes</h1>
-      <p>Manage your recipe collection.</p>
+      <p class="eyebrow">{{ 'recipes.eyebrow' | t }}</p>
+      <h1>{{ 'nav.recipes' | t }}</h1>
+      <p>{{ 'recipes.intro' | t }}</p>
     </div>
-    <a routerLink="/recipes/new" class="button primary">+ New recipe</a>
+    <a routerLink="/recipes/new" class="button primary">+ {{ 'recipes.new' | t }}</a>
   </header>
 
   <div class="search-bar">
-    <input type="search" [(ngModel)]="search" placeholder="Search recipes…" (keyup.enter)="onSearch()" />
-    <button type="button" class="button primary" (click)="onSearch()">Search</button>
+    <input type="search" [(ngModel)]="search" [placeholder]="'recipes.searchPlaceholder' | t" (keyup.enter)="onSearch()" />
+    <button type="button" class="button primary" (click)="onSearch()">{{ 'common.search' | t }}</button>
     @if (search()) {
-      <button type="button" class="secondary" (click)="clearSearch()">Clear</button>
+      <button type="button" class="secondary" (click)="clearSearch()">{{ 'common.clear' | t }}</button>
     }
   </div>
 
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
   @if (isLoading()) {
-    <p class="empty">Loading recipes…</p>
+    <p class="empty">{{ 'recipes.loading' | t }}</p>
   } @else if (recipes().length === 0) {
     <p class="empty">
       @if (search()) { No recipes match "{{ search() }}". }
-      @else { No recipes yet. <a routerLink="/recipes/new">Create your first one!</a> }
+      @else { {{ 'recipes.empty' | t }} <a routerLink="/recipes/new">{{ 'recipes.createFirst' | t }}</a> }
     </p>
   } @else {
     <div class="recipe-grid">
       @for (recipe of recipes(); track recipe.id) {
         <article class="recipe-card">
           <details class="card-menu">
-            <summary class="card-menu-trigger" aria-label="Manage {{ recipe.title }}" title="Manage recipe">⋮</summary>
+            <summary class="card-menu-trigger" [attr.aria-label]="('recipes.manage' | t) + ' ' + recipe.title" [title]="'recipes.manageRecipe' | t">⋮</summary>
             <div class="card-menu-dropdown">
-              <a [routerLink]="['/recipes', recipe.id, 'edit']">Edit</a>
+              <a [routerLink]="['/recipes', recipe.id, 'edit']">{{ 'common.edit' | t }}</a>
               <button type="button" class="delete-action" [disabled]="deletingId() === recipe.id" (click)="delete(recipe)">
                 {{ deletingId() === recipe.id ? 'Deleting…' : 'Delete' }}
               </button>
@@ -51,10 +51,10 @@
       }
     </div>
 
-    <nav class="pagination" aria-label="Pagination">
-      <button type="button" [disabled]="page() <= 1" (click)="prevPage()">← Previous</button>
+    <nav class="pagination" [attr.aria-label]="'common.pagination' | t">
+      <button type="button" [disabled]="page() <= 1" (click)="prevPage()">← {{ 'common.previous' | t }}</button>
       <span>Page {{ page() }}</span>
-      <button type="button" [disabled]="!hasNextPage" (click)="nextPage()">Next →</button>
+      <button type="button" [disabled]="!hasNextPage" (click)="nextPage()">{{ 'common.next' | t }} →</button>
     </nav>
   }
 </main>

@@ -5,12 +5,14 @@ import { Router, RouterLink } from '@angular/router';
 import { finalize, Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 import { RecipeSummary } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 
 @Component({
   selector: 'app-recipe-list-page',
-  imports: [RouterLink, FormsModule, DatePipe],
+  imports: [RouterLink, FormsModule, DatePipe, TranslatePipe],
   templateUrl: './recipe-list-page.html',
   styleUrl: './recipe-list-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,6 +21,7 @@ export class RecipeListPage implements OnInit {
   private readonly service = inject(RecipeService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translations = inject(TranslationService);
 
   readonly recipes = signal<RecipeSummary[]>([]);
   readonly isLoading = signal(true);
@@ -54,7 +57,7 @@ export class RecipeListPage implements OnInit {
           this.totalCount.set(res.totalCount);
           this.loadImages(res.items);
         },
-        error: (err) => this.error.set(getApiError(err, 'Unable to load recipes.')),
+        error: (err) => this.error.set(getApiError(err, this.translations.translate('recipes.loadError'))),
       });
   }
 
@@ -81,14 +84,14 @@ export class RecipeListPage implements OnInit {
   }
 
   delete(recipe: RecipeSummary): void {
-    if (this.deletingId() || !window.confirm(`Delete "${recipe.title}"?`)) return;
+    if (this.deletingId() || !window.confirm(this.translations.translate('recipes.deleteConfirm').replace('{name}', recipe.title))) return;
     this.deletingId.set(recipe.id);
     this.service.delete(recipe.id).pipe(finalize(() => this.deletingId.set(null))).subscribe({
       next: () => {
         this.recipes.update((items) => items.filter((r) => r.id !== recipe.id));
         this.totalCount.update((n) => n - 1);
       },
-      error: (err) => this.error.set(getApiError(err, 'Unable to delete recipe.')),
+      error: (err) => this.error.set(getApiError(err, this.translations.translate('recipes.deleteError'))),
     });
   }
 

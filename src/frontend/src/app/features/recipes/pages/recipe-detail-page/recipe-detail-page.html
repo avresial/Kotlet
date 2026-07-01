@@ -1,22 +1,22 @@
 <main class="recipe-detail-page">
   @if (isLoading()) {
-    <p class="loading">Loading recipe…</p>
+    <p class="loading">{{ 'recipes.loadingOne' | t }}</p>
   } @else if (error() && !recipe()) {
     <div class="load-error">
       <div class="error" role="alert">{{ error() }}</div>
-      <a routerLink="/recipes" class="button secondary">Back to recipes</a>
+      <a routerLink="/recipes" class="button secondary">{{ 'recipes.back' | t }}</a>
     </div>
   } @else if (recipe(); as r) {
     <article class="recipe-card">
       <app-image-gallery [images]="r.images" [immersive]="true">
-        <a class="back" routerLink="/recipes">← <span>Recipes</span></a>
+        <a class="back" routerLink="/recipes">← <span>{{ 'nav.recipes' | t }}</span></a>
         <div class="hero-actions">
           @if (justCreated()) {
-            <button type="button" class="add-next-action" (click)="addNext()"><span aria-hidden="true">+</span> Add next</button>
+            <button type="button" class="add-next-action" (click)="addNext()"><span aria-hidden="true">+</span> {{ 'recipes.addNext' | t }}</button>
           }
-          <a class="edit-action" [routerLink]="['/recipes', r.id, 'edit']"><span aria-hidden="true">✎</span> Edit</a>
+          <a class="edit-action" [routerLink]="['/recipes', r.id, 'edit']"><span aria-hidden="true">✎</span> {{ 'common.edit' | t }}</a>
           <details class="actions-menu">
-            <summary class="actions-trigger" aria-label="Recipe actions" title="Recipe actions">⋮</summary>
+            <summary class="actions-trigger" [attr.aria-label]="'recipes.actions' | t" [title]="'recipes.actions' | t">⋮</summary>
             <div class="actions-dropdown">
               <button type="button" class="delete-action" [disabled]="isDeleting()" (click)="delete()">
                 {{ isDeleting() ? 'Deleting…' : 'Delete recipe' }}
@@ -40,7 +40,7 @@
 
         @if (r.ingredients.length > 0) {
           <section class="ingredients-section">
-            <h2>Ingredients</h2>
+            <h2>{{ 'nav.ingredients' | t }}</h2>
         <ul class="ingredient-list">
           @for (ing of r.ingredients; track ing.id) {
             <li class="ingredient-item">
@@ -62,9 +62,9 @@
 
         @if (r.descriptionMarkdown) {
           <section class="description-section">
-            <h2>Method</h2>
+            <h2>{{ 'recipes.method' | t }}</h2>
             <div class="markdown-panel">
-              <p class="preview-label"><span aria-hidden="true">Aa</span> Recipe notes</p>
+              <p class="preview-label"><span aria-hidden="true">Aa</span> {{ 'recipes.notes' | t }}</p>
               <div class="markdown-body" [innerHTML]="descriptionHtml()"></div>
             </div>
           </section>
