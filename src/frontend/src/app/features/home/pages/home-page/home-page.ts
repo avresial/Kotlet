@@ -98,10 +98,12 @@ export class HomePage implements OnInit {
 
   private readonly slotMeta: Record<MealSlot, { emoji: string }> = {
     breakfast: { emoji: '🍳' },
+    'second-breakfast': { emoji: '🥪' },
     dinner: { emoji: '🥪' },
+    snack: { emoji: '🍎' },
     supper: { emoji: '🍽️' },
   };
-  private readonly slotOrder: MealSlot[] = ['breakfast', 'dinner', 'supper'];
+  private readonly slotOrder: MealSlot[] = ['breakfast', 'second-breakfast', 'dinner', 'snack', 'supper'];
 
   ngOnInit(): void {
     this.destroyRef.onDestroy(() => {
