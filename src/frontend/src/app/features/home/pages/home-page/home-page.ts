@@ -19,7 +19,7 @@ import { RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { DailyMealPlan, MealParticipant, MealSlot } from '../../../meal-planner/models/meal-planner.models';
 import { MealPlannerService } from '../../../meal-planner/services/meal-planner.service';
-import { HouseMember } from '../../home.models';
+import { DashboardStats, HouseMember } from '../../home.models';
 import { HomeService } from '../../home.service';
 
 interface TodaysMenuEntry {
@@ -95,6 +95,9 @@ export class HomePage implements OnInit {
   readonly uselessFact = signal<UselessFact | null>(null);
   readonly factLoading = signal(true);
   readonly factError = signal(false);
+  readonly stats = signal<DashboardStats | null>(null);
+  readonly statsLoading = signal(true);
+  readonly statsError = signal(false);
 
   private readonly slotMeta: Record<MealSlot, { emoji: string }> = {
     breakfast: { emoji: '🍳' },
@@ -116,6 +119,10 @@ export class HomePage implements OnInit {
         this.loadAvatars(recipes);
       },
       error: () => this.recipesError.set(true),
+    });
+    this.homeService.getDashboardStats().pipe(finalize(() => this.statsLoading.set(false))).subscribe({
+      next: stats => this.stats.set(stats),
+      error: () => this.statsError.set(true),
     });
     this.mealPlannerService.getForDate(this.todayString()).pipe(finalize(() => this.menuLoading.set(false))).subscribe({
       next: plan => {

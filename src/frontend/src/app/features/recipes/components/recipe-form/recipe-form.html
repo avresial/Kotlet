@@ -39,6 +39,14 @@
     }
   </div>
 
+  <div class="form-field">
+    <label for="recipe-meal-type">{{ 'recipes.mealType' | t }}</label>
+    <select id="recipe-meal-type" formControlName="mealType">
+      <option [ngValue]="null">{{ 'recipes.mealTypeNone' | t }}</option>
+      @for (mealType of mealTypes; track mealType.value) { <option [value]="mealType.value">{{ mealType.label | t }}</option> }
+    </select>
+  </div>
+
   @if (showImagePicker()) {
     <div class="image-picker">
       <input

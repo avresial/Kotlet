@@ -1,5 +1,8 @@
 using Kotlet.Api.Auth;
 using Kotlet.Application.Houses;
+using Kotlet.Api.Localization;
+using Kotlet.Application.Pantry;
+using Kotlet.Application.Recipes;
 
 namespace Kotlet.Api.Houses;
 
@@ -8,6 +11,7 @@ public static class HouseEndpoints
     public static IEndpointRouteBuilder MapHouseEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var houses = endpoints.MapGroup("/api/houses").WithTags("Houses").RequireAuthorization();
+        endpoints.MapGet("/api/dashboard/stats", DashboardStats).WithTags("Dashboard").RequireAuthorization();
         houses.MapGet("", ListHouses);
         houses.MapPost("", CreateHouse);
         houses.MapGet("/invitations", ListMyInvitations);
@@ -21,6 +25,16 @@ public static class HouseEndpoints
         houses.MapDelete("/{id:guid}/members/{memberUserId:guid}", RemoveMember);
         houses.MapDelete("/{id:guid}/invitations/{invitationId:guid}", CancelInvitation);
         return endpoints;
+    }
+
+    private static async Task<IResult> DashboardStats(ICurrentUser currentUser, RecipeService recipes,
+        PantryService pantry, ILanguageContext language, CancellationToken ct)
+    {
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var recipeTask = recipes.ListAsync(houseId, 1, 1, null, ct);
+        var pantryTask = pantry.GetAllAsync(houseId, language.Language, ct);
+        await Task.WhenAll(recipeTask, pantryTask);
+        return Results.Ok(new DashboardStatsResponse(recipeTask.Result.TotalCount, pantryTask.Result.Count));
     }
 
     private static async Task<IResult> ListHouses(ICurrentUser currentUser, HouseService service, CancellationToken ct)
@@ -136,3 +150,5 @@ public static class HouseEndpoints
             ? Results.NoContent() : Results.NotFound();
     }
 }
+
+public sealed record DashboardStatsResponse(int RecipeCount, int PantryItemCount);

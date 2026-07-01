@@ -116,6 +116,18 @@ public sealed class RecipeServiceTests
     }
 
     [Fact]
+    public async Task Create_WithInvalidMealType_ReturnsValidationFailed()
+    {
+        var service = CreateService(new FakeRecipeRepository());
+
+        var result = await service.CreateAsync(OwnerId, OwnerId,
+            ValidCreateRequest() with { MealType = "brunch" }, CancellationToken.None);
+
+        Assert.Equal(RecipeOperationStatus.ValidationFailed, result.Status);
+        Assert.Contains("mealType", result.ValidationErrors!);
+    }
+
+    [Fact]
     public async Task Create_SlugCollision_ResolvesByAppendingNumber()
     {
         var repo = new FakeRecipeRepository();
