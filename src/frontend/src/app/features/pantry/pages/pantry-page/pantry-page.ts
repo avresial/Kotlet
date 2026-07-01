@@ -27,7 +27,7 @@ export class PantryPage implements OnInit {
   readonly isSaving = signal(false);
   readonly updatingId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
-  readonly form = this.formBuilder.nonNullable.group({ ingredientId: ['', Validators.required], quantity: [1, [Validators.required, Validators.min(0)]] });
+  readonly form = this.formBuilder.group({ ingredientId: ['', Validators.required], quantity: [1, [Validators.required, Validators.min(0)]], expirationDate: [null as string | null] });
 
   ngOnInit(): void {
     forkJoin({ items: this.pantryService.getAll(), ingredients: this.ingredientService.getAll() })
@@ -40,9 +40,9 @@ export class PantryPage implements OnInit {
   add(): void {
     if (this.form.invalid || this.isSaving()) { this.form.markAllAsTouched(); return; }
     this.isSaving.set(true); this.error.set(null);
-    const { ingredientId, quantity } = this.form.getRawValue();
-    this.pantryService.create(ingredientId, quantity).pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: item => { this.items.update(items => this.sort([...items, item])); this.form.reset({ ingredientId: '', quantity: 1 }); },
+    const { ingredientId, quantity, expirationDate } = this.form.getRawValue();
+    this.pantryService.create(ingredientId!, quantity!, expirationDate).pipe(finalize(() => this.isSaving.set(false))).subscribe({
+      next: item => { this.items.update(items => this.sort([...items, item])); this.form.reset({ ingredientId: '', quantity: 1, expirationDate: null }); },
       error: error => this.error.set(getApiError(error, this.translations.translate('pantry.addError'))),
     });
   }

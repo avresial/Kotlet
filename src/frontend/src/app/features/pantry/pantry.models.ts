@@ -4,4 +4,5 @@ export interface PantryItem {
   ingredientName: string;
   measurementUnit: string;
   quantity: number;
+  expirationDate: string | null;
 }

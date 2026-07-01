@@ -21,16 +21,17 @@ public sealed class PantryEndpointTests(TestWebApplicationFactory factory) : ICl
         var client = await CreateAuthenticatedClient("pantry");
         var ingredientId = await CreateIngredient(client);
 
-        var createdResponse = await client.PostAsJsonAsync("/api/pantry", new { ingredientId, quantity = 2.5m });
+        var createdResponse = await client.PostAsJsonAsync("/api/pantry", new { ingredientId, quantity = 2.5m, expirationDate = "2026-07-15" });
         Assert.Equal(HttpStatusCode.Created, createdResponse.StatusCode);
         var created = await createdResponse.Content.ReadFromJsonAsync<JsonElement>();
         var itemId = created.GetProperty("id").GetGuid();
         Assert.Equal(2.5m, created.GetProperty("quantity").GetDecimal());
+        Assert.Equal("2026-07-15", created.GetProperty("expirationDate").GetString());
 
         var updatedResponse = await client.PutAsJsonAsync($"/api/pantry/{itemId}", new { quantity = 1.25m });
         Assert.Equal(HttpStatusCode.OK, updatedResponse.StatusCode);
         var items = await client.GetFromJsonAsync<JsonElement[]>("/api/pantry");
-        Assert.Contains(items!, item => item.GetProperty("id").GetGuid() == itemId && item.GetProperty("quantity").GetDecimal() == 1.25m);
+        Assert.Contains(items!, item => item.GetProperty("id").GetGuid() == itemId && item.GetProperty("quantity").GetDecimal() == 1.25m && item.GetProperty("expirationDate").GetString() == "2026-07-15");
 
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/pantry/{itemId}")).StatusCode);
     }

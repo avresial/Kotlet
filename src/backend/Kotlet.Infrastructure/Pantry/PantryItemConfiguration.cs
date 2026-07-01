@@ -18,6 +18,7 @@ internal sealed class PantryItemConfiguration : IEntityTypeConfiguration<PantryI
             .HasColumnName("quantity")
             .HasConversion(quantity => quantity.Amount, amount => Quantity.FromAmount(amount))
             .HasPrecision(11, 3);
+        builder.Property(x => x.ExpirationDate).HasColumnName("expiration_date");
         builder.HasIndex(x => new { x.HouseId, x.IngredientId }).IsUnique().HasDatabaseName("ux_pantry_items_house_ingredient");
         builder.HasOne(x => x.House).WithMany(house => house.PantryItems).HasForeignKey(x => x.HouseId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(x => x.Ingredient).WithMany().HasForeignKey(x => x.IngredientId).OnDelete(DeleteBehavior.Cascade);
