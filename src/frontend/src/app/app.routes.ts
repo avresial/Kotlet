@@ -64,6 +64,12 @@ export const routes: Routes = [
       import('./features/settings/pages/settings-page/settings-page').then((m) => m.SettingsPage),
   },
   {
+    path: 'connect/mcp',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/connect/pages/mcp-connect-page/mcp-connect-page').then((m) => m.McpConnectPage),
+  },
+  {
     path: 'admin',
     canActivate: [adminGuard],
     loadComponent: () =>
