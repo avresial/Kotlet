@@ -1,4 +1,5 @@
 {
+  "ingredients.allCategories": "All categories", "ingredients.noFilterMatches": "No ingredients match the selected filters.",
   "recipes.nutritionAndCost": "Recipe nutrition and cost", "recipes.totalCost": "Total cost", "recipes.totalCalories": "Total calories", "recipes.serving": "serving",
   "units.grams": "Grams (g)", "units.millilitres": "Millilitres (ml)", "units.teaspoon": "tsp", "units.tablespoon": "tbsp", "units.cup": "cup", "units.piece": "piece", "recipes.save": "Save recipe",
   "shopping.loadError": "Unable to load your shopping list.", "recipes.deleteConfirm": "Delete {name}?", "admin.youtubeApi": "YouTube Transcription API",

@@ -28,7 +28,9 @@ button:disabled { opacity: .55; cursor: default; }
 .catalogue { min-width: 0; margin-top: 1.25rem; overflow: hidden; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .section-heading span { color: #776f64; font-size: .8rem; }
-.catalogue-search { max-width: 24rem; margin-top: 1.25rem; display: block; }
+.catalogue-filters { max-width: 38rem; margin-top: 1.25rem; display: grid; grid-template-columns: 2fr 1fr auto; align-items: end; gap: .75rem; }
+.catalogue-filters button { min-height: 2.75rem; }
+.catalogue-search { display: block; }
 .catalogue-search input { padding-left: 2.4rem; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23746d63' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4-4'/%3E%3C/svg%3E") no-repeat .75rem center; }
 .table-wrap { max-width: 100%; margin-top: 1.25rem; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
@@ -43,6 +45,7 @@ th:last-child, td:last-child { text-align: right; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 62rem) { form { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 36rem) {
+  .catalogue-filters { grid-template-columns: 1fr; }
   form { grid-template-columns: 1fr; }
   .section-heading { align-items: flex-start; flex-direction: column; gap: .35rem; }
   .table-wrap { overflow: visible; }
