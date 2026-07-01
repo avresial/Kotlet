@@ -12,6 +12,31 @@ public sealed class HouseEndpointTests(TestWebApplicationFactory factory) : ICla
     {
         var client = factory.CreateClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/houses")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/dashboard/stats")).StatusCode);
+    }
+
+    [Fact]
+    public async Task DashboardStats_ReturnHouseScopedCounts()
+    {
+        var (client, _) = await TestAuth.WithHomeAsync(factory, "dashboard-stats");
+        var ingredientResponse = await client.PostAsJsonAsync("/api/ingredients", new
+        {
+            name = $"Stats ingredient {Guid.NewGuid():N}", measurementUnit = "g",
+            caloriesPer100BaseUnits = 1m, pricePer100BaseUnits = 1m
+        });
+        var ingredient = await ingredientResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var ingredientId = ingredient.GetProperty("id").GetGuid();
+        await client.PostAsJsonAsync("/api/pantry", new { ingredientId, quantity = 1m });
+        await client.PostAsJsonAsync("/api/recipes", new
+        {
+            title = $"Stats recipe {Guid.NewGuid():N}", descriptionMarkdown = (string?)null,
+            ingredients = Array.Empty<object>()
+        });
+
+        var stats = await client.GetFromJsonAsync<JsonElement>("/api/dashboard/stats");
+
+        Assert.Equal(1, stats.GetProperty("recipeCount").GetInt32());
+        Assert.Equal(1, stats.GetProperty("pantryItemCount").GetInt32());
     }
 
     [Fact]
