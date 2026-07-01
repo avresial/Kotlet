@@ -81,4 +81,6 @@ export class ShoppingListPage implements OnInit {
       error: error => this.error.set(getApiError(error, this.translations.translate('shopping.clearError'))),
     });
   }
+
+  print(): void { window.print(); }
 }
