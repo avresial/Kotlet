@@ -9,6 +9,14 @@
     </header>
 
     <section class="card-grid" [attr.aria-label]="'home.dashboard.glance' | t">
+      <article class="card stats-card" aria-labelledby="stats-title">
+        <div class="card-heading"><div><p class="section-label">{{ 'home.dashboard.quickStats' | t }}</p><h2 id="stats-title">{{ 'home.dashboard.atAGlance' | t }}</h2></div></div>
+        @if (statsLoading()) { <p class="recipe-state">{{ 'home.dashboard.statsLoading' | t }}</p> }
+        @else if (statsError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.statsError' | t }}</p> }
+        @else if (stats(); as dashboardStats) {
+          <dl class="stats-list"><div><dt>{{ 'nav.recipes' | t }}</dt><dd>{{ dashboardStats.recipeCount }}</dd></div><div><dt>{{ 'nav.pantry' | t }}</dt><dd>{{ dashboardStats.pantryItemCount }}</dd></div></dl>
+        }
+      </article>
       <!-- Today's menu -->
       <article class="card today-card" aria-labelledby="today-title">
         <div class="card-heading">

@@ -28,6 +28,11 @@ export interface HomeDetail {
   pendingInvitations: PendingInvitation[];
 }
 
+export interface DashboardStats {
+  recipeCount: number;
+  pantryItemCount: number;
+}
+
 export interface IncomingInvitation {
   id: string;
   houseId: string;

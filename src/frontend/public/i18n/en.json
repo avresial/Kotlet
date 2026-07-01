@@ -1,4 +1,5 @@
 {
+  "home.dashboard.quickStats": "Quick stats", "home.dashboard.atAGlance": "At a glance", "home.dashboard.statsLoading": "Loading statistics…", "home.dashboard.statsError": "Unable to load statistics.",
   "pantry.expirationDate": "Expiration date (optional)", "pantry.expires": "Expires",
   "ingredients.allCategories": "All categories", "ingredients.noFilterMatches": "No ingredients match the selected filters.",
   "recipes.nutritionAndCost": "Recipe nutrition and cost", "recipes.totalCost": "Total cost", "recipes.totalCalories": "Total calories", "recipes.serving": "serving",

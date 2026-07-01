@@ -1,4 +1,5 @@
 {
+  "home.dashboard.quickStats": "Szybkie statystyki", "home.dashboard.atAGlance": "W skrócie", "home.dashboard.statsLoading": "Ładowanie statystyk…", "home.dashboard.statsError": "Nie udało się załadować statystyk.",
   "pantry.expirationDate": "Data ważności (opcjonalnie)", "pantry.expires": "Ważne do",
   "ingredients.allCategories": "Wszystkie kategorie", "ingredients.noFilterMatches": "Brak składników pasujących do wybranych filtrów.",
   "recipes.nutritionAndCost": "Koszt i kalorie przepisu", "recipes.totalCost": "Koszt całości", "recipes.totalCalories": "Kalorie całości", "recipes.serving": "porcję",

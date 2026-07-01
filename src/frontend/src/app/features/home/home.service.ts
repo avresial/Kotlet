@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { CurrentUser } from '../../core/auth/auth.models';
 import {
   HomeDetail,
+  DashboardStats,
   HomeSummary,
   HouseWithToken,
   IncomingInvitation,
@@ -25,6 +26,10 @@ export class HomeService {
 
   getHome(id: string): Observable<HomeDetail> {
     return this.http.get<HomeDetail>(apiUrl(`/api/houses/${id}`), this.options);
+  }
+
+  getDashboardStats(): Observable<DashboardStats> {
+    return this.http.get<DashboardStats>(apiUrl('/api/dashboard/stats'), this.options);
   }
 
   create(name: string): Observable<CurrentUser> {
