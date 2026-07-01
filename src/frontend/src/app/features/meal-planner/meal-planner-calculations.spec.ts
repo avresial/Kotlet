@@ -20,6 +20,7 @@ const ingredient: Ingredient = {
   caloriesPer100BaseUnits: 0,
   pricePer100BaseUnits: 5,
   svgIcon: null,
+  category: 0,
 };
 
 const recipe: RecipeDetail = {
