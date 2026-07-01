@@ -24,36 +24,36 @@
           <div class="mini-nav"><span>□</span></div>
         </div>
         <div class="preview-content">
-          <div class="preview-topline"><span>MONDAY, JUNE 29</span><i></i></div>
-          <h2>Good morning, Marta.</h2>
-          <p>Here’s what’s cooking at home today.</p>
+          <div class="preview-topline"><span>{{ 'landing.previewDate' | t }}</span><i></i></div>
+          <h2>{{ 'landing.previewGreeting' | t }}</h2>
+          <p>{{ 'home.dashboard.intro' | t }}</p>
 
           <div class="preview-grid">
             <article class="preview-card menu-card">
-              <div class="card-kicker">TODAY'S MENU</div>
-              <h3>What’s on the table</h3>
-              <div class="meal-row"><span class="food-icon green">◌</span><div><small>BREAKFAST</small><strong>Oatmeal & berries</strong></div></div>
-              <div class="meal-row"><span class="food-icon gold">◒</span><div><small>DINNER</small><strong>Roasted vegetables</strong></div></div>
+              <div class="card-kicker">{{ 'home.dashboard.todaysMenu' | t }}</div>
+              <h3>{{ 'home.dashboard.onTable' | t }}</h3>
+              <div class="meal-row"><span class="food-icon green">◌</span><div><small>{{ 'meal.slot.breakfast' | t }}</small><strong>{{ 'landing.previewOatmeal' | t }}</strong></div></div>
+              <div class="meal-row"><span class="food-icon gold">◒</span><div><small>{{ 'meal.slot.dinner' | t }}</small><strong>{{ 'landing.previewVegetables' | t }}</strong></div></div>
             </article>
             <article class="preview-card shopping-card">
-              <div class="card-kicker">SHOPPING LIST</div>
-              <h3>3 of 5 bought</h3>
+              <div class="card-kicker">{{ 'nav.shoppingList' | t }}</div>
+              <h3>3 {{ 'common.of' | t }} 5 {{ 'shopping.bought' | t }}</h3>
               <div class="progress"><span></span></div>
               <ul>
-                <li class="done"><span>✓</span> Tomatoes <b>1 kg</b></li>
-                <li><span></span> Sourdough <b>1 loaf</b></li>
-                <li class="done"><span>✓</span> Fresh basil <b>1 bunch</b></li>
+                <li class="done"><span>✓</span> {{ 'landing.previewTomatoes' | t }} <b>1 kg</b></li>
+                <li><span></span> {{ 'landing.previewSourdough' | t }} <b>1 {{ 'landing.previewLoaf' | t }}</b></li>
+                <li class="done"><span>✓</span> {{ 'landing.previewBasil' | t }} <b>1 {{ 'landing.previewBunch' | t }}</b></li>
               </ul>
             </article>
             <article class="preview-card pantry-card">
-              <div><div class="card-kicker">PANTRY</div><h3>Running low</h3></div>
-              <div class="stock"><span>Rice</span><b>240 g</b></div>
+              <div><div class="card-kicker">{{ 'nav.pantry' | t }}</div><h3>{{ 'home.dashboard.runningLow' | t }}</h3></div>
+              <div class="stock"><span>{{ 'landing.previewRice' | t }}</span><b>240 g</b></div>
             </article>
           </div>
         </div>
       </div>
-      <div class="floating-chip chip-recipes"><span aria-hidden="true">▤</span><strong>48 recipes</strong><small>Always within reach</small></div>
-      <div class="floating-chip chip-stock"><span aria-hidden="true">✓</span><strong>Pantry updated</strong><small>You’re all set</small></div>
+      <div class="floating-chip chip-recipes"><span aria-hidden="true">▤</span><strong>48 {{ 'nav.recipes' | t }}</strong><small>{{ 'landing.previewWithinReach' | t }}</small></div>
+      <div class="floating-chip chip-stock"><span aria-hidden="true">✓</span><strong>{{ 'landing.previewPantryUpdated' | t }}</strong><small>{{ 'landing.previewAllSet' | t }}</small></div>
     </div>
   </section>
 
@@ -78,7 +78,7 @@
         <a routerLink="/register" [attr.aria-label]="'landing.recipesActionAria' | t">{{ 'landing.recipesAction' | t }} <span aria-hidden="true">→</span></a>
         <div class="recipe-stack" aria-hidden="true">
           <div class="recipe-paper back"></div>
-          <div class="recipe-paper front"><span class="recipe-photo">✦</span><small>FAMILY FAVORITE</small><strong>Sunday tomato soup</strong><i>6 ingredients · 40 min</i></div>
+          <div class="recipe-paper front"><span class="recipe-photo">✦</span><small>{{ 'landing.previewFavorite' | t }}</small><strong>{{ 'landing.previewSoup' | t }}</strong><i>6 {{ 'home.dashboard.ingredients' | t }} · 40 min</i></div>
         </div>
       </article>
 
@@ -89,9 +89,9 @@
         <p>{{ 'landing.pantryText' | t }}</p>
         <a routerLink="/register" [attr.aria-label]="'landing.pantryActionAria' | t">{{ 'landing.pantryAction' | t }} <span aria-hidden="true">→</span></a>
         <div class="pantry-visual" aria-hidden="true">
-          <div><span>Oats</span><i><b style="width: 78%"></b></i><small>780 g</small></div>
-          <div><span>Olive oil</span><i><b style="width: 42%"></b></i><small>420 ml</small></div>
-          <div><span>Rice</span><i class="low"><b style="width: 18%"></b></i><small>Low</small></div>
+          <div><span>{{ 'landing.previewOats' | t }}</span><i><b style="width: 78%"></b></i><small>780 g</small></div>
+          <div><span>{{ 'landing.previewOliveOil' | t }}</span><i><b style="width: 42%"></b></i><small>420 ml</small></div>
+          <div><span>{{ 'landing.previewRice' | t }}</span><i class="low"><b style="width: 18%"></b></i><small>{{ 'landing.previewLow' | t }}</small></div>
         </div>
       </article>
 
@@ -102,11 +102,11 @@
         <p>{{ 'landing.shoppingText' | t }}</p>
         <a routerLink="/register" [attr.aria-label]="'landing.shoppingActionAria' | t">{{ 'landing.shoppingAction' | t }} <span aria-hidden="true">→</span></a>
         <div class="list-visual" aria-hidden="true">
-          <div class="list-head"><span>THIS WEEK</span><b>60%</b></div>
+          <div class="list-head"><span>{{ 'landing.previewThisWeek' | t }}</span><b>60%</b></div>
           <i><b></b></i>
-          <p class="checked"><span>✓</span> Seasonal vegetables</p>
-          <p><span></span> Fresh bread</p>
-          <p><span></span> Greek yoghurt</p>
+          <p class="checked"><span>✓</span> {{ 'landing.previewSeasonalVegetables' | t }}</p>
+          <p><span></span> {{ 'landing.previewFreshBread' | t }}</p>
+          <p><span></span> {{ 'landing.previewYoghurt' | t }}</p>
         </div>
       </article>
     </div>

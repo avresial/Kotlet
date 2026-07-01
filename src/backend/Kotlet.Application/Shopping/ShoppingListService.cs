@@ -1,3 +1,4 @@
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Shopping;
 using Kotlet.Application.Translations;
 
@@ -20,7 +21,7 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
         if (await repository.ItemExistsAsync(houseId, command.IngredientId, cancellationToken))
             return new(ShoppingListOperationStatus.Conflict, Message: "This ingredient is already on the shopping list.");
 
-        var item = new ShoppingListItem { Id = Guid.NewGuid(), HouseId = houseId, IngredientId = command.IngredientId, Quantity = command.Quantity };
+        var item = new ShoppingListItem { Id = Guid.NewGuid(), HouseId = houseId, IngredientId = command.IngredientId, Quantity = Quantity.FromAmount(command.Quantity) };
         repository.Add(item);
         await repository.SaveChangesAsync(cancellationToken);
         return new(ShoppingListOperationStatus.Success, await ToLocalizedDtoAsync((await repository.GetByIdAsync(item.Id, houseId, cancellationToken))!, languageCode, cancellationToken));
@@ -31,7 +32,7 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
         if (!ValidQuantity(command.Quantity)) return InvalidQuantity();
         var item = await repository.GetByIdAsync(id, houseId, cancellationToken);
         if (item is null) return new(ShoppingListOperationStatus.NotFound);
-        item.Quantity = command.Quantity;
+        item.Quantity = Quantity.FromAmount(command.Quantity);
         item.IsPurchased = command.IsPurchased;
         await repository.SaveChangesAsync(cancellationToken);
         return new(ShoppingListOperationStatus.Success, await ToLocalizedDtoAsync(item, languageCode, cancellationToken));
@@ -70,6 +71,7 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
 
     private static ShoppingListItemDto ToDto(ShoppingListItem item, string ingredientName) => new(
         item.Id, item.IngredientId, ingredientName, item.Ingredient.MeasurementUnit,
-        item.Quantity, item.Ingredient.PricePer100BaseUnits,
-        decimal.Round(item.Quantity / 100m * item.Ingredient.PricePer100BaseUnits, 2), item.IsPurchased);
+        item.Quantity.Amount, item.Ingredient.PricePer100BaseUnits.Amount,
+        (item.Quantity.Amount / 100m * item.Ingredient.PricePer100BaseUnits).RoundedToCents().Amount, item.IsPurchased,
+        item.Ingredient.Category);
 }

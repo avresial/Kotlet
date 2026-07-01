@@ -1,5 +1,10 @@
 # Connect ChatGPT to the Kotlet MCP server
 
+> For an overview of connecting any client (including Claude), the in-app
+> `/connect/mcp` onboarding page and discovery metadata, see
+> [MCP onboarding](./mcp-onboarding.md). ChatGPT does not offer a public
+> one-click MCP install yet, so the manual steps below remain the supported path.
+
 ## Prerequisites
 
 - A Kotlet account with an active household.

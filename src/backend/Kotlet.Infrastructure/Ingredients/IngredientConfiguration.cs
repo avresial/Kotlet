@@ -1,3 +1,4 @@
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -15,9 +16,19 @@ internal sealed class IngredientConfiguration : IEntityTypeConfiguration<Ingredi
         builder.Property(ingredient => ingredient.MeasurementUnit).HasColumnName("measurement_unit").HasMaxLength(30).IsRequired();
         builder.Property(ingredient => ingredient.IsCountable).HasColumnName("is_countable").IsRequired();
         builder.Property(ingredient => ingredient.MeasurementUnitsPerPiece).HasColumnName("measurement_units_per_piece").HasPrecision(12, 3);
-        builder.Property(ingredient => ingredient.CaloriesPer100BaseUnits).HasColumnName("calories_per_100_base_units").HasPrecision(8, 2);
-        builder.Property(ingredient => ingredient.PricePer100BaseUnits).HasColumnName("price_per_100_base_units").HasPrecision(10, 2);
+        builder.Property(ingredient => ingredient.CaloriesPer100BaseUnits)
+            .HasColumnName("calories_per_100_base_units")
+            .HasConversion(calories => calories.Kilocalories, kilocalories => Calories.FromKilocalories(kilocalories))
+            .HasPrecision(8, 2);
+        builder.Property(ingredient => ingredient.PricePer100BaseUnits)
+            .HasColumnName("price_per_100_base_units")
+            .HasConversion(price => price.Amount, amount => Price.FromAmount(amount))
+            .HasPrecision(10, 2);
         builder.Property(ingredient => ingredient.SvgIcon).HasColumnName("svg_icon");
+        builder.Property(ingredient => ingredient.Category).HasColumnName("category").HasDefaultValue(FoodCategory.Unknown).IsRequired();
+        builder.Property(ingredient => ingredient.Allergens).HasColumnName("allergens").HasDefaultValue(Allergen.None).IsRequired();
+        builder.Property(ingredient => ingredient.Attributes).HasColumnName("attributes").HasDefaultValue(FoodAttribute.None).IsRequired();
+        builder.Property(ingredient => ingredient.Suitability).HasColumnName("suitability").HasDefaultValue(DietarySuitability.None).IsRequired();
         // The name is no longer unique: ingredients created in a non-default language store the
         // placeholder "Unknown" as their default-language name, so duplicates are expected. Uniqueness
         // of the user-facing (translated) name is enforced in the application layer instead.

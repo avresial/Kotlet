@@ -1,9 +1,9 @@
 <main class="meal-planner-page">
-  <a class="back" routerLink="/dashboard">← Back to overview</a>
+  <a class="back" routerLink="/dashboard">← {{ 'common.backOverview' | t }}</a>
   <header>
     <div>
-      <p class="eyebrow">Plan your meals</p>
-      <h1>Meal Planner</h1>
+      <p class="eyebrow">{{ 'meal.eyebrow' | t }}</p>
+      <h1>{{ 'nav.mealPlanner' | t }}</h1>
     </div>
   </header>
 
@@ -12,9 +12,9 @@
       <div class="overview-heading">
         <div>
           <p class="eyebrow">{{ overviewLabel() }}</p>
-          <h2 id="meal-overview-title">Planned meals</h2>
+          <h2 id="meal-overview-title">{{ 'meal.plannedMeals' | t }}</h2>
         </div>
-        <div class="overview-legend"><span aria-hidden="true"></span> Meal planned</div>
+        <div class="overview-legend"><span aria-hidden="true"></span> {{ 'meal.mealPlanned' | t }}</div>
       </div>
       <div class="overview-scroll">
         <div class="overview-grid" [style.--day-count]="overview().length">
@@ -24,7 +24,7 @@
               type="button"
               class="overview-day"
               [class.is-selected]="selectedDate() === day.date"
-              [attr.aria-label]="'Open meal plan for ' + dayNumber(day.date)"
+              [attr.aria-label]="('meal.openPlanFor' | t) + ' ' + dayNumber(day.date)"
               (click)="selectOverviewDay(day.date)"
             >
               <span>{{ dayName(day.date) }}</span>
@@ -32,14 +32,14 @@
             </button>
           }
           @for (slot of slots.slice().reverse(); track slot) {
-            <div class="overview-row-label">{{ slotLabels[slot] }}</div>
+            <div class="overview-row-label">{{ slotLabels()[slot] }}</div>
             @for (day of overview(); track day.date) {
               <button
                 type="button"
                 class="overview-cell"
                 [class.is-planned]="isPlanned(day, slot)"
                 [class.is-selected]="selectedDate() === day.date"
-                [attr.aria-label]="slotLabels[slot] + (isPlanned(day, slot) ? ' planned for ' : ' not planned for ') + dayNumber(day.date)"
+                [attr.aria-label]="slotLabels()[slot] + ' ' + ((isPlanned(day, slot) ? 'meal.plannedFor' : 'meal.notPlannedFor') | t) + ' ' + dayNumber(day.date)"
                 (click)="selectOverviewDay(day.date)"
               ></button>
             }
@@ -50,7 +50,7 @@
   }
 
   <div class="date-picker">
-    <label for="plan-date">Select date</label>
+    <label for="plan-date">{{ 'meal.selectDate' | t }}</label>
     <input id="plan-date" type="date" [(ngModel)]="selectedDate" (ngModelChange)="onDateChange()" />
   </div>
 
@@ -59,23 +59,23 @@
   }
 
   @if (isLoadingPlan()) {
-    <p class="empty">Loading meal plan…</p>
+    <p class="empty">{{ 'meal.loading' | t }}</p>
   } @else {
     <div class="planner-body">
     <div class="slots">
       @for (slot of slots; track slot) {
         <section class="slot-section">
           <div class="slot-heading">
-            <h2>{{ slotLabels[slot] }}</h2>
+            <h2>{{ slotLabels()[slot] }}</h2>
             @if (!isLoadingOptions()) {
-              <div class="add-buttons" aria-label="Add to {{ slotLabels[slot] }}">
-                <button type="button" class="text-button" (click)="openComposer(slot, 'recipe')">+ Recipe</button>
-                <button type="button" class="text-button" (click)="openComposer(slot, 'ingredient')">+ Ingredient</button>
+              <div class="add-buttons" [attr.aria-label]="('meal.addTo' | t) + ' ' + slotLabels()[slot]">
+                <button type="button" class="text-button" (click)="openComposer(slot, 'recipe')">+ {{ 'recipes.recipe' | t }}</button>
+                <button type="button" class="text-button" (click)="openComposer(slot, 'ingredient')">+ {{ 'common.ingredient' | t }}</button>
               </div>
             }
           </div>
 
-          <ul class="item-list" aria-label="{{ slotLabels[slot] }} items">
+          <ul class="item-list" [attr.aria-label]="slotLabels()[slot] + ' ' + ('common.items' | t)">
             @for (item of itemsForSlot(slot); track item.id) {
               <li class="meal-item">
                 <div class="meal-item-header">
@@ -90,8 +90,8 @@
                     [class.is-added]="shoppingItemState()[item.id] === 'added'"
                     [disabled]="shoppingItemState()[item.id] === 'adding'"
                     (click)="addToShoppingList(item)"
-                    [attr.aria-label]="shoppingItemState()[item.id] === 'added' ? 'Added to shopping list' : 'Add to shopping list'"
-                    [title]="shoppingItemState()[item.id] === 'adding' ? 'Adding…' : shoppingItemState()[item.id] === 'added' ? 'Added to shopping list' : 'Add to shopping list'"
+                    [attr.aria-label]="(shoppingItemState()[item.id] === 'added' ? 'meal.addedToShopping' : 'meal.addToShopping') | t"
+                    [title]="(shoppingItemState()[item.id] === 'adding' ? 'common.adding' : shoppingItemState()[item.id] === 'added' ? 'meal.addedToShopping' : 'meal.addToShopping') | t"
                   >
                     @if (shoppingItemState()[item.id] === 'added') {
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
@@ -102,8 +102,8 @@
                   <button
                     type="button"
                     class="icon-button danger"
-                    aria-label="Remove {{ item.displayName }}"
-                    title="Remove meal"
+                    [attr.aria-label]="('common.remove' | t) + ' ' + item.displayName"
+                    [title]="'meal.removeMeal' | t"
                     [disabled]="removingId() === item.id"
                     (click)="removeItem(item)"
                   >{{ removingId() === item.id ? '…' : '×' }}</button>
@@ -111,15 +111,15 @@
 
                 <div class="meal-item-details">
                   <div class="people-row">
-                    <span class="row-label">People</span>
-                    <ul class="chips" aria-label="People eating {{ item.displayName }}">
+                    <span class="row-label">{{ 'meal.people' | t }}</span>
+                    <ul class="chips" [attr.aria-label]="('home.dashboard.peopleEating' | t) + ' ' + item.displayName">
                       @for (person of item.participants; track person.userId) {
                         <li class="chip" [class.is-me]="person.isCurrentUser">
                           <span>{{ person.displayName }}</span>
                           <button
                             type="button"
                             class="chip-remove"
-                            aria-label="Remove {{ person.displayName }}"
+                            [attr.aria-label]="('common.remove' | t) + ' ' + person.displayName"
                             [disabled]="busyItemId() === item.id"
                             (click)="removeParticipant(item, person.userId)"
                           >×</button>
@@ -128,11 +128,11 @@
 
                       @for (seat of guestSeats(item); track seat) {
                         <li class="chip is-guest">
-                          <span>Guest</span>
+                          <span>{{ 'meal.guest' | t }}</span>
                           <button
                             type="button"
                             class="chip-remove"
-                            aria-label="Remove guest"
+                            [attr.aria-label]="'meal.removeGuest' | t"
                             [disabled]="busyItemId() === item.id"
                             (click)="removeGuest(item)"
                           >×</button>
@@ -140,17 +140,17 @@
                       }
 
                       @if (availableMembers(item).length) {
-                        <li class="person-picker" title="Add a person">
+                        <li class="person-picker" [title]="'meal.addPerson' | t">
                           <span aria-hidden="true">+
                             <svg viewBox="0 0 24 24"><path d="M15 19c0-2.8-2.2-5-5-5s-5 2.2-5 5M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M16 11h6"/></svg>
                           </span>
                           <select
-                            aria-label="Add a person to {{ item.displayName }}"
+                            [attr.aria-label]="('meal.addPersonTo' | t) + ' ' + item.displayName"
                             [disabled]="busyItemId() === item.id"
                             [ngModel]="''"
                             (ngModelChange)="addParticipant(item, $event)"
                           >
-                            <option value="">Add a person</option>
+                            <option value="">{{ 'meal.addPerson' | t }}</option>
                             @for (member of availableMembers(item); track member.userId) {
                               <option [value]="member.userId">{{ member.displayName }}</option>
                             }
@@ -164,8 +164,8 @@
                       class="icon-button"
                       [disabled]="busyItemId() === item.id || isHouseFull(item) || !members().length"
                       (click)="addHouse(item)"
-                      aria-label="Add whole house"
-                      title="Add whole house"
+                      [attr.aria-label]="'meal.addHouse' | t"
+                      [title]="'meal.addHouse' | t"
                     >
                       <svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg>
                     </button>
@@ -174,8 +174,8 @@
                       class="icon-button"
                       [disabled]="busyItemId() === item.id || item.guests >= 99"
                       (click)="addGuest(item)"
-                      aria-label="Add guest"
-                      title="Add guest"
+                      [attr.aria-label]="'meal.addGuest' | t"
+                      [title]="'meal.addGuest' | t"
                     >
                       <svg viewBox="0 0 24 24"><path d="M16 19c0-2.8-2.2-5-5-5s-5 2.2-5 5M11 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6"/></svg>
                     </button>
@@ -185,8 +185,8 @@
                         class="icon-button"
                         [disabled]="busyItemId() === item.id"
                         (click)="clearParticipants(item)"
-                        aria-label="Clear people"
-                        title="Clear people"
+                        [attr.aria-label]="'meal.clearPeople' | t"
+                        [title]="'meal.clearPeople' | t"
                       >
                         <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V3h8v3M19 6l-1 15H6L5 6M10 10v7M14 10v7"/></svg>
                       </button>
@@ -195,15 +195,15 @@
 
                   <dl class="meal-summary">
                     <div>
-                      <dt>Total meal price</dt>
+                      <dt>{{ 'meal.totalPrice' | t }}</dt>
                       <dd>{{ itemCost(item) === null ? '—' : itemCost(item)!.toFixed(2) + ' zł' }}</dd>
                     </div>
                     <div>
-                      <dt>People served</dt>
+                      <dt>{{ 'meal.peopleServed' | t }}</dt>
                       <dd class="served-value">{{ item.servings }}</dd>
                     </div>
                     <div>
-                      <dt>Price per meal</dt>
+                      <dt>{{ 'meal.pricePerServing' | t }}</dt>
                       <dd>{{ pricePerServing(item) === null ? '—' : pricePerServing(item)!.toFixed(2) + ' zł' }}</dd>
                     </div>
                   </dl>
@@ -220,7 +220,7 @@
                     [ngModel]="selectedRecipeId()[slot]"
                     (ngModelChange)="setSelectedRecipeId(slot, $event)"
                     [disabled]="isAdding('recipe', slot)"
-                    [ariaLabel]="'Select recipe for ' + slotLabels[slot]"
+                    [ariaLabel]="('meal.selectRecipeFor' | t) + ' ' + slotLabels()[slot]"
                   />
                 } @else {
                   <app-ingredient-picker
@@ -228,13 +228,13 @@
                     [ngModel]="selectedIngredientId()[slot]"
                     (ngModelChange)="setSelectedIngredientId(slot, $event)"
                     [disabled]="isAdding('ingredient', slot)"
-                    [ariaLabel]="'Select ingredient for ' + slotLabels[slot]"
+                    [ariaLabel]="('meal.selectIngredientFor' | t) + ' ' + slotLabels()[slot]"
                   />
                 }
-                <button type="button" class="icon-button" (click)="closeComposer(slot)" aria-label="Cancel" title="Cancel">×</button>
+                <button type="button" class="icon-button" (click)="closeComposer(slot)" [attr.aria-label]="'common.cancel' | t" [title]="'common.cancel' | t">×</button>
               </li>
             } @else if (!itemsForSlot(slot).length) {
-              <li class="empty-slot">No items yet.</li>
+              <li class="empty-slot">{{ 'meal.noItems' | t }}</li>
             }
           </ul>
         </section>
@@ -245,8 +245,8 @@
     <section class="day-receipt" aria-labelledby="day-receipt-title">
       <div class="receipt-heading">
         <div>
-          <p class="eyebrow">Daily summary</p>
-          <h2 id="day-receipt-title">Day receipt</h2>
+          <p class="eyebrow">{{ 'meal.dailySummary' | t }}</p>
+          <h2 id="day-receipt-title">{{ 'meal.dayReceipt' | t }}</h2>
         </div>
         <span>{{ selectedDate() }}</span>
       </div>
@@ -255,19 +255,19 @@
         @for (slot of slots; track slot) {
           @for (item of itemsForSlot(slot); track item.id) {
             <div class="receipt-line">
-              <span>{{ slotLabels[slot] }}</span>
+              <span>{{ slotLabels()[slot] }}</span>
               <strong>{{ item.displayName }}</strong>
-              <span>{{ item.servings }} served</span>
+              <span>{{ item.servings }} {{ 'meal.served' | t }}</span>
               <span>{{ itemCost(item) === null ? '—' : itemCost(item)!.toFixed(2) + ' zł' }}</span>
             </div>
           }
         } @empty {
-          <p class="empty">Nothing planned for this day yet.</p>
+          <p class="empty">{{ 'meal.dayEmpty' | t }}</p>
         }
       </div>
       <div class="receipt-total">
-        <span>{{ dayServings() }} {{ dayServings() === 1 ? 'serving' : 'servings' }}</span>
-        <span>Total</span>
+        <span>{{ dayServings() }} {{ (dayServings() === 1 ? 'recipes.serving' : 'recipes.servingsPlural') | t }}</span>
+        <span>{{ 'common.total' | t }}</span>
         <strong>{{ dayTotal().toFixed(2) }} zł</strong>
       </div>
     </section>
@@ -275,8 +275,8 @@
     <section class="calorie-overview" aria-labelledby="calorie-overview-title">
       <div class="calorie-heading">
         <div>
-          <p class="eyebrow">Daily nutrition</p>
-          <h2 id="calorie-overview-title">Calories overview</h2>
+          <p class="eyebrow">{{ 'meal.dailyNutrition' | t }}</p>
+          <h2 id="calorie-overview-title">{{ 'meal.caloriesOverview' | t }}</h2>
         </div>
         <strong>{{ dayCalories().toFixed(0) }} kcal</strong>
       </div>
@@ -291,7 +291,7 @@
           }
         </ul>
       } @else {
-        <p class="calorie-empty">Assign people to meals to see their calorie totals.</p>
+        <p class="calorie-empty">{{ 'meal.caloriesEmpty' | t }}</p>
       }
     </section>
     </aside>

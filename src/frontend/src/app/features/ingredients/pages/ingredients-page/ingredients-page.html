@@ -1,7 +1,7 @@
 <main class="ingredients-page">
-  <a class="back" routerLink="/dashboard">← Back to overview</a>
+  <a class="back" routerLink="/dashboard">← {{ 'common.backOverview' | t }}</a>
   <header>
-    <div><p class="eyebrow">Recipe foundations</p><h1>Ingredients</h1><p>Manage the products used to calculate recipe calories and costs.</p></div>
+    <div><p class="eyebrow">{{ 'ingredients.eyebrow' | t }}</p><h1>{{ 'nav.ingredients' | t }}</h1><p>{{ 'ingredients.intro' | t }}</p></div>
   </header>
 
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
@@ -10,29 +10,32 @@
     <h2 id="editor-title">{{ editingId() ? 'Edit ingredient' : 'Add ingredient' }}</h2>
     <form [formGroup]="form" (ngSubmit)="save()">
       <div class="col col-name">
-        <label>Name<input type="text" formControlName="name" placeholder="e.g. Chicken breast" /></label>
+        <label>{{ 'ingredients.name' | t }}<input type="text" formControlName="name" [placeholder]="'ingredients.namePlaceholder' | t" /></label>
         @if (showTranslation()) {
           <label>
             <span class="sr-only">Name translation ({{ languageBadge() }})</span>
             <span class="translation-input">
-              <input type="text" formControlName="translation" placeholder="e.g. Pierś z kurczaka" />
+              <input type="text" formControlName="translation" [placeholder]="'ingredients.translationPlaceholder' | t" />
               <span class="lang-badge" aria-hidden="true">{{ languageBadge() }}</span>
             </span>
           </label>
         }
       </div>
       <div class="col">
-        <label>Base measurement unit<select formControlName="measurementUnit">@for (unit of units; track unit.value) { <option [value]="unit.value">{{ unit.label }}</option> }</select></label>
-        <label>Calories per 100 {{ form.controls.measurementUnit.value }}<input type="number" min="0" max="999999.99" step="0.01" formControlName="caloriesPer100BaseUnits" /></label>
-        <label>Price per 100 {{ form.controls.measurementUnit.value }}<input type="number" min="0" max="99999999.99" step="0.01" formControlName="pricePer100BaseUnits" /></label>
+        <label>{{ 'ingredients.unit' | t }}<select formControlName="measurementUnit">@for (unit of displayUnits; track unit.value) { <option [value]="unit.value">{{ unit.label | t }}</option> }</select></label>
+        @if (form.controls.measurementUnit.value === 'piece') {
+          <label>{{ 'ingredients.baseUnit' | t }}<select formControlName="pieceBaseUnit">@for (unit of units; track unit.value) { <option [value]="unit.value">{{ unit.label | t }}</option> }</select></label>
+        }
+        <label>{{ 'ingredients.category' | t }}<select formControlName="category">@for (category of categories; track category.value) { <option [ngValue]="category.value">{{ category.label | t }}</option> }</select></label>
+        <label>{{ 'ingredients.caloriesPer' | t }} {{ nutritionBasis() }}<input type="number" min="0" max="999999.99" step="0.01" formControlName="caloriesPer100BaseUnits" /></label>
+        <label>{{ 'ingredients.pricePer' | t }} {{ nutritionBasis() }}<input type="number" min="0" max="99999999.99" step="0.01" formControlName="pricePer100BaseUnits" /></label>
       </div>
       <div class="col">
-        <label class="checkbox-field"><input type="checkbox" formControlName="isCountable" /> Countable in pieces</label>
-        @if (form.controls.isCountable.value) {
-          <label>Base units per piece<input type="number" min="0.001" max="999999999.999" step="0.001" formControlName="measurementUnitsPerPiece" /></label>
+        @if (form.controls.measurementUnit.value === 'piece') {
+          <label>{{ 'ingredients.unitsPerPiece' | t }}<input type="number" min="0.001" max="999999999.999" step="0.001" formControlName="measurementUnitsPerPiece" /></label>
         }
         <div class="actions">
-          @if (editingId()) { <button class="secondary" type="button" (click)="cancelEdit()">Cancel</button> }
+          @if (editingId()) { <button class="secondary" type="button" (click)="cancelEdit()">{{ 'common.cancel' | t }}</button> }
           <button class="primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Saving…' : editingId() ? 'Save changes' : 'Add ingredient' }}</button>
         </div>
       </div>
@@ -41,22 +44,23 @@
 
   <section class="catalogue" aria-labelledby="catalogue-title">
     <div class="section-heading">
-      <h2 id="catalogue-title">Ingredient catalogue</h2>
-      <span>{{ search() ? filteredIngredients().length + ' of ' : '' }}{{ ingredients().length }} total</span>
+      <h2 id="catalogue-title">{{ 'ingredients.catalogue' | t }}</h2>
+      <span>{{ hasFilters() ? filteredIngredients().length + ' of ' : '' }}{{ ingredients().length }} total</span>
     </div>
-    <label class="catalogue-search">
-      <span class="sr-only">Search ingredients</span>
-      <input type="search" placeholder="Search ingredients…" [value]="search()" (input)="search.set($any($event.target).value)" />
-    </label>
-    @if (isLoading()) { <p class="empty">Loading ingredients…</p> }
-    @else if (ingredients().length === 0) { <p class="empty">No ingredients yet. Add the first one above.</p> }
-    @else if (filteredIngredients().length === 0) { <p class="empty">No ingredients match “{{ search() }}”.</p> }
+    <div class="catalogue-filters">
+      <label class="catalogue-search"><span class="sr-only">{{ 'ingredients.search' | t }}</span><input type="search" [placeholder]="'ingredients.searchPlaceholder' | t" [value]="search()" (input)="search.set($any($event.target).value)" /></label>
+      <label><span class="sr-only">{{ 'ingredients.category' | t }}</span><select [value]="selectedCategory() ?? ''" (change)="selectedCategory.set($any($event.target).value === '' ? null : +$any($event.target).value)"><option value="">{{ 'ingredients.allCategories' | t }}</option>@for (category of categories; track category.value) { <option [value]="category.value">{{ category.label | t }}</option> }</select></label>
+      <button type="button" [disabled]="!hasFilters()" (click)="search.set(''); selectedCategory.set(null)">{{ 'common.clear' | t }}</button>
+    </div>
+    @if (isLoading()) { <p class="empty">{{ 'ingredients.loading' | t }}</p> }
+    @else if (ingredients().length === 0) { <p class="empty">{{ 'ingredients.empty' | t }}</p> }
+    @else if (filteredIngredients().length === 0) { <p class="empty">{{ 'ingredients.noFilterMatches' | t }}</p> }
     @else {
       <div class="table-wrap"><table>
-        <thead><tr><th>Name</th><th>Base unit</th><th>Piece size</th><th>kcal / 100</th><th>Price / 100</th><th><span class="sr-only">Actions</span></th></tr></thead>
+        <thead><tr><th>{{ 'ingredients.name' | t }}</th><th>{{ 'ingredients.baseUnitShort' | t }}</th><th>{{ 'ingredients.pieceSize' | t }}</th><th>kcal / 100</th><th>{{ 'ingredients.pricePer100' | t }}</th><th><span class="sr-only">{{ 'common.actions' | t }}</span></th></tr></thead>
         <tbody>@for (ingredient of filteredIngredients(); track ingredient.id) {
-          <tr><td data-label="Name"><strong>{{ ingredient.name }}</strong></td><td data-label="Base unit">{{ unitLabel(ingredient.measurementUnit) }}</td><td data-label="Piece size">{{ ingredient.isCountable ? ingredient.measurementUnitsPerPiece + ' ' + ingredient.measurementUnit : '—' }}</td><td data-label="kcal / 100">{{ ingredient.caloriesPer100BaseUnits }}</td><td data-label="Price / 100">{{ ingredient.pricePer100BaseUnits.toFixed(2) }}</td>
-          <td class="row-actions" data-label="Actions"><button type="button" (click)="edit(ingredient)">Edit</button><button class="delete" type="button" [disabled]="deletingId() === ingredient.id" (click)="remove(ingredient)">{{ deletingId() === ingredient.id ? 'Deleting…' : 'Delete' }}</button></td></tr>
+          <tr><td [attr.data-label]="'ingredients.name' | t"><strong>{{ ingredient.name }}</strong></td><td [attr.data-label]="'ingredients.baseUnitShort' | t">{{ unitLabel(ingredient.measurementUnit) }}</td><td [attr.data-label]="'ingredients.pieceSize' | t">{{ ingredient.isCountable ? ingredient.measurementUnitsPerPiece + ' ' + ingredient.measurementUnit : '—' }}</td><td data-label="kcal / 100">{{ ingredient.caloriesPer100BaseUnits }}</td><td [attr.data-label]="'ingredients.pricePer100' | t">{{ ingredient.pricePer100BaseUnits.toFixed(2) }}</td>
+          <td class="row-actions" [attr.data-label]="'common.actions' | t"><button type="button" (click)="edit(ingredient)">{{ 'common.edit' | t }}</button><button class="delete" type="button" [disabled]="deletingId() === ingredient.id" (click)="remove(ingredient)">{{ (deletingId() === ingredient.id ? 'common.deleting' : 'common.delete') | t }}</button></td></tr>
         }</tbody>
       </table></div>
     }

@@ -13,11 +13,13 @@ import { IngredientPicker } from '../../../ingredients/components/ingredient-pic
 import { ShoppingListItem } from '../../../shopping-list/shopping-list.models';
 import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 import { RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { DailyMealPlan, MealParticipant, MealSlot } from '../../../meal-planner/models/meal-planner.models';
 import { MealPlannerService } from '../../../meal-planner/services/meal-planner.service';
-import { HouseMember } from '../../home.models';
+import { DashboardStats, HouseMember } from '../../home.models';
 import { HomeService } from '../../home.service';
 
 interface TodaysMenuEntry {
@@ -34,7 +36,7 @@ interface UselessFact { text: string; source: string; source_url: string; }
 
 @Component({
   selector: 'app-home-page',
-  imports: [RouterLink, FormsModule, IngredientPicker],
+  imports: [RouterLink, FormsModule, IngredientPicker, TranslatePipe],
   templateUrl: './home-page.html',
   styleUrl: './home-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -49,6 +51,7 @@ export class HomePage implements OnInit {
   private readonly mealPlannerService = inject(MealPlannerService);
   private readonly homeService = inject(HomeService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translations = inject(TranslationService);
   readonly lowStock = signal<PantryItem[]>([]);
   readonly pantryLoading = signal(true);
   readonly ingredients = signal<Ingredient[]>([]);
@@ -72,13 +75,13 @@ export class HomePage implements OnInit {
     ? Math.round(this.purchasedCount() / this.shoppingItems().length * 100) : 0);
   readonly firstName = computed(() => {
     const user = this.auth.currentUser();
-    return user?.displayName?.trim().split(/\s+/)[0] || user?.email.split('@')[0] || 'there';
+    return user?.displayName?.trim().split(/\s+/)[0] || user?.email.split('@')[0] || this.translations.translate('home.dashboard.there');
   });
-  readonly today = new Intl.DateTimeFormat('en', {
+  readonly today = computed(() => new Intl.DateTimeFormat(this.translations.language(), {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
-  }).format(new Date());
+  }).format(new Date()));
 
   readonly todaysMenu = signal<TodaysMenuEntry[]>([]);
   readonly menuAvatarUrls = signal<Record<string, string>>({});
@@ -92,13 +95,18 @@ export class HomePage implements OnInit {
   readonly uselessFact = signal<UselessFact | null>(null);
   readonly factLoading = signal(true);
   readonly factError = signal(false);
+  readonly stats = signal<DashboardStats | null>(null);
+  readonly statsLoading = signal(true);
+  readonly statsError = signal(false);
 
-  private readonly slotMeta: Record<MealSlot, { time: string; emoji: string }> = {
-    breakfast: { time: 'BREAKFAST', emoji: '🍳' },
-    dinner: { time: 'LUNCH', emoji: '🥪' },
-    supper: { time: 'DINNER', emoji: '🍽️' },
+  private readonly slotMeta: Record<MealSlot, { emoji: string }> = {
+    breakfast: { emoji: '🍳' },
+    'second-breakfast': { emoji: '🥪' },
+    dinner: { emoji: '🥪' },
+    snack: { emoji: '🍎' },
+    supper: { emoji: '🍽️' },
   };
-  private readonly slotOrder: MealSlot[] = ['breakfast', 'dinner', 'supper'];
+  private readonly slotOrder: MealSlot[] = ['breakfast', 'second-breakfast', 'dinner', 'snack', 'supper'];
 
   ngOnInit(): void {
     this.destroyRef.onDestroy(() => {
@@ -111,6 +119,10 @@ export class HomePage implements OnInit {
         this.loadAvatars(recipes);
       },
       error: () => this.recipesError.set(true),
+    });
+    this.homeService.getDashboardStats().pipe(finalize(() => this.statsLoading.set(false))).subscribe({
+      next: stats => this.stats.set(stats),
+      error: () => this.statsError.set(true),
     });
     this.mealPlannerService.getForDate(this.todayString()).pipe(finalize(() => this.menuLoading.set(false))).subscribe({
       next: plan => {
@@ -137,7 +149,7 @@ export class HomePage implements OnInit {
           this.ingredients.set(ingredients);
           this.shoppingItems.set(shopping);
         },
-        error: error => this.shoppingError.set(getApiError(error, 'Unable to load the dashboard.')),
+        error: error => this.shoppingError.set(getApiError(error, this.translations.translate('home.dashboard.loadError'))),
       });
     this.loadFact();
   }
@@ -158,13 +170,13 @@ export class HomePage implements OnInit {
     const days = Math.floor(hours / 24);
     const weeks = Math.floor(days / 7);
     const months = Math.floor(days / 30);
-    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+    const rtf = new Intl.RelativeTimeFormat(this.translations.language(), { numeric: 'auto' });
     if (months >= 1) return rtf.format(-months, 'month');
     if (weeks >= 1) return rtf.format(-weeks, 'week');
     if (days >= 1) return rtf.format(-days, 'day');
     if (hours >= 1) return rtf.format(-hours, 'hour');
     if (minutes >= 1) return rtf.format(-minutes, 'minute');
-    return 'just now';
+    return this.translations.translate('home.dashboard.justNow');
   }
 
   private loadAvatars(recipes: RecipeSummary[]): void {
@@ -199,12 +211,12 @@ export class HomePage implements OnInit {
 
   relativeDate(value: string): string {
     const elapsedDays = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000));
-    if (elapsedDays === 0) return 'today';
-    if (elapsedDays === 1) return 'yesterday';
-    if (elapsedDays < 7) return `${elapsedDays} days ago`;
+    if (elapsedDays === 0) return this.translations.translate('home.dashboard.today');
+    if (elapsedDays === 1) return this.translations.translate('home.dashboard.yesterday');
+    if (elapsedDays < 7) return this.translations.translate('home.dashboard.daysAgo').replace('{count}', String(elapsedDays));
     const weeks = Math.floor(elapsedDays / 7);
-    if (weeks < 5) return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
-    return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(new Date(value));
+    if (weeks < 5) return this.translations.translate(weeks === 1 ? 'home.dashboard.weekAgo' : 'home.dashboard.weeksAgo').replace('{count}', String(weeks));
+    return new Intl.DateTimeFormat(this.translations.language(), { month: 'short', day: 'numeric' }).format(new Date(value));
   }
 
   addToShoppingList(ingredientId = this.selectedIngredientId(), quantity = this.newQuantity()): void {
@@ -215,7 +227,7 @@ export class HomePage implements OnInit {
         this.shoppingItems.update(items => [...items, item]);
         this.selectedIngredientId.set(''); this.newQuantity.set(1);
       },
-      error: error => this.shoppingError.set(getApiError(error, 'Unable to add this ingredient.')),
+      error: error => this.shoppingError.set(getApiError(error, this.translations.translate('shopping.addError'))),
     });
   }
 
@@ -224,7 +236,7 @@ export class HomePage implements OnInit {
     this.shoppingSaving.set(true); this.shoppingError.set(null);
     this.shoppingListService.update(item, changes).pipe(finalize(() => this.shoppingSaving.set(false))).subscribe({
       next: updated => this.shoppingItems.update(items => items.map(current => current.id === updated.id ? updated : current)),
-      error: error => this.shoppingError.set(getApiError(error, 'Unable to update this item.')),
+      error: error => this.shoppingError.set(getApiError(error, this.translations.translate('shopping.updateError'))),
     });
   }
 
@@ -232,7 +244,7 @@ export class HomePage implements OnInit {
     this.shoppingSaving.set(true); this.shoppingError.set(null);
     this.shoppingListService.delete(item.id).pipe(finalize(() => this.shoppingSaving.set(false))).subscribe({
       next: () => this.shoppingItems.update(items => items.filter(current => current.id !== item.id)),
-      error: error => this.shoppingError.set(getApiError(error, 'Unable to remove this item.')),
+      error: error => this.shoppingError.set(getApiError(error, this.translations.translate('shopping.removeError'))),
     });
   }
 
@@ -241,7 +253,7 @@ export class HomePage implements OnInit {
     this.shoppingSaving.set(true); this.shoppingError.set(null);
     this.shoppingListService.clearChecked().pipe(finalize(() => this.shoppingSaving.set(false))).subscribe({
       next: () => this.shoppingItems.update(items => items.filter(item => !item.isPurchased)),
-      error: error => this.shoppingError.set(getApiError(error, 'Unable to clear checked items.')),
+      error: error => this.shoppingError.set(getApiError(error, this.translations.translate('shopping.clearError'))),
     });
   }
 
@@ -272,7 +284,7 @@ export class HomePage implements OnInit {
     for (const slot of this.slotOrder) {
       const meta = this.slotMeta[slot];
       for (const item of plan.meals[slot] ?? []) {
-        entries.push({ id: item.id, recipeId: item.recipeId ?? null, time: meta.time, emoji: meta.emoji, name: item.displayName, note: item.note ?? null, participants: item.participants ?? [] });
+        entries.push({ id: item.id, recipeId: item.recipeId ?? null, time: this.translations.translate(`meal.slot.${slot}`), emoji: meta.emoji, name: item.displayName, note: item.note ?? null, participants: item.participants ?? [] });
       }
     }
     return entries;

@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, forwardRef, input, output, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { RecipeSummary } from '../../models/recipe.models';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-recipe-picker',
+  imports: [TranslatePipe],
   templateUrl: './recipe-picker.html',
   styleUrl: './recipe-picker.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -15,8 +17,8 @@ import { RecipeSummary } from '../../models/recipe.models';
 })
 export class RecipePicker implements ControlValueAccessor {
   readonly recipes = input.required<readonly RecipeSummary[]>();
-  readonly placeholder = input('Start typing a recipe…');
-  readonly ariaLabel = input('Recipe');
+  readonly placeholder = input('');
+  readonly ariaLabel = input('');
   readonly recipeSelected = output<RecipeSummary>();
   readonly query = signal('');
   readonly isOpen = signal(false);

@@ -10,27 +10,31 @@
   <section class="add-panel" aria-labelledby="add-title">
     <div><h2 id="add-title">{{ 'common.addIngredient' | t }}</h2><p>{{ 'shopping.priceHelp' | t }}</p></div>
     <form [formGroup]="form" (ngSubmit)="add()">
-      <label>{{ 'common.ingredient' | t }}<app-ingredient-picker formControlName="ingredientId" [ingredients]="availableIngredients()" /></label>
+      <label>{{ 'common.ingredient' | t }}<app-ingredient-picker formControlName="ingredientId" [ingredients]="availableIngredients()" (ingredientSelected)="selectIngredient($event)" /></label>
       <label>{{ 'common.quantity' | t }}<input type="number" min="0.001" step="0.001" formControlName="quantity" /></label>
+      <label>{{ 'ingredients.unit' | t }}<select formControlName="unit">@for (unit of selectedUnits(); track unit) { <option [value]="unit">{{ ('units.' + (unit === 'g' ? 'grams' : unit === 'kg' ? 'kilograms' : unit === 'ml' ? 'millilitres' : unit === 'l' ? 'litres' : 'piece')) | t }}</option> }</select></label>
       <button class="primary" type="submit" [disabled]="isSaving() || availableIngredients().length === 0">{{ (isSaving() ? 'common.adding' : 'shopping.addToList') | t }}</button>
     </form>
   </section>
 
   <section class="receipt" aria-labelledby="receipt-title">
-    <div class="receipt-heading"><div><p class="eyebrow">{{ 'shopping.receipt' | t }}</p><h2 id="receipt-title">{{ 'shopping.itemsToBuy' | t }}</h2></div><div class="receipt-actions"><span>{{ items().length }} {{ 'common.items' | t }}</span><button type="button" [disabled]="isSaving() || purchasedCount() === 0" (click)="clearChecked()">{{ 'shopping.clearChecked' | t }}</button></div></div>
+    <div class="receipt-heading"><div><p class="eyebrow">{{ 'shopping.receipt' | t }}</p><h2 id="receipt-title">{{ 'shopping.itemsToBuy' | t }}</h2></div><div class="receipt-actions"><span>{{ items().length }} {{ 'common.items' | t }}</span><button type="button" [disabled]="items().length === 0" (click)="print()">{{ 'shopping.print' | t }}</button><button class="clear-checked" type="button" [disabled]="isSaving() || purchasedCount() === 0" (click)="clearChecked()">{{ 'shopping.clearChecked' | t }}</button></div></div>
     @if (isLoading()) { <p class="empty">{{ 'shopping.loading' | t }}</p> }
     @else if (items().length === 0) { <p class="empty">{{ 'shopping.empty' | t }}</p> }
     @else {
       <div class="receipt-lines">
-        @for (item of items(); track item.id) {
+        @for (group of groups(); track group.value) {
+          <h3 class="category-heading">{{ group.label | t }}</h3>
+          @for (item of group.items; track item.id) {
           <article class="receipt-line" [class.is-purchased]="item.isPurchased">
             <button class="check" type="button" [disabled]="isSaving()" (click)="update(item, { isPurchased: !item.isPurchased })" [attr.aria-label]="(item.isPurchased ? 'shopping.markNotBought' : 'shopping.markBought') | t">{{ item.isPurchased ? '✓' : '○' }}</button>
             <div class="product"><strong>{{ item.ingredientName }}</strong><span>{{ item.pricePer100BaseUnits.toFixed(2) }} zł / 100 {{ item.measurementUnit }}</span></div>
-            <input type="number" min="0.001" step="0.001" [value]="item.quantity" [disabled]="isSaving()" (change)="update(item, { quantity: +$any($event.target).value })" [attr.aria-label]="('common.quantity' | t) + ': ' + item.ingredientName" />
-            <span class="unit">{{ item.measurementUnit }}</span>
+            <input type="number" min="0.001" step="0.001" [value]="display(item).quantity" [disabled]="isSaving()" (change)="updateDisplayQuantity(item, +$any($event.target).value)" [attr.aria-label]="('common.quantity' | t) + ': ' + item.ingredientName" />
+            <span class="unit">{{ display(item).unit }}</span>
             <strong class="line-price">{{ item.totalPrice.toFixed(2) }} zł</strong>
             <button class="remove" type="button" [disabled]="isSaving()" (click)="remove(item)" [attr.aria-label]="('common.remove' | t) + ' ' + item.ingredientName">×</button>
           </article>
+          }
         }
       </div>
     }

@@ -2,9 +2,11 @@ import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RecipeImage } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-image-gallery',
+  imports: [TranslatePipe],
   templateUrl: './image-gallery.html',
   styleUrl: './image-gallery.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

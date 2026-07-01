@@ -236,6 +236,52 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.ToTable("users", "kotlet");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.FoodSettings.UserExcludedIngredient", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("IngredientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ingredient_id");
+
+                    b.HasKey("UserId", "IngredientId");
+
+                    b.HasIndex("IngredientId");
+
+                    b.ToTable("user_excluded_ingredients", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.FoodSettings.UserFoodSettings", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<long>("AvoidedAllergens")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("avoided_allergens");
+
+                    b.Property<long>("AvoidedAttributes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("avoided_attributes");
+
+                    b.Property<long>("RequiredSuitability")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("required_suitability");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("user_food_settings", "kotlet");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.Houses.House", b =>
                 {
                     b.Property<Guid>("Id")
@@ -320,10 +366,28 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<long>("Allergens")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("allergens");
+
+                    b.Property<long>("Attributes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("attributes");
+
                     b.Property<decimal>("CaloriesPer100BaseUnits")
                         .HasPrecision(8, 2)
                         .HasColumnType("numeric(8,2)")
                         .HasColumnName("calories_per_100_base_units");
+
+                    b.Property<int>("Category")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("category");
 
                     b.Property<bool>("IsCountable")
                         .HasColumnType("boolean")
@@ -350,6 +414,12 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("price_per_100_base_units");
+
+                    b.Property<long>("Suitability")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L)
+                        .HasColumnName("suitability");
 
                     b.Property<string>("SvgIcon")
                         .HasColumnType("text")
@@ -462,6 +532,10 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateOnly?>("ExpirationDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expiration_date");
+
                     b.Property<Guid>("HouseId")
                         .HasColumnType("uuid")
                         .HasColumnName("house_id");
@@ -474,6 +548,10 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasPrecision(11, 3)
                         .HasColumnType("numeric(11,3)")
                         .HasColumnName("quantity");
+
+                    b.Property<int?>("StorageLocation")
+                        .HasColumnType("integer")
+                        .HasColumnName("storage_location");
 
                     b.HasKey("Id");
 
@@ -504,6 +582,10 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("HouseId")
                         .HasColumnType("uuid")
                         .HasColumnName("house_id");
+
+                    b.Property<int?>("MealType")
+                        .HasColumnType("integer")
+                        .HasColumnName("meal_type");
 
                     b.Property<Guid>("OwnerUserId")
                         .HasColumnType("uuid")
@@ -976,6 +1058,36 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("DefaultHouse");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.FoodSettings.UserExcludedIngredient", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Ingredients.Ingredient", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.FoodSettings.UserFoodSettings", "Settings")
+                        .WithMany("ExcludedIngredients")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("Settings");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.FoodSettings.UserFoodSettings", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Auth.User", "User")
+                        .WithOne("FoodSettings")
+                        .HasForeignKey("Kotlet.Domain.FoodSettings.UserFoodSettings", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.Houses.HouseInvitation", b =>
                 {
                     b.HasOne("Kotlet.Domain.Houses.House", "House")
@@ -1170,9 +1282,16 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                 {
                     b.Navigation("AiProviderConfiguration");
 
+                    b.Navigation("FoodSettings");
+
                     b.Navigation("Memberships");
 
                     b.Navigation("RefreshTokens");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.FoodSettings.UserFoodSettings", b =>
+                {
+                    b.Navigation("ExcludedIngredients");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Houses.House", b =>

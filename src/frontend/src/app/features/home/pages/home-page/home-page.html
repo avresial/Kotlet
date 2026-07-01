@@ -2,29 +2,37 @@
   <main class="dashboard">
     <header class="welcome">
       <div>
-        <p class="eyebrow">{{ today }}</p>
-        <h1>Good to see you, {{ firstName() }}.</h1>
-        <p class="intro">Here’s what’s cooking at home today.</p>
+        <p class="eyebrow">{{ today() }}</p>
+        <h1>{{ 'home.dashboard.greeting' | t }} {{ firstName() }}.</h1>
+        <p class="intro">{{ 'home.dashboard.intro' | t }}</p>
       </div>
     </header>
 
-    <section class="card-grid" aria-label="At a glance">
+    <section class="card-grid" [attr.aria-label]="'home.dashboard.glance' | t">
+      <article class="card stats-card" aria-labelledby="stats-title">
+        <div class="card-heading"><div><p class="section-label">{{ 'home.dashboard.quickStats' | t }}</p><h2 id="stats-title">{{ 'home.dashboard.atAGlance' | t }}</h2></div></div>
+        @if (statsLoading()) { <p class="recipe-state">{{ 'home.dashboard.statsLoading' | t }}</p> }
+        @else if (statsError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.statsError' | t }}</p> }
+        @else if (stats(); as dashboardStats) {
+          <dl class="stats-list"><div><dt>{{ 'nav.recipes' | t }}</dt><dd>{{ dashboardStats.recipeCount }}</dd></div><div><dt>{{ 'nav.pantry' | t }}</dt><dd>{{ dashboardStats.pantryItemCount }}</dd></div></dl>
+        }
+      </article>
       <!-- Today's menu -->
       <article class="card today-card" aria-labelledby="today-title">
         <div class="card-heading">
           <div>
-            <p class="section-label">Today’s menu</p>
-            <h2 id="today-title">What’s on the table</h2>
+            <p class="section-label">{{ 'home.dashboard.todaysMenu' | t }}</p>
+            <h2 id="today-title">{{ 'home.dashboard.onTable' | t }}</h2>
           </div>
           @if (todaysMenu().length > 0) {
-            <span class="status"><span></span> Planned</span>
+            <span class="status"><span></span> {{ 'home.dashboard.planned' | t }}</span>
           } @else if (!menuLoading() && !menuError()) {
-            <span class="status muted"><span></span> Nothing planned</span>
+            <span class="status muted"><span></span> {{ 'home.dashboard.nothingPlanned' | t }}</span>
           }
         </div>
-        @if (menuLoading()) { <p class="recipe-state">Loading today’s menu…</p> }
-        @else if (menuError()) { <p class="recipe-state error" role="alert">Unable to load today’s menu.</p> }
-        @else if (todaysMenu().length === 0) { <p class="recipe-state">Nothing planned for today. <a routerLink="/meal-planner">Plan your meals</a>.</p> }
+        @if (menuLoading()) { <p class="recipe-state">{{ 'home.dashboard.menuLoading' | t }}</p> }
+        @else if (menuError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.menuError' | t }}</p> }
+        @else if (todaysMenu().length === 0) { <p class="recipe-state">{{ 'home.dashboard.menuEmpty' | t }} <a routerLink="/meal-planner">{{ 'home.dashboard.planMeals' | t }}</a>.</p> }
         @else { <ul class="menu-list">
           @for (meal of todaysMenu(); track meal.id) {
             <li class="menu-item">
@@ -39,7 +47,7 @@
                 @if (meal.note) { <p class="menu-note">{{ meal.note }}</p> }
               </div>
               @if (meal.participants.length) {
-                <ul class="menu-people" aria-label="People eating {{ meal.name }}">
+                <ul class="menu-people" [attr.aria-label]="('home.dashboard.peopleEating' | t) + ' ' + meal.name">
                   @for (person of meal.participants; track person.userId) {
                     <li class="menu-person" [class.is-me]="person.isCurrentUser" [attr.title]="person.displayName" [attr.aria-label]="person.displayName">
                       {{ participantInitials(person.displayName) }}
@@ -56,14 +64,14 @@
       <article class="card" aria-labelledby="recipes-title">
         <div class="card-heading">
           <div>
-            <p class="section-label">Newest recipes</p>
-            <h2 id="recipes-title">Freshly added</h2>
+            <p class="section-label">{{ 'home.dashboard.newestRecipes' | t }}</p>
+            <h2 id="recipes-title">{{ 'home.dashboard.freshlyAdded' | t }}</h2>
           </div>
-          <a class="card-link" routerLink="/recipes">View all →</a>
+          <a class="card-link" routerLink="/recipes">{{ 'home.dashboard.viewAll' | t }} →</a>
         </div>
-        @if (recipesLoading()) { <p class="recipe-state">Loading recipes…</p> }
-        @else if (recipesError()) { <p class="recipe-state error" role="alert">Unable to load recipes.</p> }
-        @else if (newestRecipes().length === 0) { <p class="recipe-state">No recipes yet. <a routerLink="/recipes/new">Add your first recipe</a>.</p> }
+        @if (recipesLoading()) { <p class="recipe-state">{{ 'recipes.loading' | t }}</p> }
+        @else if (recipesError()) { <p class="recipe-state error" role="alert">{{ 'recipes.loadError' | t }}</p> }
+        @else if (newestRecipes().length === 0) { <p class="recipe-state">{{ 'recipes.empty' | t }} <a routerLink="/recipes/new">{{ 'home.dashboard.addFirstRecipe' | t }}</a>.</p> }
         @else { <ul class="recipe-list">
           @for (recipe of newestRecipes(); track recipe.id) {
             <li>
@@ -75,7 +83,7 @@
               }
               <div class="recipe-text">
                 <strong>{{ recipe.title }}</strong>
-                <p>{{ recipe.ingredientCount }} ingredient{{ recipe.ingredientCount === 1 ? '' : 's' }}</p>
+                <p>{{ recipe.ingredientCount }} {{ (recipe.ingredientCount === 1 ? 'home.dashboard.ingredient' : 'home.dashboard.ingredients') | t }}</p>
               </div>
               <span class="recipe-meta">{{ relativeDate(recipe.createdAtUtc) }}</span>
               </a>
@@ -88,8 +96,8 @@
       <article class="card" aria-labelledby="shopping-title">
         <div class="card-heading">
           <div>
-            <p class="section-label">Shopping list</p>
-            <h2 id="shopping-title">{{ purchasedCount() }} of {{ shoppingItems().length }} bought</h2>
+            <p class="section-label">{{ 'nav.shoppingList' | t }}</p>
+            <h2 id="shopping-title">{{ purchasedCount() }} {{ 'common.of' | t }} {{ shoppingItems().length }} {{ 'shopping.bought' | t }}</h2>
           </div>
           <span class="status muted">{{ shoppingProgress() }}%</span>
         </div>
@@ -97,50 +105,50 @@
           <span [style.width.%]="shoppingProgress()"></span>
         </div>
         <form class="shopping-add" (ngSubmit)="addToShoppingList()">
-          <app-ingredient-picker name="ingredient" [ingredients]="availableIngredients()" placeholder="Add ingredient…" [ngModel]="selectedIngredientId()" (ngModelChange)="selectedIngredientId.set($event)" />
-          <input name="quantity" aria-label="Quantity" type="number" min="0.001" step="0.001" [ngModel]="newQuantity()" (ngModelChange)="newQuantity.set($event)" />
-          <span class="shopping-add-unit" [class.is-empty]="!selectedShoppingIngredient()">{{ selectedShoppingIngredient()?.measurementUnit || 'unit' }}</span>
+          <app-ingredient-picker name="ingredient" [ingredients]="availableIngredients()" [placeholder]="'common.addIngredient' | t" [ngModel]="selectedIngredientId()" (ngModelChange)="selectedIngredientId.set($event)" />
+          <input name="quantity" [attr.aria-label]="'common.quantity' | t" type="number" min="0.001" step="0.001" [ngModel]="newQuantity()" (ngModelChange)="newQuantity.set($event)" />
+          <span class="shopping-add-unit" [class.is-empty]="!selectedShoppingIngredient()">{{ selectedShoppingIngredient()?.measurementUnit || ('home.dashboard.unit' | t) }}</span>
           <button type="submit" [disabled]="shoppingSaving() || !selectedIngredientId()">＋</button>
         </form>
         @if (shoppingError()) { <p class="shopping-error" role="alert">{{ shoppingError() }}</p> }
-        @if (shoppingLoading()) { <p>Loading list…</p> }
-        @else if (shoppingItems().length === 0) { <p class="empty-receipt">Your shopping list is empty.</p> }
+        @if (shoppingLoading()) { <p>{{ 'home.dashboard.listLoading' | t }}</p> }
+        @else if (shoppingItems().length === 0) { <p class="empty-receipt">{{ 'home.dashboard.shoppingEmpty' | t }}</p> }
         @else { <ul class="shopping-list">
           @for (item of shoppingItems(); track item.id) {
             <li class="shopping-item" [class.is-done]="item.isPurchased">
-              <button class="check" type="button" [attr.aria-label]="item.isPurchased ? 'Mark not bought' : 'Mark bought'" (click)="updateItem(item, { isPurchased: !item.isPurchased })">{{ item.isPurchased ? '✓' : '○' }}</button>
+              <button class="check" type="button" [attr.aria-label]="(item.isPurchased ? 'shopping.markNotBought' : 'shopping.markBought') | t" (click)="updateItem(item, { isPurchased: !item.isPurchased })">{{ item.isPurchased ? '✓' : '○' }}</button>
               <span class="shopping-name">{{ item.ingredientName }}</span>
-              <input class="shopping-quantity" aria-label="Quantity" type="number" min="0.001" step="0.001" [value]="item.quantity" (change)="updateItem(item, { quantity: +$any($event.target).value })" />
+              <input class="shopping-quantity" [attr.aria-label]="'common.quantity' | t" type="number" min="0.001" step="0.001" [value]="item.quantity" (change)="updateItem(item, { quantity: +$any($event.target).value })" />
               <span class="shopping-unit">{{ item.measurementUnit }}</span>
               <span class="shopping-price">{{ item.totalPrice.toFixed(2) }} zł</span>
-              <button class="remove-shopping" type="button" aria-label="Remove item" (click)="removeItem(item)">×</button>
+              <button class="remove-shopping" type="button" [attr.aria-label]="'home.dashboard.removeItem' | t" (click)="removeItem(item)">×</button>
             </li>
           }
         </ul> }
-        <div class="receipt-total"><span>TOTAL</span><strong>{{ totalPrice().toFixed(2) }} zł</strong></div>
-        <button class="clear-checked" type="button" [disabled]="shoppingSaving() || purchasedCount() === 0" (click)="clearChecked()">Clear checked</button>
+        <div class="receipt-total"><span>{{ 'common.total' | t }}</span><strong>{{ totalPrice().toFixed(2) }} zł</strong></div>
+        <button class="clear-checked" type="button" [disabled]="shoppingSaving() || purchasedCount() === 0" (click)="clearChecked()">{{ 'shopping.clearChecked' | t }}</button>
       </article>
 
       <!-- Low pantry stock -->
       <article class="card" aria-labelledby="ingredients-title">
         <div class="card-heading">
           <div>
-            <p class="section-label">Pantry</p>
-            <h2 id="ingredients-title">Running low</h2>
+            <p class="section-label">{{ 'nav.pantry' | t }}</p>
+            <h2 id="ingredients-title">{{ 'home.dashboard.runningLow' | t }}</h2>
           </div>
-          <a class="card-link" routerLink="/pantry">View pantry →</a>
+          <a class="card-link" routerLink="/pantry">{{ 'home.dashboard.viewPantry' | t }} →</a>
         </div>
-        @if (pantryLoading()) { <p>Loading stock…</p> }
-        @else if (lowStock().length === 0) { <p>No products stored yet.</p> }
+        @if (pantryLoading()) { <p>{{ 'home.dashboard.stockLoading' | t }}</p> }
+        @else if (lowStock().length === 0) { <p>{{ 'home.dashboard.noProducts' | t }}</p> }
         @else { <ul class="ingredient-list">
           @for (ingredient of lowStock(); track ingredient.id) {
             <li class="ingredient-item">
               <span class="ingredient-emoji" aria-hidden="true">◉</span>
               <span class="ingredient-name">{{ ingredient.ingredientName }}</span>
-              <span>{{ ingredient.quantity === 0 ? 'Out of stock' : 'Low stock' }}</span>
+              <span>{{ (ingredient.quantity === 0 ? 'home.dashboard.outOfStock' : 'home.dashboard.lowStock') | t }}</span>
               <span class="ingredient-count">{{ ingredient.quantity }} {{ ingredient.measurementUnit }}</span>
               <button class="add-low" type="button" [disabled]="shoppingSaving() || isOnShoppingList(ingredient.ingredientId)" (click)="addToShoppingList(ingredient.ingredientId, 1)">
-                {{ isOnShoppingList(ingredient.ingredientId) ? 'Added' : '+ List' }}
+                {{ (isOnShoppingList(ingredient.ingredientId) ? 'home.dashboard.added' : 'home.dashboard.addToList') | t }}
               </button>
             </li>
           }
@@ -151,26 +159,26 @@
       <article class="card" aria-labelledby="home-title">
         <div class="card-heading">
           <div>
-            <p class="section-label">Your home</p>
-            <h2 id="home-title">{{ houseName() || 'Household' }}</h2>
+            <p class="section-label">{{ 'home.dashboard.yourHome' | t }}</p>
+            <h2 id="home-title">{{ houseName() || ('home.dashboard.household' | t) }}</h2>
           </div>
           @if (!houseLoading() && !houseError()) {
-            <span class="status muted">{{ houseMembers().length }} member{{ houseMembers().length === 1 ? '' : 's' }}</span>
+            <span class="status muted">{{ houseMembers().length }} {{ (houseMembers().length === 1 ? 'home.dashboard.member' : 'home.dashboard.members') | t }}</span>
           }
         </div>
-        @if (houseLoading()) { <p class="recipe-state">Loading household…</p> }
-        @else if (houseError()) { <p class="recipe-state error" role="alert">Unable to load your household.</p> }
-        @else if (houseMembers().length === 0) { <p class="recipe-state">No one else is in your home yet.</p> }
+        @if (houseLoading()) { <p class="recipe-state">{{ 'home.dashboard.householdLoading' | t }}</p> }
+        @else if (houseError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.householdError' | t }}</p> }
+        @else if (houseMembers().length === 0) { <p class="recipe-state">{{ 'home.dashboard.householdEmpty' | t }}</p> }
         @else { <ul class="member-list">
           @for (member of houseMembers(); track member.id) {
             <li class="member-item">
               <span class="member-avatar" aria-hidden="true">{{ memberInitials(member) }}</span>
               <div class="member-text">
-                <strong>{{ memberName(member) }}@if (member.isCurrentUser) { <span class="member-you">You</span> }</strong>
+                <strong>{{ memberName(member) }}@if (member.isCurrentUser) { <span class="member-you">{{ 'home.dashboard.you' | t }}</span> }</strong>
                 <p>{{ member.email }}</p>
               </div>
               <span class="member-meta">
-                @if (member.lastLoginAtUtc) { Active {{ relativeTime(member.lastLoginAtUtc) }} } @else { Never signed in }
+                @if (member.lastLoginAtUtc) { {{ 'home.dashboard.active' | t }} {{ relativeTime(member.lastLoginAtUtc) }} } @else { {{ 'home.dashboard.neverSignedIn' | t }} }
               </span>
             </li>
           }
@@ -180,16 +188,16 @@
       <article class="card fact-card" aria-labelledby="fact-title">
         <div class="card-heading">
           <div>
-            <p class="section-label">Useless fact</p>
-            <h2 id="fact-title">Something you didn’t need to know</h2>
+            <p class="section-label">{{ 'home.dashboard.uselessFact' | t }}</p>
+            <h2 id="fact-title">{{ 'home.dashboard.factTitle' | t }}</h2>
           </div>
-          <button class="fact-refresh" type="button" [disabled]="factLoading()" (click)="loadFact()">Another one ↻</button>
+          <button class="fact-refresh" type="button" [disabled]="factLoading()" (click)="loadFact()">{{ 'home.dashboard.anotherFact' | t }} ↻</button>
         </div>
-        @if (factLoading()) { <p class="recipe-state">Finding a fact…</p> }
-        @else if (factError()) { <p class="recipe-state error" role="alert">Unable to load a useless fact.</p> }
+        @if (factLoading()) { <p class="recipe-state">{{ 'home.dashboard.factLoading' | t }}</p> }
+        @else if (factError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.factError' | t }}</p> }
         @else if (uselessFact(); as fact) {
           <blockquote>{{ fact.text }}</blockquote>
-          <a class="fact-source" [href]="fact.source_url" target="_blank" rel="noopener noreferrer">Source: {{ fact.source }}</a>
+          <a class="fact-source" [href]="fact.source_url" target="_blank" rel="noopener noreferrer">{{ 'home.dashboard.source' | t }}: {{ fact.source }}</a>
         }
       </article>
     </section>

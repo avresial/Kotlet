@@ -5,16 +5,19 @@ import { RecipeImage } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { ImageGallery } from '../image-gallery/image-gallery';
 import { ImageUpload } from '../image-upload/image-upload';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-image-gallery-editor',
-  imports: [ImageGallery, ImageUpload],
+  imports: [ImageGallery, ImageUpload, TranslatePipe],
   templateUrl: './image-gallery-editor.html',
   styleUrl: './image-gallery-editor.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ImageGalleryEditor implements OnInit {
   private readonly service = inject(RecipeService);
+  private readonly translations = inject(TranslationService);
   readonly recipeId = input.required<string>();
   readonly images = signal<RecipeImage[]>([]);
   readonly busy = signal(false);
@@ -25,7 +28,7 @@ export class ImageGalleryEditor implements OnInit {
   reload(): void {
     this.service.listImages(this.recipeId()).subscribe({
       next: images => this.images.set(images),
-      error: err => this.error.set(getApiError(err, 'Unable to load images.')),
+      error: err => this.error.set(getApiError(err, this.translations.translate('recipes.imagesLoadError'))),
     });
   }
   upload(value: { file: File; altText: string }): void {
@@ -36,7 +39,7 @@ export class ImageGalleryEditor implements OnInit {
     this.run(this.service.updateImage(this.recipeId(), image.id, altText), () => this.reload());
   }
   remove(image: RecipeImage): void {
-    if (window.confirm(`Delete ${image.fileName}?`)) this.run(this.service.deleteImage(this.recipeId(), image.id), () => this.reload());
+    if (window.confirm(this.translations.translate('recipes.imageDeleteConfirm').replace('{name}', image.fileName))) this.run(this.service.deleteImage(this.recipeId(), image.id), () => this.reload());
   }
   move(index: number, delta: number): void {
     const reordered = [...this.images()];
@@ -47,7 +50,7 @@ export class ImageGalleryEditor implements OnInit {
     this.busy.set(true); this.error.set(null);
     request.pipe(finalize(() => this.busy.set(false))).subscribe({
       next: success,
-      error: (err: unknown) => this.error.set(getApiError(err, 'Image operation failed.')),
+      error: (err: unknown) => this.error.set(getApiError(err, this.translations.translate('recipes.imageOperationError'))),
     });
   }
 }

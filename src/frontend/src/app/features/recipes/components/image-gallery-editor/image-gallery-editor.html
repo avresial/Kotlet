@@ -1,16 +1,16 @@
 <section class="gallery-editor">
-  <h2>Images</h2>
+  <h2>{{ 'recipes.images' | t }}</h2>
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
   <app-image-gallery [images]="images()"></app-image-gallery>
   @if (images().length < 10) { <app-image-upload (selected)="upload($event)"></app-image-upload> }
   <ol class="image-list">
     @for (image of images(); track image.id; let i = $index) {
       <li>
-        <span>{{ image.fileName }} @if (i === 0) { <strong>(cover)</strong> }</span>
-        <input aria-label="Alt text" maxlength="300" [value]="image.altText || ''" (change)="saveAlt(image, $event)">
-        <button type="button" [disabled]="busy() || i === 0" (click)="move(i, -1)">Move up</button>
-        <button type="button" [disabled]="busy() || i === images().length - 1" (click)="move(i, 1)">Move down</button>
-        <button type="button" [disabled]="busy()" (click)="remove(image)">Delete</button>
+        <span>{{ image.fileName }} @if (i === 0) { <strong>({{ 'recipes.cover' | t }})</strong> }</span>
+        <input [attr.aria-label]="'recipes.altText' | t" maxlength="300" [value]="image.altText || ''" (change)="saveAlt(image, $event)">
+        <button type="button" [disabled]="busy() || i === 0" (click)="move(i, -1)">{{ 'common.moveUp' | t }}</button>
+        <button type="button" [disabled]="busy() || i === images().length - 1" (click)="move(i, 1)">{{ 'common.moveDown' | t }}</button>
+        <button type="button" [disabled]="busy()" (click)="remove(image)">{{ 'common.delete' | t }}</button>
       </li>
     }
   </ol>

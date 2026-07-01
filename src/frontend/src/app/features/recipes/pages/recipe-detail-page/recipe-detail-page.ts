@@ -2,32 +2,42 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } 
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 import { RecipeDetail, RecipeIngredient } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { ImageGallery } from '../../components/image-gallery/image-gallery';
+import { Ingredient } from '../../../ingredients/ingredient.models';
+import { IngredientService } from '../../../ingredients/ingredient.service';
+import { recipeCaloriesPerServing, recipePricePerServing } from '../../../meal-planner/meal-planner-calculations';
 
 @Component({
   selector: 'app-recipe-detail-page',
-  imports: [RouterLink, DatePipe, ImageGallery],
+  imports: [RouterLink, DatePipe, ImageGallery, TranslatePipe],
   templateUrl: './recipe-detail-page.html',
   styleUrl: './recipe-detail-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecipeDetailPage implements OnInit {
   private readonly service = inject(RecipeService);
+  private readonly ingredientService = inject(IngredientService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly translations = inject(TranslationService);
 
   readonly recipe = signal<RecipeDetail | null>(null);
+  readonly ingredients = signal<Ingredient[]>([]);
   readonly isLoading = signal(true);
   readonly isDeleting = signal(false);
   readonly error = signal<string | null>(null);
   readonly justCreated = signal(!!this.router.getCurrentNavigation()?.extras.state?.['justCreated']);
+  readonly pricePerServing = computed(() => this.recipe() ? recipePricePerServing(this.recipe()!, this.ingredients()) : 0);
+  readonly caloriesPerServing = computed(() => this.recipe() ? recipeCaloriesPerServing(this.recipe()!, this.ingredients()) : 0);
 
   readonly descriptionHtml = computed<SafeHtml>(() => {
     const md = this.recipe()?.descriptionMarkdown;
@@ -52,11 +62,11 @@ export class RecipeDetailPage implements OnInit {
   }
 
   ngOnInit(): void {
-    this.service.get(this.id)
+    forkJoin({ recipe: this.service.get(this.id), ingredients: this.ingredientService.getAll() })
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
-        next: (recipe) => this.recipe.set(recipe),
-        error: (err) => this.error.set(getApiError(err, 'Unable to load recipe.')),
+        next: ({ recipe, ingredients }) => { this.recipe.set(recipe); this.ingredients.set(ingredients); },
+        error: (err) => this.error.set(getApiError(err, this.translations.translate('recipes.loadOneError'))),
       });
   }
 
@@ -65,12 +75,12 @@ export class RecipeDetailPage implements OnInit {
   }
 
   delete(): void {
-    if (!window.confirm(`Delete "${this.recipe()?.title}"?`)) return;
+    if (!window.confirm(this.translations.translate('recipes.deleteConfirm').replace('{name}', this.recipe()?.title ?? ''))) return;
     this.isDeleting.set(true);
     this.service.delete(this.id).subscribe({
       next: () => this.router.navigate(['/recipes']),
       error: (err) => {
-        this.error.set(getApiError(err, 'Unable to delete recipe.'));
+        this.error.set(getApiError(err, this.translations.translate('recipes.deleteError')));
         this.isDeleting.set(false);
       },
     });

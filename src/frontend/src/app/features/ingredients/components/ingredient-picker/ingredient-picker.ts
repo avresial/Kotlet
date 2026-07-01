@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, forwardRef, input, output, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Ingredient } from '../../ingredient.models';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-ingredient-picker',
+  imports: [TranslatePipe],
   templateUrl: './ingredient-picker.html',
   styleUrl: './ingredient-picker.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -15,8 +17,8 @@ import { Ingredient } from '../../ingredient.models';
 })
 export class IngredientPicker implements ControlValueAccessor {
   readonly ingredients = input.required<readonly Ingredient[]>();
-  readonly placeholder = input('Start typing an ingredient…');
-  readonly ariaLabel = input('Ingredient');
+  readonly placeholder = input('');
+  readonly ariaLabel = input('');
   readonly valueMode = input<'id' | 'name'>('id');
   readonly ingredientSelected = output<Ingredient>();
   readonly query = signal('');

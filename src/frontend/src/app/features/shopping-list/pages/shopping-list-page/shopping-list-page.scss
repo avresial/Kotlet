@@ -12,7 +12,7 @@ header p:last-child, .add-panel p { margin: 0; color: #746d63; }
 .add-panel, .receipt { padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid #dcd2c4; border-radius: 1rem; background: #fffaf2; box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%); }
 .add-panel { display: grid; grid-template-columns: minmax(13rem, 1fr) 2fr; align-items: end; gap: 2rem; }
 h2 { margin: 0 0 .3rem; font: 500 1.5rem Georgia, serif; }
-form { display: grid; grid-template-columns: 2fr 1fr auto; align-items: end; gap: .8rem; }
+form { display: grid; grid-template-columns: 2fr 1fr 1fr auto; align-items: end; gap: .8rem; }
 label { display: grid; gap: .4rem; color: #554e45; font-size: .78rem; font-weight: 750; }
 input, select { width: 100%; min-height: 2.75rem; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #29251f; background: #fffdf9; }
 input:focus, select:focus { outline: 2px solid #b96554; outline-offset: 1px; }
@@ -26,6 +26,7 @@ button:disabled { opacity: .5; cursor: default; }
 .receipt-actions span { color: #746d63; font-size: .8rem; }
 .receipt-actions button { color: #8e392b; font-size: .78rem; }
 .receipt-lines { margin-top: 1.25rem; border-top: 1px solid #e1d7c9; }
+.category-heading { margin: 1rem 0 0; color: #766e63; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
 .receipt-line { display: grid; grid-template-columns: 2rem minmax(8rem, 1fr) 5rem auto 6rem 2rem; align-items: center; gap: .75rem; padding: .8rem 0; border-bottom: 1px solid #e1d7c9; }
 .check { color: #9b8e7d; font-size: 1.15rem; }
 .product { display: grid; }
@@ -40,3 +41,9 @@ button:disabled { opacity: .5; cursor: default; }
 .total { margin-top: 1.25rem; padding-top: 1rem; border-top: 2px dashed #cbb9a2; display: flex; justify-content: space-between; font-family: ui-monospace, monospace; font-size: 1.05rem; letter-spacing: .08em; }
 @media (max-width: 60rem) { .add-panel { grid-template-columns: 1fr; gap: 1rem; } }
 @media (max-width: 42rem) { header { align-items: start; flex-direction: column; } .summary { text-align: left; } form { grid-template-columns: 1fr; } .receipt-line { grid-template-columns: 2rem 1fr 4.5rem auto; } .unit { display: none; } .line-price { grid-column: 2 / 4; text-align: left; } }
+@media print {
+  .shopping-page { width: auto; padding: 0; }
+  .back, header, .error, .add-panel, .receipt-actions button, .remove { display: none; }
+  .receipt { margin: 0; border: 0; box-shadow: none; }
+  .receipt-line input { border: 0; background: transparent; }
+}

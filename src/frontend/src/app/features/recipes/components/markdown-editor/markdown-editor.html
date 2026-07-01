@@ -1,7 +1,7 @@
 <div class="markdown-editor">
   <div class="tabs" role="tablist">
-    <button type="button" role="tab" [class.active]="activeTab() === 'write'" [attr.aria-selected]="activeTab() === 'write'" (click)="setTab('write')">Write</button>
-    <button type="button" role="tab" [class.active]="activeTab() === 'preview'" [attr.aria-selected]="activeTab() === 'preview'" (click)="setTab('preview')">Preview</button>
+    <button type="button" role="tab" [class.active]="activeTab() === 'write'" [attr.aria-selected]="activeTab() === 'write'" (click)="setTab('write')">{{ 'recipes.write' | t }}</button>
+    <button type="button" role="tab" [class.active]="activeTab() === 'preview'" [attr.aria-selected]="activeTab() === 'preview'" (click)="setTab('preview')">{{ 'recipes.preview' | t }}</button>
   </div>
   @if (activeTab() === 'write') {
     <textarea
@@ -10,7 +10,7 @@
       [disabled]="isDisabled()"
       [attr.aria-labelledby]="ariaLabelledby()"
       (input)="onInput($event)"
-      placeholder="Write your recipe description in Markdown…"
+      [placeholder]="'recipes.markdownPlaceholder' | t"
       rows="10"
     ></textarea>
   }
@@ -19,7 +19,7 @@
       @if (previewHtml()) {
         <div [innerHTML]="previewHtml()"></div>
       } @else {
-        <p class="empty-preview">Nothing to preview yet.</p>
+        <p class="empty-preview">{{ 'recipes.previewEmpty' | t }}</p>
       }
     </div>
   }

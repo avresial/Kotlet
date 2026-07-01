@@ -4,26 +4,26 @@
   }
 
   <div class="form-field">
-    <label for="recipe-title">Title <span aria-hidden="true">*</span></label>
+    <label for="recipe-title">{{ 'recipes.title' | t }} <span aria-hidden="true">*</span></label>
     <input
       id="recipe-title"
       type="text"
       formControlName="title"
-      placeholder="e.g. Tomato Soup"
+      [placeholder]="'recipes.titlePlaceholder' | t"
       [class.invalid]="form.get('title')?.invalid && form.get('title')?.touched"
       maxlength="160"
     />
     @if (form.get('title')?.invalid && form.get('title')?.touched) {
       <span class="field-error">
-        @if (form.get('title')?.errors?.['required']) { Title is required. }
-        @else if (form.get('title')?.errors?.['pattern']) { Title must not be blank. }
-        @else if (form.get('title')?.errors?.['maxlength']) { Title cannot exceed 160 characters. }
+        @if (form.get('title')?.errors?.['required']) { {{ 'recipes.titleRequired' | t }} }
+        @else if (form.get('title')?.errors?.['pattern']) { {{ 'recipes.titleBlank' | t }} }
+        @else if (form.get('title')?.errors?.['maxlength']) { {{ 'recipes.titleLength' | t }} }
       </span>
     }
   </div>
 
   <div class="form-field">
-    <label for="recipe-servings">Servings <span aria-hidden="true">*</span></label>
+    <label for="recipe-servings">{{ 'recipes.servings' | t }} <span aria-hidden="true">*</span></label>
     <input
       id="recipe-servings"
       type="number"
@@ -33,10 +33,18 @@
       step="1"
       [class.invalid]="form.get('servings')?.invalid && form.get('servings')?.touched"
     />
-    <span class="field-hint">Number of adult portions these ingredient amounts make.</span>
+    <span class="field-hint">{{ 'recipes.servingsHelp' | t }}</span>
     @if (form.get('servings')?.invalid && form.get('servings')?.touched) {
-      <span class="field-error">Servings must be a whole number between 1 and 99.</span>
+      <span class="field-error">{{ 'recipes.servingsError' | t }}</span>
     }
+  </div>
+
+  <div class="form-field">
+    <label for="recipe-meal-type">{{ 'recipes.mealType' | t }}</label>
+    <select id="recipe-meal-type" formControlName="mealType">
+      <option [ngValue]="null">{{ 'recipes.mealTypeNone' | t }}</option>
+      @for (mealType of mealTypes; track mealType.value) { <option [value]="mealType.value">{{ mealType.label | t }}</option> }
+    </select>
   </div>
 
   @if (showImagePicker()) {
@@ -48,18 +56,18 @@
         (change)="chooseImage($event)"
       />
       <button type="button" class="text-button" (click)="imageInput.click()">
-        {{ selectedImage ? 'Change image' : 'Add image' }}
+        {{ (selectedImage ? 'recipes.changeImage' : 'recipes.addImage') | t }}
       </button>
       @if (selectedImage) {
         <span class="image-name">{{ selectedImage.name }}</span>
-        <button type="button" class="text-button remove-image" (click)="removeImage(imageInput)">Remove</button>
+        <button type="button" class="text-button remove-image" (click)="removeImage(imageInput)">{{ 'common.remove' | t }}</button>
       }
       @if (imageError) { <span class="field-error" role="alert">{{ imageError }}</span> }
     </div>
   }
 
   <div class="form-field">
-    <label id="recipe-description-label">Description (Markdown)</label>
+    <label id="recipe-description-label">{{ 'recipes.description' | t }}</label>
     <app-markdown-editor
       formControlName="descriptionMarkdown"
       [ariaLabelledby]="'recipe-description-label'"
@@ -67,7 +75,7 @@
   </div>
 
   <div class="form-field">
-    <label id="recipe-ingredients-label">Ingredients</label>
+    <label id="recipe-ingredients-label">{{ 'nav.ingredients' | t }}</label>
     <app-ingredient-list-editor
       formControlName="ingredients"
       [ariaLabelledby]="'recipe-ingredients-label'"
@@ -75,9 +83,9 @@
   </div>
 
   <div class="form-actions">
-    <button type="button" class="secondary" (click)="cancel()">Cancel</button>
+    <button type="button" class="secondary" (click)="cancel()">{{ 'common.cancel' | t }}</button>
     <button type="submit" class="primary" [disabled]="isSaving() || form.invalid">
-      {{ isSaving() ? 'Saving…' : submitLabel() }}
+      {{ isSaving() ? ('common.saving' | t) : submitLabel() || ('recipes.save' | t) }}
     </button>
   </div>
 </form>

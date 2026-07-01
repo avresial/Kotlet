@@ -20,6 +20,7 @@ const ingredient: Ingredient = {
   caloriesPer100BaseUnits: 0,
   pricePer100BaseUnits: 5,
   svgIcon: null,
+  category: 0,
 };
 
 const recipe: RecipeDetail = {
@@ -28,6 +29,7 @@ const recipe: RecipeDetail = {
   slug: 'pasta-dinner',
   descriptionMarkdown: null,
   servings: 4,
+  mealType: null,
   ingredients: [{
     id: 'line',
     sortOrder: 0,

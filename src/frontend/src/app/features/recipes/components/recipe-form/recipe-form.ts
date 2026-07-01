@@ -7,24 +7,27 @@ import {
   output,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CreateRecipeRequest, RecipeDetail, RecipeIngredientRequest } from '../../models/recipe.models';
+import { CreateRecipeRequest, RecipeDetail, RecipeIngredientRequest, recipeMealTypes } from '../../models/recipe.models';
 import { IngredientListEditor } from '../ingredient-list-editor/ingredient-list-editor';
 import { MarkdownEditor } from '../markdown-editor/markdown-editor';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-recipe-form',
-  imports: [ReactiveFormsModule, IngredientListEditor, MarkdownEditor],
+  imports: [ReactiveFormsModule, IngredientListEditor, MarkdownEditor, TranslatePipe],
   templateUrl: './recipe-form.html',
   styleUrl: './recipe-form.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecipeForm implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly translations = inject(TranslationService);
 
   readonly initialValue = input<RecipeDetail | null>(null);
   readonly isSaving = input(false);
   readonly error = input<string | null>(null);
-  readonly submitLabel = input('Save recipe');
+  readonly submitLabel = input('');
   readonly showImagePicker = input(false);
   readonly submitted = output<CreateRecipeRequest>();
   readonly imageSelected = output<File | null>();
@@ -32,10 +35,12 @@ export class RecipeForm implements OnInit {
 
   selectedImage: File | null = null;
   imageError: string | null = null;
+  readonly mealTypes = recipeMealTypes;
 
   readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(160)]],
     servings: [1, [Validators.required, Validators.min(1), Validators.max(99)]],
+    mealType: [null as string | null],
     descriptionMarkdown: [''],
     ingredients: [[] as RecipeIngredientRequest[]],
   });
@@ -46,6 +51,7 @@ export class RecipeForm implements OnInit {
       this.form.setValue({
         title: initial.title,
         servings: initial.servings,
+        mealType: initial.mealType,
         descriptionMarkdown: initial.descriptionMarkdown ?? '',
         ingredients: initial.ingredients.map((i) => ({
           ingredientId: i.ingredientId,
@@ -67,6 +73,7 @@ export class RecipeForm implements OnInit {
     this.submitted.emit({
       title: value.title.trim(),
       servings: value.servings,
+      mealType: value.mealType as CreateRecipeRequest['mealType'],
       descriptionMarkdown: value.descriptionMarkdown || null,
       ingredients: value.ingredients,
     });
@@ -83,12 +90,12 @@ export class RecipeForm implements OnInit {
 
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      this.imageError = 'Choose a JPEG, PNG, or WebP image.';
+      this.imageError = this.translations.translate('recipes.imageTypeError');
       input.value = '';
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      this.imageError = 'Image cannot exceed 5 MB.';
+      this.imageError = this.translations.translate('recipes.imageSizeError');
       input.value = '';
       return;
     }

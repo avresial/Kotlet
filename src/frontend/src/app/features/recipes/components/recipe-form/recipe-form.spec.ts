@@ -1,12 +1,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RecipeForm } from './recipe-form';
 import { IngredientListEditor } from '../ingredient-list-editor/ingredient-list-editor';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 
 describe('RecipeForm image picker', () => {
   let fixture: ComponentFixture<RecipeForm>;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [RecipeForm] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [RecipeForm],
+      providers: [{
+        provide: TranslationService,
+        useValue: { translate: (key: string) => key === 'recipes.addImage' ? 'Add image' : key },
+      }],
+    }).compileComponents();
     fixture = TestBed.createComponent(RecipeForm);
     fixture.componentRef.setInput('showImagePicker', true);
     fixture.detectChanges();
@@ -45,6 +52,7 @@ describe('RecipeForm image picker', () => {
       caloriesPer100BaseUnits: 0,
       pricePer100BaseUnits: 0,
       svgIcon: null,
+      category: 0,
     }]);
     editor.isLoadingIngredients.set(false);
 

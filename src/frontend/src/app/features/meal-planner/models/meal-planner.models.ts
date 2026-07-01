@@ -1,4 +1,4 @@
-export type MealSlot = 'breakfast' | 'dinner' | 'supper';
+export type MealSlot = 'breakfast' | 'second-breakfast' | 'dinner' | 'snack' | 'supper';
 export type MealPlanItemType = 'recipe' | 'ingredient';
 
 export interface MealParticipant {

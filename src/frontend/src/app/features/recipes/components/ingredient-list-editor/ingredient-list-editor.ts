@@ -25,10 +25,12 @@ import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { DisplayUnit, toBaseQuantity, unitsForIngredient } from '../../../ingredients/display-units';
 
 @Component({
   selector: 'app-ingredient-list-editor',
-  imports: [ReactiveFormsModule, IngredientPicker],
+  imports: [ReactiveFormsModule, IngredientPicker, TranslatePipe],
   templateUrl: './ingredient-list-editor.html',
   styleUrl: './ingredient-list-editor.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -142,13 +144,13 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
   unitsFor(row: FormGroup): { value: string; label: string }[] {
     const ingredient = this.ingredients().find((item) => item.id === row.get('ingredientId')?.value);
     if (!ingredient) return [];
+    const labels: Record<DisplayUnit, string> = { g: 'units.grams', kg: 'units.kilograms', ml: 'units.millilitres', l: 'units.litres', piece: 'units.piece' };
     const units = [
-      { value: ingredient.measurementUnit, label: ingredient.measurementUnit },
-      { value: 'tsp', label: 'tsp' },
-      { value: 'tbsp', label: 'tbsp' },
-      { value: 'cup', label: 'cup' },
+      ...unitsForIngredient(ingredient).map(value => ({ value, label: labels[value] })),
+      { value: 'tsp', label: 'units.teaspoon' },
+      { value: 'tbsp', label: 'units.tablespoon' },
+      { value: 'cup', label: 'units.cup' },
     ];
-    if (ingredient.isCountable) units.push({ value: 'piece', label: 'piece' });
     return units;
   }
 
@@ -182,7 +184,12 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
   }
 
   private emitChange(): void {
-    this.onChange(this.formArray.getRawValue().filter(row => this.rowHasData(row)) as RecipeIngredientRequest[]);
+    this.onChange(this.formArray.getRawValue().filter(row => this.rowHasData(row)).map(row => {
+      const ingredient = this.ingredients().find(item => item.id === row['ingredientId']);
+      return ingredient && ['kg', 'l'].includes(row['unit'])
+        ? { ...row, quantity: toBaseQuantity(row['quantity'], row['unit'] as DisplayUnit, ingredient), unit: ingredient.measurementUnit }
+        : row;
+    }) as RecipeIngredientRequest[]);
   }
 
   private ensureTrailingEmptyRow(): void {

@@ -39,6 +39,17 @@ public sealed class MeasurementMappingServiceTests
         Assert.Equal("g", result.Unit);
     }
 
+    [Theory]
+    [InlineData(1500, "g", 1.5, "kg")]
+    [InlineData(2000, "ml", 2, "l")]
+    public void ToDisplay_UsesLargeMetricUnits(decimal quantity, string unit, decimal expectedQuantity, string expectedUnit)
+    {
+        var result = _service.ToDisplay(quantity, unit, Ingredient());
+
+        Assert.Equal(expectedQuantity, result.Quantity);
+        Assert.Equal(expectedUnit, result.Unit);
+    }
+
     [Fact]
     public void PieceConversion_RequiresWholePieceCountOnRead()
     {

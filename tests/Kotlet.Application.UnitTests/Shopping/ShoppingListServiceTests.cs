@@ -1,5 +1,6 @@
 using Kotlet.Application.Shopping;
 using Kotlet.Application.Translations;
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.Shopping;
 using Xunit;
@@ -11,7 +12,7 @@ public sealed class ShoppingListServiceTests
     private const string English = "en";
     private const string Polish = "pl";
     private static readonly Guid HouseId = Guid.NewGuid();
-    private static readonly Ingredient Apples = Ingredient("Apples", pricePer100: 2.50m);
+    private static readonly Ingredient Apples = Ingredient("Apples", pricePer100: 2.50m, FoodCategory.Fruit);
 
     // ---- GetAll ----
 
@@ -27,6 +28,7 @@ public sealed class ShoppingListServiceTests
         Assert.Equal(2.50m, item.PricePer100BaseUnits);
         // 250 / 100 * 2.50 = 6.25
         Assert.Equal(6.25m, item.TotalPrice);
+        Assert.Equal(FoodCategory.Fruit, item.Category);
     }
 
     [Fact]
@@ -124,7 +126,7 @@ public sealed class ShoppingListServiceTests
         var result = await service.UpdateAsync(item.Id, HouseId, new UpdateShoppingListItemCommand(8m, true), English, CancellationToken.None);
 
         Assert.Equal(ShoppingListOperationStatus.Success, result.Status);
-        Assert.Equal(8m, item.Quantity);
+        Assert.Equal(8m, item.Quantity.Amount);
         Assert.True(item.IsPurchased);
         Assert.True(result.Item!.IsPurchased);
     }
@@ -139,7 +141,7 @@ public sealed class ShoppingListServiceTests
         var result = await service.UpdateAsync(item.Id, HouseId, new UpdateShoppingListItemCommand(0m, false), English, CancellationToken.None);
 
         Assert.Equal(ShoppingListOperationStatus.ValidationFailed, result.Status);
-        Assert.Equal(5m, item.Quantity);
+        Assert.Equal(5m, item.Quantity.Amount);
     }
 
     [Fact]
@@ -197,9 +199,9 @@ public sealed class ShoppingListServiceTests
         Assert.DoesNotContain(repo.Items, i => i.IsPurchased);
     }
 
-    private static Ingredient Ingredient(string name, decimal pricePer100) => new()
+    private static Ingredient Ingredient(string name, decimal pricePer100, FoodCategory category = FoodCategory.Unknown) => new()
     {
-        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g", PricePer100BaseUnits = pricePer100
+        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g", PricePer100BaseUnits = Price.FromAmount(pricePer100), Category = category
     };
 
     private sealed class FakeRepository(params Ingredient[] ingredients) : IShoppingListRepository
@@ -212,7 +214,7 @@ public sealed class ShoppingListServiceTests
             var item = new ShoppingListItem
             {
                 Id = Guid.NewGuid(), HouseId = houseId, IngredientId = ingredient.Id,
-                Quantity = quantity, Ingredient = ingredient
+                Quantity = Quantity.FromAmount(quantity), Ingredient = ingredient
             };
             Items.Add(item);
             return item;

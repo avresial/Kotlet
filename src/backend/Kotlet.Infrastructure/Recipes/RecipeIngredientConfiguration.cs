@@ -1,3 +1,4 @@
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Recipes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -14,7 +15,11 @@ internal sealed class RecipeIngredientConfiguration : IEntityTypeConfiguration<R
         builder.Property(i => i.RecipeId).HasColumnName("recipe_id").IsRequired();
         builder.Property(i => i.IngredientId).HasColumnName("ingredient_id").IsRequired();
         builder.Property(i => i.SortOrder).HasColumnName("sort_order").IsRequired();
-        builder.Property(i => i.NormalizedQuantity).HasColumnName("normalized_quantity").HasPrecision(12, 3).IsRequired();
+        builder.Property(i => i.NormalizedQuantity)
+            .HasColumnName("normalized_quantity")
+            .HasConversion(quantity => quantity.Amount, amount => Quantity.FromAmount(amount))
+            .HasPrecision(12, 3)
+            .IsRequired();
         builder.Property(i => i.NormalizedUnit).HasColumnName("normalized_unit").HasMaxLength(2).IsRequired();
         builder.Property(i => i.Note).HasColumnName("note").HasMaxLength(300);
 

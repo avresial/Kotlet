@@ -1,3 +1,6 @@
+using Kotlet.Domain.Common;
+using Kotlet.Domain.MealPlanner;
+
 namespace Kotlet.Domain.Recipes;
 
 public sealed class Recipe
@@ -15,7 +18,8 @@ public sealed class Recipe
     /// servings, so this value is the basis for scaling ingredient amounts when
     /// calculating meal-prep prices and the units to buy for a shopping list.
     /// </summary>
-    public int Servings { get; set; } = 1;
+    public ServingCount Servings { get; set; } = ServingCount.One;
+    public MealSlot? MealType { get; set; }
 
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }

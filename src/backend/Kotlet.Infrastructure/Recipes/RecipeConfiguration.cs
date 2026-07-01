@@ -1,3 +1,4 @@
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Houses;
 using Kotlet.Domain.Recipes;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,12 @@ internal sealed class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         builder.Property(r => r.Title).HasColumnName("title").HasMaxLength(160).IsRequired();
         builder.Property(r => r.Slug).HasColumnName("slug").HasMaxLength(200).IsRequired();
         builder.Property(r => r.DescriptionMarkdown).HasColumnName("description_markdown").HasColumnType("text");
-        builder.Property(r => r.Servings).HasColumnName("servings").HasDefaultValue(1).IsRequired();
+        builder.Property(r => r.Servings)
+            .HasColumnName("servings")
+            .HasConversion(servings => servings.Value, value => ServingCount.FromInt32(value))
+            .HasDefaultValue(ServingCount.One)
+            .IsRequired();
+        builder.Property(r => r.MealType).HasColumnName("meal_type");
         builder.Property(r => r.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
         builder.Property(r => r.UpdatedAtUtc).HasColumnName("updated_at_utc").IsRequired();
 

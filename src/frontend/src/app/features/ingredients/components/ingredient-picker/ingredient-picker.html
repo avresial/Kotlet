@@ -3,11 +3,11 @@
     type="text"
     role="combobox"
     autocomplete="off"
-    [attr.aria-label]="ariaLabel()"
+    [attr.aria-label]="ariaLabel() || ('common.ingredient' | t)"
     [attr.aria-expanded]="isOpen()"
     [attr.aria-controls]="isOpen() ? 'ingredient-suggestions' : null"
     [attr.aria-activedescendant]="isOpen() && suggestions().length ? 'ingredient-option-' + activeIndex() : null"
-    [placeholder]="placeholder()"
+    [placeholder]="placeholder() || ('recipes.ingredientPlaceholder' | t)"
     [disabled]="formDisabled()"
     [value]="query()"
     (input)="onInput($any($event.target).value)"
@@ -28,7 +28,7 @@
           <small>{{ ingredient.measurementUnit }}</small>
         </li>
       } @empty {
-        <li class="empty">No matching ingredients</li>
+        <li class="empty">{{ 'ingredients.noMatches' | t }}</li>
       }
     </ul>
   }

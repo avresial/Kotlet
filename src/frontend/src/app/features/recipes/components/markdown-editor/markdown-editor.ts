@@ -11,10 +11,11 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { inject } from '@angular/core';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-markdown-editor',
-  imports: [FormsModule],
+  imports: [FormsModule, TranslatePipe],
   templateUrl: './markdown-editor.html',
   styleUrl: './markdown-editor.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
