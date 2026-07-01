@@ -24,6 +24,16 @@ export class PantryPage implements OnInit {
   readonly items = signal<PantryItem[]>([]);
   readonly ingredients = signal<Ingredient[]>([]);
   readonly availableIngredients = computed(() => this.ingredients().filter(i => !this.items().some(item => item.ingredientId === i.id)));
+  readonly search = signal('');
+  readonly locationFilter = signal('0');
+  readonly filteredItems = computed(() => {
+    const term = this.search().trim().toLowerCase();
+    const location = this.locationFilter();
+    return this.items().filter(item =>
+      (term === '' || item.ingredientName.toLowerCase().includes(term)) &&
+      (location === '0' || String(item.storageLocation) === location));
+  });
+  readonly hasFilters = computed(() => this.search().trim() !== '' || this.locationFilter() !== '0');
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
   readonly updatingId = signal<string | null>(null);
@@ -69,6 +79,8 @@ export class PantryPage implements OnInit {
       error: error => this.error.set(getApiError(error, this.translations.translate('pantry.removeError'))),
     });
   }
+
+  clearFilters(): void { this.search.set(''); this.locationFilter.set('0'); }
 
   selectedIngredient(): Ingredient | undefined {
     return this.ingredients().find(ingredient => ingredient.id === this.form.controls.ingredientId.value);

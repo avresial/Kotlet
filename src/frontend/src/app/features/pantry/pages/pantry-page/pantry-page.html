@@ -16,10 +16,21 @@
   </section>
 
   <section class="inventory" aria-labelledby="inventory-title">
-    <div class="section-heading"><div><p class="eyebrow">{{ 'pantry.currentStock' | t }}</p><h2 id="inventory-title">{{ 'pantry.products' | t }}</h2></div><span>{{ items().length }} {{ 'pantry.stored' | t }}</span></div>
+    <div class="section-heading"><div><p class="eyebrow">{{ 'pantry.currentStock' | t }}</p><h2 id="inventory-title">{{ 'pantry.products' | t }}</h2></div><span>{{ filteredItems().length }} {{ 'pantry.stored' | t }}</span></div>
+    @if (!isLoading() && items().length > 0) {
+      <div class="filters" role="search">
+        <input type="search" [value]="search()" (input)="search.set($any($event.target).value)" [placeholder]="'pantry.searchPlaceholder' | t" [attr.aria-label]="'pantry.searchPlaceholder' | t" />
+        <select [value]="locationFilter()" (change)="locationFilter.set($any($event.target).value)" [attr.aria-label]="'pantry.location' | t">
+          <option value="0">{{ 'pantry.allLocations' | t }}</option>
+          @for (location of locations; track location.value) { <option value="{{ location.value }}">{{ location.label | t }}</option> }
+        </select>
+        @if (hasFilters()) { <button type="button" class="clear-filters" (click)="clearFilters()">{{ 'common.clear' | t }}</button> }
+      </div>
+    }
     @if (isLoading()) { <p class="empty">{{ 'pantry.loading' | t }}</p> }
     @else if (items().length === 0) { <p class="empty">{{ 'pantry.empty' | t }}</p> }
-    @else { <div class="item-grid">@for (item of items(); track item.id) {
+    @else if (filteredItems().length === 0) { <p class="empty">{{ 'pantry.noResults' | t }}</p> }
+    @else { <div class="item-grid">@for (item of filteredItems(); track item.id) {
       <article class="stock-card" [class.is-empty]="item.quantity === 0">
         <div class="stock-main"><span class="product-icon" aria-hidden="true">◉</span><div><h3>{{ item.ingredientName }}</h3><p>{{ display(item).quantity }} {{ display(item).unit }}</p>@if (item.storageLocation) { <small>{{ locationLabel(item.storageLocation) }}</small> }@if (item.expirationDate) { <small>{{ 'pantry.expires' | t }} {{ item.expirationDate }}</small> }</div></div>
         <div class="quantity-control" [attr.aria-label]="('pantry.updateQuantity' | t) + ' ' + item.ingredientName">
