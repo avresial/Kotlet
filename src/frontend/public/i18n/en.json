@@ -1,4 +1,5 @@
 {
+  "units.kilograms": "Kilograms (kg)", "units.litres": "Litres (l)", "ingredients.unit": "Unit", "ingredients.caloriesPer": "Calories per", "ingredients.pricePer": "Price per",
   "pantry.expirationDate": "Expiration date (optional)", "pantry.expires": "Expires",
   "ingredients.allCategories": "All categories", "ingredients.noFilterMatches": "No ingredients match the selected filters.",
   "recipes.nutritionAndCost": "Recipe nutrition and cost", "recipes.totalCost": "Total cost", "recipes.totalCalories": "Total calories", "recipes.serving": "serving",

@@ -9,7 +9,7 @@ header p:last-child, .add-panel p { margin: 0; color: #746d63; }
 .add-panel, .inventory { padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid #dcd2c4; border-radius: 1rem; background: #fffaf2; box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%); }
 .add-panel { display: grid; grid-template-columns: minmax(12rem, 1fr) 2fr; align-items: end; gap: 2rem; }
 h2 { margin: 0 0 .3rem; font: 500 1.5rem Georgia, serif; }
-form { display: grid; grid-template-columns: 2fr 1fr 1fr auto; align-items: end; gap: .8rem; }
+form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; align-items: end; gap: .8rem; }
 label { display: grid; gap: .4rem; color: #554e45; font-size: .78rem; font-weight: 750; }
 .selected-unit { color: #746d63; font-weight: 500; }
 input, select { width: 100%; min-height: 2.75rem; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #29251f; background: #fff; }

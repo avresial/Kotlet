@@ -41,6 +41,9 @@ public sealed class MeasurementMappingService
                 : new(normalizedQuantity, normalizedUnit);
         }
 
+        if (normalizedQuantity >= 1000 && normalizedUnit is "g" or "ml")
+            return new(normalizedQuantity / 1000, normalizedUnit == "g" ? "kg" : "l");
+
         foreach (var mapping in KitchenUnits)
         {
             if (DividesToWholeNumber(normalizedQuantity, mapping.Factor, out var quantity))

@@ -10,6 +10,7 @@ import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
+import { DisplayUnit, displayMeasurement, toBaseQuantity, unitsForIngredient } from '../../../ingredients/display-units';
 
 @Component({
   selector: 'app-shopping-list-page',
@@ -35,6 +36,7 @@ export class ShoppingListPage implements OnInit {
   readonly form = this.formBuilder.nonNullable.group({
     ingredientId: ['', Validators.required],
     quantity: [1, [Validators.required, Validators.min(0.001)]],
+    unit: ['g', Validators.required],
   });
 
   ngOnInit(): void {
@@ -48,9 +50,10 @@ export class ShoppingListPage implements OnInit {
   add(): void {
     if (this.form.invalid || this.isSaving()) { this.form.markAllAsTouched(); return; }
     this.isSaving.set(true); this.error.set(null);
-    const { ingredientId, quantity } = this.form.getRawValue();
-    this.shoppingListService.create(ingredientId, quantity).pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: item => { this.items.update(items => [...items, item]); this.form.reset({ ingredientId: '', quantity: 1 }); },
+    const { ingredientId, quantity, unit } = this.form.getRawValue();
+    const ingredient = this.selectedIngredient()!;
+    this.shoppingListService.create(ingredientId, toBaseQuantity(quantity, unit as DisplayUnit, ingredient)).pipe(finalize(() => this.isSaving.set(false))).subscribe({
+      next: item => { this.items.update(items => [...items, item]); this.form.reset({ ingredientId: '', quantity: 1, unit: 'g' }); },
       error: error => this.error.set(getApiError(error, this.translations.translate('shopping.addError'))),
     });
   }
@@ -80,6 +83,18 @@ export class ShoppingListPage implements OnInit {
       next: () => this.items.update(items => items.filter(item => !item.isPurchased)),
       error: error => this.error.set(getApiError(error, this.translations.translate('shopping.clearError'))),
     });
+  }
+
+  selectedIngredient(): Ingredient | undefined { return this.ingredients().find(value => value.id === this.form.controls.ingredientId.value); }
+  selectIngredient(ingredient: Ingredient): void { this.form.controls.unit.setValue(ingredient.measurementUnit); }
+  selectedUnits(): DisplayUnit[] { return this.selectedIngredient() ? unitsForIngredient(this.selectedIngredient()!) : ['g']; }
+  display(item: ShoppingListItem) {
+    const ingredient = this.ingredients().find(value => value.id === item.ingredientId);
+    return ingredient ? displayMeasurement(item.quantity, ingredient) : { quantity: item.quantity, unit: item.measurementUnit as DisplayUnit };
+  }
+  updateDisplayQuantity(item: ShoppingListItem, quantity: number): void {
+    const ingredient = this.ingredients().find(value => value.id === item.ingredientId);
+    if (ingredient) this.update(item, { quantity: toBaseQuantity(quantity, this.display(item).unit, ingredient) });
   }
 
   print(): void { window.print(); }

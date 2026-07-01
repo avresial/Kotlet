@@ -7,6 +7,7 @@ import { TranslationService } from '../../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { foodCategories, Ingredient, IngredientRequest, measurementUnits } from '../../ingredient.models';
 import { IngredientService } from '../../ingredient.service';
+import { DisplayUnit, displayUnitOptions, fromBasePer100, toBasePer100 } from '../../display-units';
 
 const DEFAULT_LANGUAGE = 'en';
 
@@ -38,6 +39,7 @@ export class IngredientsPage implements OnInit {
   readonly hasFilters = computed(() => !!this.search().trim() || this.selectedCategory() !== null);
   readonly filteredIngredients = computed(() => filterIngredients(this.ingredients(), this.search(), this.selectedCategory()));
   readonly units = measurementUnits;
+  readonly displayUnits = displayUnitOptions;
   readonly categories = foodCategories;
   readonly editingId = signal<string | null>(null);
   readonly isLoading = signal(true);
@@ -49,8 +51,8 @@ export class IngredientsPage implements OnInit {
     name: ['', [Validators.required, Validators.maxLength(150)]],
     translation: ['', [Validators.maxLength(150)]],
     measurementUnit: ['g', Validators.required],
+    pieceBaseUnit: ['g', Validators.required],
     category: [0, Validators.required],
-    isCountable: [false],
     measurementUnitsPerPiece: [null as number | null, [Validators.min(0.001), Validators.max(999999999.999)]],
     caloriesPer100BaseUnits: [0, [Validators.required, Validators.min(0), Validators.max(999999.99)]],
     pricePer100BaseUnits: [0, [Validators.required, Validators.min(0), Validators.max(99999999.99)]],
@@ -74,19 +76,20 @@ export class IngredientsPage implements OnInit {
   edit(ingredient: Ingredient): void {
     this.editingId.set(ingredient.id);
     this.error.set(null);
+    const displayUnit: DisplayUnit = ingredient.isCountable ? 'piece' : ingredient.measurementUnit as 'g' | 'ml';
     this.form.setValue({
       name: ingredient.defaultName, translation: ingredient.translation ?? '',
-      measurementUnit: ingredient.measurementUnit, category: ingredient.category,
-      isCountable: ingredient.isCountable, measurementUnitsPerPiece: ingredient.measurementUnitsPerPiece,
-      caloriesPer100BaseUnits: ingredient.caloriesPer100BaseUnits,
-      pricePer100BaseUnits: ingredient.pricePer100BaseUnits,
+      measurementUnit: displayUnit, pieceBaseUnit: ingredient.measurementUnit, category: ingredient.category,
+      measurementUnitsPerPiece: ingredient.measurementUnitsPerPiece,
+      caloriesPer100BaseUnits: fromBasePer100(ingredient.caloriesPer100BaseUnits, displayUnit, ingredient.measurementUnitsPerPiece),
+      pricePer100BaseUnits: fromBasePer100(ingredient.pricePer100BaseUnits, displayUnit, ingredient.measurementUnitsPerPiece),
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   cancelEdit(): void {
     this.editingId.set(null);
-    this.form.reset({ name: '', translation: '', measurementUnit: 'g', category: 0, isCountable: false, measurementUnitsPerPiece: null,
+    this.form.reset({ name: '', translation: '', measurementUnit: 'g', pieceBaseUnit: 'g', category: 0, measurementUnitsPerPiece: null,
       caloriesPer100BaseUnits: 0, pricePer100BaseUnits: 0 });
   }
 
@@ -95,19 +98,23 @@ export class IngredientsPage implements OnInit {
     this.isSaving.set(true);
     this.error.set(null);
     const value = this.form.getRawValue();
-    if (value.isCountable && !value.measurementUnitsPerPiece) {
+    const displayUnit = value.measurementUnit as DisplayUnit;
+    const isCountable = displayUnit === 'piece';
+    if (isCountable && !value.measurementUnitsPerPiece) {
       this.form.controls.measurementUnitsPerPiece.setErrors({ required: true });
       this.form.controls.measurementUnitsPerPiece.markAsTouched();
       return;
     }
+    const baseUnit = displayUnit === 'kg' ? 'g' : displayUnit === 'l' ? 'ml'
+      : displayUnit === 'piece' ? value.pieceBaseUnit : displayUnit;
     const request: IngredientRequest = {
       name: value.name,
-      measurementUnit: value.measurementUnit,
+      measurementUnit: baseUnit,
       category: value.category,
-      isCountable: value.isCountable,
-      measurementUnitsPerPiece: value.isCountable ? value.measurementUnitsPerPiece : null,
-      caloriesPer100BaseUnits: value.caloriesPer100BaseUnits,
-      pricePer100BaseUnits: value.pricePer100BaseUnits,
+      isCountable,
+      measurementUnitsPerPiece: isCountable ? value.measurementUnitsPerPiece : null,
+      caloriesPer100BaseUnits: toBasePer100(value.caloriesPer100BaseUnits, displayUnit, value.measurementUnitsPerPiece),
+      pricePer100BaseUnits: toBasePer100(value.pricePer100BaseUnits, displayUnit, value.measurementUnitsPerPiece),
       ...(this.showTranslation() ? { translation: value.translation.trim() } : {}),
     };
     const id = this.editingId();
@@ -137,5 +144,9 @@ export class IngredientsPage implements OnInit {
   }
 
   unitLabel(value: string): string { return this.translation.translate(this.units.find((unit) => unit.value === value)?.label ?? value); }
+  nutritionBasis(): string {
+    const unit = this.form.controls.measurementUnit.value;
+    return unit === 'g' || unit === 'ml' ? `100 ${unit}` : `1 ${this.translation.translate(this.displayUnits.find(option => option.value === unit)?.label ?? unit)}`;
+  }
   private readonly sortByName = (left: Ingredient, right: Ingredient) => left.name.localeCompare(right.name);
 }
