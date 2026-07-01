@@ -1,5 +1,6 @@
 using Kotlet.Application.Admin;
 using Kotlet.Application.Ai;
+using Kotlet.Application.FoodSettings;
 using Kotlet.Application.Auth;
 using Kotlet.Application.Houses;
 using Kotlet.Application.Ingredients;
@@ -19,6 +20,7 @@ public static class DependencyInjection
         return services
             .AddAdminApplication()
             .AddAiApplication()
+            .AddScoped<UserFoodSettingsService>()
             .AddAuthApplication()
             .AddHousesApplication()
             .AddIngredientsApplication()

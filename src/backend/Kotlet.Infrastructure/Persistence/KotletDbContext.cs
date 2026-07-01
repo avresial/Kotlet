@@ -7,6 +7,7 @@ using Kotlet.Domain.Houses;
 using Kotlet.Domain.Recipes;
 using Kotlet.Domain.Shopping;
 using Kotlet.Domain.Translations;
+using Kotlet.Domain.FoodSettings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -18,6 +19,8 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
 
     public DbSet<User> Users => Set<User>();
     public DbSet<UserAiProviderConfiguration> UserAiProviderConfigurations => Set<UserAiProviderConfiguration>();
+    public DbSet<UserFoodSettings> UserFoodSettings => Set<UserFoodSettings>();
+    public DbSet<UserExcludedIngredient> UserExcludedIngredients => Set<UserExcludedIngredient>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();

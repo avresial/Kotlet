@@ -1,5 +1,7 @@
 using Kotlet.Infrastructure.Admin;
 using Kotlet.Infrastructure.Ai;
+using Kotlet.Infrastructure.FoodSettings;
+using Kotlet.Application.FoodSettings;
 using Kotlet.Infrastructure.Auth;
 using Kotlet.Infrastructure.Houses;
 using Kotlet.Infrastructure.Ingredients;
@@ -20,6 +22,7 @@ public static class DependencyInjection
         this IServiceCollection services, IConfiguration configuration) => services
         .AddAdminInfrastructure()
         .AddAiInfrastructure()
+        .AddScoped<IUserFoodSettingsRepository, UserFoodSettingsRepository>()
         .AddAuthInfrastructure()
         .AddHousesInfrastructure()
         .AddIngredientsInfrastructure()
