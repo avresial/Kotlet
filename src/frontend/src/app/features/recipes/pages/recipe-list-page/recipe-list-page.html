@@ -44,6 +44,7 @@
           }
           <div class="card-body" (click)="navigateTo(recipe)" role="button" tabindex="0" (keyup.enter)="navigateTo(recipe)" [attr.aria-label]="'View ' + recipe.title">
             <h2>{{ recipe.title }}</h2>
+            @if (recipe.mealType) { <p class="meta">{{ ('meal.slot.' + recipe.mealType) | t }}</p> }
             <p class="meta">{{ recipe.ingredientCount }} ingredient{{ recipe.ingredientCount !== 1 ? 's' : '' }}</p>
             <p class="updated">Updated {{ recipe.updatedAtUtc | date:'mediumDate' }}</p>
           </div>
