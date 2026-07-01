@@ -43,15 +43,16 @@
   <section class="catalogue" aria-labelledby="catalogue-title">
     <div class="section-heading">
       <h2 id="catalogue-title">{{ 'ingredients.catalogue' | t }}</h2>
-      <span>{{ search() ? filteredIngredients().length + ' of ' : '' }}{{ ingredients().length }} total</span>
+      <span>{{ hasFilters() ? filteredIngredients().length + ' of ' : '' }}{{ ingredients().length }} total</span>
     </div>
-    <label class="catalogue-search">
-      <span class="sr-only">{{ 'ingredients.search' | t }}</span>
-      <input type="search" [placeholder]="'ingredients.searchPlaceholder' | t" [value]="search()" (input)="search.set($any($event.target).value)" />
-    </label>
+    <div class="catalogue-filters">
+      <label class="catalogue-search"><span class="sr-only">{{ 'ingredients.search' | t }}</span><input type="search" [placeholder]="'ingredients.searchPlaceholder' | t" [value]="search()" (input)="search.set($any($event.target).value)" /></label>
+      <label><span class="sr-only">{{ 'ingredients.category' | t }}</span><select [value]="selectedCategory() ?? ''" (change)="selectedCategory.set($any($event.target).value === '' ? null : +$any($event.target).value)"><option value="">{{ 'ingredients.allCategories' | t }}</option>@for (category of categories; track category.value) { <option [value]="category.value">{{ category.label | t }}</option> }</select></label>
+      <button type="button" [disabled]="!hasFilters()" (click)="search.set(''); selectedCategory.set(null)">{{ 'common.clear' | t }}</button>
+    </div>
     @if (isLoading()) { <p class="empty">{{ 'ingredients.loading' | t }}</p> }
     @else if (ingredients().length === 0) { <p class="empty">{{ 'ingredients.empty' | t }}</p> }
-    @else if (filteredIngredients().length === 0) { <p class="empty">No ingredients match “{{ search() }}”.</p> }
+    @else if (filteredIngredients().length === 0) { <p class="empty">{{ 'ingredients.noMatches' | t }}</p> }
     @else {
       <div class="table-wrap"><table>
         <thead><tr><th>{{ 'ingredients.name' | t }}</th><th>{{ 'ingredients.baseUnitShort' | t }}</th><th>{{ 'ingredients.pieceSize' | t }}</th><th>kcal / 100</th><th>{{ 'ingredients.pricePer100' | t }}</th><th><span class="sr-only">{{ 'common.actions' | t }}</span></th></tr></thead>
