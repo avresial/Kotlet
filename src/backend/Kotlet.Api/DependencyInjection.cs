@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddOpenApiFeature();
         services.AddAuthFeature(configuration, environment);
+        services.AddHousesFeature();
         services.AddMcpFeature(configuration);
         services.AddLocalizationFeature();
         services.AddPersistenceFeature();

@@ -1,9 +1,8 @@
 using System.Security.Claims;
-using Kotlet.Infrastructure.Persistence;
+using Kotlet.Application.Auth;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
@@ -21,7 +20,7 @@ public static class OAuthEndpoints
 
     private static async Task<IResult> Authorize(
         HttpContext context,
-        KotletDbContext db,
+        IAuthRepository repository,
         TokenService tokens,
         IOptions<OAuthOptions> options,
         CancellationToken cancellationToken)
@@ -35,11 +34,10 @@ public static class OAuthEndpoints
 
         var raw = tokens.ReadRefreshCookie(context.Request);
         var hash = raw is null ? null : tokens.Hash(raw);
-        var refreshToken = hash is null
+        var session = hash is null
             ? null
-            : await db.RefreshTokens.AsNoTracking().Include(token => token.User).ThenInclude(user => user.Roles)
-                .SingleOrDefaultAsync(token => token.TokenHash == hash && token.RevokedAtUtc == null && token.ExpiresAtUtc > DateTime.UtcNow, cancellationToken);
-        if (refreshToken is null)
+            : await repository.GetRefreshSessionAsync(hash, DateTime.UtcNow, cancellationToken);
+        if (session is null)
             return Results.Redirect(QueryHelpers.AddQueryString(
                 options.Value.LoginUrl,
                 "returnUrl",
@@ -49,13 +47,13 @@ public static class OAuthEndpoints
             TokenValidationParameters.DefaultAuthenticationType,
             OpenIddictConstants.Claims.Name,
             OpenIddictConstants.Claims.Role);
-        identity.AddClaim(OpenIddictConstants.Claims.Subject, refreshToken.UserId.ToString());
-        identity.AddClaim(OpenIddictConstants.Claims.Name, refreshToken.User.DisplayName ?? refreshToken.User.Email);
-        identity.AddClaim(OpenIddictConstants.Claims.Email, refreshToken.User.Email);
-        if (refreshToken.HouseId is { } houseId)
+        identity.AddClaim(OpenIddictConstants.Claims.Subject, session.UserId.ToString());
+        identity.AddClaim(OpenIddictConstants.Claims.Name, session.DisplayName ?? session.Email);
+        identity.AddClaim(OpenIddictConstants.Claims.Email, session.Email);
+        if (session.HouseId is { } houseId)
             identity.AddClaim(KotletClaimTypes.HouseId, houseId.ToString());
-        foreach (var role in refreshToken.User.Roles)
-            identity.AddClaim(OpenIddictConstants.Claims.Role, role.Name);
+        foreach (var role in session.Roles)
+            identity.AddClaim(OpenIddictConstants.Claims.Role, role);
 
         var principal = new ClaimsPrincipal(identity);
         principal.SetScopes(request.GetScopes());
