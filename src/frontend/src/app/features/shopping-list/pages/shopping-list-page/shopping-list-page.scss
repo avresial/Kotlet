@@ -26,6 +26,7 @@ button:disabled { opacity: .5; cursor: default; }
 .receipt-actions span { color: #746d63; font-size: .8rem; }
 .receipt-actions button { color: #8e392b; font-size: .78rem; }
 .receipt-lines { margin-top: 1.25rem; border-top: 1px solid #e1d7c9; }
+.category-heading { margin: 1rem 0 0; color: #766e63; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
 .receipt-line { display: grid; grid-template-columns: 2rem minmax(8rem, 1fr) 5rem auto 6rem 2rem; align-items: center; gap: .75rem; padding: .8rem 0; border-bottom: 1px solid #e1d7c9; }
 .check { color: #9b8e7d; font-size: 1.15rem; }
 .product { display: grid; }

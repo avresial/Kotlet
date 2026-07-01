@@ -12,7 +12,7 @@ public sealed class ShoppingListServiceTests
     private const string English = "en";
     private const string Polish = "pl";
     private static readonly Guid HouseId = Guid.NewGuid();
-    private static readonly Ingredient Apples = Ingredient("Apples", pricePer100: 2.50m);
+    private static readonly Ingredient Apples = Ingredient("Apples", pricePer100: 2.50m, FoodCategory.Fruit);
 
     // ---- GetAll ----
 
@@ -28,6 +28,7 @@ public sealed class ShoppingListServiceTests
         Assert.Equal(2.50m, item.PricePer100BaseUnits);
         // 250 / 100 * 2.50 = 6.25
         Assert.Equal(6.25m, item.TotalPrice);
+        Assert.Equal(FoodCategory.Fruit, item.Category);
     }
 
     [Fact]
@@ -198,9 +199,9 @@ public sealed class ShoppingListServiceTests
         Assert.DoesNotContain(repo.Items, i => i.IsPurchased);
     }
 
-    private static Ingredient Ingredient(string name, decimal pricePer100) => new()
+    private static Ingredient Ingredient(string name, decimal pricePer100, FoodCategory category = FoodCategory.Unknown) => new()
     {
-        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g", PricePer100BaseUnits = Price.FromAmount(pricePer100)
+        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g", PricePer100BaseUnits = Price.FromAmount(pricePer100), Category = category
     };
 
     private sealed class FakeRepository(params Ingredient[] ingredients) : IShoppingListRepository
