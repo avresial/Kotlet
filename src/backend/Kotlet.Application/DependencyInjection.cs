@@ -1,4 +1,7 @@
+using Kotlet.Application.Admin;
 using Kotlet.Application.Ai;
+using Kotlet.Application.Auth;
+using Kotlet.Application.Houses;
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.MealPlanner;
 using Kotlet.Application.Measurements;
@@ -13,14 +16,16 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<UserAiProviderService>();
-        services.AddScoped<IngredientService>();
-        services.AddScoped<MealPlannerService>();
-        services.AddSingleton<MeasurementMappingService>();
-        services.AddScoped<PantryService>();
-        services.AddScoped<RecipeService>();
-        services.AddScoped<RecipeImageService>();
-        services.AddScoped<ShoppingListService>();
-        return services;
+        return services
+            .AddAdminApplication()
+            .AddAiApplication()
+            .AddAuthApplication()
+            .AddHousesApplication()
+            .AddIngredientsApplication()
+            .AddMealPlannerApplication()
+            .AddMeasurementsApplication()
+            .AddPantryApplication()
+            .AddRecipesApplication()
+            .AddShoppingApplication();
     }
 }
