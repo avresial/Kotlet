@@ -30,6 +30,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         {
             title = "Tomato Soup",
             descriptionMarkdown = "Simple **soup**.",
+            mealType = "dinner",
             ingredients = new[]
             {
                 new { ingredientId = tomatoesId, quantity = 800, unit = "g", note = (string?)"canned" },
@@ -41,6 +42,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         var id = created.GetProperty("id").GetGuid();
         Assert.Equal("Tomato Soup", created.GetProperty("title").GetString());
         Assert.Equal("tomato-soup", created.GetProperty("slug").GetString());
+        Assert.Equal("dinner", created.GetProperty("mealType").GetString());
         Assert.Equal(2, created.GetProperty("ingredients").GetArrayLength());
         var garlic = created.GetProperty("ingredients")[1];
         Assert.Equal(10m, garlic.GetProperty("normalizedQuantity").GetDecimal());
@@ -50,18 +52,20 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         var list = await client.GetFromJsonAsync<JsonElement>("/api/recipes");
         Assert.True(list.GetProperty("totalCount").GetInt32() >= 1);
         var items = list.GetProperty("items").EnumerateArray().ToList();
-        Assert.Contains(items, r => r.GetProperty("id").GetGuid() == id);
+        Assert.Contains(items, r => r.GetProperty("id").GetGuid() == id && r.GetProperty("mealType").GetString() == "dinner");
 
         // Get detail
         var detail = await client.GetFromJsonAsync<JsonElement>($"/api/recipes/{id}");
         Assert.Equal(id, detail.GetProperty("id").GetGuid());
         Assert.Equal("Simple **soup**.", detail.GetProperty("descriptionMarkdown").GetString());
+        Assert.Equal("dinner", detail.GetProperty("mealType").GetString());
 
         // Update
         var update = await client.PutAsJsonAsync($"/api/recipes/{id}", new
         {
             title = "Cream of Tomato",
             descriptionMarkdown = "Rich and creamy.",
+            mealType = "supper",
             ingredients = new[]
             {
                 new { ingredientId = tomatoesId, quantity = 30, unit = "g", note = (string?)null }
@@ -70,6 +74,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         Assert.Equal(HttpStatusCode.OK, update.StatusCode);
         var updated = await update.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("Cream of Tomato", updated.GetProperty("title").GetString());
+        Assert.Equal("supper", updated.GetProperty("mealType").GetString());
         Assert.Equal(1, updated.GetProperty("ingredients").GetArrayLength());
         Assert.Equal(2m, updated.GetProperty("ingredients")[0].GetProperty("quantity").GetDecimal());
         Assert.Equal("tbsp", updated.GetProperty("ingredients")[0].GetProperty("unit").GetString());

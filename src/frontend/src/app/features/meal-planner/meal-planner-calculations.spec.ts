@@ -29,6 +29,7 @@ const recipe: RecipeDetail = {
   slug: 'pasta-dinner',
   descriptionMarkdown: null,
   servings: 4,
+  mealType: null,
   ingredients: [{
     id: 'line',
     sortOrder: 0,

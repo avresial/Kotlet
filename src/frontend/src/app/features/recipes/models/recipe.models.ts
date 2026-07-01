@@ -11,8 +11,18 @@ export interface CreateRecipeRequest {
   descriptionMarkdown: string | null;
   /** Number of adult portions the recipe yields. One serving is a single adult portion. */
   servings: number;
+  mealType?: RecipeMealType | null;
   ingredients: RecipeIngredientRequest[];
 }
+
+export type RecipeMealType = 'breakfast' | 'second-breakfast' | 'dinner' | 'snack' | 'supper';
+export const recipeMealTypes: { value: RecipeMealType; label: string }[] = [
+  { value: 'breakfast', label: 'meal.slot.breakfast' },
+  { value: 'second-breakfast', label: 'meal.slot.second-breakfast' },
+  { value: 'dinner', label: 'meal.slot.dinner' },
+  { value: 'snack', label: 'meal.slot.snack' },
+  { value: 'supper', label: 'meal.slot.supper' },
+];
 
 export type UpdateRecipeRequest = CreateRecipeRequest;
 
@@ -34,6 +44,7 @@ export interface RecipeSummary {
   slug: string;
   ingredientCount: number;
   servings: number;
+  mealType: RecipeMealType | null;
   firstImageUrl: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
@@ -45,6 +56,7 @@ export interface RecipeDetail {
   slug: string;
   descriptionMarkdown: string | null;
   servings: number;
+  mealType: RecipeMealType | null;
   ingredients: RecipeIngredient[];
   images: RecipeImage[];
   createdAtUtc: string;

@@ -3,6 +3,7 @@ using Kotlet.Application.Ingredients;
 using Kotlet.Application.Measurements;
 using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
+using Kotlet.Domain.MealPlanner;
 using Kotlet.Domain.Recipes;
 
 namespace Kotlet.Application.Recipes;
@@ -51,7 +52,7 @@ public sealed class RecipeService(
     public async Task<RecipeOperationResult> CreateAsync(
         Guid ownerUserId, Guid houseId, CreateRecipeRequest request, CancellationToken cancellationToken)
     {
-        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings);
+        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
@@ -77,6 +78,7 @@ public sealed class RecipeService(
             Slug = slug,
             DescriptionMarkdown = request.DescriptionMarkdown?.Trim(),
             Servings = ServingCount.FromInt32(request.Servings),
+            MealType = ParseMealType(request.MealType),
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
             Ingredients = mappedIngredients.Items
@@ -91,7 +93,7 @@ public sealed class RecipeService(
     public async Task<RecipeOperationResult> UpdateAsync(
         Guid id, Guid houseId, UpdateRecipeRequest request, CancellationToken cancellationToken)
     {
-        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings);
+        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
@@ -114,6 +116,7 @@ public sealed class RecipeService(
         recipe.Slug = newSlug;
         recipe.DescriptionMarkdown = request.DescriptionMarkdown?.Trim();
         recipe.Servings = ServingCount.FromInt32(request.Servings);
+        recipe.MealType = ParseMealType(request.MealType);
         recipe.UpdatedAtUtc = DateTimeOffset.UtcNow;
         recipe.Ingredients.Clear();
         foreach (var ing in mappedIngredients.Items)
@@ -207,7 +210,7 @@ public sealed class RecipeService(
     }
 
     private static Dictionary<string, string[]> Validate(
-        string title, string? descriptionMarkdown, IReadOnlyList<RecipeIngredientRequest> ingredients, int servings)
+        string title, string? descriptionMarkdown, IReadOnlyList<RecipeIngredientRequest> ingredients, int servings, string? mealType)
     {
         var errors = new Dictionary<string, string[]>();
 
@@ -218,6 +221,8 @@ public sealed class RecipeService(
 
         if (servings is < 1 or > MaxServings)
             errors["servings"] = [$"Servings must be between 1 and {MaxServings}."];
+        if (!string.IsNullOrWhiteSpace(mealType) && !MealSlotValues.TryParse(mealType, out _))
+            errors["mealType"] = ["Meal type is invalid."];
 
         if (descriptionMarkdown is not null && descriptionMarkdown.Length > 20_000)
             errors["descriptionMarkdown"] = ["Description cannot exceed 20,000 characters."];
@@ -248,7 +253,7 @@ public sealed class RecipeService(
     }
 
     private RecipeDetailResponse ToDetailResponse(Recipe recipe, IReadOnlyList<RecipeImageResponse>? images = null) =>
-        new(recipe.Id, recipe.Title, recipe.Slug, recipe.DescriptionMarkdown, recipe.Servings.Value,
+        new(recipe.Id, recipe.Title, recipe.Slug, recipe.DescriptionMarkdown, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
             recipe.Ingredients
                 .OrderBy(i => i.SortOrder)
                 .Select(i =>
@@ -275,9 +280,12 @@ public sealed class RecipeService(
         string? firstImageUrl = null;
         if (firstImageIds is not null && firstImageIds.TryGetValue(recipe.Id, out var imageId))
             firstImageUrl = $"/api/recipes/{recipe.Id}/images/{imageId}/content";
-        return new(recipe.Id, recipe.Title, recipe.Slug, recipe.Ingredients.Count, recipe.Servings.Value,
+        return new(recipe.Id, recipe.Title, recipe.Slug, recipe.Ingredients.Count, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
             firstImageUrl, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
     }
+
+    private static MealSlot? ParseMealType(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : MealSlotValues.TryParse(value, out var slot) ? slot : null;
 
     private static RecipeImageResponse ToImageResponse(RecipeImage i) => new(i.Id, i.RecipeId, i.FileName,
         i.ContentType, i.FileSizeBytes, i.AltText, i.SortOrder,
