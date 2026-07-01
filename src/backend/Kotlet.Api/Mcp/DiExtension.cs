@@ -44,6 +44,7 @@ public static class DiExtension
     public static IEndpointRouteBuilder MapMcpFeature(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapMcp("/mcp").RequireAuthorization(AuthorizationPolicy);
+        endpoints.MapMcpDiscovery();
         return endpoints;
     }
 }

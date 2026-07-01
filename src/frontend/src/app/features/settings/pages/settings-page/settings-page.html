@@ -107,5 +107,12 @@
         </div>
       </form>
     </section>
+
+    <section class="card" aria-labelledby="mcp-title">
+      <div class="section-heading"><h2 id="mcp-title">{{ 'settings.mcp' | t }}</h2><p>{{ 'settings.mcpHelp' | t }}</p></div>
+      <div class="actions">
+        <a class="mcp-connect-link" routerLink="/connect/mcp">{{ 'settings.mcpConnect' | t }} <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
   }
 </main>

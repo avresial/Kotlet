@@ -1,0 +1,64 @@
+<main class="connect-page">
+  <a class="back" routerLink="/settings">← {{ 'settings.back' | t }}</a>
+  <header>
+    <p class="eyebrow">{{ 'mcp.eyebrow' | t }}</p>
+    <h1>{{ 'mcp.title' | t }}</h1>
+    <p>{{ 'mcp.intro' | t }}</p>
+  </header>
+
+  <!-- Client-specific guided connect actions -->
+  <section class="card" aria-labelledby="clients-title">
+    <div class="section-heading"><h2 id="clients-title">{{ 'mcp.clientsTitle' | t }}</h2><p>{{ 'mcp.clientsHelp' | t }}</p></div>
+
+    <div class="server-url">
+      <label>{{ 'mcp.serverUrl' | t }}</label>
+      <div class="copy-row">
+        <code>{{ serverUrl() || ('mcp.loading' | t) }}</code>
+        <p-button type="button" size="small" [outlined]="true" [label]="'mcp.copy' | t" [disabled]="!serverUrl()" (onClick)="copy(serverUrl(), 'url')" />
+      </div>
+      @if (copied() === 'url') { <p-message severity="success" size="small" variant="simple" role="status">{{ 'mcp.copied' | t }}</p-message> }
+    </div>
+
+    <article class="client">
+      <h3>{{ 'mcp.claudeTitle' | t }}</h3>
+      <ol>
+        <li>{{ 'mcp.claudeStep1' | t }}</li>
+        <li>{{ 'mcp.claudeStep2' | t }}</li>
+        <li>{{ 'mcp.claudeStep3' | t }}</li>
+      </ol>
+    </article>
+
+    <article class="client">
+      <h3>{{ 'mcp.chatgptTitle' | t }}</h3>
+      <p-message severity="warn" size="small">{{ 'mcp.chatgptLimitation' | t }}</p-message>
+      <ol>
+        <li>{{ 'mcp.chatgptStep1' | t }}</li>
+        <li>{{ 'mcp.chatgptStep2' | t }}</li>
+        <li>{{ 'mcp.chatgptStep3' | t }}</li>
+      </ol>
+    </article>
+  </section>
+
+  <!-- Manifest download / copy -->
+  <section class="card" aria-labelledby="manifest-title">
+    <div class="section-heading"><h2 id="manifest-title">{{ 'mcp.manifestTitle' | t }}</h2><p>{{ 'mcp.manifestHelp' | t }}</p></div>
+    <pre class="manifest"><code>{{ manifestJson() || ('mcp.loading' | t) }}</code></pre>
+    <div class="actions">
+      <p-button type="button" [label]="'mcp.download' | t" [disabled]="!manifestJson()" (onClick)="downloadManifest()" />
+      <p-button type="button" [outlined]="true" [label]="'mcp.copy' | t" [disabled]="!manifestJson()" (onClick)="copy(manifestJson(), 'manifest')" />
+    </div>
+    @if (copied() === 'manifest') { <p-message severity="success" size="small" variant="simple" role="status">{{ 'mcp.copied' | t }}</p-message> }
+  </section>
+
+  <!-- Manual configuration fallback -->
+  <section class="card" aria-labelledby="manual-title">
+    <div class="section-heading"><h2 id="manual-title">{{ 'mcp.manualTitle' | t }}</h2><p>{{ 'mcp.manualHelp' | t }}</p></div>
+    <dl>
+      <div><dt>{{ 'mcp.manualServerUrl' | t }}</dt><dd><code>{{ serverUrl() }}</code></dd></div>
+      <div><dt>{{ 'mcp.manualAuthType' | t }}</dt><dd>OAuth 2.0 (Authorization Code + PKCE)</dd></div>
+      <div><dt>{{ 'mcp.manualTransport' | t }}</dt><dd>HTTP (streamable)</dd></div>
+      <div><dt>{{ 'mcp.manualScope' | t }}</dt><dd><code>mcp</code></dd></div>
+    </dl>
+    <p class="troubleshooting">{{ 'mcp.troubleshooting' | t }}</p>
+  </section>
+</main>

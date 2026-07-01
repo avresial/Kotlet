@@ -25,3 +25,6 @@ select { width: 100%; min-height: 2.65rem; padding: .55rem .75rem; border: 1px s
 @media (max-width: 38rem) {
   .account dl > div { grid-template-columns: 1fr; gap: .2rem; }
 }
+
+.mcp-connect-link { display: inline-flex; align-items: center; gap: .4rem; padding: .6rem 1.1rem; border-radius: .5rem; background: #7d3428; color: #fffaf2; font-weight: 700; text-decoration: none; }
+.mcp-connect-link:hover { background: #6a2c22; }
