@@ -52,7 +52,7 @@
     </div>
     @if (isLoading()) { <p class="empty">{{ 'ingredients.loading' | t }}</p> }
     @else if (ingredients().length === 0) { <p class="empty">{{ 'ingredients.empty' | t }}</p> }
-    @else if (filteredIngredients().length === 0) { <p class="empty">{{ 'ingredients.noMatches' | t }}</p> }
+    @else if (filteredIngredients().length === 0) { <p class="empty">{{ 'ingredients.noFilterMatches' | t }}</p> }
     @else {
       <div class="table-wrap"><table>
         <thead><tr><th>{{ 'ingredients.name' | t }}</th><th>{{ 'ingredients.baseUnitShort' | t }}</th><th>{{ 'ingredients.pieceSize' | t }}</th><th>kcal / 100</th><th>{{ 'ingredients.pricePer100' | t }}</th><th><span class="sr-only">{{ 'common.actions' | t }}</span></th></tr></thead>
