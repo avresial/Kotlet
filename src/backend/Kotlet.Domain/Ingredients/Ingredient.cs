@@ -10,7 +10,7 @@ public sealed class Ingredient
     public bool IsCountable { get; set; }
     public decimal? MeasurementUnitsPerPiece { get; set; }
     public Calories CaloriesPer100BaseUnits { get; set; }
-    public decimal PricePer100BaseUnits { get; set; }
+    public Price PricePer100BaseUnits { get; set; }
     public string? SvgIcon { get; set; }
     public FoodCategory Category { get; set; }
     public Allergen Allergens { get; set; }

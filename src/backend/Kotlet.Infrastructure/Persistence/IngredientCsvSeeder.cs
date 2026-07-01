@@ -37,7 +37,7 @@ public sealed class IngredientCsvSeeder(
                 IsCountable = seed.MeasurementUnitsPerPiece.HasValue,
                 MeasurementUnitsPerPiece = seed.MeasurementUnitsPerPiece,
                 CaloriesPer100BaseUnits = Calories.FromKilocalories(seed.CaloriesPer100BaseUnits),
-                PricePer100BaseUnits = seed.PricePer100BaseUnits,
+                PricePer100BaseUnits = Price.FromAmount(seed.PricePer100BaseUnits),
                 Category = classification.Category,
                 Allergens = classification.Allergens,
                 Attributes = classification.Attributes,

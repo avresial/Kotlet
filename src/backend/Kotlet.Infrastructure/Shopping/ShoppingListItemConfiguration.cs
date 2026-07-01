@@ -1,3 +1,4 @@
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Shopping;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -13,7 +14,10 @@ internal sealed class ShoppingListItemConfiguration : IEntityTypeConfiguration<S
         builder.Property(x => x.Id).HasColumnName("id");
         builder.Property(x => x.HouseId).HasColumnName("house_id");
         builder.Property(x => x.IngredientId).HasColumnName("ingredient_id");
-        builder.Property(x => x.Quantity).HasColumnName("quantity").HasPrecision(11, 3);
+        builder.Property(x => x.Quantity)
+            .HasColumnName("quantity")
+            .HasConversion(quantity => quantity.Amount, amount => Quantity.FromAmount(amount))
+            .HasPrecision(11, 3);
         builder.Property(x => x.IsPurchased).HasColumnName("is_purchased");
         builder.HasIndex(x => new { x.HouseId, x.IngredientId }).IsUnique().HasDatabaseName("ux_shopping_list_items_house_ingredient");
         builder.HasOne(x => x.House).WithMany(x => x.ShoppingListItems).HasForeignKey(x => x.HouseId).OnDelete(DeleteBehavior.Cascade);

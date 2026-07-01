@@ -1,5 +1,5 @@
-using System.Net.Mail;
 using Kotlet.Domain.Auth;
+using Kotlet.Domain.Common;
 
 namespace Kotlet.Application.Auth;
 
@@ -7,18 +7,16 @@ public sealed class AccountService(IAuthRepository repository, IUserPasswordServ
 {
     public async Task<AccountOperationResult> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken)
     {
-        var errors = ValidateRegistration(request);
+        var errors = ValidateRegistration(request, out var email);
         if (errors.Count > 0) return Validation(errors);
-        var email = request.Email.Trim();
-        var normalizedEmail = NormalizeEmail(email);
-        if (await repository.EmailExistsAsync(normalizedEmail, cancellationToken))
+        if (await repository.EmailExistsAsync(email.Normalized, cancellationToken))
             return new(AccountOperationStatus.Conflict);
 
         var now = DateTime.UtcNow;
         var user = new User
         {
-            Id = Guid.NewGuid(), Email = email, NormalizedEmail = normalizedEmail, PasswordHash = "",
-            DisplayName = ResolveDisplayName(request.DisplayName, email), CreatedAtUtc = now, UpdatedAtUtc = now,
+            Id = Guid.NewGuid(), Email = email.Value, NormalizedEmail = email.Normalized, PasswordHash = "",
+            DisplayName = ResolveDisplayName(request.DisplayName, email.Value), CreatedAtUtc = now, UpdatedAtUtc = now,
             Roles = [await repository.GetRoleAsync(RoleNames.User, cancellationToken)]
         };
         user.PasswordHash = passwords.Hash(user, request.Password);
@@ -98,10 +96,10 @@ public sealed class AccountService(IAuthRepository repository, IUserPasswordServ
         return await repository.GetFirstHouseIdAsync(user.Id, cancellationToken);
     }
 
-    private static Dictionary<string, string[]> ValidateRegistration(RegisterRequest request)
+    private static Dictionary<string, string[]> ValidateRegistration(RegisterRequest request, out Email email)
     {
         var errors = new Dictionary<string, string[]>();
-        if (string.IsNullOrWhiteSpace(request.Email) || !MailAddress.TryCreate(request.Email.Trim(), out _))
+        if (!Email.TryCreate(request.Email, out email))
             errors["email"] = ["A valid email is required."];
         if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
             errors["password"] = ["Password must be at least 8 characters long."];

@@ -20,7 +20,10 @@ internal sealed class IngredientConfiguration : IEntityTypeConfiguration<Ingredi
             .HasColumnName("calories_per_100_base_units")
             .HasConversion(calories => calories.Kilocalories, kilocalories => Calories.FromKilocalories(kilocalories))
             .HasPrecision(8, 2);
-        builder.Property(ingredient => ingredient.PricePer100BaseUnits).HasColumnName("price_per_100_base_units").HasPrecision(10, 2);
+        builder.Property(ingredient => ingredient.PricePer100BaseUnits)
+            .HasColumnName("price_per_100_base_units")
+            .HasConversion(price => price.Amount, amount => Price.FromAmount(amount))
+            .HasPrecision(10, 2);
         builder.Property(ingredient => ingredient.SvgIcon).HasColumnName("svg_icon");
         builder.Property(ingredient => ingredient.Category).HasColumnName("category").HasDefaultValue(FoodCategory.Unknown).IsRequired();
         builder.Property(ingredient => ingredient.Allergens).HasColumnName("allergens").HasDefaultValue(Allergen.None).IsRequired();

@@ -1,5 +1,6 @@
 using Kotlet.Application.Shopping;
 using Kotlet.Application.Translations;
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.Shopping;
 using Xunit;
@@ -124,7 +125,7 @@ public sealed class ShoppingListServiceTests
         var result = await service.UpdateAsync(item.Id, HouseId, new UpdateShoppingListItemCommand(8m, true), English, CancellationToken.None);
 
         Assert.Equal(ShoppingListOperationStatus.Success, result.Status);
-        Assert.Equal(8m, item.Quantity);
+        Assert.Equal(8m, item.Quantity.Amount);
         Assert.True(item.IsPurchased);
         Assert.True(result.Item!.IsPurchased);
     }
@@ -139,7 +140,7 @@ public sealed class ShoppingListServiceTests
         var result = await service.UpdateAsync(item.Id, HouseId, new UpdateShoppingListItemCommand(0m, false), English, CancellationToken.None);
 
         Assert.Equal(ShoppingListOperationStatus.ValidationFailed, result.Status);
-        Assert.Equal(5m, item.Quantity);
+        Assert.Equal(5m, item.Quantity.Amount);
     }
 
     [Fact]
@@ -199,7 +200,7 @@ public sealed class ShoppingListServiceTests
 
     private static Ingredient Ingredient(string name, decimal pricePer100) => new()
     {
-        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g", PricePer100BaseUnits = pricePer100
+        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g", PricePer100BaseUnits = Price.FromAmount(pricePer100)
     };
 
     private sealed class FakeRepository(params Ingredient[] ingredients) : IShoppingListRepository
@@ -212,7 +213,7 @@ public sealed class ShoppingListServiceTests
             var item = new ShoppingListItem
             {
                 Id = Guid.NewGuid(), HouseId = houseId, IngredientId = ingredient.Id,
-                Quantity = quantity, Ingredient = ingredient
+                Quantity = Quantity.FromAmount(quantity), Ingredient = ingredient
             };
             Items.Add(item);
             return item;

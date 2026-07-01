@@ -62,7 +62,7 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             IsCountable = command.IsCountable,
             MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null,
             CaloriesPer100BaseUnits = Calories.FromKilocalories(command.CaloriesPer100BaseUnits),
-            PricePer100BaseUnits = command.PricePer100BaseUnits,
+            PricePer100BaseUnits = Price.FromAmount(command.PricePer100BaseUnits),
             Category = command.Category, Allergens = command.Allergens,
             Attributes = command.Attributes, Suitability = command.Suitability
         };
@@ -109,7 +109,7 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
         ingredient.IsCountable = command.IsCountable;
         ingredient.MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null;
         ingredient.CaloriesPer100BaseUnits = Calories.FromKilocalories(command.CaloriesPer100BaseUnits);
-        ingredient.PricePer100BaseUnits = command.PricePer100BaseUnits;
+        ingredient.PricePer100BaseUnits = Price.FromAmount(command.PricePer100BaseUnits);
         ingredient.Category = command.Category;
         ingredient.Allergens = command.Allergens;
         ingredient.Attributes = command.Attributes;
@@ -213,7 +213,7 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             translation,
             ingredient.MeasurementUnit, ingredient.IsCountable,
             ingredient.MeasurementUnitsPerPiece, ingredient.CaloriesPer100BaseUnits.Kilocalories,
-            ingredient.PricePer100BaseUnits, ingredient.SvgIcon, ingredient.Category,
+            ingredient.PricePer100BaseUnits.Amount, ingredient.SvgIcon, ingredient.Category,
             ingredient.Allergens, ingredient.Attributes, ingredient.Suitability);
     private static IngredientOperationResult Conflict() =>
         new(IngredientOperationStatus.Conflict, Message: "An ingredient with this name already exists.");
