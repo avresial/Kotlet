@@ -38,6 +38,11 @@
       <div class="content-card">
         @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
+        <section class="recipe-totals" [attr.aria-label]="'recipes.nutritionAndCost' | t">
+          <div><span>{{ 'recipes.totalCost' | t }}</span><strong>{{ (pricePerServing() * r.servings).toFixed(2) }} zł</strong><small>{{ pricePerServing().toFixed(2) }} zł / {{ 'recipes.serving' | t }}</small></div>
+          <div><span>{{ 'recipes.totalCalories' | t }}</span><strong>{{ (caloriesPerServing() * r.servings).toFixed(0) }} kcal</strong><small>{{ caloriesPerServing().toFixed(0) }} kcal / {{ 'recipes.serving' | t }}</small></div>
+        </section>
+
         @if (r.ingredients.length > 0) {
           <section class="ingredients-section">
             <h2>{{ 'nav.ingredients' | t }}</h2>

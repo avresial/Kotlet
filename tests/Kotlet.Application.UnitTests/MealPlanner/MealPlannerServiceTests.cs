@@ -122,6 +122,20 @@ public sealed class MealPlannerServiceTests
         Assert.True(result.ValidationErrors!.ContainsKey("ingredientId"));
     }
 
+    [Theory]
+    [InlineData("second-breakfast", MealSlot.SecondBreakfast)]
+    [InlineData("snack", MealSlot.Snack)]
+    public async Task AddItem_WithNewSlot_RoundTrips(string slot, MealSlot expected)
+    {
+        var (service, meals) = CreateService();
+
+        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+            new AddMealPlanItemRequest(Today, slot, SoupRecipe.Id, null, null), CancellationToken.None);
+
+        Assert.Equal(expected, Assert.Single(meals.Items).Slot);
+        Assert.Equal(slot, result.Item!.Slot);
+    }
+
     [Fact]
     public async Task AddWeek_AddsAtomicallyAndSkipsDuplicatesOnRetry()
     {

@@ -10,6 +10,13 @@ import { IngredientService } from '../../ingredient.service';
 
 const DEFAULT_LANGUAGE = 'en';
 
+export function filterIngredients(ingredients: Ingredient[], search: string, category: number | null): Ingredient[] {
+  const query = search.trim().toLocaleLowerCase();
+  return ingredients.filter(ingredient =>
+    (category === null || ingredient.category === category)
+    && (!query || ingredient.name.toLocaleLowerCase().includes(query)));
+}
+
 @Component({
   selector: 'app-ingredients-page',
   imports: [ReactiveFormsModule, RouterLink, TranslatePipe],
@@ -27,12 +34,9 @@ export class IngredientsPage implements OnInit {
   readonly languageBadge = computed(() => this.language().toUpperCase());
   readonly ingredients = signal<Ingredient[]>([]);
   readonly search = signal('');
-  readonly filteredIngredients = computed(() => {
-    const query = this.search().trim().toLocaleLowerCase();
-    return query
-      ? this.ingredients().filter((ingredient) => ingredient.name.toLocaleLowerCase().includes(query))
-      : this.ingredients();
-  });
+  readonly selectedCategory = signal<number | null>(null);
+  readonly hasFilters = computed(() => !!this.search().trim() || this.selectedCategory() !== null);
+  readonly filteredIngredients = computed(() => filterIngredients(this.ingredients(), this.search(), this.selectedCategory()));
   readonly units = measurementUnits;
   readonly categories = foodCategories;
   readonly editingId = signal<string | null>(null);

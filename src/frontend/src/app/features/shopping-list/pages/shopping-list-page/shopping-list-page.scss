@@ -40,3 +40,9 @@ button:disabled { opacity: .5; cursor: default; }
 .total { margin-top: 1.25rem; padding-top: 1rem; border-top: 2px dashed #cbb9a2; display: flex; justify-content: space-between; font-family: ui-monospace, monospace; font-size: 1.05rem; letter-spacing: .08em; }
 @media (max-width: 60rem) { .add-panel { grid-template-columns: 1fr; gap: 1rem; } }
 @media (max-width: 42rem) { header { align-items: start; flex-direction: column; } .summary { text-align: left; } form { grid-template-columns: 1fr; } .receipt-line { grid-template-columns: 2rem 1fr 4.5rem auto; } .unit { display: none; } .line-price { grid-column: 2 / 4; text-align: left; } }
+@media print {
+  .shopping-page { width: auto; padding: 0; }
+  .back, header, .error, .add-panel, .receipt-actions button, .remove { display: none; }
+  .receipt { margin: 0; border: 0; box-shadow: none; }
+  .receipt-line input { border: 0; background: transparent; }
+}

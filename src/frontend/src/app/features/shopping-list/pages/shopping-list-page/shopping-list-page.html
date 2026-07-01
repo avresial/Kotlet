@@ -17,7 +17,7 @@
   </section>
 
   <section class="receipt" aria-labelledby="receipt-title">
-    <div class="receipt-heading"><div><p class="eyebrow">{{ 'shopping.receipt' | t }}</p><h2 id="receipt-title">{{ 'shopping.itemsToBuy' | t }}</h2></div><div class="receipt-actions"><span>{{ items().length }} {{ 'common.items' | t }}</span><button type="button" [disabled]="isSaving() || purchasedCount() === 0" (click)="clearChecked()">{{ 'shopping.clearChecked' | t }}</button></div></div>
+    <div class="receipt-heading"><div><p class="eyebrow">{{ 'shopping.receipt' | t }}</p><h2 id="receipt-title">{{ 'shopping.itemsToBuy' | t }}</h2></div><div class="receipt-actions"><span>{{ items().length }} {{ 'common.items' | t }}</span><button type="button" [disabled]="items().length === 0" (click)="print()">{{ 'shopping.print' | t }}</button><button class="clear-checked" type="button" [disabled]="isSaving() || purchasedCount() === 0" (click)="clearChecked()">{{ 'shopping.clearChecked' | t }}</button></div></div>
     @if (isLoading()) { <p class="empty">{{ 'shopping.loading' | t }}</p> }
     @else if (items().length === 0) { <p class="empty">{{ 'shopping.empty' | t }}</p> }
     @else {

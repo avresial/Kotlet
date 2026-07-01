@@ -9,7 +9,7 @@ public sealed class MealPlannerService(
     IRecipeRepository recipeRepository,
     IIngredientRepository ingredientRepository)
 {
-    private static readonly HashSet<string> ValidSlots = ["breakfast", "dinner", "supper"];
+    private static readonly HashSet<string> ValidSlots = ["breakfast", "second-breakfast", "dinner", "snack", "supper"];
     private const int MaxServings = 99;
     private const int MaxGuests = 99;
 
@@ -30,7 +30,9 @@ public sealed class MealPlannerService(
             new Dictionary<string, IReadOnlyList<MealPlanItemResponse>>
             {
                 ["breakfast"] = responses.Where(r => r.Slot == "breakfast").OrderBy(r => r.SortOrder).ToList(),
+                ["second-breakfast"] = responses.Where(r => r.Slot == "second-breakfast").OrderBy(r => r.SortOrder).ToList(),
                 ["dinner"] = responses.Where(r => r.Slot == "dinner").OrderBy(r => r.SortOrder).ToList(),
+                ["snack"] = responses.Where(r => r.Slot == "snack").OrderBy(r => r.SortOrder).ToList(),
                 ["supper"] = responses.Where(r => r.Slot == "supper").OrderBy(r => r.SortOrder).ToList()
             });
     }
@@ -93,8 +95,8 @@ public sealed class MealPlannerService(
     public async Task<WeeklyMealPlannerOperationResult> AddWeekAsync(
         Guid userId, Guid houseId, AddWeeklyMealPlanRequest request, CancellationToken cancellationToken)
     {
-        if (request.Meals.Count > 21)
-            return WeeklyValidation("meals", "A weekly plan cannot contain more than 21 meals.");
+        if (request.Meals.Count > 35)
+            return WeeklyValidation("meals", "A weekly plan cannot contain more than 35 meals.");
 
         var errors = new Dictionary<string, string[]>();
         for (var index = 0; index < request.Meals.Count; index++)
@@ -328,7 +330,9 @@ public sealed class MealPlannerService(
     private static MealSlot ParseSlot(string slot) => slot.ToLower() switch
     {
         "breakfast" => MealSlot.Breakfast,
+        "second-breakfast" => MealSlot.SecondBreakfast,
         "dinner" => MealSlot.Dinner,
+        "snack" => MealSlot.Snack,
         "supper" => MealSlot.Supper,
         _ => throw new InvalidOperationException($"Invalid slot: {slot}")
     };
@@ -336,7 +340,9 @@ public sealed class MealPlannerService(
     private static string SlotToString(MealSlot slot) => slot switch
     {
         MealSlot.Breakfast => "breakfast",
+        MealSlot.SecondBreakfast => "second-breakfast",
         MealSlot.Dinner => "dinner",
+        MealSlot.Snack => "snack",
         MealSlot.Supper => "supper",
         _ => throw new InvalidOperationException($"Unknown slot: {slot}")
     };
