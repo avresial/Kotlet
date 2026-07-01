@@ -1,3 +1,4 @@
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Pantry;
 using Kotlet.Application.Translations;
 
@@ -21,7 +22,7 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
         if (await repository.ItemExistsAsync(houseId, command.IngredientId, cancellationToken))
             return new(PantryOperationStatus.Conflict, Message: "This ingredient is already in your pantry.");
 
-        var item = new PantryItem { Id = Guid.NewGuid(), HouseId = houseId, IngredientId = command.IngredientId, Quantity = command.Quantity };
+        var item = new PantryItem { Id = Guid.NewGuid(), HouseId = houseId, IngredientId = command.IngredientId, Quantity = Quantity.FromAmount(command.Quantity) };
         repository.Add(item);
         await repository.SaveChangesAsync(cancellationToken);
         var saved = await repository.GetByIdAsync(item.Id, houseId, cancellationToken);
@@ -34,7 +35,7 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
             return InvalidQuantity();
         var item = await repository.GetByIdAsync(id, houseId, cancellationToken);
         if (item is null) return new(PantryOperationStatus.NotFound);
-        item.Quantity = quantity;
+        item.Quantity = Quantity.FromAmount(quantity);
         await repository.SaveChangesAsync(cancellationToken);
         return new(PantryOperationStatus.Success, await ToLocalizedDtoAsync(item, languageCode, cancellationToken));
     }
@@ -67,5 +68,5 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
         && !string.IsNullOrWhiteSpace(translated) ? translated : fallback;
 
     private static PantryItemDto ToDto(PantryItem item, string ingredientName) =>
-        new(item.Id, item.IngredientId, ingredientName, item.Ingredient.MeasurementUnit, item.Quantity);
+        new(item.Id, item.IngredientId, ingredientName, item.Ingredient.MeasurementUnit, item.Quantity.Amount);
 }

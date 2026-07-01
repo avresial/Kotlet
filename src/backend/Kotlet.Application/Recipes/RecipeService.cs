@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.Measurements;
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.Recipes;
 
@@ -75,7 +76,7 @@ public sealed class RecipeService(
             Title = title,
             Slug = slug,
             DescriptionMarkdown = request.DescriptionMarkdown?.Trim(),
-            Servings = request.Servings,
+            Servings = ServingCount.FromInt32(request.Servings),
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
             Ingredients = mappedIngredients.Items
@@ -112,7 +113,7 @@ public sealed class RecipeService(
         recipe.Title = title;
         recipe.Slug = newSlug;
         recipe.DescriptionMarkdown = request.DescriptionMarkdown?.Trim();
-        recipe.Servings = request.Servings;
+        recipe.Servings = ServingCount.FromInt32(request.Servings);
         recipe.UpdatedAtUtc = DateTimeOffset.UtcNow;
         recipe.Ingredients.Clear();
         foreach (var ing in mappedIngredients.Items)
@@ -163,7 +164,7 @@ public sealed class RecipeService(
                 RecipeId = recipeId,
                 IngredientId = ingredient.Id,
                 SortOrder = index,
-                NormalizedQuantity = normalized.Quantity,
+                NormalizedQuantity = Quantity.FromAmount(normalized.Quantity),
                 NormalizedUnit = normalized.Unit,
                 Note = request.Note?.Trim()
             });
@@ -247,14 +248,14 @@ public sealed class RecipeService(
     }
 
     private RecipeDetailResponse ToDetailResponse(Recipe recipe, IReadOnlyList<RecipeImageResponse>? images = null) =>
-        new(recipe.Id, recipe.Title, recipe.Slug, recipe.DescriptionMarkdown, recipe.Servings,
+        new(recipe.Id, recipe.Title, recipe.Slug, recipe.DescriptionMarkdown, recipe.Servings.Value,
             recipe.Ingredients
                 .OrderBy(i => i.SortOrder)
                 .Select(i =>
                 {
-                    var display = measurementMappingService.ToDisplay(i.NormalizedQuantity, i.NormalizedUnit, i.Ingredient);
+                    var display = measurementMappingService.ToDisplay(i.NormalizedQuantity.Amount, i.NormalizedUnit, i.Ingredient);
                     return new RecipeIngredientResponse(i.Id, i.SortOrder, i.IngredientId, i.Ingredient.Name,
-                        display.Quantity, display.Unit, i.NormalizedQuantity, i.NormalizedUnit, i.Note);
+                        display.Quantity, display.Unit, i.NormalizedQuantity.Amount, i.NormalizedUnit, i.Note);
                 })
                 .ToList(),
             images ?? [],
@@ -274,7 +275,7 @@ public sealed class RecipeService(
         string? firstImageUrl = null;
         if (firstImageIds is not null && firstImageIds.TryGetValue(recipe.Id, out var imageId))
             firstImageUrl = $"/api/recipes/{recipe.Id}/images/{imageId}/content";
-        return new(recipe.Id, recipe.Title, recipe.Slug, recipe.Ingredients.Count, recipe.Servings,
+        return new(recipe.Id, recipe.Title, recipe.Slug, recipe.Ingredients.Count, recipe.Servings.Value,
             firstImageUrl, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
     }
 

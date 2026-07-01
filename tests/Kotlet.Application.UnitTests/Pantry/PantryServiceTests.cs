@@ -1,5 +1,6 @@
 using Kotlet.Application.Pantry;
 using Kotlet.Application.Translations;
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.Pantry;
 using Xunit;
@@ -125,7 +126,7 @@ public sealed class PantryServiceTests
         var result = await service.UpdateAsync(item.Id, HouseId, 750m, English, CancellationToken.None);
 
         Assert.Equal(PantryOperationStatus.Success, result.Status);
-        Assert.Equal(750m, item.Quantity);
+        Assert.Equal(750m, item.Quantity.Amount);
         Assert.Equal(750m, result.Item!.Quantity);
     }
 
@@ -139,7 +140,7 @@ public sealed class PantryServiceTests
         var result = await service.UpdateAsync(item.Id, HouseId, -5m, English, CancellationToken.None);
 
         Assert.Equal(PantryOperationStatus.ValidationFailed, result.Status);
-        Assert.Equal(100m, item.Quantity);
+        Assert.Equal(100m, item.Quantity.Amount);
     }
 
     [Fact]
@@ -208,7 +209,7 @@ public sealed class PantryServiceTests
             var item = new PantryItem
             {
                 Id = Guid.NewGuid(), HouseId = houseId, IngredientId = ingredient.Id,
-                Quantity = quantity, Ingredient = ingredient
+                Quantity = Quantity.FromAmount(quantity), Ingredient = ingredient
             };
             Items.Add(item);
             return item;

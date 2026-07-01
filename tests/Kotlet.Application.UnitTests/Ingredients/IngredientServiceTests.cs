@@ -1,5 +1,6 @@
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.Translations;
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
 using Xunit;
 
@@ -201,7 +202,7 @@ public sealed class IngredientServiceTests
 
     private static Ingredient Ingredient(string name) => new()
     {
-        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g", CaloriesPer100BaseUnits = 0, PricePer100BaseUnits = 0
+        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g", CaloriesPer100BaseUnits = Calories.Zero, PricePer100BaseUnits = Price.Zero
     };
 
     private sealed class FakeIngredientRepository(params Ingredient[] ingredients) : IIngredientRepository
