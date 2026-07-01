@@ -42,10 +42,12 @@ export class MealPlannerPage implements OnInit {
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly translations = inject(TranslationService);
 
-  readonly slots: MealSlot[] = ['breakfast', 'dinner', 'supper'];
+  readonly slots: MealSlot[] = ['breakfast', 'second-breakfast', 'dinner', 'snack', 'supper'];
   readonly slotLabels = computed<Record<MealSlot, string>>(() => ({
     breakfast: this.translations.translate('meal.breakfast'),
+    'second-breakfast': this.translations.translate('meal.secondBreakfast'),
     dinner: this.translations.translate('meal.lunch'),
+    snack: this.translations.translate('meal.snack'),
     supper: this.translations.translate('meal.dinner'),
   }));
 
@@ -70,12 +72,12 @@ export class MealPlannerPage implements OnInit {
 
   readonly members = signal<HouseMember[]>([]);
 
-  readonly selectedRecipeId = signal<Record<MealSlot, string>>({ breakfast: '', dinner: '', supper: '' });
-  readonly selectedIngredientId = signal<Record<MealSlot, string>>({ breakfast: '', dinner: '', supper: '' });
+  readonly selectedRecipeId = signal<Record<MealSlot, string>>({ breakfast: '', 'second-breakfast': '', dinner: '', snack: '', supper: '' });
+  readonly selectedIngredientId = signal<Record<MealSlot, string>>({ breakfast: '', 'second-breakfast': '', dinner: '', snack: '', supper: '' });
   readonly addingSlot = signal<string | null>(null);
   readonly removingId = signal<string | null>(null);
   readonly busyItemId = signal<string | null>(null);
-  readonly composer = signal<Record<MealSlot, MealPlanItemType | null>>({ breakfast: null, dinner: null, supper: null });
+  readonly composer = signal<Record<MealSlot, MealPlanItemType | null>>({ breakfast: null, 'second-breakfast': null, dinner: null, snack: null, supper: null });
   readonly shoppingItemState = signal<Record<string, 'adding' | 'added'>>({});
 
   readonly dayTotal = computed(() => this.allItems().reduce((total, item) => total + (this.itemCost(item) ?? 0), 0));
