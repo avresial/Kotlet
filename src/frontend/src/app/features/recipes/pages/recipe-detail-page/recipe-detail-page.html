@@ -26,6 +26,7 @@
         </div>
         <header class="hero-copy">
           <p class="eyebrow">Recipe · {{ r.servings }} serving{{ r.servings !== 1 ? 's' : '' }}</p>
+          @if (r.mealType) { <p class="eyebrow">{{ ('meal.slot.' + r.mealType) | t }}</p> }
           <h1>{{ r.title }}</h1>
           <p class="meta">
             <span>♧ {{ r.ingredients.length }} ingredient{{ r.ingredients.length !== 1 ? 's' : '' }}</span>

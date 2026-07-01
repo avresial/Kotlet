@@ -10,13 +10,15 @@ public sealed record CreateRecipeRequest(
     string Title,
     string? DescriptionMarkdown,
     IReadOnlyList<RecipeIngredientRequest> Ingredients,
-    int Servings = 1);
+    int Servings = 1,
+    string? MealType = null);
 
 public sealed record UpdateRecipeRequest(
     string Title,
     string? DescriptionMarkdown,
     IReadOnlyList<RecipeIngredientRequest> Ingredients,
-    int Servings = 1);
+    int Servings = 1,
+    string? MealType = null);
 
 public sealed record RecipeIngredientResponse(
     Guid Id,
@@ -35,6 +37,7 @@ public sealed record RecipeSummaryResponse(
     string Slug,
     int IngredientCount,
     int Servings,
+    string? MealType,
     string? FirstImageUrl,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
@@ -45,6 +48,7 @@ public sealed record RecipeDetailResponse(
     string Slug,
     string? DescriptionMarkdown,
     int Servings,
+    string? MealType,
     IReadOnlyList<RecipeIngredientResponse> Ingredients,
     IReadOnlyList<RecipeImageResponse> Images,
     DateTimeOffset CreatedAtUtc,

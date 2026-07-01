@@ -7,7 +7,7 @@ import {
   output,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CreateRecipeRequest, RecipeDetail, RecipeIngredientRequest } from '../../models/recipe.models';
+import { CreateRecipeRequest, RecipeDetail, RecipeIngredientRequest, recipeMealTypes } from '../../models/recipe.models';
 import { IngredientListEditor } from '../ingredient-list-editor/ingredient-list-editor';
 import { MarkdownEditor } from '../markdown-editor/markdown-editor';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
@@ -35,10 +35,12 @@ export class RecipeForm implements OnInit {
 
   selectedImage: File | null = null;
   imageError: string | null = null;
+  readonly mealTypes = recipeMealTypes;
 
   readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(160)]],
     servings: [1, [Validators.required, Validators.min(1), Validators.max(99)]],
+    mealType: [null as string | null],
     descriptionMarkdown: [''],
     ingredients: [[] as RecipeIngredientRequest[]],
   });
@@ -49,6 +51,7 @@ export class RecipeForm implements OnInit {
       this.form.setValue({
         title: initial.title,
         servings: initial.servings,
+        mealType: initial.mealType,
         descriptionMarkdown: initial.descriptionMarkdown ?? '',
         ingredients: initial.ingredients.map((i) => ({
           ingredientId: i.ingredientId,
@@ -70,6 +73,7 @@ export class RecipeForm implements OnInit {
     this.submitted.emit({
       title: value.title.trim(),
       servings: value.servings,
+      mealType: value.mealType as CreateRecipeRequest['mealType'],
       descriptionMarkdown: value.descriptionMarkdown || null,
       ingredients: value.ingredients,
     });

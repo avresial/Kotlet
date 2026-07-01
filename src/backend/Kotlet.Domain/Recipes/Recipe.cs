@@ -1,4 +1,5 @@
 using Kotlet.Domain.Common;
+using Kotlet.Domain.MealPlanner;
 
 namespace Kotlet.Domain.Recipes;
 
@@ -18,6 +19,7 @@ public sealed class Recipe
     /// calculating meal-prep prices and the units to buy for a shopping list.
     /// </summary>
     public ServingCount Servings { get; set; } = ServingCount.One;
+    public MealSlot? MealType { get; set; }
 
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }

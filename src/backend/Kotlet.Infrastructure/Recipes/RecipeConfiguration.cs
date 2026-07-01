@@ -23,6 +23,7 @@ internal sealed class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
             .HasConversion(servings => servings.Value, value => ServingCount.FromInt32(value))
             .HasDefaultValue(ServingCount.One)
             .IsRequired();
+        builder.Property(r => r.MealType).HasColumnName("meal_type");
         builder.Property(r => r.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
         builder.Property(r => r.UpdatedAtUtc).HasColumnName("updated_at_utc").IsRequired();
 
