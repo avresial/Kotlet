@@ -1,4 +1,5 @@
 using System.Globalization;
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -35,7 +36,7 @@ public sealed class IngredientCsvSeeder(
                 MeasurementUnit = seed.MeasurementUnit,
                 IsCountable = seed.MeasurementUnitsPerPiece.HasValue,
                 MeasurementUnitsPerPiece = seed.MeasurementUnitsPerPiece,
-                CaloriesPer100BaseUnits = seed.CaloriesPer100BaseUnits,
+                CaloriesPer100BaseUnits = Calories.FromKilocalories(seed.CaloriesPer100BaseUnits),
                 PricePer100BaseUnits = seed.PricePer100BaseUnits,
                 Category = classification.Category,
                 Allergens = classification.Allergens,

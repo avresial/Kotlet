@@ -1,4 +1,5 @@
 using Kotlet.Application.Translations;
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
 
 namespace Kotlet.Application.Ingredients;
@@ -60,7 +61,7 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             MeasurementUnit = NormalizeUnit(command.MeasurementUnit),
             IsCountable = command.IsCountable,
             MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null,
-            CaloriesPer100BaseUnits = command.CaloriesPer100BaseUnits,
+            CaloriesPer100BaseUnits = Calories.FromKilocalories(command.CaloriesPer100BaseUnits),
             PricePer100BaseUnits = command.PricePer100BaseUnits,
             Category = command.Category, Allergens = command.Allergens,
             Attributes = command.Attributes, Suitability = command.Suitability
@@ -107,7 +108,7 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
         ingredient.MeasurementUnit = measurementUnit;
         ingredient.IsCountable = command.IsCountable;
         ingredient.MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null;
-        ingredient.CaloriesPer100BaseUnits = command.CaloriesPer100BaseUnits;
+        ingredient.CaloriesPer100BaseUnits = Calories.FromKilocalories(command.CaloriesPer100BaseUnits);
         ingredient.PricePer100BaseUnits = command.PricePer100BaseUnits;
         ingredient.Category = command.Category;
         ingredient.Allergens = command.Allergens;
@@ -211,7 +212,7 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             ingredient.Name,
             translation,
             ingredient.MeasurementUnit, ingredient.IsCountable,
-            ingredient.MeasurementUnitsPerPiece, ingredient.CaloriesPer100BaseUnits,
+            ingredient.MeasurementUnitsPerPiece, ingredient.CaloriesPer100BaseUnits.Kilocalories,
             ingredient.PricePer100BaseUnits, ingredient.SvgIcon, ingredient.Category,
             ingredient.Allergens, ingredient.Attributes, ingredient.Suitability);
     private static IngredientOperationResult Conflict() =>
