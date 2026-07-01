@@ -28,6 +28,12 @@ public sealed class IngredientCsvSeederTests
         var orange = await dbContext.Ingredients.SingleAsync(x => x.Name == "Orange");
         Assert.True(orange.IsCountable);
         Assert.Equal(150m, orange.MeasurementUnitsPerPiece);
+        var salmon = await dbContext.Ingredients.SingleAsync(x => x.Name == "Salmon fillet");
+        Assert.Equal(FoodCategory.Fish, salmon.Category);
+        Assert.True(salmon.Allergens.HasFlag(Allergen.Fish));
+        var parmesan = await dbContext.Ingredients.SingleAsync(x => x.Name == "Parmesan");
+        Assert.Equal(FoodCategory.Cheese, parmesan.Category);
+        Assert.Equal(DietarySuitability.None, parmesan.Suitability);
         Assert.Empty(await dbContext.Ingredients
             .Where(x => x.MeasurementUnit != "g" && x.MeasurementUnit != "ml")
             .ToListAsync());
@@ -52,5 +58,21 @@ public sealed class IngredientCsvSeederTests
 
         Assert.Equal(0, count);
         Assert.Single(await dbContext.Ingredients.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Flags_RoundTripAndCanBeQueried()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<KotletDbContext>().UseSqlite(connection).Options;
+        await using var dbContext = new KotletDbContext(options);
+        await dbContext.Database.EnsureCreatedAsync();
+        var expected = Allergen.Milk | Allergen.Gluten;
+        dbContext.Ingredients.Add(new Ingredient { Id = Guid.NewGuid(), Name = "Test", MeasurementUnit = "g", Allergens = expected });
+        await dbContext.SaveChangesAsync();
+
+        Assert.Equal(expected, (await dbContext.Ingredients.SingleAsync()).Allergens);
+        Assert.Single(await dbContext.Ingredients.Where(x => (x.Allergens & Allergen.Milk) != 0).ToListAsync());
     }
 }

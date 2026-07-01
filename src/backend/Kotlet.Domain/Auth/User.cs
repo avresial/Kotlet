@@ -1,5 +1,6 @@
 using Kotlet.Domain.Houses;
 using Kotlet.Domain.Ai;
+using Kotlet.Domain.FoodSettings;
 
 namespace Kotlet.Domain.Auth;
 
@@ -20,4 +21,5 @@ public sealed class User
     public ICollection<HouseMembership> Memberships { get; set; } = [];
     public House? DefaultHouse { get; set; }
     public UserAiProviderConfiguration? AiProviderConfiguration { get; set; }
+    public UserFoodSettings? FoodSettings { get; set; }
 }

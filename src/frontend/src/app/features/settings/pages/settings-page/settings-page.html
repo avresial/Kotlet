@@ -5,6 +5,7 @@
     <h1>{{ 'nav.settings' | t }}</h1>
     <p>{{ 'settings.intro' | t }}</p>
   </header>
+  <a class="card food-link" routerLink="/settings/food"><strong>{{ 'foodSettings.title' | t }}</strong><span>{{ 'foodSettings.intro' | t }}</span></a>
 
   @if (auth.currentUser(); as user) {
     <section class="card account" aria-labelledby="account-title">
@@ -105,6 +106,13 @@
           <p-button type="button" severity="danger" [outlined]="true" [label]="'settings.aiProviderDelete' | t" [disabled]="providerSaving()" (onClick)="deleteProvider()" />
         </div>
       </form>
+    </section>
+
+    <section class="card" aria-labelledby="mcp-title">
+      <div class="section-heading"><h2 id="mcp-title">{{ 'settings.mcp' | t }}</h2><p>{{ 'settings.mcpHelp' | t }}</p></div>
+      <div class="actions">
+        <a class="mcp-connect-link" routerLink="/connect/mcp">{{ 'settings.mcpConnect' | t }} <span aria-hidden="true">→</span></a>
+      </div>
     </section>
   }
 </main>

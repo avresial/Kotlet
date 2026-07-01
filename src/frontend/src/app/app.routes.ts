@@ -54,10 +54,20 @@ export const routes: Routes = [
       import('./features/ingredients/pages/ingredients-page/ingredients-page').then((m) => m.IngredientsPage),
   },
   {
+    path: 'settings/food', canActivate: [authGuard],
+    loadComponent: () => import('./features/settings/pages/food-settings-page/food-settings-page').then((m) => m.FoodSettingsPage),
+  },
+  {
     path: 'settings',
     canActivate: [authGuard],
     loadComponent: () =>
       import('./features/settings/pages/settings-page/settings-page').then((m) => m.SettingsPage),
+  },
+  {
+    path: 'connect/mcp',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/connect/pages/mcp-connect-page/mcp-connect-page').then((m) => m.McpConnectPage),
   },
   {
     path: 'admin',

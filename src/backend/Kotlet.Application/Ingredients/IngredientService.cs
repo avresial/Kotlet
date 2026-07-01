@@ -8,6 +8,9 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
     private static readonly HashSet<string> MeasurementUnits = ["g", "ml"];
     private static readonly IReadOnlyDictionary<string, string> NoTranslations =
         new Dictionary<string, string>();
+    private static readonly Allergen KnownAllergens = Enum.GetValues<Allergen>().Aggregate((left, right) => left | right);
+    private static readonly FoodAttribute KnownAttributes = Enum.GetValues<FoodAttribute>().Aggregate((left, right) => left | right);
+    private static readonly DietarySuitability KnownSuitability = Enum.GetValues<DietarySuitability>().Aggregate((left, right) => left | right);
 
     /// <summary>
     /// The canonical name stored for an ingredient that was created in a non-default language.
@@ -58,7 +61,9 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             IsCountable = command.IsCountable,
             MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null,
             CaloriesPer100BaseUnits = command.CaloriesPer100BaseUnits,
-            PricePer100BaseUnits = command.PricePer100BaseUnits
+            PricePer100BaseUnits = command.PricePer100BaseUnits,
+            Category = command.Category, Allergens = command.Allergens,
+            Attributes = command.Attributes, Suitability = command.Suitability
         };
         repository.Add(ingredient);
         // Stage the translation (when any) so the ingredient row and its translation are persisted
@@ -104,6 +109,10 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
         ingredient.MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null;
         ingredient.CaloriesPer100BaseUnits = command.CaloriesPer100BaseUnits;
         ingredient.PricePer100BaseUnits = command.PricePer100BaseUnits;
+        ingredient.Category = command.Category;
+        ingredient.Allergens = command.Allergens;
+        ingredient.Attributes = command.Attributes;
+        ingredient.Suitability = command.Suitability;
         if (persistedTranslation is not null)
             await translations.SetAsync(TranslationKeys.Ingredient(ingredient.Id, languageCode), persistedTranslation, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
@@ -184,6 +193,14 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             errors["caloriesPer100BaseUnits"] = ["Calories per 100 base units must be between 0 and 999999.99."];
         if (command.PricePer100BaseUnits < 0 || command.PricePer100BaseUnits > 99999999.99m)
             errors["pricePer100BaseUnits"] = ["Price per 100 base units must be between 0 and 99999999.99."];
+        if (!Enum.IsDefined(command.Category))
+            errors["category"] = ["Category is invalid."];
+        if ((command.Allergens & ~KnownAllergens) != 0)
+            errors["allergens"] = ["Allergens contain unsupported values."];
+        if ((command.Attributes & ~KnownAttributes) != 0)
+            errors["attributes"] = ["Attributes contain unsupported values."];
+        if ((command.Suitability & ~KnownSuitability) != 0)
+            errors["suitability"] = ["Suitability contains unsupported values."];
         return errors;
     }
 
@@ -195,7 +212,8 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             translation,
             ingredient.MeasurementUnit, ingredient.IsCountable,
             ingredient.MeasurementUnitsPerPiece, ingredient.CaloriesPer100BaseUnits,
-            ingredient.PricePer100BaseUnits, ingredient.SvgIcon);
+            ingredient.PricePer100BaseUnits, ingredient.SvgIcon, ingredient.Category,
+            ingredient.Allergens, ingredient.Attributes, ingredient.Suitability);
     private static IngredientOperationResult Conflict() =>
         new(IngredientOperationStatus.Conflict, Message: "An ingredient with this name already exists.");
 }

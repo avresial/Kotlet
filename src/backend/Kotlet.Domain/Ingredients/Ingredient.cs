@@ -10,4 +10,8 @@ public sealed class Ingredient
     public decimal CaloriesPer100BaseUnits { get; set; }
     public decimal PricePer100BaseUnits { get; set; }
     public string? SvgIcon { get; set; }
+    public FoodCategory Category { get; set; }
+    public Allergen Allergens { get; set; }
+    public FoodAttribute Attributes { get; set; }
+    public DietarySuitability Suitability { get; set; }
 }

@@ -1,3 +1,5 @@
+using Kotlet.Domain.Ingredients;
+
 namespace Kotlet.Application.Ingredients;
 
 public sealed record IngredientDto(
@@ -10,7 +12,11 @@ public sealed record IngredientDto(
     decimal? MeasurementUnitsPerPiece,
     decimal CaloriesPer100BaseUnits,
     decimal PricePer100BaseUnits,
-    string? SvgIcon);
+    string? SvgIcon,
+    FoodCategory Category,
+    Allergen Allergens,
+    FoodAttribute Attributes,
+    DietarySuitability Suitability);
 
 public sealed record SaveIngredientCommand(
     string Name,
@@ -19,7 +25,11 @@ public sealed record SaveIngredientCommand(
     decimal? MeasurementUnitsPerPiece,
     decimal CaloriesPer100BaseUnits,
     decimal PricePer100BaseUnits,
-    string? Translation = null);
+    string? Translation = null,
+    FoodCategory Category = FoodCategory.Unknown,
+    Allergen Allergens = Allergen.None,
+    FoodAttribute Attributes = FoodAttribute.None,
+    DietarySuitability Suitability = DietarySuitability.None);
 
 public enum IngredientOperationStatus
 {
