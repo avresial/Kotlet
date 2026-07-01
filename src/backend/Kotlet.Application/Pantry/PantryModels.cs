@@ -1,7 +1,7 @@
 namespace Kotlet.Application.Pantry;
 
-public sealed record PantryItemDto(Guid Id, Guid IngredientId, string IngredientName, string MeasurementUnit, decimal Quantity);
-public sealed record SavePantryItemCommand(Guid IngredientId, decimal Quantity);
+public sealed record PantryItemDto(Guid Id, Guid IngredientId, string IngredientName, string MeasurementUnit, decimal Quantity, DateOnly? ExpirationDate);
+public sealed record SavePantryItemCommand(Guid IngredientId, decimal Quantity, DateOnly? ExpirationDate = null);
 
 public enum PantryOperationStatus { Success, NotFound, Conflict, ValidationFailed }
 public sealed record PantryOperationResult(

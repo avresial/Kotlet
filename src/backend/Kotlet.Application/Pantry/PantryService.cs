@@ -22,7 +22,7 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
         if (await repository.ItemExistsAsync(houseId, command.IngredientId, cancellationToken))
             return new(PantryOperationStatus.Conflict, Message: "This ingredient is already in your pantry.");
 
-        var item = new PantryItem { Id = Guid.NewGuid(), HouseId = houseId, IngredientId = command.IngredientId, Quantity = Quantity.FromAmount(command.Quantity) };
+        var item = new PantryItem { Id = Guid.NewGuid(), HouseId = houseId, IngredientId = command.IngredientId, Quantity = Quantity.FromAmount(command.Quantity), ExpirationDate = command.ExpirationDate };
         repository.Add(item);
         await repository.SaveChangesAsync(cancellationToken);
         var saved = await repository.GetByIdAsync(item.Id, houseId, cancellationToken);
@@ -68,5 +68,5 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
         && !string.IsNullOrWhiteSpace(translated) ? translated : fallback;
 
     private static PantryItemDto ToDto(PantryItem item, string ingredientName) =>
-        new(item.Id, item.IngredientId, ingredientName, item.Ingredient.MeasurementUnit, item.Quantity.Amount);
+        new(item.Id, item.IngredientId, ingredientName, item.Ingredient.MeasurementUnit, item.Quantity.Amount, item.ExpirationDate);
 }
