@@ -52,6 +52,7 @@ describe('RecipeForm image picker', () => {
       caloriesPer100BaseUnits: 0,
       pricePer100BaseUnits: 0,
       svgIcon: null,
+      category: 0,
     }]);
     editor.isLoadingIngredients.set(false);
 

@@ -5,7 +5,7 @@ import { finalize } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { Ingredient, IngredientRequest, measurementUnits } from '../../ingredient.models';
+import { foodCategories, Ingredient, IngredientRequest, measurementUnits } from '../../ingredient.models';
 import { IngredientService } from '../../ingredient.service';
 
 const DEFAULT_LANGUAGE = 'en';
@@ -34,6 +34,7 @@ export class IngredientsPage implements OnInit {
       : this.ingredients();
   });
   readonly units = measurementUnits;
+  readonly categories = foodCategories;
   readonly editingId = signal<string | null>(null);
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
@@ -44,6 +45,7 @@ export class IngredientsPage implements OnInit {
     name: ['', [Validators.required, Validators.maxLength(150)]],
     translation: ['', [Validators.maxLength(150)]],
     measurementUnit: ['g', Validators.required],
+    category: [0, Validators.required],
     isCountable: [false],
     measurementUnitsPerPiece: [null as number | null, [Validators.min(0.001), Validators.max(999999999.999)]],
     caloriesPer100BaseUnits: [0, [Validators.required, Validators.min(0), Validators.max(999999.99)]],
@@ -70,7 +72,7 @@ export class IngredientsPage implements OnInit {
     this.error.set(null);
     this.form.setValue({
       name: ingredient.defaultName, translation: ingredient.translation ?? '',
-      measurementUnit: ingredient.measurementUnit,
+      measurementUnit: ingredient.measurementUnit, category: ingredient.category,
       isCountable: ingredient.isCountable, measurementUnitsPerPiece: ingredient.measurementUnitsPerPiece,
       caloriesPer100BaseUnits: ingredient.caloriesPer100BaseUnits,
       pricePer100BaseUnits: ingredient.pricePer100BaseUnits,
@@ -80,7 +82,7 @@ export class IngredientsPage implements OnInit {
 
   cancelEdit(): void {
     this.editingId.set(null);
-    this.form.reset({ name: '', translation: '', measurementUnit: 'g', isCountable: false, measurementUnitsPerPiece: null,
+    this.form.reset({ name: '', translation: '', measurementUnit: 'g', category: 0, isCountable: false, measurementUnitsPerPiece: null,
       caloriesPer100BaseUnits: 0, pricePer100BaseUnits: 0 });
   }
 
@@ -97,6 +99,7 @@ export class IngredientsPage implements OnInit {
     const request: IngredientRequest = {
       name: value.name,
       measurementUnit: value.measurementUnit,
+      category: value.category,
       isCountable: value.isCountable,
       measurementUnitsPerPiece: value.isCountable ? value.measurementUnitsPerPiece : null,
       caloriesPer100BaseUnits: value.caloriesPer100BaseUnits,
