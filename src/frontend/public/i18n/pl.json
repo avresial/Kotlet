@@ -1,5 +1,6 @@
 {
   "recipes.mealType": "Typ posiłku", "recipes.mealTypeNone": "Bez typu posiłku",
+  "pantry.location": "Lokalizacja", "pantry.location.refrigerator": "Lodówka", "pantry.location.freezer": "Zamrażarka", "pantry.location.cabinet": "Szafka",
   "pantry.expirationDate": "Data ważności (opcjonalnie)", "pantry.expires": "Ważne do",
   "ingredients.allCategories": "Wszystkie kategorie", "ingredients.noFilterMatches": "Brak składników pasujących do wybranych filtrów.",
   "recipes.nutritionAndCost": "Koszt i kalorie przepisu", "recipes.totalCost": "Koszt całości", "recipes.totalCalories": "Kalorie całości", "recipes.serving": "porcję",

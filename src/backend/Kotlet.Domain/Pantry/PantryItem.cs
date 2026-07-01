@@ -11,6 +11,7 @@ public sealed class PantryItem
     public Guid IngredientId { get; set; }
     public Quantity Quantity { get; set; }
     public DateOnly? ExpirationDate { get; set; }
+    public StorageLocation? StorageLocation { get; set; }
     public House House { get; set; } = null!;
     public Ingredient Ingredient { get; set; } = null!;
 }

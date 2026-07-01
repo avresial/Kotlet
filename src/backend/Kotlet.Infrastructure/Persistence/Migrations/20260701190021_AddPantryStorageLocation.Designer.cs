@@ -3,6 +3,7 @@ using System;
 using Kotlet.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Kotlet.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(KotletDbContext))]
-    partial class KotletDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260701190021_AddPantryStorageLocation")]
+    partial class AddPantryStorageLocation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -582,10 +585,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("HouseId")
                         .HasColumnType("uuid")
                         .HasColumnName("house_id");
-
-                    b.Property<int?>("MealType")
-                        .HasColumnType("integer")
-                        .HasColumnName("meal_type");
 
                     b.Property<Guid>("OwnerUserId")
                         .HasColumnType("uuid")
