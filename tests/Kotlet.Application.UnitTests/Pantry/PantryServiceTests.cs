@@ -89,6 +89,19 @@ public sealed class PantryServiceTests
     }
 
     [Fact]
+    public async Task Create_WithInvalidStorageLocation_FailsValidation()
+    {
+        var repo = new FakeRepository(Flour);
+        var service = new PantryService(repo, new FakeTranslationRepository());
+
+        var result = await service.CreateAsync(HouseId,
+            new SavePantryItemCommand(Flour.Id, 1m, StorageLocation: (StorageLocation)99), English, CancellationToken.None);
+
+        Assert.Equal(PantryOperationStatus.ValidationFailed, result.Status);
+        Assert.Contains("storageLocation", result.ValidationErrors!);
+    }
+
+    [Fact]
     public async Task Create_WithUnknownIngredient_ReturnsNotFound()
     {
         var repo = new FakeRepository(Flour);

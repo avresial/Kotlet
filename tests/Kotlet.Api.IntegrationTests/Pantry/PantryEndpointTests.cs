@@ -21,12 +21,13 @@ public sealed class PantryEndpointTests(TestWebApplicationFactory factory) : ICl
         var client = await CreateAuthenticatedClient("pantry");
         var ingredientId = await CreateIngredient(client);
 
-        var createdResponse = await client.PostAsJsonAsync("/api/pantry", new { ingredientId, quantity = 2.5m, expirationDate = "2026-07-15" });
+        var createdResponse = await client.PostAsJsonAsync("/api/pantry", new { ingredientId, quantity = 2.5m, expirationDate = "2026-07-15", storageLocation = 2 });
         Assert.Equal(HttpStatusCode.Created, createdResponse.StatusCode);
         var created = await createdResponse.Content.ReadFromJsonAsync<JsonElement>();
         var itemId = created.GetProperty("id").GetGuid();
         Assert.Equal(2.5m, created.GetProperty("quantity").GetDecimal());
         Assert.Equal("2026-07-15", created.GetProperty("expirationDate").GetString());
+        Assert.Equal(2, created.GetProperty("storageLocation").GetInt32());
 
         var updatedResponse = await client.PutAsJsonAsync($"/api/pantry/{itemId}", new { quantity = 1.25m });
         Assert.Equal(HttpStatusCode.OK, updatedResponse.StatusCode);
