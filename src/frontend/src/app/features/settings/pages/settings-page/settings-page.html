@@ -5,6 +5,7 @@
     <h1>{{ 'nav.settings' | t }}</h1>
     <p>{{ 'settings.intro' | t }}</p>
   </header>
+  <a class="card food-link" routerLink="/settings/food"><strong>{{ 'foodSettings.title' | t }}</strong><span>{{ 'foodSettings.intro' | t }}</span></a>
 
   @if (auth.currentUser(); as user) {
     <section class="card account" aria-labelledby="account-title">

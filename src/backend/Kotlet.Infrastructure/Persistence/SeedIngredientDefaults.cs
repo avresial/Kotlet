@@ -1,3 +1,5 @@
+using Kotlet.Domain.Ingredients;
+
 namespace Kotlet.Infrastructure.Persistence;
 
 internal static class SeedIngredientDefaults
@@ -26,4 +28,19 @@ internal static class SeedIngredientDefaults
 
     public static decimal? MeasurementUnitsPerPiece(string name, string measurementUnit) =>
         measurementUnit == "g" && PieceWeights.TryGetValue(name, out var weight) ? weight : null;
+
+    public static (FoodCategory Category, Allergen Allergens, FoodAttribute Attributes, DietarySuitability Suitability)
+        Classification(string name) => name switch
+        {
+            "Salmon fillet" => (FoodCategory.Fish, Allergen.Fish, FoodAttribute.AnimalOrigin, DietarySuitability.Pescatarian),
+            "Shrimp" => (FoodCategory.Shellfish, Allergen.Crustaceans, FoodAttribute.AnimalOrigin, DietarySuitability.Pescatarian),
+            "Whole milk" or "Skimmed milk" => (FoodCategory.Dairy, Allergen.Milk, FoodAttribute.AnimalOrigin | FoodAttribute.ContainsLactose, DietarySuitability.Vegetarian),
+            "Parmesan" => (FoodCategory.Cheese, Allergen.Milk, FoodAttribute.AnimalOrigin | FoodAttribute.Fermented, DietarySuitability.None),
+            "Pasta" => (FoodCategory.Grain, Allergen.Gluten, FoodAttribute.PlantOrigin, DietarySuitability.Vegan | DietarySuitability.Vegetarian),
+            "Peanut butter" => (FoodCategory.Composite, Allergen.Peanuts, FoodAttribute.PlantOrigin | FoodAttribute.Processed, DietarySuitability.Vegan | DietarySuitability.Vegetarian),
+            "Soy sauce" => (FoodCategory.Sauce, Allergen.Soybeans | Allergen.Gluten, FoodAttribute.PlantOrigin | FoodAttribute.Fermented, DietarySuitability.Vegan | DietarySuitability.Vegetarian),
+            "Apple" => (FoodCategory.Fruit, Allergen.None, FoodAttribute.PlantOrigin, DietarySuitability.Vegan | DietarySuitability.Vegetarian),
+            "Red lentils" or "Green lentils" or "Brown lentils" => (FoodCategory.Legume, Allergen.None, FoodAttribute.PlantOrigin, DietarySuitability.Vegan | DietarySuitability.Vegetarian),
+            _ => default
+        };
 }
