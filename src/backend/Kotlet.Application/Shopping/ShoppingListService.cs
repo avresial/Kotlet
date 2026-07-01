@@ -72,5 +72,6 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
     private static ShoppingListItemDto ToDto(ShoppingListItem item, string ingredientName) => new(
         item.Id, item.IngredientId, ingredientName, item.Ingredient.MeasurementUnit,
         item.Quantity.Amount, item.Ingredient.PricePer100BaseUnits.Amount,
-        (item.Quantity.Amount / 100m * item.Ingredient.PricePer100BaseUnits).RoundedToCents().Amount, item.IsPurchased);
+        (item.Quantity.Amount / 100m * item.Ingredient.PricePer100BaseUnits).RoundedToCents().Amount, item.IsPurchased,
+        item.Ingredient.Category);
 }

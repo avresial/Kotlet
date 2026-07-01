@@ -5,11 +5,16 @@ import { finalize, forkJoin } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
-import { Ingredient } from '../../../ingredients/ingredient.models';
+import { foodCategories, Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
+
+export function groupShoppingItems(items: ShoppingListItem[]) {
+  return foodCategories.map(category => ({ ...category, items: items.filter(item => item.category === category.value) }))
+    .filter(group => group.items.length);
+}
 
 @Component({
   selector: 'app-shopping-list-page',
@@ -32,6 +37,7 @@ export class ShoppingListPage implements OnInit {
     !this.items().some(item => item.ingredientId === ingredient.id)));
   readonly purchasedCount = computed(() => this.items().filter(item => item.isPurchased).length);
   readonly totalPrice = computed(() => this.items().reduce((sum, item) => sum + item.totalPrice, 0));
+  readonly groups = computed(() => groupShoppingItems(this.items()));
   readonly form = this.formBuilder.nonNullable.group({
     ingredientId: ['', Validators.required],
     quantity: [1, [Validators.required, Validators.min(0.001)]],

@@ -22,7 +22,9 @@
     @else if (items().length === 0) { <p class="empty">{{ 'shopping.empty' | t }}</p> }
     @else {
       <div class="receipt-lines">
-        @for (item of items(); track item.id) {
+        @for (group of groups(); track group.value) {
+          <h3 class="category-heading">{{ group.label | t }}</h3>
+          @for (item of group.items; track item.id) {
           <article class="receipt-line" [class.is-purchased]="item.isPurchased">
             <button class="check" type="button" [disabled]="isSaving()" (click)="update(item, { isPurchased: !item.isPurchased })" [attr.aria-label]="(item.isPurchased ? 'shopping.markNotBought' : 'shopping.markBought') | t">{{ item.isPurchased ? '✓' : '○' }}</button>
             <div class="product"><strong>{{ item.ingredientName }}</strong><span>{{ item.pricePer100BaseUnits.toFixed(2) }} zł / 100 {{ item.measurementUnit }}</span></div>
@@ -31,6 +33,7 @@
             <strong class="line-price">{{ item.totalPrice.toFixed(2) }} zł</strong>
             <button class="remove" type="button" [disabled]="isSaving()" (click)="remove(item)" [attr.aria-label]="('common.remove' | t) + ' ' + item.ingredientName">×</button>
           </article>
+          }
         }
       </div>
     }

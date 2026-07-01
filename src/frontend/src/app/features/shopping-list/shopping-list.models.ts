@@ -7,4 +7,5 @@ export interface ShoppingListItem {
   pricePer100BaseUnits: number;
   totalPrice: number;
   isPurchased: boolean;
+  category: number;
 }
