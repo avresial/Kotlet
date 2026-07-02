@@ -34,6 +34,9 @@ interface TodaysMenuEntry {
 
 interface UselessFact { text: string; source: string; source_url: string; }
 
+export const newestIngredients = (ingredients: Ingredient[]): Ingredient[] =>
+  [...ingredients].sort((left, right) => right.createdAtUtc.localeCompare(left.createdAtUtc) || left.name.localeCompare(right.name)).slice(0, 5);
+
 export const ingredientPreview = (recipe: RecipeDetail): string =>
   recipe.ingredients.slice(0, 3).map(ingredient => ingredient.name).join(', ');
 
@@ -58,6 +61,7 @@ export class HomePage implements OnInit {
   readonly lowStock = signal<PantryItem[]>([]);
   readonly pantryLoading = signal(true);
   readonly ingredients = signal<Ingredient[]>([]);
+  readonly recentIngredients = computed(() => newestIngredients(this.ingredients()));
   readonly shoppingItems = signal<ShoppingListItem[]>([]);
   readonly shoppingLoading = signal(true);
   readonly shoppingSaving = signal(false);

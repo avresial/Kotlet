@@ -16,7 +16,8 @@ public sealed record IngredientDto(
     FoodCategory Category,
     Allergen Allergens,
     FoodAttribute Attributes,
-    DietarySuitability Suitability);
+    DietarySuitability Suitability,
+    DateTimeOffset CreatedAtUtc);
 
 public sealed record SaveIngredientCommand(
     string Name,
