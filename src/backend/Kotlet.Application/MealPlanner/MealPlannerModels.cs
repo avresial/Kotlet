@@ -16,6 +16,7 @@ public sealed record AddWeeklyMealPlanResponse(
     int Skipped);
 
 public sealed record CopyMealPlanDayRequest(DateOnly SourceDate, DateOnly TargetDate);
+public sealed record CopyMealPlanWeekRequest(DateOnly SourceWeekStart, DateOnly TargetWeekStart);
 
 public sealed record SetParticipantsRequest(IReadOnlyList<Guid> UserIds);
 
@@ -74,4 +75,9 @@ public sealed record WeeklyMealPlannerOperationResult(
 public sealed record CopyMealPlanDayResult(
     MealPlannerOperationStatus Status,
     DailyMealPlanResponse? Plan = null,
+    IReadOnlyDictionary<string, string[]>? ValidationErrors = null);
+
+public sealed record CopyMealPlanWeekResult(
+    MealPlannerOperationStatus Status,
+    int Copied = 0,
     IReadOnlyDictionary<string, string[]>? ValidationErrors = null);
