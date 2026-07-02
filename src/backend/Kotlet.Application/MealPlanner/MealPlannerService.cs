@@ -219,6 +219,40 @@ public sealed class MealPlannerService(
         return new(MealPlannerOperationStatus.Success, source.Count);
     }
 
+    /// <summary>
+    /// Moves a meal to a different day and/or slot, appending it to the end of the
+    /// target slot. Used by the drag-and-drop planner to relocate a planned meal
+    /// without recreating it, preserving its people, guests and serving overrides.
+    /// </summary>
+    public async Task<MealPlannerOperationResult> MoveItemAsync(
+        Guid userId, Guid houseId, Guid itemId, MoveMealPlanItemRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Slot) || !ValidSlots.Contains(request.Slot.ToLower()))
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
+            {
+                ["slot"] = [$"Slot must be one of: {string.Join(", ", ValidSlots)}."]
+            });
+
+        var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
+        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+
+        var targetSlot = ParseSlot(request.Slot);
+        if (item.Date != request.Date || item.Slot != targetSlot)
+        {
+            var targetCount = (await repository.GetByDateAsync(houseId, request.Date, cancellationToken))
+                .Count(i => i.Slot == targetSlot && i.Id != item.Id);
+            item.Date = request.Date;
+            item.Slot = targetSlot;
+            item.SortOrder = targetCount;
+            item.UpdatedAt = DateTimeOffset.UtcNow;
+            await repository.SaveChangesAsync(cancellationToken);
+        }
+
+        var members = await GetMemberNamesAsync(houseId, cancellationToken);
+        var response = await ToResponseAsync(item, userId, houseId, members, cancellationToken);
+        return new(MealPlannerOperationStatus.Success, response);
+    }
+
     public async Task<MealPlannerOperationStatus> RemoveItemAsync(
         Guid houseId, Guid itemId, CancellationToken cancellationToken)
     {

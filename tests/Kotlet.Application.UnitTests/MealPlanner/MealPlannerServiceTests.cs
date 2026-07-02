@@ -259,6 +259,70 @@ public sealed class MealPlannerServiceTests
         Assert.Empty(overview[2].PlannedSlots);
     }
 
+    // ---- Move ----
+
+    [Fact]
+    public async Task MoveItem_ToDifferentSlotSameDay_ReslotsAndAppends()
+    {
+        var (service, meals) = CreateService();
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 0);
+        item.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = item.Id, UserId = CurrentUserId });
+        meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 0);
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(Today, "dinner"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        Assert.Equal("dinner", result.Item!.Slot);
+        Assert.Equal(Today, item.Date);
+        Assert.Equal(MealSlot.Dinner, item.Slot);
+        // Appended after the one existing dinner meal.
+        Assert.Equal(1, item.SortOrder);
+        // People survive the move.
+        Assert.Equal(CurrentUserId, Assert.Single(item.Participants).UserId);
+    }
+
+    [Fact]
+    public async Task MoveItem_ToDifferentDay_KeepsSlotAndRelocates()
+    {
+        var (service, meals) = CreateService();
+        var target = Today.AddDays(2);
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 3);
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(target, "breakfast"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        Assert.Equal(target, item.Date);
+        Assert.Equal(MealSlot.Breakfast, item.Slot);
+        // First meal in an empty target slot.
+        Assert.Equal(0, item.SortOrder);
+    }
+
+    [Fact]
+    public async Task MoveItem_WithInvalidSlot_FailsValidation()
+    {
+        var (service, meals) = CreateService();
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 0);
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(Today, "brunch"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
+        Assert.True(result.ValidationErrors!.ContainsKey("slot"));
+    }
+
+    [Fact]
+    public async Task MoveItem_ForUnknownItem_ReturnsNotFound()
+    {
+        var (service, _) = CreateService();
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, Guid.NewGuid(),
+            new(Today, "dinner"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.NotFound, result.Status);
+    }
+
     // ---- Remove ----
 
     [Fact]

@@ -113,6 +113,50 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 .shopping-button { border-color: #d6b7a7; color: #843426; }
 .shopping-button.is-added { border-color: #afc1a9; color: #567451; }
 
+.drag-handle {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 1.4rem;
+  height: 2rem;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  color: #b3a99b;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+
+  &:hover { color: #8e392b; }
+  &:active { cursor: grabbing; }
+  svg { width: 1.05rem; height: 1.05rem; fill: currentColor; }
+}
+
+// Drag-and-drop feedback for relocating meals between slots and days.
+.meal-item.cdk-drag-preview {
+  padding: .55rem .8rem;
+  border: 0;
+  border-radius: .6rem;
+  background: #fffaf2;
+  box-shadow: 0 12px 30px rgba(64, 40, 20, .22);
+
+  .meal-item-details { display: none; }
+}
+.meal-item.cdk-drag-placeholder { opacity: .35; }
+.cdk-drag-animating { transition: transform .18s cubic-bezier(0, 0, .2, 1); }
+.item-list.cdk-drop-list-dragging .meal-item:not(.cdk-drag-placeholder) {
+  transition: transform .18s cubic-bezier(0, 0, .2, 1);
+}
+.item-list.cdk-drop-list-receiving {
+  border-radius: .5rem;
+  outline: 2px dashed #c58b53;
+  outline-offset: 4px;
+}
+.overview-day.cdk-drop-list-receiving {
+  border-color: #9a3a2a;
+  color: #7d3428;
+  background: #f7ead9;
+}
+
 .icon-button {
   display: inline-grid;
   flex: 0 0 auto;

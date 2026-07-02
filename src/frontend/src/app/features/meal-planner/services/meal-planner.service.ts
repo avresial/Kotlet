@@ -7,6 +7,7 @@ import {
   HouseMember,
   MealPlanOverviewDay,
   MealPlanItem,
+  MealSlot,
 } from '../models/meal-planner.models';
 
 @Injectable({ providedIn: 'root' })
@@ -41,6 +42,10 @@ export class MealPlannerService {
 
   removeItem(id: string) {
     return this.http.delete<void>(apiUrl(`/api/meal-planner/items/${id}`));
+  }
+
+  moveItem(id: string, date: string, slot: MealSlot) {
+    return this.http.put<MealPlanItem>(apiUrl(`/api/meal-planner/items/${id}/move`), { date, slot });
   }
 
   setParticipants(id: string, userIds: string[]) {

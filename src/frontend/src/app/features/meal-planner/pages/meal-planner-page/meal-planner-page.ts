@@ -1,3 +1,4 @@
+import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -36,7 +37,7 @@ export function weekStart(date: string): string {
 
 @Component({
   selector: 'app-meal-planner-page',
-  imports: [FormsModule, RouterLink, IngredientPicker, RecipePicker, TranslatePipe],
+  imports: [FormsModule, RouterLink, IngredientPicker, RecipePicker, TranslatePipe, CdkDropListGroup, CdkDropList, CdkDrag, CdkDragHandle],
   templateUrl: './meal-planner-page.html',
   styleUrl: './meal-planner-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -86,6 +87,7 @@ export class MealPlannerPage implements OnInit {
   readonly addingSlot = signal<string | null>(null);
   readonly removingId = signal<string | null>(null);
   readonly busyItemId = signal<string | null>(null);
+  readonly movingId = signal<string | null>(null);
   readonly composer = signal<Record<MealSlot, MealPlanItemType | null>>({ breakfast: null, 'second-breakfast': null, dinner: null, snack: null, supper: null });
   readonly shoppingItemState = signal<Record<string, 'adding' | 'added'>>({});
 
@@ -275,6 +277,53 @@ export class MealPlannerPage implements OnInit {
         this.loadOverview();
       },
       error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.addIngredientError'))),
+    });
+  }
+
+  /** Drop onto a slot within the current day: move the meal to that slot. */
+  dropOnSlot(event: CdkDragDrop<MealSlot>, targetSlot: MealSlot): void {
+    if (event.previousContainer === event.container) return;
+    this.moveItem(event.item.data as MealPlanItem, this.selectedDate(), targetSlot);
+  }
+
+  /** Drop onto a day in the week grid: move the meal to that day, keeping its slot. */
+  dropOnDay(event: CdkDragDrop<string>, targetDate: string): void {
+    const item = event.item.data as MealPlanItem;
+    this.moveItem(item, targetDate, item.slot);
+  }
+
+  /**
+   * Relocates a meal to a new day and/or slot. The UI is updated optimistically so the
+   * drop feels instant; if the backend save fails the previous plan is restored so no
+   * data is lost from the view.
+   */
+  private moveItem(item: MealPlanItem, date: string, slot: MealSlot): void {
+    if (this.movingId()) return;
+    const sameDay = date === this.selectedDate();
+    if (sameDay && slot === item.slot) return;
+
+    const snapshot = this.plan();
+    this.movingId.set(item.id);
+    this.planError.set(null);
+
+    this.plan.update((p) => {
+      if (!p) return p;
+      const withoutItem = this.filterItem(p, item.id);
+      if (!sameDay) return withoutItem;
+      return this.appendItem(withoutItem, slot, { ...item, slot, sortOrder: withoutItem.meals[slot].length });
+    });
+
+    this.service.moveItem(item.id, date, slot).pipe(
+      finalize(() => this.movingId.set(null))
+    ).subscribe({
+      next: (updated) => {
+        if (sameDay) this.plan.update((p) => p ? this.replaceItem(p, updated) : p);
+        this.loadOverview();
+      },
+      error: (err) => {
+        this.plan.set(snapshot);
+        this.planError.set(getApiError(err, this.translations.translate('meal.moveError')));
+      },
     });
   }
 

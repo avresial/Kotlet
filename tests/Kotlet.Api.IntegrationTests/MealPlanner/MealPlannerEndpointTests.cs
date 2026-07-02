@@ -130,6 +130,32 @@ public sealed class MealPlannerEndpointTests(TestWebApplicationFactory factory) 
     }
 
     [Fact]
+    public async Task MoveItem_RelocatesMealToNewDayAndSlot()
+    {
+        var client = await CreateAuthenticatedClient("mp-move");
+        var ingredientId = await CreateIngredient(client);
+        var item = await AddIngredientMeal(client, ingredientId);
+        var itemId = item.GetProperty("id").GetGuid();
+        const string targetDate = "2026-07-04";
+
+        var moveResponse = await client.PutAsJsonAsync(
+            $"/api/meal-planner/items/{itemId}/move", new { date = targetDate, slot = "breakfast" });
+        Assert.Equal(HttpStatusCode.OK, moveResponse.StatusCode);
+        var moved = await moveResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("breakfast", moved.GetProperty("slot").GetString());
+
+        // Gone from the original day, present on the target day's breakfast slot.
+        var originalDay = await client.GetFromJsonAsync<JsonElement>($"/api/meal-planner?date={Date}");
+        Assert.Empty(originalDay.GetProperty("meals").GetProperty("dinner").EnumerateArray());
+        var targetDay = await client.GetFromJsonAsync<JsonElement>($"/api/meal-planner?date={targetDate}");
+        Assert.Equal(itemId, targetDay.GetProperty("meals").GetProperty("breakfast").EnumerateArray()
+            .Single().GetProperty("id").GetGuid());
+
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.PutAsJsonAsync($"/api/meal-planner/items/{itemId}/move", new { date = targetDate, slot = "brunch" })).StatusCode);
+    }
+
+    [Fact]
     public async Task SetParticipants_RejectsNonHouseMembers()
     {
         var client = await CreateAuthenticatedClient("mp-stranger");
