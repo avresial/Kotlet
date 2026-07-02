@@ -52,6 +52,9 @@
   <div class="date-picker">
     <label for="plan-date">{{ 'meal.selectDate' | t }}</label>
     <input id="plan-date" type="date" [(ngModel)]="selectedDate" (ngModelChange)="onDateChange()" />
+    <label for="copy-target">{{ 'meal.copyTo' | t }}</label>
+    <input id="copy-target" type="date" [(ngModel)]="copyTargetDate" />
+    <button type="button" [disabled]="isCopying() || !plan() || copyTargetDate() === selectedDate()" (click)="copyDay()">{{ 'meal.copyDay' | t }}</button>
   </div>
 
   @if (planError()) {

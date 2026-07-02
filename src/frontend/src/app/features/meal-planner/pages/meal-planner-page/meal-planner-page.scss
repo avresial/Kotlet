@@ -70,7 +70,7 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
   margin-bottom: 1.75rem;
 
   label { color: #554e45; font-size: .78rem; font-weight: 750; }
-  input { padding: .6rem .75rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #29251f; background: #fffdf9; }
+  input, button { padding: .6rem .75rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #29251f; background: #fffdf9; }
 }
 
 input:focus, select:focus { outline: 2px solid #b96554; outline-offset: 1px; }
