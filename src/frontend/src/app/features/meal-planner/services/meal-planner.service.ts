@@ -35,6 +35,10 @@ export class MealPlannerService {
     return this.http.post<DailyMealPlan>(apiUrl('/api/meal-planner/copy-day'), { sourceDate, targetDate });
   }
 
+  copyWeek(sourceWeekStart: string, targetWeekStart: string) {
+    return this.http.post<{ copied: number }>(apiUrl('/api/meal-planner/copy-week'), { sourceWeekStart, targetWeekStart });
+  }
+
   removeItem(id: string) {
     return this.http.delete<void>(apiUrl(`/api/meal-planner/items/${id}`));
   }

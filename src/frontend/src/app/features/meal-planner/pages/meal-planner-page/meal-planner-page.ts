@@ -42,6 +42,7 @@ export function weekStart(date: string): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MealPlannerPage implements OnInit {
+  readonly weekStart = weekStart;
   private readonly service = inject(MealPlannerService);
   private readonly recipeService = inject(RecipeService);
   private readonly ingredientService = inject(IngredientService);
@@ -71,6 +72,7 @@ export class MealPlannerPage implements OnInit {
   readonly planError = signal<string | null>(null);
   readonly copyTargetDate = signal(this.addDays(this.todayString(), 1));
   readonly isCopying = signal(false);
+  readonly copyWeekTargetDate = signal(this.addDays(weekStart(this.todayString()), 7));
 
   readonly recipes = signal<RecipeSummary[]>([]);
   readonly recipeDetails = signal<Record<string, RecipeDetail>>({});
@@ -221,6 +223,19 @@ export class MealPlannerPage implements OnInit {
         this.overviewFrom.set(weekStart(target)); this.loadOverview();
       },
       error: (error) => this.planError.set(getApiError(error, this.translations.translate('meal.copyDayError'))),
+    });
+  }
+
+  copyWeek(): void {
+    const source = weekStart(this.selectedDate());
+    const target = weekStart(this.copyWeekTargetDate());
+    if (source === target || this.isCopying()) return;
+    this.isCopying.set(true); this.planError.set(null);
+    this.service.copyWeek(source, target).pipe(finalize(() => this.isCopying.set(false))).subscribe({
+      next: () => {
+        this.selectedDate.set(target); this.overviewFrom.set(target); this.loadOverview(); this.loadPlan();
+      },
+      error: (error) => this.planError.set(getApiError(error, this.translations.translate('meal.copyWeekError'))),
     });
   }
 

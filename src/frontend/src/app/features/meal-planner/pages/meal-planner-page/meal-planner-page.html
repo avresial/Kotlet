@@ -55,6 +55,9 @@
     <label for="copy-target">{{ 'meal.copyTo' | t }}</label>
     <input id="copy-target" type="date" [(ngModel)]="copyTargetDate" />
     <button type="button" [disabled]="isCopying() || !plan() || copyTargetDate() === selectedDate()" (click)="copyDay()">{{ 'meal.copyDay' | t }}</button>
+    <label for="copy-week-target">{{ 'meal.copyWeekTo' | t }}</label>
+    <input id="copy-week-target" type="date" [(ngModel)]="copyWeekTargetDate" />
+    <button type="button" [disabled]="isCopying() || weekStart(copyWeekTargetDate()) === weekStart(selectedDate())" (click)="copyWeek()">{{ 'meal.copyWeek' | t }}</button>
   </div>
 
   @if (planError()) {

@@ -63,6 +63,7 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
 
 .date-picker {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: .75rem;
   margin-bottom: 1.75rem;

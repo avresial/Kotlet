@@ -185,6 +185,40 @@ public sealed class MealPlannerService(
             await GetForDateAsync(userId, houseId, request.TargetDate, cancellationToken));
     }
 
+    public async Task<CopyMealPlanWeekResult> CopyWeekAsync(
+        Guid userId, Guid houseId, CopyMealPlanWeekRequest request, CancellationToken cancellationToken)
+    {
+        if (request.SourceWeekStart.DayOfWeek != DayOfWeek.Monday || request.TargetWeekStart.DayOfWeek != DayOfWeek.Monday)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors:
+                new Dictionary<string, string[]> { ["weekStart"] = ["Source and target weeks must start on Monday."] });
+        if (request.SourceWeekStart == request.TargetWeekStart)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors:
+                new Dictionary<string, string[]> { ["targetWeekStart"] = ["Target week must differ from source week."] });
+
+        var source = await repository.GetByDateRangeAsync(houseId, request.SourceWeekStart, request.SourceWeekStart.AddDays(6), cancellationToken);
+        if (source.Count == 0) return new(MealPlannerOperationStatus.NotFound);
+        if ((await repository.GetByDateRangeAsync(houseId, request.TargetWeekStart, request.TargetWeekStart.AddDays(6), cancellationToken)).Count > 0)
+            return new(MealPlannerOperationStatus.Conflict);
+
+        var offset = request.TargetWeekStart.DayNumber - request.SourceWeekStart.DayNumber;
+        var now = DateTimeOffset.UtcNow;
+        foreach (var original in source)
+        {
+            repository.Add(new MealPlanItem
+            {
+                Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = original.Date.AddDays(offset),
+                Slot = original.Slot, RecipeId = original.RecipeId, IngredientId = original.IngredientId,
+                Note = original.Note, SortOrder = original.SortOrder, Servings = original.Servings,
+                Guests = original.Guests, CreatedAt = now, UpdatedAt = now,
+                Participants = original.Participants.Select(participant => new MealPlanItemParticipant
+                    { UserId = participant.UserId }).ToList()
+            });
+        }
+
+        await repository.SaveChangesAsync(cancellationToken);
+        return new(MealPlannerOperationStatus.Success, source.Count);
+    }
+
     public async Task<MealPlannerOperationStatus> RemoveItemAsync(
         Guid houseId, Guid itemId, CancellationToken cancellationToken)
     {

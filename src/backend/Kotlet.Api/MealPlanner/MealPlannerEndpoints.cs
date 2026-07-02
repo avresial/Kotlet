@@ -13,6 +13,7 @@ public static class MealPlannerEndpoints
         group.MapGet("/members", GetMembers).WithName("GetMealPlanHouseMembers");
         group.MapPost("/items", AddItem).WithName("AddMealPlanItem");
         group.MapPost("/copy-day", CopyDay).WithName("CopyMealPlanDay");
+        group.MapPost("/copy-week", CopyWeek).WithName("CopyMealPlanWeek");
         group.MapDelete("/items/{id:guid}", RemoveItem).WithName("RemoveMealPlanItem");
         group.MapPut("/items/{id:guid}/participants", SetParticipants).WithName("SetMealPlanItemParticipants");
         group.MapPut("/items/{id:guid}/servings", SetServings).WithName("SetMealPlanItemServings");
@@ -118,6 +119,24 @@ public static class MealPlannerEndpoints
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
         var result = await service.SetParticipantsAsync(userId, houseId, id, request.UserIds ?? [], cancellationToken);
         return ToResult(result);
+    }
+
+    private static async Task<IResult> CopyWeek(
+        CopyMealPlanWeekRequest request,
+        ICurrentUser currentUser,
+        MealPlannerService service,
+        CancellationToken cancellationToken)
+    {
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var result = await service.CopyWeekAsync(userId, houseId, request, cancellationToken);
+        return result.Status switch
+        {
+            MealPlannerOperationStatus.Success => Results.Ok(new { result.Copied }),
+            MealPlannerOperationStatus.NotFound => Results.NotFound(),
+            MealPlannerOperationStatus.Conflict => Results.Conflict(),
+            MealPlannerOperationStatus.ValidationFailed => Results.ValidationProblem(result.ValidationErrors!),
+            _ => throw new InvalidOperationException($"Unsupported status: {result.Status}")
+        };
     }
 
     private static async Task<IResult> SetServings(
