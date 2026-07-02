@@ -43,7 +43,11 @@
               }
               <div class="menu-text">
                 <p class="meal-time">{{ meal.time }}</p>
-                <strong>{{ meal.name }}</strong>
+                @if (meal.recipeId) { <a class="menu-recipe-link" [routerLink]="['/recipes', meal.recipeId]">{{ meal.name }}</a> }
+                @else { <strong>{{ meal.name }}</strong> }
+                @if (meal.recipeId && menuRecipes()[meal.recipeId]; as recipe) {
+                  @if (recipe.ingredients.length) { <p class="menu-ingredients">{{ menuIngredientPreview(meal.recipeId) }}</p> }
+                }
                 @if (meal.note) { <p class="menu-note">{{ meal.note }}</p> }
               </div>
               @if (meal.participants.length) {
