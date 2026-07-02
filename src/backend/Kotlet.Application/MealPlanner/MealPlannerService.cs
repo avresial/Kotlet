@@ -153,6 +153,38 @@ public sealed class MealPlannerService(
         return new(MealPlannerOperationStatus.Success, new(responses, skipped));
     }
 
+    public async Task<CopyMealPlanDayResult> CopyDayAsync(
+        Guid userId, Guid houseId, CopyMealPlanDayRequest request, CancellationToken cancellationToken)
+    {
+        if (request.SourceDate == request.TargetDate)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors:
+                new Dictionary<string, string[]> { ["targetDate"] = ["Target date must differ from source date."] });
+
+        var source = await repository.GetByDateAsync(houseId, request.SourceDate, cancellationToken);
+        if (source.Count == 0) return new(MealPlannerOperationStatus.NotFound);
+        if ((await repository.GetByDateAsync(houseId, request.TargetDate, cancellationToken)).Count > 0)
+            return new(MealPlannerOperationStatus.Conflict);
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var original in source)
+        {
+            var copy = new MealPlanItem
+            {
+                Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = request.TargetDate,
+                Slot = original.Slot, RecipeId = original.RecipeId, IngredientId = original.IngredientId,
+                Note = original.Note, SortOrder = original.SortOrder, Servings = original.Servings,
+                Guests = original.Guests, CreatedAt = now, UpdatedAt = now,
+                Participants = original.Participants.Select(participant => new MealPlanItemParticipant
+                    { UserId = participant.UserId }).ToList()
+            };
+            repository.Add(copy);
+        }
+
+        await repository.SaveChangesAsync(cancellationToken);
+        return new(MealPlannerOperationStatus.Success,
+            await GetForDateAsync(userId, houseId, request.TargetDate, cancellationToken));
+    }
+
     public async Task<MealPlannerOperationStatus> RemoveItemAsync(
         Guid houseId, Guid itemId, CancellationToken cancellationToken)
     {

@@ -64,6 +64,8 @@ export class MealPlannerPage implements OnInit {
   readonly plan = signal<DailyMealPlan | null>(null);
   readonly isLoadingPlan = signal(false);
   readonly planError = signal<string | null>(null);
+  readonly copyTargetDate = signal(this.addDays(this.todayString(), 1));
+  readonly isCopying = signal(false);
 
   readonly recipes = signal<RecipeSummary[]>([]);
   readonly recipeDetails = signal<Record<string, RecipeDetail>>({});
@@ -204,6 +206,19 @@ export class MealPlannerPage implements OnInit {
   onDateChange(): void {
     this.centerOverviewOnSelected();
     this.loadPlan();
+  }
+
+  copyDay(): void {
+    const target = this.copyTargetDate();
+    if (!target || target === this.selectedDate() || this.isCopying()) return;
+    this.isCopying.set(true); this.planError.set(null);
+    this.service.copyDay(this.selectedDate(), target).pipe(finalize(() => this.isCopying.set(false))).subscribe({
+      next: (plan) => {
+        this.selectedDate.set(target); this.plan.set(plan); this.loadRecipeDetails(plan);
+        this.overviewFrom.set(this.addDays(target, -Math.floor(this.overviewDays / 2))); this.loadOverview();
+      },
+      error: (error) => this.planError.set(getApiError(error, this.translations.translate('meal.copyDayError'))),
+    });
   }
 
   itemsForSlot(slot: MealSlot): MealPlanItem[] {

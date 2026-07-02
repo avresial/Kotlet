@@ -172,6 +172,29 @@ public sealed class MealPlannerServiceTests
         Assert.Empty(meals.Items);
     }
 
+    [Fact]
+    public async Task CopyDay_CopiesAllItemStateAndRejectsNonEmptyTarget()
+    {
+        var (service, meals) = CreateService();
+        var source = meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 2);
+        source.Note = "Family meal";
+        source.Servings = 4;
+        source.Guests = 1;
+        source.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = source.Id, UserId = CurrentUserId });
+
+        var result = await service.CopyDayAsync(CurrentUserId, HouseId,
+            new(Today, Today.AddDays(1)), CancellationToken.None);
+        var conflict = await service.CopyDayAsync(CurrentUserId, HouseId,
+            new(Today, Today.AddDays(1)), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        var copy = Assert.Single(meals.Items, item => item.Date == Today.AddDays(1));
+        Assert.Equal((source.Slot, source.SortOrder, source.Note, source.Servings, source.Guests),
+            (copy.Slot, copy.SortOrder, copy.Note, copy.Servings, copy.Guests));
+        Assert.Equal(CurrentUserId, Assert.Single(copy.Participants).UserId);
+        Assert.Equal(MealPlannerOperationStatus.Conflict, conflict.Status);
+    }
+
     // ---- GetForDate ----
 
     [Fact]

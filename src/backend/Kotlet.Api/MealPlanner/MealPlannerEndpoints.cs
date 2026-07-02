@@ -12,6 +12,7 @@ public static class MealPlannerEndpoints
         group.MapGet("/overview", GetOverview).WithName("GetMealPlanOverview");
         group.MapGet("/members", GetMembers).WithName("GetMealPlanHouseMembers");
         group.MapPost("/items", AddItem).WithName("AddMealPlanItem");
+        group.MapPost("/copy-day", CopyDay).WithName("CopyMealPlanDay");
         group.MapDelete("/items/{id:guid}", RemoveItem).WithName("RemoveMealPlanItem");
         group.MapPut("/items/{id:guid}/participants", SetParticipants).WithName("SetMealPlanItemParticipants");
         group.MapPut("/items/{id:guid}/servings", SetServings).WithName("SetMealPlanItemServings");
@@ -87,6 +88,24 @@ public static class MealPlannerEndpoints
         return await service.RemoveItemAsync(houseId, id, cancellationToken) is MealPlannerOperationStatus.Success
             ? Results.NoContent()
             : Results.NotFound();
+    }
+
+    private static async Task<IResult> CopyDay(
+        CopyMealPlanDayRequest request,
+        ICurrentUser currentUser,
+        MealPlannerService service,
+        CancellationToken cancellationToken)
+    {
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var result = await service.CopyDayAsync(userId, houseId, request, cancellationToken);
+        return result.Status switch
+        {
+            MealPlannerOperationStatus.Success => Results.Ok(result.Plan),
+            MealPlannerOperationStatus.NotFound => Results.NotFound(),
+            MealPlannerOperationStatus.Conflict => Results.Conflict(),
+            MealPlannerOperationStatus.ValidationFailed => Results.ValidationProblem(result.ValidationErrors!),
+            _ => throw new InvalidOperationException($"Unsupported status: {result.Status}")
+        };
     }
 
     private static async Task<IResult> SetParticipants(
