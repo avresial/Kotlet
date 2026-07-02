@@ -11,8 +11,12 @@
 
   <div class="search-bar">
     <input type="search" [(ngModel)]="search" [placeholder]="'recipes.searchPlaceholder' | t" (keyup.enter)="onSearch()" />
+    <select [(ngModel)]="mealType" (ngModelChange)="onSearch()" [attr.aria-label]="'recipes.mealType' | t">
+      <option value="">{{ 'recipes.allMealTypes' | t }}</option>
+      @for (type of mealTypes; track type.value) { <option [value]="type.value">{{ type.label | t }}</option> }
+    </select>
     <button type="button" class="button primary" (click)="onSearch()">{{ 'common.search' | t }}</button>
-    @if (search()) {
+    @if (search() || mealType()) {
       <button type="button" class="secondary" (click)="clearSearch()">{{ 'common.clear' | t }}</button>
     }
   </div>
@@ -23,7 +27,7 @@
     <p class="empty">{{ 'recipes.loading' | t }}</p>
   } @else if (recipes().length === 0) {
     <p class="empty">
-      @if (search()) { No recipes match "{{ search() }}". }
+      @if (search() || mealType()) { No recipes match the selected filters. }
       @else { {{ 'recipes.empty' | t }} <a routerLink="/recipes/new">{{ 'recipes.createFirst' | t }}</a> }
     </p>
   } @else {
