@@ -16,4 +16,5 @@ public sealed class Ingredient
     public Allergen Allergens { get; set; }
     public FoodAttribute Attributes { get; set; }
     public DietarySuitability Suitability { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
 }

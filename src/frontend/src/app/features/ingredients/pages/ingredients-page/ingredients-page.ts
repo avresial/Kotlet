@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslationService } from '../../../../core/i18n/translation.service';
@@ -29,6 +29,7 @@ export class IngredientsPage implements OnInit {
   private readonly service = inject(IngredientService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly translation = inject(TranslationService);
+  private readonly route = inject(ActivatedRoute);
   readonly language = this.translation.language;
   /** The translation field is only relevant when editing in a non-default language. */
   readonly showTranslation = computed(() => this.language() !== DEFAULT_LANGUAGE);
@@ -68,7 +69,12 @@ export class IngredientsPage implements OnInit {
     this.isLoading.set(true);
     this.error.set(null);
     this.service.getAll().pipe(finalize(() => this.isLoading.set(false))).subscribe({
-      next: (ingredients) => this.ingredients.set(ingredients),
+      next: (ingredients) => {
+        this.ingredients.set(ingredients);
+        const editId = this.route.snapshot.queryParamMap.get('edit');
+        const ingredient = ingredients.find(item => item.id === editId);
+        if (ingredient) this.edit(ingredient);
+      },
       error: (error) => this.error.set(getApiError(error, this.translation.translate('ingredients.loadError'))),
     });
   }

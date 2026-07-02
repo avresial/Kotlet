@@ -159,6 +159,17 @@
         </ul> }
       </article>
 
+      <article class="card" aria-labelledby="recent-products-title">
+        <div class="card-heading">
+          <div><p class="section-label">{{ 'nav.ingredients' | t }}</p><h2 id="recent-products-title">{{ 'home.dashboard.recentProducts' | t }}</h2></div>
+          <a class="card-link" routerLink="/ingredients">{{ 'home.dashboard.viewAll' | t }} →</a>
+        </div>
+        @if (recentIngredients().length === 0) { <p class="recipe-state">{{ 'home.dashboard.noProducts' | t }}</p> }
+        @else { <ul class="recent-product-list">@for (ingredient of recentIngredients(); track ingredient.id) {
+          <li><span>{{ ingredient.name }}</span><a routerLink="/ingredients" [queryParams]="{ edit: ingredient.id }">{{ 'common.edit' | t }}</a></li>
+        }</ul> }
+      </article>
+
       <!-- Your home -->
       <article class="card" aria-labelledby="home-title">
         <div class="card-heading">

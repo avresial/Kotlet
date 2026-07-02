@@ -99,6 +99,9 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 .card-link { color: #8e392b; font-size: .75rem; font-weight: 750; text-decoration: none; }
 .add-low { padding: .3rem .5rem; border: 1px solid #c9ad91; border-radius: .35rem; color: #8e392b; background: transparent; font-size: .72rem; font-weight: 700; cursor: pointer; }
 .add-low:disabled { color: #8f877d; border-color: #d8d0c5; cursor: default; }
+.recent-product-list { margin: 1rem 0 0; padding: 0; list-style: none; }
+.recent-product-list li { display: flex; justify-content: space-between; gap: 1rem; padding: .65rem 0; border-top: 1px solid #e4dbcf; }
+.recent-product-list a { color: #8e392b; font-size: .75rem; font-weight: 750; text-decoration: none; }
 
 /* Useless fact */
 .fact-card { grid-column: 1 / -1; background: linear-gradient(135deg, #fffaf2, #f4ead9); }

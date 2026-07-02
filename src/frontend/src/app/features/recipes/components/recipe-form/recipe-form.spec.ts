@@ -53,6 +53,7 @@ describe('RecipeForm image picker', () => {
       pricePer100BaseUnits: 0,
       svgIcon: null,
       category: 0,
+      createdAtUtc: '2026-01-01T00:00:00Z',
     }]);
     editor.isLoadingIngredients.set(false);
 

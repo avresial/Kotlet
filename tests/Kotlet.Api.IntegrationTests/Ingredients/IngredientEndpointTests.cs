@@ -31,6 +31,7 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
         var created = await create.Content.ReadFromJsonAsync<JsonElement>();
         var id = created.GetProperty("id").GetGuid();
+        Assert.NotEqual(default, created.GetProperty("createdAtUtc").GetDateTimeOffset());
         Assert.Equal(JsonValueKind.Null, created.GetProperty("svgIcon").ValueKind);
 
         var list = await client.GetFromJsonAsync<JsonElement[]>("/api/ingredients");

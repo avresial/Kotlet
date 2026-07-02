@@ -21,6 +21,7 @@ const ingredient: Ingredient = {
   pricePer100BaseUnits: 5,
   svgIcon: null,
   category: 0,
+  createdAtUtc: '2026-01-01T00:00:00Z',
 };
 
 const recipe: RecipeDetail = {
