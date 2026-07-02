@@ -25,7 +25,7 @@ export class PantryPage implements OnInit {
   readonly ingredients = signal<Ingredient[]>([]);
   readonly availableIngredients = computed(() => this.ingredients().filter(i => !this.items().some(item => item.ingredientId === i.id)));
   readonly search = signal('');
-  readonly locationFilter = signal('0');
+  readonly locationFilter = signal<'0' | '1' | '2' | '3'>('0');
   readonly filteredItems = computed(() => {
     const term = this.search().trim().toLowerCase();
     const location = this.locationFilter();
