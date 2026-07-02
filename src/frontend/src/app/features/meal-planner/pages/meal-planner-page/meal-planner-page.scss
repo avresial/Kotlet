@@ -27,15 +27,13 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
 .overview-legend span { width: .75rem; height: .75rem; border-radius: .18rem; background: #9a3a2a; }
 .overview-scroll { overflow-x: auto; padding-bottom: .25rem; }
 .overview-grid {
-  --cell-size: 2rem;
   display: grid;
-  min-width: max-content;
-  grid-template-columns: 4.75rem repeat(var(--day-count), var(--cell-size));
+  grid-template-columns: 6rem repeat(var(--day-count), minmax(4rem, 1fr));
   gap: .28rem;
 }
 .overview-corner { grid-column: 1; }
 .overview-day {
-  width: var(--cell-size);
+  width: 100%;
   padding: 0 0 .35rem;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -50,8 +48,8 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
 }
 .overview-row-label { display: flex; align-items: center; color: #62594e; font-size: .72rem; font-weight: 700; }
 .overview-cell {
-  width: var(--cell-size);
-  height: var(--cell-size);
+  width: 100%;
+  min-height: 2.75rem;
   padding: 0;
   border: 1px solid #ded4c7;
   border-radius: .3rem;
@@ -219,6 +217,7 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   .meal-planner-page { width: min(100% - 1.5rem, 72rem); padding-top: 1.5rem; }
   .date-picker { align-items: stretch; flex-direction: column; }
   .overview-heading { align-items: start; flex-direction: column; }
+  .meal-overview { display: none; }
   .meal-item-header { gap: .4rem; }
   .item-title { width: auto; min-width: 0; }
   .icon-button { width: 1.8rem; height: 1.8rem; padding: .3rem; }

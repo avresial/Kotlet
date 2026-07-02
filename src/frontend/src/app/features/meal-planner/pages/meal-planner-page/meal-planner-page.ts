@@ -28,6 +28,12 @@ interface PersonCalories {
   calories: number;
 }
 
+export function weekStart(date: string): string {
+  const value = new Date(`${date}T00:00:00`);
+  value.setDate(value.getDate() - (value.getDay() + 6) % 7);
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+}
+
 @Component({
   selector: 'app-meal-planner-page',
   imports: [FormsModule, RouterLink, IngredientPicker, RecipePicker, TranslatePipe],
@@ -51,13 +57,12 @@ export class MealPlannerPage implements OnInit {
     supper: this.translations.translate('meal.dinner'),
   }));
 
-  private readonly overviewDays = 28;
+  private readonly overviewDays = 7;
   readonly selectedDate = signal(this.todayString());
-  readonly overviewFrom = signal(this.todayString());
+  readonly overviewFrom = signal(weekStart(this.todayString()));
   readonly overview = signal<MealPlanOverviewDay[]>([]);
   readonly overviewLabel = computed(() => {
     const from = this.overviewFrom();
-    if (from === this.todayString()) return this.translations.translate('meal.nextDays').replace('{count}', String(this.overviewDays));
     const to = this.addDays(from, this.overviewDays - 1);
     return `${this.dayNumber(from)} – ${this.dayNumber(to)}`;
   });
@@ -134,13 +139,11 @@ export class MealPlannerPage implements OnInit {
     });
   }
 
-  /** Re-centers the overview window on the selected date when it falls outside the current range. */
+  /** Keeps the desktop grid on the calendar week containing the selected mobile day. */
   private centerOverviewOnSelected(): void {
-    const date = this.selectedDate();
-    const from = this.overviewFrom();
-    const to = this.addDays(from, this.overviewDays - 1);
-    if (date >= from && date <= to) return;
-    this.overviewFrom.set(this.addDays(date, -Math.floor(this.overviewDays / 2)));
+    const from = weekStart(this.selectedDate());
+    if (from === this.overviewFrom()) return;
+    this.overviewFrom.set(from);
     this.loadOverview();
   }
 
@@ -215,7 +218,7 @@ export class MealPlannerPage implements OnInit {
     this.service.copyDay(this.selectedDate(), target).pipe(finalize(() => this.isCopying.set(false))).subscribe({
       next: (plan) => {
         this.selectedDate.set(target); this.plan.set(plan); this.loadRecipeDetails(plan);
-        this.overviewFrom.set(this.addDays(target, -Math.floor(this.overviewDays / 2))); this.loadOverview();
+        this.overviewFrom.set(weekStart(target)); this.loadOverview();
       },
       error: (error) => this.planError.set(getApiError(error, this.translations.translate('meal.copyDayError'))),
     });
