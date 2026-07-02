@@ -20,6 +20,10 @@ button:disabled { opacity: .5; cursor: default; }
 .inventory { margin-top: 1.25rem; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; }
 .section-heading span { color: #776f64; font-size: .8rem; }
+.filters { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: .75rem; }
+.filters input[type="search"] { flex: 1 1 14rem; min-width: 0; }
+.filters select { flex: 0 1 12rem; }
+.filters .clear-filters { flex: 0 0 auto; }
 .item-grid { margin-top: 1.25rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: .8rem; }
 .stock-card { padding: 1rem; border: 1px solid #e1d7c9; border-radius: .75rem; display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 1rem; background: #fffdf9; }
 .stock-card.is-empty { border-color: #dca99f; background: #fff7f4; }
