@@ -227,11 +227,8 @@ public sealed class MealPlannerService(
     public async Task<MealPlannerOperationResult> MoveItemAsync(
         Guid userId, Guid houseId, Guid itemId, MoveMealPlanItemRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Slot) || !ValidSlots.Contains(request.Slot.ToLower()))
-            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
-            {
-                ["slot"] = [$"Slot must be one of: {string.Join(", ", ValidSlots)}."]
-            });
+        if (SlotError(request.Slot) is { } slotError)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: slotError);
 
         var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
         if (item is null) return new(MealPlannerOperationStatus.NotFound);
@@ -354,8 +351,8 @@ public sealed class MealPlannerService(
     {
         var errors = new Dictionary<string, string[]>();
 
-        if (string.IsNullOrWhiteSpace(request.Slot) || !ValidSlots.Contains(request.Slot.ToLower()))
-            errors["slot"] = [$"Slot must be one of: {string.Join(", ", ValidSlots)}."];
+        if (SlotError(request.Slot) is { } slotError)
+            errors["slot"] = slotError["slot"];
 
         var hasRecipe = request.RecipeId.HasValue;
         var hasIngredient = request.IngredientId.HasValue;
@@ -426,6 +423,16 @@ public sealed class MealPlannerService(
             item.EffectiveServings,
             item.Servings.HasValue);
     }
+
+    /// <summary>
+    /// Validates a slot name, returning the slot validation error dictionary when it is
+    /// missing or unknown, or null when it is valid. Shared by add and move so the set of
+    /// valid slots and the message stay in one place.
+    /// </summary>
+    private static Dictionary<string, string[]>? SlotError(string? slot) =>
+        string.IsNullOrWhiteSpace(slot) || !ValidSlots.Contains(slot.ToLower())
+            ? new Dictionary<string, string[]> { ["slot"] = [$"Slot must be one of: {string.Join(", ", ValidSlots)}."] }
+            : null;
 
     private static MealSlot ParseSlot(string slot) => slot.ToLower() switch
     {

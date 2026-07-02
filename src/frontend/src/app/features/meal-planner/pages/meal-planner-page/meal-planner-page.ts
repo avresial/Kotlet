@@ -299,7 +299,8 @@ export class MealPlannerPage implements OnInit {
    */
   private moveItem(item: MealPlanItem, date: string, slot: MealSlot): void {
     if (this.movingId()) return;
-    const sameDay = date === this.selectedDate();
+    const snapshotDate = this.selectedDate();
+    const sameDay = date === snapshotDate;
     if (sameDay && slot === item.slot) return;
 
     const snapshot = this.plan();
@@ -317,11 +318,13 @@ export class MealPlannerPage implements OnInit {
       finalize(() => this.movingId.set(null))
     ).subscribe({
       next: (updated) => {
-        if (sameDay) this.plan.update((p) => p ? this.replaceItem(p, updated) : p);
+        // Only reconcile the view if the user is still looking at the day we moved from.
+        if (sameDay && this.selectedDate() === date) this.plan.update((p) => p ? this.replaceItem(p, updated) : p);
         this.loadOverview();
       },
       error: (err) => {
-        this.plan.set(snapshot);
+        // Guard against restoring a stale snapshot over a day the user has since navigated to.
+        if (this.selectedDate() === snapshotDate) this.plan.set(snapshot);
         this.planError.set(getApiError(err, this.translations.translate('meal.moveError')));
       },
     });

@@ -323,6 +323,23 @@ public sealed class MealPlannerServiceTests
         Assert.Equal(MealPlannerOperationStatus.NotFound, result.Status);
     }
 
+    [Fact]
+    public async Task MoveItem_ToSameDayAndSlot_IsNoOpAndSkipsSave()
+    {
+        var (service, meals) = CreateService();
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 5);
+        var originalUpdatedAt = item.UpdatedAt;
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(Today, "breakfast"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        // Unchanged: the guard skips the update and never persists.
+        Assert.Equal(5, item.SortOrder);
+        Assert.Equal(originalUpdatedAt, item.UpdatedAt);
+        Assert.Equal(0, meals.SaveChangesCount);
+    }
+
     // ---- Remove ----
 
     [Fact]
@@ -538,6 +555,7 @@ public sealed class MealPlannerServiceTests
     private sealed class FakeMealPlanRepository(params MealHouseMember[] members) : IMealPlanRepository
     {
         public List<MealPlanItem> Items { get; } = [];
+        public int SaveChangesCount { get; private set; }
 
         public MealPlanItem SeedItem(DateOnly date, MealSlot slot, Guid recipeId, int sortOrder)
         {
@@ -565,7 +583,11 @@ public sealed class MealPlannerServiceTests
 
         public void Add(MealPlanItem item) => Items.Add(item);
         public void Remove(MealPlanItem item) => Items.Remove(item);
-        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            SaveChangesCount++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeRecipeRepository(params Recipe[] recipes) : IRecipeRepository
