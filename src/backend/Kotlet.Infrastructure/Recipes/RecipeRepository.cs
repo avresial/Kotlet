@@ -1,5 +1,6 @@
 using Kotlet.Application.Recipes;
 using Kotlet.Domain.Recipes;
+using Kotlet.Domain.MealPlanner;
 using Kotlet.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +9,7 @@ namespace Kotlet.Infrastructure.Recipes;
 internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepository
 {
     public async Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
-        Guid houseId, int page, int pageSize, string? search, CancellationToken cancellationToken)
+        Guid houseId, int page, int pageSize, string? search, MealSlot? mealType, CancellationToken cancellationToken)
     {
         var query = dbContext.Recipes
             .AsNoTracking()
@@ -20,6 +21,7 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
             var term = search.Trim().ToLower();
             query = query.Where(r => r.Title.ToLower().Contains(term));
         }
+        if (mealType is not null) query = query.Where(r => r.MealType == mealType);
 
         var total = await query.CountAsync(cancellationToken);
         var items = await query

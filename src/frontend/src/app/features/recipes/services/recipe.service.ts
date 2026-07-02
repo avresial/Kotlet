@@ -14,9 +14,10 @@ import {
 export class RecipeService {
   private readonly http = inject(HttpClient);
 
-  list(page = 1, pageSize = 20, search?: string) {
+  list(page = 1, pageSize = 20, search?: string, mealType?: string) {
     let params = new HttpParams().set('page', page).set('pageSize', pageSize);
     if (search) params = params.set('search', search);
+    if (mealType) params = params.set('mealType', mealType);
     return this.http.get<PagedResponse<RecipeSummary>>(apiUrl('/api/recipes'), { params });
   }
 

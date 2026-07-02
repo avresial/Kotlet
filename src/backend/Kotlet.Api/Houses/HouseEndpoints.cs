@@ -31,7 +31,7 @@ public static class HouseEndpoints
         PantryService pantry, ILanguageContext language, CancellationToken ct)
     {
         if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
-        var recipeTask = recipes.ListAsync(houseId, 1, 1, null, ct);
+        var recipeTask = recipes.ListAsync(houseId, 1, 1, null, null, ct);
         var pantryTask = pantry.GetAllAsync(houseId, language.Language, ct);
         await Task.WhenAll(recipeTask, pantryTask);
         return Results.Ok(new DashboardStatsResponse(recipeTask.Result.TotalCount, pantryTask.Result.Count));

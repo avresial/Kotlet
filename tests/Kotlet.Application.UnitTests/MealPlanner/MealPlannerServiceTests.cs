@@ -485,7 +485,7 @@ public sealed class MealPlannerServiceTests
     private sealed class FakeRecipeRepository(params Recipe[] recipes) : IRecipeRepository
     {
         public Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
-            Guid ownerUserId, int page, int pageSize, string? search, CancellationToken cancellationToken) =>
+            Guid ownerUserId, int page, int pageSize, string? search, MealSlot? mealType, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public Task<IReadOnlyList<Recipe>> GetRecentAsync(Guid ownerUserId, int limit, CancellationToken cancellationToken) =>
