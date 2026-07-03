@@ -65,12 +65,13 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .75rem;
+  gap: .75rem 1.25rem;
   margin-bottom: 1.75rem;
 
   label { color: #554e45; font-size: .78rem; font-weight: 750; }
   input, button { padding: .6rem .75rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #29251f; background: #fffdf9; }
 }
+.picker-group { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
 
 input:focus, select:focus { outline: 2px solid #b96554; outline-offset: 1px; }
 button, select { font: inherit; }
@@ -259,16 +260,44 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 }
 
 @media (max-width: 42rem) {
-  .meal-planner-page { width: min(100% - 1.5rem, 72rem); padding-top: 1.5rem; }
-  .date-picker { align-items: stretch; flex-direction: column; }
+  .meal-planner-page { width: min(100% - 1.5rem, 72rem); padding: 1rem 0 2.5rem; }
+  header { margin: .9rem 0 1.1rem; }
+  h1 { margin: .25rem 0; font-size: 1.9rem; }
+  h2 { font-size: 1.2rem; }
+
+  .date-picker { gap: .6rem; margin-bottom: 1rem; flex-direction: column; align-items: stretch; }
+  .picker-group {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .35rem .5rem;
+
+    label { grid-column: 1 / -1; }
+    input, button { padding: .45rem .6rem; font-size: .88rem; }
+    input { min-width: 0; }
+    &:first-child input { grid-column: 1 / -1; }
+  }
+
   .overview-heading { align-items: start; flex-direction: column; }
   .meal-overview { display: none; }
+  .planner-body { gap: .85rem; }
+  .slots { gap: .65rem; }
+  .receipt-rail { gap: .65rem; }
+  .slot-section, .day-receipt, .calorie-overview { padding: .85rem 1rem; border-radius: .75rem; }
+  .item-list { margin-top: .5rem; }
+  .meal-item { padding: .7rem 0; }
   .meal-item-header { gap: .4rem; }
   .item-title { width: auto; min-width: 0; }
   .icon-button { width: 1.8rem; height: 1.8rem; padding: .3rem; }
-  .meal-item-details { margin-left: 0; }
-  .people-row { align-items: flex-start; flex-wrap: wrap; }
+  .meal-item-details { margin: .55rem 0 0; }
+  .people-row { align-items: flex-start; flex-wrap: wrap; gap: .3rem; min-height: 0; }
   .row-label { width: 100%; }
+  .meal-summary { margin-top: .6rem; padding-top: .5rem; }
   .meal-summary > div { padding: 0 .55rem; }
   .meal-summary dt { min-height: 2em; }
+  .empty-slot { padding: .6rem 0 .1rem; }
+  .receipt-lines { margin-top: .6rem; }
+  .receipt-line, .calorie-lines li { padding: .45rem 0; }
+  .calorie-lines { margin-top: .6rem; }
+  .receipt-total { margin-top: .7rem; padding-top: .6rem; }
 }
