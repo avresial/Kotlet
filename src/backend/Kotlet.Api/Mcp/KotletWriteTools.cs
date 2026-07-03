@@ -26,6 +26,54 @@ public sealed class KotletWriteTools
         CancellationToken cancellationToken) =>
         service.AddWeekAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
 
+    [McpServerTool(Name = "add_meal_to_plan", ReadOnly = false, Destructive = false,
+        Idempotent = false, OpenWorld = false, UseStructuredContent = true),
+     Description("Adds one meal to a single slot on a single day of the household meal plan. A meal is " +
+                "either a recipe or a bare ingredient — provide EXACTLY ONE of recipeId or ingredientId, never both. " +
+                "IMPORTANT: to plan a recipe you must first look it up — call get_recipes (optionally with a search " +
+                "term) to find the recipe and copy its id into recipeId. Never invent or guess a recipe id. " +
+                "Likewise resolve a bare ingredient with get_ingredients first. Use add_weekly_meal_plan instead when " +
+                "adding several meals across a week. The returned status is Success, NotFound, Conflict, or " +
+                "ValidationFailed; on ValidationFailed inspect validationErrors for the offending field.")]
+    public static Task<MealPlannerOperationResult> AddMealToPlan(
+        [Description("The meal to add. date is yyyy-MM-dd. slot is one of: breakfast, second-breakfast, dinner, " +
+                     "snack, supper. Set recipeId to a recipe id obtained from get_recipes, OR ingredientId to an " +
+                     "ingredient id from get_ingredients — supply exactly one. note is optional free text.")]
+        AddMealPlanItemRequest request,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.AddItemAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
+
+    [McpServerTool(Name = "add_meal_participants", ReadOnly = false, Destructive = false,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Adds one or more household members (\"users\") to an already-planned meal, on top of anyone " +
+                "already assigned. Obtain the meal's id from get_meal_plan and the member ids from the " +
+                "kotlet://meal-plans/members resource (or get_meal_plan_members). Ids that are already assigned are " +
+                "ignored, so the call is safe to repeat. Every id must belong to your household or the call returns " +
+                "ValidationFailed. This does NOT replace the participant list — use it to grow it.")]
+    public static Task<MealPlannerOperationResult> AddMealParticipants(
+        [Description("Meal id (the meal-plan item id) from get_meal_plan.")] Guid mealId,
+        [Description("Household member ids to add to the meal, from the kotlet://meal-plans/members resource " +
+                     "or get_meal_plan_members.")]
+        IReadOnlyList<Guid> userIds,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.AddParticipantsAsync(RequireUser(currentUser), RequireHouse(currentUser), mealId, userIds, cancellationToken);
+
+    [McpServerTool(Name = "remove_meal_from_plan", ReadOnly = false, Destructive = true,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Permanently removes one planned meal from the household meal plan. Identify the meal with " +
+                "get_meal_plan first — each planned meal carries its own id. This only unplans the meal; the " +
+                "underlying recipe and ingredients are left untouched. Returns { removed: true } when a meal was " +
+                "deleted and { removed: false } when no meal with that id exists in your household.")]
+    public static async Task<object> RemoveMealFromPlan(
+        [Description("Meal id (the meal-plan item id) from get_meal_plan.")] Guid mealId,
+        MealPlannerService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
+        new { Removed = await service.RemoveItemAsync(RequireHouse(currentUser), mealId, cancellationToken)
+            is MealPlannerOperationStatus.Success };
+
     [McpServerTool(Name = "add_recipe", ReadOnly = false, Destructive = false,
         Idempotent = false, OpenWorld = false, UseStructuredContent = true),
      Description("Creates one new household recipe. This is an add-only one-shot tool: gather ingredient IDs first (via get_ingredients, creating missing ones with create_ingredient), include quantities, units, optional notes, servings, and a Markdown description with preparation steps before calling it. When importing a recipe from the internet, cite the source URL at the end of the Markdown description. Read the kotlet://recipes/new-recipe-guide resource for the full workflow.")]

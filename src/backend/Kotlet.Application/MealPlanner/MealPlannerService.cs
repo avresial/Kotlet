@@ -297,6 +297,38 @@ public sealed class MealPlannerService(
     }
 
     /// <summary>
+    /// Adds people to a meal without removing anyone already assigned. Ids that are already
+    /// participants are ignored, so the call is idempotent. All ids must belong to the current
+    /// user's house. Use <see cref="SetParticipantsAsync"/> when the full set should be replaced.
+    /// </summary>
+    public async Task<MealPlannerOperationResult> AddParticipantsAsync(
+        Guid userId, Guid houseId, Guid itemId, IReadOnlyList<Guid> userIds, CancellationToken cancellationToken)
+    {
+        var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
+        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+
+        var members = await GetMemberNamesAsync(houseId, cancellationToken);
+        var requested = userIds.Distinct().ToList();
+
+        var unknown = requested.Where(id => !members.ContainsKey(id)).ToList();
+        if (unknown.Count > 0)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
+            {
+                ["userIds"] = ["One or more selected people are not members of your house."]
+            });
+
+        var current = item.Participants.Select(p => p.UserId).ToHashSet();
+        foreach (var id in requested.Where(id => !current.Contains(id)))
+            item.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = item.Id, UserId = id });
+
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        await repository.SaveChangesAsync(cancellationToken);
+
+        var response = await ToResponseAsync(item, userId, houseId, members, cancellationToken);
+        return new(MealPlannerOperationStatus.Success, response);
+    }
+
+    /// <summary>
     /// Sets an explicit serving count for a meal, or clears it (null) so the count is
     /// derived from the number of assigned participants.
     /// </summary>

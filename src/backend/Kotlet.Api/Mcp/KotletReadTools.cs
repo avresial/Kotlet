@@ -68,6 +68,15 @@ public sealed class KotletReadTools
             .ToList();
     }
 
+    [McpServerTool(Name = "get_meal_plan_members", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Returns the household members who can be assigned to meals, each with their user id and display " +
+                "name. Call this to obtain the userIds needed by add_meal_participants.")]
+    public static async Task<IReadOnlyList<MealHouseMember>> GetMealPlanMembers(
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        await service.GetHouseMembersAsync(RequireHouse(currentUser), cancellationToken);
+
     [McpServerTool(Name = "get_ingredient", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
      Description("Returns one ingredient with complete details: measurement unit, calories, price, category, allergens, attributes, and dietary suitability.")]
     public static async Task<McpIngredient> GetIngredient(
