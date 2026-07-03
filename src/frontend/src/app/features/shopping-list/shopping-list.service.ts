@@ -16,4 +16,7 @@ export class ShoppingListService {
   }
   delete(id: string) { return this.http.delete<void>(apiUrl(`/api/shopping-list/${id}`)); }
   clearChecked() { return this.http.delete<{ removed: number }>(apiUrl('/api/shopping-list/checked')); }
+  generate(from: string, to: string) {
+    return this.http.post<ShoppingListItem[]>(apiUrl('/api/shopping-list/generate'), { from, to });
+  }
 }

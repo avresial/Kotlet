@@ -50,6 +50,37 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
     public Task<int> ClearPurchasedAsync(Guid houseId, CancellationToken cancellationToken) =>
         repository.RemovePurchasedAsync(houseId, cancellationToken);
 
+    public async Task<ShoppingListOperationResult> GenerateAsync(
+        Guid houseId, GenerateShoppingListCommand command, string languageCode, CancellationToken cancellationToken)
+    {
+        if (command.To < command.From || command.To.DayNumber - command.From.DayNumber > 31)
+            return new(ShoppingListOperationStatus.ValidationFailed, ValidationErrors:
+                new Dictionary<string, string[]> { ["to"] = ["Date range must contain between 1 and 32 days."] });
+
+        var planned = await repository.GetPlannedIngredientsAsync(houseId, command.From, command.To, cancellationToken);
+        var existing = (await repository.GetAllAsync(houseId, cancellationToken)).ToDictionary(item => item.IngredientId);
+        foreach (var ingredient in planned.Where(item => item.Quantity > 0))
+        {
+            if (existing.TryGetValue(ingredient.IngredientId, out var item))
+            {
+                item.Quantity += Quantity.FromAmount(ingredient.Quantity);
+                item.IsPurchased = false;
+            }
+            else
+            {
+                repository.Add(new ShoppingListItem
+                {
+                    Id = Guid.NewGuid(), HouseId = houseId, IngredientId = ingredient.IngredientId,
+                    Quantity = Quantity.FromAmount(ingredient.Quantity)
+                });
+            }
+        }
+
+        if (planned.Count > 0) await repository.SaveChangesAsync(cancellationToken);
+        return new(ShoppingListOperationStatus.Success,
+            Items: await GetAllAsync(houseId, languageCode, cancellationToken));
+    }
+
     private static bool ValidQuantity(decimal quantity) => quantity > 0 && quantity <= 99999999.999m;
     private static ShoppingListOperationResult InvalidQuantity() => new(ShoppingListOperationStatus.ValidationFailed,
         ValidationErrors: new Dictionary<string, string[]> { ["quantity"] = ["Quantity must be greater than 0 and no more than 99999999.999."] });

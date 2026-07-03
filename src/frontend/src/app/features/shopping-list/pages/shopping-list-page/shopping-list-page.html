@@ -7,6 +7,15 @@
 
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
+  <section class="generate-panel" aria-labelledby="generate-title">
+    <div><h2 id="generate-title">{{ 'shopping.generate' | t }}</h2><p>{{ 'shopping.generateHelp' | t }}</p></div>
+    <div class="generate-fields">
+      <label>{{ 'common.from' | t }}<input type="date" [value]="generateFrom()" (change)="generateFrom.set($any($event.target).value)" /></label>
+      <label>{{ 'common.to' | t }}<input type="date" [value]="generateTo()" (change)="generateTo.set($any($event.target).value)" /></label>
+      <button class="primary" type="button" [disabled]="isSaving() || generateTo() < generateFrom()" (click)="generate()">{{ 'shopping.generateButton' | t }}</button>
+    </div>
+  </section>
+
   <section class="add-panel" aria-labelledby="add-title">
     <div><h2 id="add-title">{{ 'common.addIngredient' | t }}</h2><p>{{ 'shopping.priceHelp' | t }}</p></div>
     <form [formGroup]="form" (ngSubmit)="add()">
