@@ -27,6 +27,7 @@ public sealed class IngredientServiceTests
         Assert.Equal("Chicken breast", result.Ingredient!.Name);
         Assert.Equal("g", result.Ingredient.MeasurementUnit);
         Assert.Null(result.Ingredient.SvgIcon);
+        Assert.NotEqual(default, result.Ingredient.CreatedAtUtc);
         Assert.Equal(1, repository.SaveCount);
         Assert.Empty(translations.Entries);
     }

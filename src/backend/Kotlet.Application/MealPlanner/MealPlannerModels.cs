@@ -15,6 +15,11 @@ public sealed record AddWeeklyMealPlanResponse(
     IReadOnlyList<MealPlanItemResponse> Added,
     int Skipped);
 
+public sealed record CopyMealPlanDayRequest(DateOnly SourceDate, DateOnly TargetDate);
+public sealed record CopyMealPlanWeekRequest(DateOnly SourceWeekStart, DateOnly TargetWeekStart);
+
+public sealed record MoveMealPlanItemRequest(DateOnly Date, string Slot);
+
 public sealed record SetParticipantsRequest(IReadOnlyList<Guid> UserIds);
 
 public sealed record SetServingsRequest(int? Servings);
@@ -55,6 +60,7 @@ public enum MealPlannerOperationStatus
 {
     Success,
     NotFound,
+    Conflict,
     ValidationFailed
 }
 
@@ -66,4 +72,14 @@ public sealed record MealPlannerOperationResult(
 public sealed record WeeklyMealPlannerOperationResult(
     MealPlannerOperationStatus Status,
     AddWeeklyMealPlanResponse? Plan = null,
+    IReadOnlyDictionary<string, string[]>? ValidationErrors = null);
+
+public sealed record CopyMealPlanDayResult(
+    MealPlannerOperationStatus Status,
+    DailyMealPlanResponse? Plan = null,
+    IReadOnlyDictionary<string, string[]>? ValidationErrors = null);
+
+public sealed record CopyMealPlanWeekResult(
+    MealPlannerOperationStatus Status,
+    int Copied = 0,
     IReadOnlyDictionary<string, string[]>? ValidationErrors = null);

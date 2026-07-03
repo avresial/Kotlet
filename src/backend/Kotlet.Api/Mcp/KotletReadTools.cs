@@ -3,7 +3,10 @@ using Kotlet.Api.Auth;
 using Kotlet.Api.Localization;
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.MealPlanner;
+using Kotlet.Application.Pantry;
 using Kotlet.Application.Recipes;
+using Kotlet.Application.Shopping;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -36,7 +39,7 @@ public sealed class KotletReadTools
         [Description("Recipes per page, from 1 to 100.")] int pageSize = 20,
         [Description("Optional text to search for in recipes.")] string? search = null,
         CancellationToken cancellationToken = default) =>
-        (await service.ListAsync(RequireHouse(currentUser), page, pageSize, search, cancellationToken)).Items
+        (await service.ListAsync(RequireHouse(currentUser), page, pageSize, search, null, cancellationToken)).Items
         .Select(recipe => Link(
             $"kotlet://recipes/{recipe.Id}", recipe.Title,
             $"Recipe for {recipe.Servings} serving(s) with {recipe.IngredientCount} ingredient(s)."))
@@ -52,9 +55,9 @@ public sealed class KotletReadTools
         CancellationToken cancellationToken)
     {
         if (!DateOnly.TryParseExact(from, "yyyy-MM-dd", out var parsedFrom))
-            throw new ArgumentException("From must use yyyy-MM-dd format.", nameof(from));
+            throw new McpException("From must use yyyy-MM-dd format.");
         if (days is < 1 or > 62)
-            throw new ArgumentOutOfRangeException(nameof(days), "Days must be between 1 and 62.");
+            throw new McpException("Days must be between 1 and 62.");
 
         return (await service.GetOverviewAsync(RequireHouse(currentUser), parsedFrom, days, cancellationToken))
             .Select(day => Link(
@@ -64,6 +67,73 @@ public sealed class KotletReadTools
                     : $"Planned slots: {string.Join(", ", day.PlannedSlots)}."))
             .ToList();
     }
+
+    [McpServerTool(Name = "get_ingredient", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Returns one ingredient with complete details: measurement unit, calories, price, category, allergens, attributes, and dietary suitability.")]
+    public static async Task<McpIngredient> GetIngredient(
+        [Description("Ingredient ID from get_ingredients.")] Guid ingredientId,
+        IngredientService service,
+        ILanguageContext language,
+        CancellationToken cancellationToken) =>
+        McpIngredient.From(await service.GetByIdAsync(ingredientId, language.Language, cancellationToken)
+                           ?? throw new McpException("Ingredient not found."));
+
+    [McpServerTool(Name = "get_recipe", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Returns one complete household recipe: Markdown description with preparation steps, servings, and the full ingredient list with quantities.")]
+    public static async Task<RecipeDetailResponse> GetRecipe(
+        [Description("Recipe ID from get_recipes.")] Guid recipeId,
+        RecipeService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        await service.GetByIdAsync(recipeId, RequireHouse(currentUser), cancellationToken)
+        ?? throw new McpException("Recipe not found.");
+
+    [McpServerTool(Name = "get_shopping_list", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Returns the household's complete shopping list, including quantities, prices, and purchased state.")]
+    public static async Task<IReadOnlyList<McpShoppingListItem>> GetShoppingList(
+        ShoppingListService service,
+        ICurrentUser currentUser,
+        ILanguageContext language,
+        CancellationToken cancellationToken) =>
+        (await service.GetAllAsync(RequireHouse(currentUser), language.Language, cancellationToken))
+        .Select(McpShoppingListItem.From)
+        .ToList();
+
+    [McpServerTool(Name = "get_pantry", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Returns the household's complete pantry: every stored ingredient with quantity, expiration date, and storage location.")]
+    public static async Task<IReadOnlyList<McpPantryItem>> GetPantry(
+        PantryService service,
+        ICurrentUser currentUser,
+        ILanguageContext language,
+        CancellationToken cancellationToken) =>
+        (await service.GetAllAsync(RequireHouse(currentUser), language.Language, cancellationToken))
+        .Select(McpPantryItem.From)
+        .ToList();
+
+    [McpServerTool(Name = "get_meal_plan", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Returns the household's complete meal plan for a range of days: every planned meal per slot with participants and servings. Use get_meal_plan_overview first when only checking which days have meals.")]
+    public static async Task<IReadOnlyList<DailyMealPlanResponse>> GetMealPlan(
+        [Description("First date in yyyy-MM-dd format.")] string from,
+        [Description("Number of days to return, from 1 to 31.")] int days,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken)
+    {
+        if (!DateOnly.TryParseExact(from, "yyyy-MM-dd", out var parsedFrom))
+            throw new McpException("From must use yyyy-MM-dd format.");
+        if (days is < 1 or > 31)
+            throw new McpException("Days must be between 1 and 31.");
+
+        var userId = RequireUser(currentUser);
+        var houseId = RequireHouse(currentUser);
+        var plan = new List<DailyMealPlanResponse>(days);
+        for (var offset = 0; offset < days; offset++)
+            plan.Add(await service.GetForDateAsync(userId, houseId, parsedFrom.AddDays(offset), cancellationToken));
+        return plan;
+    }
+
+    private static Guid RequireUser(ICurrentUser currentUser) =>
+        currentUser.UserId ?? throw new UnauthorizedAccessException("The authenticated user is unavailable.");
 
     private static Guid RequireHouse(ICurrentUser currentUser) =>
         currentUser.HouseId ?? throw new UnauthorizedAccessException(

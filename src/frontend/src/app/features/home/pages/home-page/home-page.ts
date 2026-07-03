@@ -15,7 +15,7 @@ import { ShoppingListService } from '../../../shopping-list/shopping-list.servic
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
-import { RecipeSummary } from '../../../recipes/models/recipe.models';
+import { RecipeDetail, RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { DailyMealPlan, MealParticipant, MealSlot } from '../../../meal-planner/models/meal-planner.models';
 import { MealPlannerService } from '../../../meal-planner/services/meal-planner.service';
@@ -33,6 +33,12 @@ interface TodaysMenuEntry {
 }
 
 interface UselessFact { text: string; source: string; source_url: string; }
+
+export const newestIngredients = (ingredients: Ingredient[]): Ingredient[] =>
+  [...ingredients].sort((left, right) => right.createdAtUtc.localeCompare(left.createdAtUtc) || left.name.localeCompare(right.name)).slice(0, 5);
+
+export const ingredientPreview = (recipe: RecipeDetail): string =>
+  recipe.ingredients.slice(0, 3).map(ingredient => ingredient.name).join(', ');
 
 @Component({
   selector: 'app-home-page',
@@ -55,6 +61,7 @@ export class HomePage implements OnInit {
   readonly lowStock = signal<PantryItem[]>([]);
   readonly pantryLoading = signal(true);
   readonly ingredients = signal<Ingredient[]>([]);
+  readonly recentIngredients = computed(() => newestIngredients(this.ingredients()));
   readonly shoppingItems = signal<ShoppingListItem[]>([]);
   readonly shoppingLoading = signal(true);
   readonly shoppingSaving = signal(false);
@@ -85,6 +92,7 @@ export class HomePage implements OnInit {
 
   readonly todaysMenu = signal<TodaysMenuEntry[]>([]);
   readonly menuAvatarUrls = signal<Record<string, string>>({});
+  readonly menuRecipes = signal<Record<string, RecipeDetail>>({});
   readonly menuLoading = signal(true);
   readonly menuError = signal(false);
 
@@ -128,7 +136,7 @@ export class HomePage implements OnInit {
       next: plan => {
         const menu = this.buildMenu(plan);
         this.todaysMenu.set(menu);
-        this.loadMenuAvatars(menu);
+        this.loadMenuDetails(menu);
       },
       error: () => this.menuError.set(true),
     });
@@ -191,13 +199,14 @@ export class HomePage implements OnInit {
     }
   }
 
-  private loadMenuAvatars(entries: TodaysMenuEntry[]): void {
+  private loadMenuDetails(entries: TodaysMenuEntry[]): void {
     const recipeIds = [...new Set(entries.map(entry => entry.recipeId).filter((id): id is string => !!id))];
     for (const recipeId of recipeIds) {
-      this.recipeService.listImages(recipeId)
+      this.recipeService.get(recipeId)
         .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(images => {
-          const first = images[0];
+        .subscribe(recipe => {
+          this.menuRecipes.update(recipes => ({ ...recipes, [recipeId]: recipe }));
+          const first = recipe.images[0];
           if (!first) return;
           this.recipeService.imageContent(first.contentUrl)
             .pipe(takeUntilDestroyed(this.destroyRef))
@@ -208,6 +217,8 @@ export class HomePage implements OnInit {
         });
     }
   }
+
+  menuIngredientPreview(recipeId: string): string { return ingredientPreview(this.menuRecipes()[recipeId]); }
 
   relativeDate(value: string): string {
     const elapsedDays = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000));

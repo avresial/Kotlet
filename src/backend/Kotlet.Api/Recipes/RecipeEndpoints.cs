@@ -1,5 +1,6 @@
 using Kotlet.Api.Auth;
 using Kotlet.Application.Recipes;
+using Kotlet.Domain.MealPlanner;
 
 namespace Kotlet.Api.Recipes;
 
@@ -86,10 +87,13 @@ public static class RecipeEndpoints
         int page = 1,
         int pageSize = 20,
         string? search = null,
+        string? mealType = null,
         CancellationToken cancellationToken = default)
     {
         if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
-        var result = await service.ListAsync(houseId, page, pageSize, search, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(mealType) && !MealSlotValues.TryParse(mealType, out _))
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["mealType"] = ["Meal type is invalid."] });
+        var result = await service.ListAsync(houseId, page, pageSize, search, mealType, cancellationToken);
         return Results.Ok(result);
     }
 

@@ -53,6 +53,11 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         Assert.True(list.GetProperty("totalCount").GetInt32() >= 1);
         var items = list.GetProperty("items").EnumerateArray().ToList();
         Assert.Contains(items, r => r.GetProperty("id").GetGuid() == id && r.GetProperty("mealType").GetString() == "dinner");
+        var matchingType = await client.GetFromJsonAsync<JsonElement>("/api/recipes?mealType=dinner");
+        Assert.Contains(matchingType.GetProperty("items").EnumerateArray(), r => r.GetProperty("id").GetGuid() == id);
+        var otherType = await client.GetFromJsonAsync<JsonElement>("/api/recipes?mealType=breakfast");
+        Assert.DoesNotContain(otherType.GetProperty("items").EnumerateArray(), r => r.GetProperty("id").GetGuid() == id);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/recipes?mealType=brunch")).StatusCode);
 
         // Get detail
         var detail = await client.GetFromJsonAsync<JsonElement>($"/api/recipes/{id}");

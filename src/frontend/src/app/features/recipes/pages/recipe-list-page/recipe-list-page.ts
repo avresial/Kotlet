@@ -7,7 +7,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
-import { RecipeSummary } from '../../models/recipe.models';
+import { RecipeMealType, RecipeSummary, recipeMealTypes } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 
 @Component({
@@ -28,6 +28,8 @@ export class RecipeListPage implements OnInit {
   readonly error = signal<string | null>(null);
   readonly deletingId = signal<string | null>(null);
   readonly search = signal('');
+  readonly mealType = signal<RecipeMealType | ''>('');
+  readonly mealTypes = recipeMealTypes;
   readonly page = signal(1);
   readonly totalCount = signal(0);
   readonly imageUrls = signal<Record<string, string>>({});
@@ -48,7 +50,7 @@ export class RecipeListPage implements OnInit {
     this.isLoading.set(true);
     this.error.set(null);
     this.loadSub = this.service
-      .list(this.page(), this.pageSize, this.search() || undefined)
+      .list(this.page(), this.pageSize, this.search() || undefined, this.mealType() || undefined)
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: (res) => {
@@ -68,6 +70,7 @@ export class RecipeListPage implements OnInit {
 
   clearSearch(): void {
     this.search.set('');
+    this.mealType.set('');
     this.onSearch();
   }
 

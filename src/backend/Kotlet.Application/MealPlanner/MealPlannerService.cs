@@ -153,6 +153,103 @@ public sealed class MealPlannerService(
         return new(MealPlannerOperationStatus.Success, new(responses, skipped));
     }
 
+    public async Task<CopyMealPlanDayResult> CopyDayAsync(
+        Guid userId, Guid houseId, CopyMealPlanDayRequest request, CancellationToken cancellationToken)
+    {
+        if (request.SourceDate == request.TargetDate)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors:
+                new Dictionary<string, string[]> { ["targetDate"] = ["Target date must differ from source date."] });
+
+        var source = await repository.GetByDateAsync(houseId, request.SourceDate, cancellationToken);
+        if (source.Count == 0) return new(MealPlannerOperationStatus.NotFound);
+        if ((await repository.GetByDateAsync(houseId, request.TargetDate, cancellationToken)).Count > 0)
+            return new(MealPlannerOperationStatus.Conflict);
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var original in source)
+        {
+            var copy = new MealPlanItem
+            {
+                Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = request.TargetDate,
+                Slot = original.Slot, RecipeId = original.RecipeId, IngredientId = original.IngredientId,
+                Note = original.Note, SortOrder = original.SortOrder, Servings = original.Servings,
+                Guests = original.Guests, CreatedAt = now, UpdatedAt = now,
+                Participants = original.Participants.Select(participant => new MealPlanItemParticipant
+                    { UserId = participant.UserId }).ToList()
+            };
+            repository.Add(copy);
+        }
+
+        await repository.SaveChangesAsync(cancellationToken);
+        return new(MealPlannerOperationStatus.Success,
+            await GetForDateAsync(userId, houseId, request.TargetDate, cancellationToken));
+    }
+
+    public async Task<CopyMealPlanWeekResult> CopyWeekAsync(
+        Guid userId, Guid houseId, CopyMealPlanWeekRequest request, CancellationToken cancellationToken)
+    {
+        if (request.SourceWeekStart.DayOfWeek != DayOfWeek.Monday || request.TargetWeekStart.DayOfWeek != DayOfWeek.Monday)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors:
+                new Dictionary<string, string[]> { ["weekStart"] = ["Source and target weeks must start on Monday."] });
+        if (request.SourceWeekStart == request.TargetWeekStart)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors:
+                new Dictionary<string, string[]> { ["targetWeekStart"] = ["Target week must differ from source week."] });
+
+        var source = await repository.GetByDateRangeAsync(houseId, request.SourceWeekStart, request.SourceWeekStart.AddDays(6), cancellationToken);
+        if (source.Count == 0) return new(MealPlannerOperationStatus.NotFound);
+        if ((await repository.GetByDateRangeAsync(houseId, request.TargetWeekStart, request.TargetWeekStart.AddDays(6), cancellationToken)).Count > 0)
+            return new(MealPlannerOperationStatus.Conflict);
+
+        var offset = request.TargetWeekStart.DayNumber - request.SourceWeekStart.DayNumber;
+        var now = DateTimeOffset.UtcNow;
+        foreach (var original in source)
+        {
+            repository.Add(new MealPlanItem
+            {
+                Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = original.Date.AddDays(offset),
+                Slot = original.Slot, RecipeId = original.RecipeId, IngredientId = original.IngredientId,
+                Note = original.Note, SortOrder = original.SortOrder, Servings = original.Servings,
+                Guests = original.Guests, CreatedAt = now, UpdatedAt = now,
+                Participants = original.Participants.Select(participant => new MealPlanItemParticipant
+                    { UserId = participant.UserId }).ToList()
+            });
+        }
+
+        await repository.SaveChangesAsync(cancellationToken);
+        return new(MealPlannerOperationStatus.Success, source.Count);
+    }
+
+    /// <summary>
+    /// Moves a meal to a different day and/or slot, appending it to the end of the
+    /// target slot. Used by the drag-and-drop planner to relocate a planned meal
+    /// without recreating it, preserving its people, guests and serving overrides.
+    /// </summary>
+    public async Task<MealPlannerOperationResult> MoveItemAsync(
+        Guid userId, Guid houseId, Guid itemId, MoveMealPlanItemRequest request, CancellationToken cancellationToken)
+    {
+        if (SlotError(request.Slot) is { } slotError)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: slotError);
+
+        var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
+        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+
+        var targetSlot = ParseSlot(request.Slot);
+        if (item.Date != request.Date || item.Slot != targetSlot)
+        {
+            var targetCount = (await repository.GetByDateAsync(houseId, request.Date, cancellationToken))
+                .Count(i => i.Slot == targetSlot && i.Id != item.Id);
+            item.Date = request.Date;
+            item.Slot = targetSlot;
+            item.SortOrder = targetCount;
+            item.UpdatedAt = DateTimeOffset.UtcNow;
+            await repository.SaveChangesAsync(cancellationToken);
+        }
+
+        var members = await GetMemberNamesAsync(houseId, cancellationToken);
+        var response = await ToResponseAsync(item, userId, houseId, members, cancellationToken);
+        return new(MealPlannerOperationStatus.Success, response);
+    }
+
     public async Task<MealPlannerOperationStatus> RemoveItemAsync(
         Guid houseId, Guid itemId, CancellationToken cancellationToken)
     {
@@ -254,8 +351,8 @@ public sealed class MealPlannerService(
     {
         var errors = new Dictionary<string, string[]>();
 
-        if (string.IsNullOrWhiteSpace(request.Slot) || !ValidSlots.Contains(request.Slot.ToLower()))
-            errors["slot"] = [$"Slot must be one of: {string.Join(", ", ValidSlots)}."];
+        if (SlotError(request.Slot) is { } slotError)
+            errors["slot"] = slotError["slot"];
 
         var hasRecipe = request.RecipeId.HasValue;
         var hasIngredient = request.IngredientId.HasValue;
@@ -326,6 +423,16 @@ public sealed class MealPlannerService(
             item.EffectiveServings,
             item.Servings.HasValue);
     }
+
+    /// <summary>
+    /// Validates a slot name, returning the slot validation error dictionary when it is
+    /// missing or unknown, or null when it is valid. Shared by add and move so the set of
+    /// valid slots and the message stay in one place.
+    /// </summary>
+    private static Dictionary<string, string[]>? SlotError(string? slot) =>
+        string.IsNullOrWhiteSpace(slot) || !ValidSlots.Contains(slot.ToLower())
+            ? new Dictionary<string, string[]> { ["slot"] = [$"Slot must be one of: {string.Join(", ", ValidSlots)}."] }
+            : null;
 
     private static MealSlot ParseSlot(string slot) => slot.ToLower() switch
     {

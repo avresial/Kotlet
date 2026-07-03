@@ -13,6 +13,7 @@ export interface Ingredient {
   pricePer100BaseUnits: number;
   svgIcon: string | null;
   category: number;
+  createdAtUtc: string;
 }
 
 export interface IngredientRequest {

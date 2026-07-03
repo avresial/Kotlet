@@ -27,15 +27,13 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
 .overview-legend span { width: .75rem; height: .75rem; border-radius: .18rem; background: #9a3a2a; }
 .overview-scroll { overflow-x: auto; padding-bottom: .25rem; }
 .overview-grid {
-  --cell-size: 2rem;
   display: grid;
-  min-width: max-content;
-  grid-template-columns: 4.75rem repeat(var(--day-count), var(--cell-size));
+  grid-template-columns: 6rem repeat(var(--day-count), minmax(4rem, 1fr));
   gap: .28rem;
 }
 .overview-corner { grid-column: 1; }
 .overview-day {
-  width: var(--cell-size);
+  width: 100%;
   padding: 0 0 .35rem;
   border: 0;
   border-bottom: 2px solid transparent;
@@ -50,8 +48,8 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
 }
 .overview-row-label { display: flex; align-items: center; color: #62594e; font-size: .72rem; font-weight: 700; }
 .overview-cell {
-  width: var(--cell-size);
-  height: var(--cell-size);
+  width: 100%;
+  min-height: 2.75rem;
   padding: 0;
   border: 1px solid #ded4c7;
   border-radius: .3rem;
@@ -65,12 +63,13 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
 
 .date-picker {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: .75rem;
   margin-bottom: 1.75rem;
 
   label { color: #554e45; font-size: .78rem; font-weight: 750; }
-  input { padding: .6rem .75rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #29251f; background: #fffdf9; }
+  input, button { padding: .6rem .75rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #29251f; background: #fffdf9; }
 }
 
 input:focus, select:focus { outline: 2px solid #b96554; outline-offset: 1px; }
@@ -113,6 +112,50 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 .item-title span { color: #746d63; font-size: .78rem; font-style: italic; }
 .shopping-button { border-color: #d6b7a7; color: #843426; }
 .shopping-button.is-added { border-color: #afc1a9; color: #567451; }
+
+.drag-handle {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 1.4rem;
+  height: 2rem;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  color: #b3a99b;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+
+  &:hover { color: #8e392b; }
+  &:active { cursor: grabbing; }
+  svg { width: 1.05rem; height: 1.05rem; fill: currentColor; }
+}
+
+// Drag-and-drop feedback for relocating meals between slots and days.
+.meal-item.cdk-drag-preview {
+  padding: .55rem .8rem;
+  border: 0;
+  border-radius: .6rem;
+  background: #fffaf2;
+  box-shadow: 0 12px 30px rgba(64, 40, 20, .22);
+
+  .meal-item-details { display: none; }
+}
+.meal-item.cdk-drag-placeholder { opacity: .35; }
+.cdk-drag-animating { transition: transform .18s cubic-bezier(0, 0, .2, 1); }
+.item-list.cdk-drop-list-dragging .meal-item:not(.cdk-drag-placeholder) {
+  transition: transform .18s cubic-bezier(0, 0, .2, 1);
+}
+.item-list.cdk-drop-list-receiving {
+  border-radius: .5rem;
+  outline: 2px dashed #c58b53;
+  outline-offset: 4px;
+}
+.overview-day.cdk-drop-list-receiving {
+  border-color: #9a3a2a;
+  color: #7d3428;
+  background: #f7ead9;
+}
 
 .icon-button {
   display: inline-grid;
@@ -219,6 +262,7 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   .meal-planner-page { width: min(100% - 1.5rem, 72rem); padding-top: 1.5rem; }
   .date-picker { align-items: stretch; flex-direction: column; }
   .overview-heading { align-items: start; flex-direction: column; }
+  .meal-overview { display: none; }
   .meal-item-header { gap: .4rem; }
   .item-title { width: auto; min-width: 0; }
   .icon-button { width: 1.8rem; height: 1.8rem; padding: .3rem; }

@@ -13,6 +13,9 @@ public static class ShoppingListEndpoints
             user.HouseId is { } houseId ? Results.Ok(await service.GetAllAsync(houseId, language.Language, ct)) : Results.Unauthorized());
         group.MapPost("", async (CreateShoppingListItemCommand command, ICurrentUser user, ShoppingListService service, ILanguageContext language, CancellationToken ct) =>
             user.HouseId is { } houseId ? ToHttpResult(await service.CreateAsync(houseId, command, language.Language, ct), true) : Results.Unauthorized());
+        group.MapPost("/generate", async (GenerateShoppingListCommand command, ICurrentUser user, ShoppingListService service, ILanguageContext language, CancellationToken ct) =>
+            user.HouseId is not { } houseId ? Results.Unauthorized() :
+            ToHttpResult(await service.GenerateAsync(houseId, command, language.Language, ct), false));
         group.MapDelete("/checked", async (ICurrentUser user, ShoppingListService service, CancellationToken ct) =>
             user.HouseId is { } houseId ? Results.Ok(new { removed = await service.ClearPurchasedAsync(houseId, ct) }) : Results.Unauthorized());
         group.MapPut("/{id:guid}", async (Guid id, UpdateShoppingListItemCommand command, ICurrentUser user, ShoppingListService service, ILanguageContext language, CancellationToken ct) =>
@@ -26,7 +29,7 @@ public static class ShoppingListEndpoints
     private static IResult ToHttpResult(ShoppingListOperationResult result, bool created) => result.Status switch
     {
         ShoppingListOperationStatus.Success when created => Results.Created($"/api/shopping-list/{result.Item!.Id}", result.Item),
-        ShoppingListOperationStatus.Success => Results.Ok(result.Item),
+        ShoppingListOperationStatus.Success => Results.Ok(result.Items ?? (object?)result.Item),
         ShoppingListOperationStatus.NotFound => Results.NotFound(),
         ShoppingListOperationStatus.Conflict => Results.Conflict(new { result.Message }),
         ShoppingListOperationStatus.ValidationFailed => Results.ValidationProblem(result.ValidationErrors!),

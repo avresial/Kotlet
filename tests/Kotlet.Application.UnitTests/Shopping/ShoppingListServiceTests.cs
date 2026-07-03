@@ -199,6 +199,27 @@ public sealed class ShoppingListServiceTests
         Assert.DoesNotContain(repo.Items, i => i.IsPurchased);
     }
 
+    [Fact]
+    public async Task Generate_AggregatesPlannedIngredientsWithoutRemovingManualItems()
+    {
+        var bread = Ingredient("Bread", 1m);
+        var repo = new FakeRepository(Apples, bread);
+        var manual = repo.SeedItem(HouseId, Apples, 2m);
+        manual.IsPurchased = true;
+        repo.PlannedIngredients.AddRange([new(Apples.Id, 3m), new(bread.Id, 4m)]);
+        var service = new ShoppingListService(repo, new FakeTranslationRepository());
+
+        var result = await service.GenerateAsync(HouseId,
+            new GenerateShoppingListCommand(new(2026, 7, 1), new(2026, 7, 7)), English, CancellationToken.None);
+
+        Assert.Equal(ShoppingListOperationStatus.Success, result.Status);
+        Assert.Equal(2, result.Items!.Count);
+        Assert.Equal(5m, repo.Items.Single(item => item.IngredientId == Apples.Id).Quantity.Amount);
+        Assert.False(manual.IsPurchased);
+        Assert.Equal(4m, repo.Items.Single(item => item.IngredientId == bread.Id).Quantity.Amount);
+        Assert.Equal(1, repo.SaveCount);
+    }
+
     private static Ingredient Ingredient(string name, decimal pricePer100, FoodCategory category = FoodCategory.Unknown) => new()
     {
         Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g", PricePer100BaseUnits = Price.FromAmount(pricePer100), Category = category
@@ -208,6 +229,7 @@ public sealed class ShoppingListServiceTests
     {
         public List<ShoppingListItem> Items { get; } = [];
         public int SaveCount { get; private set; }
+        public List<PlannedIngredient> PlannedIngredients { get; } = [];
 
         public ShoppingListItem SeedItem(Guid houseId, Ingredient ingredient, decimal quantity)
         {
@@ -223,6 +245,9 @@ public sealed class ShoppingListServiceTests
         public Task<IReadOnlyCollection<ShoppingListItem>> GetAllAsync(Guid houseId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyCollection<ShoppingListItem>>(Items.Where(i => i.HouseId == houseId).Select(Hydrate).ToArray());
 
+        public Task<IReadOnlyCollection<ShoppingListItem>> GetAllTrackedAsync(Guid houseId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyCollection<ShoppingListItem>>(Items.Where(i => i.HouseId == houseId).Select(Hydrate).ToArray());
+
         public Task<ShoppingListItem?> GetByIdAsync(Guid id, Guid houseId, CancellationToken cancellationToken) =>
             Task.FromResult(Items.SingleOrDefault(i => i.Id == id && i.HouseId == houseId) is { } item ? Hydrate(item) : null);
 
@@ -231,6 +256,9 @@ public sealed class ShoppingListServiceTests
 
         public Task<bool> ItemExistsAsync(Guid houseId, Guid ingredientId, CancellationToken cancellationToken) =>
             Task.FromResult(Items.Any(i => i.HouseId == houseId && i.IngredientId == ingredientId));
+
+        public Task<IReadOnlyList<PlannedIngredient>> GetPlannedIngredientsAsync(Guid houseId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<PlannedIngredient>>(PlannedIngredients);
 
         public void Add(ShoppingListItem item) => Items.Add(item);
         public void Remove(ShoppingListItem item) => Items.Remove(item);

@@ -5,7 +5,7 @@ import { filterIngredients } from './ingredients-page';
 const ingredient = (name: string, category: number): Ingredient => ({
   id: name, name, defaultName: name, translation: null, measurementUnit: 'g', isCountable: false,
   measurementUnitsPerPiece: null, caloriesPer100BaseUnits: 0, pricePer100BaseUnits: 0,
-  svgIcon: null, category,
+  svgIcon: null, category, createdAtUtc: '2026-01-01T00:00:00Z',
 });
 
 describe('filterIngredients', () => {

@@ -1,3 +1,4 @@
+import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -28,14 +29,21 @@ interface PersonCalories {
   calories: number;
 }
 
+export function weekStart(date: string): string {
+  const value = new Date(`${date}T00:00:00`);
+  value.setDate(value.getDate() - (value.getDay() + 6) % 7);
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+}
+
 @Component({
   selector: 'app-meal-planner-page',
-  imports: [FormsModule, RouterLink, IngredientPicker, RecipePicker, TranslatePipe],
+  imports: [FormsModule, RouterLink, IngredientPicker, RecipePicker, TranslatePipe, CdkDropListGroup, CdkDropList, CdkDrag, CdkDragHandle],
   templateUrl: './meal-planner-page.html',
   styleUrl: './meal-planner-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MealPlannerPage implements OnInit {
+  readonly weekStart = weekStart;
   private readonly service = inject(MealPlannerService);
   private readonly recipeService = inject(RecipeService);
   private readonly ingredientService = inject(IngredientService);
@@ -51,19 +59,21 @@ export class MealPlannerPage implements OnInit {
     supper: this.translations.translate('meal.dinner'),
   }));
 
-  private readonly overviewDays = 28;
+  private readonly overviewDays = 7;
   readonly selectedDate = signal(this.todayString());
-  readonly overviewFrom = signal(this.todayString());
+  readonly overviewFrom = signal(weekStart(this.todayString()));
   readonly overview = signal<MealPlanOverviewDay[]>([]);
   readonly overviewLabel = computed(() => {
     const from = this.overviewFrom();
-    if (from === this.todayString()) return this.translations.translate('meal.nextDays').replace('{count}', String(this.overviewDays));
     const to = this.addDays(from, this.overviewDays - 1);
     return `${this.dayNumber(from)} – ${this.dayNumber(to)}`;
   });
   readonly plan = signal<DailyMealPlan | null>(null);
   readonly isLoadingPlan = signal(false);
   readonly planError = signal<string | null>(null);
+  readonly copyTargetDate = signal(this.addDays(this.todayString(), 1));
+  readonly isCopying = signal(false);
+  readonly copyWeekTargetDate = signal(this.addDays(weekStart(this.todayString()), 7));
 
   readonly recipes = signal<RecipeSummary[]>([]);
   readonly recipeDetails = signal<Record<string, RecipeDetail>>({});
@@ -77,6 +87,7 @@ export class MealPlannerPage implements OnInit {
   readonly addingSlot = signal<string | null>(null);
   readonly removingId = signal<string | null>(null);
   readonly busyItemId = signal<string | null>(null);
+  readonly movingId = signal<string | null>(null);
   readonly composer = signal<Record<MealSlot, MealPlanItemType | null>>({ breakfast: null, 'second-breakfast': null, dinner: null, snack: null, supper: null });
   readonly shoppingItemState = signal<Record<string, 'adding' | 'added'>>({});
 
@@ -132,13 +143,11 @@ export class MealPlannerPage implements OnInit {
     });
   }
 
-  /** Re-centers the overview window on the selected date when it falls outside the current range. */
+  /** Keeps the desktop grid on the calendar week containing the selected mobile day. */
   private centerOverviewOnSelected(): void {
-    const date = this.selectedDate();
-    const from = this.overviewFrom();
-    const to = this.addDays(from, this.overviewDays - 1);
-    if (date >= from && date <= to) return;
-    this.overviewFrom.set(this.addDays(date, -Math.floor(this.overviewDays / 2)));
+    const from = weekStart(this.selectedDate());
+    if (from === this.overviewFrom()) return;
+    this.overviewFrom.set(from);
     this.loadOverview();
   }
 
@@ -206,6 +215,32 @@ export class MealPlannerPage implements OnInit {
     this.loadPlan();
   }
 
+  copyDay(): void {
+    const target = this.copyTargetDate();
+    if (!target || target === this.selectedDate() || this.isCopying()) return;
+    this.isCopying.set(true); this.planError.set(null);
+    this.service.copyDay(this.selectedDate(), target).pipe(finalize(() => this.isCopying.set(false))).subscribe({
+      next: (plan) => {
+        this.selectedDate.set(target); this.plan.set(plan); this.loadRecipeDetails(plan);
+        this.overviewFrom.set(weekStart(target)); this.loadOverview();
+      },
+      error: (error) => this.planError.set(getApiError(error, this.translations.translate('meal.copyDayError'))),
+    });
+  }
+
+  copyWeek(): void {
+    const source = weekStart(this.selectedDate());
+    const target = weekStart(this.copyWeekTargetDate());
+    if (source === target || this.isCopying()) return;
+    this.isCopying.set(true); this.planError.set(null);
+    this.service.copyWeek(source, target).pipe(finalize(() => this.isCopying.set(false))).subscribe({
+      next: () => {
+        this.selectedDate.set(target); this.overviewFrom.set(target); this.loadOverview(); this.loadPlan();
+      },
+      error: (error) => this.planError.set(getApiError(error, this.translations.translate('meal.copyWeekError'))),
+    });
+  }
+
   itemsForSlot(slot: MealSlot): MealPlanItem[] {
     return this.plan()?.meals[slot] ?? [];
   }
@@ -242,6 +277,56 @@ export class MealPlannerPage implements OnInit {
         this.loadOverview();
       },
       error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.addIngredientError'))),
+    });
+  }
+
+  /** Drop onto a slot within the current day: move the meal to that slot. */
+  dropOnSlot(event: CdkDragDrop<MealSlot>, targetSlot: MealSlot): void {
+    if (event.previousContainer === event.container) return;
+    this.moveItem(event.item.data as MealPlanItem, this.selectedDate(), targetSlot);
+  }
+
+  /** Drop onto a day in the week grid: move the meal to that day, keeping its slot. */
+  dropOnDay(event: CdkDragDrop<string>, targetDate: string): void {
+    const item = event.item.data as MealPlanItem;
+    this.moveItem(item, targetDate, item.slot);
+  }
+
+  /**
+   * Relocates a meal to a new day and/or slot. The UI is updated optimistically so the
+   * drop feels instant; if the backend save fails the previous plan is restored so no
+   * data is lost from the view.
+   */
+  private moveItem(item: MealPlanItem, date: string, slot: MealSlot): void {
+    if (this.movingId()) return;
+    const snapshotDate = this.selectedDate();
+    const sameDay = date === snapshotDate;
+    if (sameDay && slot === item.slot) return;
+
+    const snapshot = this.plan();
+    this.movingId.set(item.id);
+    this.planError.set(null);
+
+    this.plan.update((p) => {
+      if (!p) return p;
+      const withoutItem = this.filterItem(p, item.id);
+      if (!sameDay) return withoutItem;
+      return this.appendItem(withoutItem, slot, { ...item, slot, sortOrder: withoutItem.meals[slot].length });
+    });
+
+    this.service.moveItem(item.id, date, slot).pipe(
+      finalize(() => this.movingId.set(null))
+    ).subscribe({
+      next: (updated) => {
+        // Only reconcile the view if the user is still looking at the day we moved from.
+        if (sameDay && this.selectedDate() === date) this.plan.update((p) => p ? this.replaceItem(p, updated) : p);
+        this.loadOverview();
+      },
+      error: (err) => {
+        // Guard against restoring a stale snapshot over a day the user has since navigated to.
+        if (this.selectedDate() === snapshotDate) this.plan.set(snapshot);
+        this.planError.set(getApiError(err, this.translations.translate('meal.moveError')));
+      },
     });
   }
 

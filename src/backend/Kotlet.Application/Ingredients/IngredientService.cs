@@ -64,7 +64,8 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             CaloriesPer100BaseUnits = Calories.FromKilocalories(command.CaloriesPer100BaseUnits),
             PricePer100BaseUnits = Price.FromAmount(command.PricePer100BaseUnits),
             Category = command.Category, Allergens = command.Allergens,
-            Attributes = command.Attributes, Suitability = command.Suitability
+            Attributes = command.Attributes, Suitability = command.Suitability,
+            CreatedAtUtc = DateTimeOffset.UtcNow
         };
         repository.Add(ingredient);
         // Stage the translation (when any) so the ingredient row and its translation are persisted
@@ -214,7 +215,7 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
             ingredient.MeasurementUnit, ingredient.IsCountable,
             ingredient.MeasurementUnitsPerPiece, ingredient.CaloriesPer100BaseUnits.Kilocalories,
             ingredient.PricePer100BaseUnits.Amount, ingredient.SvgIcon, ingredient.Category,
-            ingredient.Allergens, ingredient.Attributes, ingredient.Suitability);
+            ingredient.Allergens, ingredient.Attributes, ingredient.Suitability, ingredient.CreatedAtUtc);
     private static IngredientOperationResult Conflict() =>
         new(IngredientOperationStatus.Conflict, Message: "An ingredient with this name already exists.");
 }

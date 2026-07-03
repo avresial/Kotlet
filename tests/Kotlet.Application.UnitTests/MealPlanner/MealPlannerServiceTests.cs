@@ -172,6 +172,51 @@ public sealed class MealPlannerServiceTests
         Assert.Empty(meals.Items);
     }
 
+    [Fact]
+    public async Task CopyDay_CopiesAllItemStateAndRejectsNonEmptyTarget()
+    {
+        var (service, meals) = CreateService();
+        var source = meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 2);
+        source.Note = "Family meal";
+        source.Servings = 4;
+        source.Guests = 1;
+        source.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = source.Id, UserId = CurrentUserId });
+
+        var result = await service.CopyDayAsync(CurrentUserId, HouseId,
+            new(Today, Today.AddDays(1)), CancellationToken.None);
+        var conflict = await service.CopyDayAsync(CurrentUserId, HouseId,
+            new(Today, Today.AddDays(1)), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        var copy = Assert.Single(meals.Items, item => item.Date == Today.AddDays(1));
+        Assert.Equal((source.Slot, source.SortOrder, source.Note, source.Servings, source.Guests),
+            (copy.Slot, copy.SortOrder, copy.Note, copy.Servings, copy.Guests));
+        Assert.Equal(CurrentUserId, Assert.Single(copy.Participants).UserId);
+        Assert.Equal(MealPlannerOperationStatus.Conflict, conflict.Status);
+    }
+
+    [Fact]
+    public async Task CopyWeek_CopiesAllDaysAndRejectsNonEmptyTarget()
+    {
+        var (service, meals) = CreateService();
+        var monday = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 0);
+        monday.Servings = 3;
+        monday.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = monday.Id, UserId = CurrentUserId });
+        meals.SeedItem(Today.AddDays(2), MealSlot.Dinner, SoupRecipe.Id, 1);
+
+        var result = await service.CopyWeekAsync(CurrentUserId, HouseId,
+            new(Today, Today.AddDays(7)), CancellationToken.None);
+        var conflict = await service.CopyWeekAsync(CurrentUserId, HouseId,
+            new(Today, Today.AddDays(7)), CancellationToken.None);
+
+        Assert.Equal((MealPlannerOperationStatus.Success, 2), (result.Status, result.Copied));
+        var copiedMonday = Assert.Single(meals.Items, item => item.Date == Today.AddDays(7));
+        Assert.Equal(3, copiedMonday.Servings);
+        Assert.Equal(CurrentUserId, Assert.Single(copiedMonday.Participants).UserId);
+        Assert.Single(meals.Items, item => item.Date == Today.AddDays(9));
+        Assert.Equal(MealPlannerOperationStatus.Conflict, conflict.Status);
+    }
+
     // ---- GetForDate ----
 
     [Fact]
@@ -212,6 +257,87 @@ public sealed class MealPlannerServiceTests
         Assert.Equal("supper", overview[0].PlannedSlots[1]);
         Assert.Equal("dinner", Assert.Single(overview[1].PlannedSlots));
         Assert.Empty(overview[2].PlannedSlots);
+    }
+
+    // ---- Move ----
+
+    [Fact]
+    public async Task MoveItem_ToDifferentSlotSameDay_ReslotsAndAppends()
+    {
+        var (service, meals) = CreateService();
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 0);
+        item.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = item.Id, UserId = CurrentUserId });
+        meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 0);
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(Today, "dinner"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        Assert.Equal("dinner", result.Item!.Slot);
+        Assert.Equal(Today, item.Date);
+        Assert.Equal(MealSlot.Dinner, item.Slot);
+        // Appended after the one existing dinner meal.
+        Assert.Equal(1, item.SortOrder);
+        // People survive the move.
+        Assert.Equal(CurrentUserId, Assert.Single(item.Participants).UserId);
+    }
+
+    [Fact]
+    public async Task MoveItem_ToDifferentDay_KeepsSlotAndRelocates()
+    {
+        var (service, meals) = CreateService();
+        var target = Today.AddDays(2);
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 3);
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(target, "breakfast"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        Assert.Equal(target, item.Date);
+        Assert.Equal(MealSlot.Breakfast, item.Slot);
+        // First meal in an empty target slot.
+        Assert.Equal(0, item.SortOrder);
+    }
+
+    [Fact]
+    public async Task MoveItem_WithInvalidSlot_FailsValidation()
+    {
+        var (service, meals) = CreateService();
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 0);
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(Today, "brunch"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
+        Assert.True(result.ValidationErrors!.ContainsKey("slot"));
+    }
+
+    [Fact]
+    public async Task MoveItem_ForUnknownItem_ReturnsNotFound()
+    {
+        var (service, _) = CreateService();
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, Guid.NewGuid(),
+            new(Today, "dinner"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.NotFound, result.Status);
+    }
+
+    [Fact]
+    public async Task MoveItem_ToSameDayAndSlot_IsNoOpAndSkipsSave()
+    {
+        var (service, meals) = CreateService();
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 5);
+        var originalUpdatedAt = item.UpdatedAt;
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(Today, "breakfast"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        // Unchanged: the guard skips the update and never persists.
+        Assert.Equal(5, item.SortOrder);
+        Assert.Equal(originalUpdatedAt, item.UpdatedAt);
+        Assert.Equal(0, meals.SaveChangesCount);
     }
 
     // ---- Remove ----
@@ -429,6 +555,7 @@ public sealed class MealPlannerServiceTests
     private sealed class FakeMealPlanRepository(params MealHouseMember[] members) : IMealPlanRepository
     {
         public List<MealPlanItem> Items { get; } = [];
+        public int SaveChangesCount { get; private set; }
 
         public MealPlanItem SeedItem(DateOnly date, MealSlot slot, Guid recipeId, int sortOrder)
         {
@@ -456,13 +583,17 @@ public sealed class MealPlannerServiceTests
 
         public void Add(MealPlanItem item) => Items.Add(item);
         public void Remove(MealPlanItem item) => Items.Remove(item);
-        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            SaveChangesCount++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeRecipeRepository(params Recipe[] recipes) : IRecipeRepository
     {
         public Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
-            Guid ownerUserId, int page, int pageSize, string? search, CancellationToken cancellationToken) =>
+            Guid ownerUserId, int page, int pageSize, string? search, MealSlot? mealType, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public Task<IReadOnlyList<Recipe>> GetRecentAsync(Guid ownerUserId, int limit, CancellationToken cancellationToken) =>

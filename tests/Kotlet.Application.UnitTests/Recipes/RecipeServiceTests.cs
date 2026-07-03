@@ -2,6 +2,7 @@ using Kotlet.Application.Recipes;
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.Measurements;
 using Kotlet.Domain.Ingredients;
+using Kotlet.Domain.MealPlanner;
 using Kotlet.Domain.Recipes;
 using Xunit;
 
@@ -163,10 +164,25 @@ public sealed class RecipeServiceTests
         repo.Recipes.Add(MakeRecipe("Other Recipe", "other-recipe", OtherOwnerId));
         var service = CreateService(repo);
 
-        var result = await service.ListAsync(OwnerId, 1, 20, null, CancellationToken.None);
+        var result = await service.ListAsync(OwnerId, 1, 20, null, null, CancellationToken.None);
 
         Assert.Single(result.Items);
         Assert.Equal("My Recipe", result.Items[0].Title);
+    }
+
+    [Fact]
+    public async Task List_FiltersByMealType()
+    {
+        var repo = new FakeRecipeRepository();
+        var breakfast = MakeRecipe("Breakfast", "breakfast", OwnerId);
+        breakfast.MealType = MealSlot.Breakfast;
+        var dinner = MakeRecipe("Dinner", "dinner", OwnerId);
+        dinner.MealType = MealSlot.Dinner;
+        repo.Recipes.AddRange([breakfast, dinner]);
+
+        var result = await CreateService(repo).ListAsync(OwnerId, 1, 20, null, "breakfast", CancellationToken.None);
+
+        Assert.Equal("Breakfast", Assert.Single(result.Items).Title);
     }
 
     [Fact]
@@ -318,11 +334,12 @@ public sealed class RecipeServiceTests
         public int SaveCount { get; private set; }
 
         public Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
-            Guid ownerUserId, int page, int pageSize, string? search, CancellationToken cancellationToken)
+            Guid ownerUserId, int page, int pageSize, string? search, MealSlot? mealType, CancellationToken cancellationToken)
         {
             var query = Recipes.Where(r => r.OwnerUserId == ownerUserId);
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(r => r.Title.Contains(search, StringComparison.OrdinalIgnoreCase));
+            if (mealType is not null) query = query.Where(r => r.MealType == mealType);
             var filtered = query.ToList();
             var list = filtered.OrderByDescending(r => r.UpdatedAtUtc).Skip((page - 1) * pageSize).Take(pageSize).ToList();
             return Task.FromResult<(IReadOnlyList<Recipe>, int)>((list, filtered.Count));
