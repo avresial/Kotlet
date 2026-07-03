@@ -23,6 +23,7 @@ public sealed class McpDiscoveryEndpointTests(TestWebApplicationFactory factory)
         Assert.Equal("http://localhost/mcp", document.GetProperty("mcp_endpoint").GetString());
         Assert.Equal("http://localhost/connect/authorize", document.GetProperty("authorization_endpoint").GetString());
         Assert.Equal("http://localhost/connect/token", document.GetProperty("token_endpoint").GetString());
+        Assert.Equal("kotlet-mcp-tests", document.GetProperty("client_id").GetString());
         Assert.Contains("mcp", document.GetProperty("scopes_supported").EnumerateArray().Select(item => item.GetString()));
     }
 

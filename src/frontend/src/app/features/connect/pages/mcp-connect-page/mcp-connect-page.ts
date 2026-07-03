@@ -19,6 +19,9 @@ export class McpConnectPage implements OnInit {
   readonly copied = signal<string | null>(null);
 
   readonly serverUrl = computed(() => this.discovery()?.mcp_endpoint ?? '');
+  readonly clientId = computed(() => this.discovery()?.client_id ?? '');
+  readonly authorizationEndpoint = computed(() => this.discovery()?.authorization_endpoint ?? '');
+  readonly tokenEndpoint = computed(() => this.discovery()?.token_endpoint ?? '');
   readonly manifestJson = computed(() => {
     const document = this.discovery();
     return document ? JSON.stringify(this.mcp.toManifest(document), null, 2) : '';

@@ -15,6 +15,7 @@ export interface McpDiscoveryDocument {
   mcp_endpoint: string;
   authorization_endpoint: string;
   token_endpoint: string;
+  client_id: string;
   scopes_supported: string[];
 }
 
@@ -67,6 +68,7 @@ export class McpService {
       mcp_endpoint: `${origin}/mcp`,
       authorization_endpoint: `${origin}/connect/authorize`,
       token_endpoint: `${origin}/connect/token`,
+      client_id: 'kotlet-mcp-dev',
       scopes_supported: ['mcp'],
     };
   }

@@ -22,6 +22,7 @@ public static class McpEndpoints
                 McpEndpoint: oauth.Resource,
                 AuthorizationEndpoint: $"{issuer}/connect/authorize",
                 TokenEndpoint: $"{issuer}/connect/token",
+                ClientId: oauth.ClientId,
                 ScopesSupported: [SupportedScope]);
             return Results.Ok(document);
         }).AllowAnonymous();
