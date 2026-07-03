@@ -35,6 +35,7 @@
   "common.saving": "Zapisywanie…", "common.optional": "Opcjonalne", "common.moveUp": "Przesuń w górę", "common.moveDown": "Przesuń w dół", "ingredients.noMatches": "Brak pasujących składników",
   "recipes.recipe": "Przepis", "recipes.recipePlaceholder": "Zacznij wpisywać przepis…", "recipes.serving": "porcja", "recipes.servingsPlural": "porcje",
   "shopping.addError": "Nie udało się dodać składnika.", "shopping.updateError": "Nie udało się zaktualizować pozycji.", "shopping.removeError": "Nie udało się usunąć pozycji.", "shopping.clearError": "Nie udało się usunąć zaznaczonych pozycji.",
+  "shopping.generate": "Generuj z planu posiłków", "shopping.generateHelp": "Dodaje i sumuje składniki przepisów bez usuwania obecnych pozycji.", "shopping.generateButton": "Generuj listę", "shopping.generateError": "Nie udało się wygenerować listy zakupów.", "common.from": "Od", "common.to": "Do",
   "meal.slot.breakfast": "ŚNIADANIE", "meal.slot.dinner": "OBIAD", "meal.slot.supper": "KOLACJA",
   "meal.slot.second-breakfast": "II ŚNIADANIE", "meal.slot.snack": "PRZEKĄSKA",
   "meal.secondBreakfast": "II śniadanie", "meal.snack": "Przekąska",

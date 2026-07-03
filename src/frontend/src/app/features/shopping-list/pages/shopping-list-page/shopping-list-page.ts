@@ -33,6 +33,8 @@ export class ShoppingListPage implements OnInit {
   readonly ingredients = signal<Ingredient[]>([]);
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
+  readonly generateFrom = signal(this.dateString(this.monday(new Date())));
+  readonly generateTo = signal(this.dateString(new Date(this.monday(new Date()).getTime() + 6 * 86400000)));
   readonly error = signal<string | null>(null);
   readonly availableIngredients = computed(() => this.ingredients().filter(ingredient =>
     !this.items().some(item => item.ingredientId === ingredient.id)));
@@ -91,6 +93,15 @@ export class ShoppingListPage implements OnInit {
     });
   }
 
+  generate(): void {
+    if (this.isSaving() || this.generateTo() < this.generateFrom()) return;
+    this.isSaving.set(true); this.error.set(null);
+    this.shoppingListService.generate(this.generateFrom(), this.generateTo()).pipe(finalize(() => this.isSaving.set(false))).subscribe({
+      next: items => this.items.set(items),
+      error: error => this.error.set(getApiError(error, this.translations.translate('shopping.generateError'))),
+    });
+  }
+
   selectedIngredient(): Ingredient | undefined { return this.ingredients().find(value => value.id === this.form.controls.ingredientId.value); }
   selectIngredient(ingredient: Ingredient): void { this.form.controls.unit.setValue(ingredient.measurementUnit); }
   selectedUnits(): DisplayUnit[] { return this.selectedIngredient() ? unitsForIngredient(this.selectedIngredient()!) : ['g']; }
@@ -104,4 +115,12 @@ export class ShoppingListPage implements OnInit {
   }
 
   print(): void { window.print(); }
+
+  private monday(date: Date): Date {
+    date.setDate(date.getDate() - (date.getDay() + 6) % 7);
+    return date;
+  }
+  private dateString(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
 }

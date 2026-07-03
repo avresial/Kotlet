@@ -35,6 +35,7 @@
   "common.saving": "Saving…", "common.optional": "Optional", "common.moveUp": "Move up", "common.moveDown": "Move down", "ingredients.noMatches": "No matching ingredients",
   "recipes.recipe": "Recipe", "recipes.recipePlaceholder": "Start typing a recipe…", "recipes.serving": "serving", "recipes.servingsPlural": "servings",
   "shopping.addError": "Unable to add this ingredient.", "shopping.updateError": "Unable to update this item.", "shopping.removeError": "Unable to remove this item.", "shopping.clearError": "Unable to clear checked items.",
+  "shopping.generate": "Generate from meal plan", "shopping.generateHelp": "Adds and combines recipe ingredients without removing current items.", "shopping.generateButton": "Generate list", "shopping.generateError": "Unable to generate the shopping list.", "common.from": "From", "common.to": "To",
   "meal.slot.breakfast": "BREAKFAST", "meal.slot.dinner": "LUNCH", "meal.slot.supper": "DINNER",
   "meal.slot.second-breakfast": "SECOND BREAKFAST", "meal.slot.snack": "SNACK",
   "meal.secondBreakfast": "Second breakfast", "meal.snack": "Snack",
