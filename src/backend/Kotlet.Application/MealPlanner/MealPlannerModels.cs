@@ -18,6 +18,8 @@ public sealed record AddWeeklyMealPlanResponse(
 public sealed record CopyMealPlanDayRequest(DateOnly SourceDate, DateOnly TargetDate);
 public sealed record CopyMealPlanWeekRequest(DateOnly SourceWeekStart, DateOnly TargetWeekStart);
 
+public sealed record MoveMealPlanItemRequest(DateOnly Date, string Slot);
+
 public sealed record SetParticipantsRequest(IReadOnlyList<Guid> UserIds);
 
 public sealed record SetServingsRequest(int? Servings);

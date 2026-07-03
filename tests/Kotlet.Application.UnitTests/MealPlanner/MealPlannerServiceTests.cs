@@ -259,6 +259,87 @@ public sealed class MealPlannerServiceTests
         Assert.Empty(overview[2].PlannedSlots);
     }
 
+    // ---- Move ----
+
+    [Fact]
+    public async Task MoveItem_ToDifferentSlotSameDay_ReslotsAndAppends()
+    {
+        var (service, meals) = CreateService();
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 0);
+        item.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = item.Id, UserId = CurrentUserId });
+        meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 0);
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(Today, "dinner"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        Assert.Equal("dinner", result.Item!.Slot);
+        Assert.Equal(Today, item.Date);
+        Assert.Equal(MealSlot.Dinner, item.Slot);
+        // Appended after the one existing dinner meal.
+        Assert.Equal(1, item.SortOrder);
+        // People survive the move.
+        Assert.Equal(CurrentUserId, Assert.Single(item.Participants).UserId);
+    }
+
+    [Fact]
+    public async Task MoveItem_ToDifferentDay_KeepsSlotAndRelocates()
+    {
+        var (service, meals) = CreateService();
+        var target = Today.AddDays(2);
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 3);
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(target, "breakfast"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        Assert.Equal(target, item.Date);
+        Assert.Equal(MealSlot.Breakfast, item.Slot);
+        // First meal in an empty target slot.
+        Assert.Equal(0, item.SortOrder);
+    }
+
+    [Fact]
+    public async Task MoveItem_WithInvalidSlot_FailsValidation()
+    {
+        var (service, meals) = CreateService();
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 0);
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(Today, "brunch"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
+        Assert.True(result.ValidationErrors!.ContainsKey("slot"));
+    }
+
+    [Fact]
+    public async Task MoveItem_ForUnknownItem_ReturnsNotFound()
+    {
+        var (service, _) = CreateService();
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, Guid.NewGuid(),
+            new(Today, "dinner"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.NotFound, result.Status);
+    }
+
+    [Fact]
+    public async Task MoveItem_ToSameDayAndSlot_IsNoOpAndSkipsSave()
+    {
+        var (service, meals) = CreateService();
+        var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 5);
+        var originalUpdatedAt = item.UpdatedAt;
+
+        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+            new(Today, "breakfast"), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        // Unchanged: the guard skips the update and never persists.
+        Assert.Equal(5, item.SortOrder);
+        Assert.Equal(originalUpdatedAt, item.UpdatedAt);
+        Assert.Equal(0, meals.SaveChangesCount);
+    }
+
     // ---- Remove ----
 
     [Fact]
@@ -474,6 +555,7 @@ public sealed class MealPlannerServiceTests
     private sealed class FakeMealPlanRepository(params MealHouseMember[] members) : IMealPlanRepository
     {
         public List<MealPlanItem> Items { get; } = [];
+        public int SaveChangesCount { get; private set; }
 
         public MealPlanItem SeedItem(DateOnly date, MealSlot slot, Guid recipeId, int sortOrder)
         {
@@ -501,7 +583,11 @@ public sealed class MealPlannerServiceTests
 
         public void Add(MealPlanItem item) => Items.Add(item);
         public void Remove(MealPlanItem item) => Items.Remove(item);
-        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            SaveChangesCount++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeRecipeRepository(params Recipe[] recipes) : IRecipeRepository
