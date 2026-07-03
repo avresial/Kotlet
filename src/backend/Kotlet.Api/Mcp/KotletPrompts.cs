@@ -17,14 +17,16 @@ public sealed class KotletPrompts
 
             Required flow:
             1. Gather the user's recipe intent, including title, serving count, ingredients, quantities, and any ingredient-specific notes.
-            2. Use `get_ingredients` to find existing Kotlet ingredient IDs. If a match is ambiguous or you need measurement details, read `kotlet://ingredients/{ingredientId}`.
-            3. Compose `descriptionMarkdown` yourself. It must include a concise description and numbered preparation/cooking steps.
-            4. Call `add_recipe` once with a complete `CreateRecipeRequest`:
+               When the user points at an internet source (website, video, blog), extract those details from the source yourself and confirm them with the user before saving.
+            2. Use `get_ingredients` to find existing Kotlet ingredient IDs. If a match is ambiguous or you need measurement details, call `get_ingredient`.
+            3. If an ingredient genuinely does not exist yet, create it once with `create_ingredient`. The ingredient catalog is shared by all households: search thoroughly first and prefer generic ingredient names over brands.
+            4. Compose `descriptionMarkdown` yourself. It must include a concise description and numbered preparation/cooking steps. For imported recipes, end it with a `Source: <url>` line.
+            5. Call `add_recipe` once with a complete `CreateRecipeRequest`:
                - `title`: non-empty recipe title.
                - `servings`: positive serving count.
                - `descriptionMarkdown`: overview plus numbered steps.
                - `ingredients`: each item must include an existing `ingredientId`, positive `quantity`, `unit`, and optional `note`.
-            5. If `add_recipe` returns validation errors, explain those errors to the user. Do not call an edit recipe tool; none is exposed.
+            6. If `add_recipe` returns validation errors, explain those errors to the user. Do not call an edit recipe tool; none is exposed.
             """)
     ];
 }
