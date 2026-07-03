@@ -32,7 +32,26 @@ public static class DiExtension
             policy.RequireAuthenticatedUser();
             policy.RequireAssertion(context => context.User.HasScope("mcp"));
         }));
-        services.AddMcpServer()
+        services.AddMcpServer(options => options.ServerInstructions =
+                """
+                Kotlet is a household food app: recipes, a shopping list, a pantry, and a meal planner.
+                All data is scoped to the authenticated user's household; ingredients live in a catalog
+                shared by every household.
+
+                Browsing data: use get_recipes/get_recipe, get_ingredients/get_ingredient,
+                get_shopping_list, get_pantry, and get_meal_plan_overview/get_meal_plan. Search tools
+                return resource links; the singular get_* tools and kotlet:// resources return full data.
+
+                Adding a recipe (e.g. one found on the internet): follow the
+                kotlet://recipes/new-recipe-guide resource. In short: resolve every ingredient via
+                get_ingredients, create genuinely missing ones with create_ingredient, then call
+                add_recipe exactly once with title, servings, a Markdown description containing numbered
+                steps (cite the source URL when imported), and the ingredient IDs with quantities.
+                Recipes cannot be edited through MCP.
+
+                Quantities always use the ingredient's base measurement unit (g or ml) unless the tool
+                says otherwise. Dates use yyyy-MM-dd.
+                """)
             .WithHttpTransport(options => options.Stateless = true)
             .WithTools<KotletReadTools>()
             .WithTools<KotletWriteTools>()
