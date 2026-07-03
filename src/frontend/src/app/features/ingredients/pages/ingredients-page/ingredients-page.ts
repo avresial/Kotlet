@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, WritableSignal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
-import { foodCategories, Ingredient, IngredientRequest, measurementUnits } from '../../ingredient.models';
+import { allergenOptions, dietarySuitabilityOptions, foodAttributeOptions, foodCategories, Ingredient, IngredientRequest, measurementUnits } from '../../ingredient.models';
 import { IngredientService } from '../../ingredient.service';
 import { DisplayUnit, displayUnitOptions, fromBasePer100, toBasePer100 } from '../../display-units';
 
@@ -16,6 +16,10 @@ export function filterIngredients(ingredients: Ingredient[], search: string, cat
   return ingredients.filter(ingredient =>
     (category === null || ingredient.category === category)
     && (!query || ingredient.name.toLocaleLowerCase().includes(query)));
+}
+
+export function paginate<T>(items: T[], page: number, pageSize: number): T[] {
+  return items.slice((page - 1) * pageSize, page * pageSize);
 }
 
 @Component({
@@ -39,9 +43,21 @@ export class IngredientsPage implements OnInit {
   readonly selectedCategory = signal<number | null>(null);
   readonly hasFilters = computed(() => !!this.search().trim() || this.selectedCategory() !== null);
   readonly filteredIngredients = computed(() => filterIngredients(this.ingredients(), this.search(), this.selectedCategory()));
+  readonly pageSize = 20;
+  private readonly requestedPage = signal(1);
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredIngredients().length / this.pageSize)));
+  /** The requested page clamped to the available range, so filtering or deleting never strands the user on an empty page. */
+  readonly page = computed(() => Math.min(this.requestedPage(), this.totalPages()));
+  readonly pagedIngredients = computed(() => paginate(this.filteredIngredients(), this.page(), this.pageSize));
   readonly units = measurementUnits;
   readonly displayUnits = displayUnitOptions;
   readonly categories = foodCategories;
+  readonly allergenOptions = allergenOptions;
+  readonly attributeOptions = foodAttributeOptions;
+  readonly suitabilityOptions = dietarySuitabilityOptions;
+  readonly allergens = signal(0);
+  readonly attributes = signal(0);
+  readonly suitability = signal(0);
   readonly editingId = signal<string | null>(null);
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
@@ -79,9 +95,44 @@ export class IngredientsPage implements OnInit {
     });
   }
 
+  setSearch(value: string): void {
+    this.search.set(value);
+    this.requestedPage.set(1);
+  }
+
+  setCategory(value: number | null): void {
+    this.selectedCategory.set(value);
+    this.requestedPage.set(1);
+  }
+
+  clearFilters(): void {
+    this.search.set('');
+    this.selectedCategory.set(null);
+    this.requestedPage.set(1);
+  }
+
+  prevPage(): void {
+    this.requestedPage.set(Math.max(1, this.page() - 1));
+  }
+
+  nextPage(): void {
+    this.requestedPage.set(Math.min(this.totalPages(), this.page() + 1));
+  }
+
+  toggleFlag(mask: WritableSignal<number>, bit: number): void {
+    mask.update((value) => value ^ bit);
+  }
+
+  hasFlag(mask: number, bit: number): boolean {
+    return (mask & bit) !== 0;
+  }
+
   edit(ingredient: Ingredient): void {
     this.editingId.set(ingredient.id);
     this.error.set(null);
+    this.allergens.set(ingredient.allergens);
+    this.attributes.set(ingredient.attributes);
+    this.suitability.set(ingredient.suitability);
     const displayUnit: DisplayUnit = ingredient.isCountable ? 'piece' : ingredient.measurementUnit as 'g' | 'ml';
     this.form.setValue({
       name: ingredient.defaultName, translation: ingredient.translation ?? '',
@@ -95,6 +146,9 @@ export class IngredientsPage implements OnInit {
 
   cancelEdit(): void {
     this.editingId.set(null);
+    this.allergens.set(0);
+    this.attributes.set(0);
+    this.suitability.set(0);
     this.form.reset({ name: '', translation: '', measurementUnit: 'g', pieceBaseUnit: 'g', category: 0, measurementUnitsPerPiece: null,
       caloriesPer100BaseUnits: 0, pricePer100BaseUnits: 0 });
   }
@@ -121,6 +175,9 @@ export class IngredientsPage implements OnInit {
       measurementUnitsPerPiece: isCountable ? value.measurementUnitsPerPiece : null,
       caloriesPer100BaseUnits: toBasePer100(value.caloriesPer100BaseUnits, displayUnit, value.measurementUnitsPerPiece),
       pricePer100BaseUnits: toBasePer100(value.pricePer100BaseUnits, displayUnit, value.measurementUnitsPerPiece),
+      allergens: this.allergens(),
+      attributes: this.attributes(),
+      suitability: this.suitability(),
       ...(this.showTranslation() ? { translation: value.translation.trim() } : {}),
     };
     const id = this.editingId();
@@ -150,6 +207,12 @@ export class IngredientsPage implements OnInit {
   }
 
   unitLabel(value: string): string { return this.translation.translate(this.units.find((unit) => unit.value === value)?.label ?? value); }
+  allergenNames(ingredient: Ingredient): string {
+    const names = this.allergenOptions
+      .filter((option) => (ingredient.allergens & option.value) !== 0)
+      .map((option) => this.translation.translate(option.label));
+    return names.length > 0 ? names.join(', ') : '—';
+  }
   nutritionBasis(): string {
     const unit = this.form.controls.measurementUnit.value;
     return unit === 'g' || unit === 'ml' ? `100 ${unit}` : `1 ${this.translation.translate(this.displayUnits.find(option => option.value === unit)?.label ?? unit)}`;
