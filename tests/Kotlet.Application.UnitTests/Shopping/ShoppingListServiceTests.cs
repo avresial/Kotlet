@@ -245,6 +245,9 @@ public sealed class ShoppingListServiceTests
         public Task<IReadOnlyCollection<ShoppingListItem>> GetAllAsync(Guid houseId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyCollection<ShoppingListItem>>(Items.Where(i => i.HouseId == houseId).Select(Hydrate).ToArray());
 
+        public Task<IReadOnlyCollection<ShoppingListItem>> GetAllTrackedAsync(Guid houseId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyCollection<ShoppingListItem>>(Items.Where(i => i.HouseId == houseId).Select(Hydrate).ToArray());
+
         public Task<ShoppingListItem?> GetByIdAsync(Guid id, Guid houseId, CancellationToken cancellationToken) =>
             Task.FromResult(Items.SingleOrDefault(i => i.Id == id && i.HouseId == houseId) is { } item ? Hydrate(item) : null);
 

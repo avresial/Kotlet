@@ -58,7 +58,7 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
                 new Dictionary<string, string[]> { ["to"] = ["Date range must contain between 1 and 32 days."] });
 
         var planned = await repository.GetPlannedIngredientsAsync(houseId, command.From, command.To, cancellationToken);
-        var existing = (await repository.GetAllAsync(houseId, cancellationToken)).ToDictionary(item => item.IngredientId);
+        var existing = (await repository.GetAllTrackedAsync(houseId, cancellationToken)).ToDictionary(item => item.IngredientId);
         foreach (var ingredient in planned.Where(item => item.Quantity > 0))
         {
             if (existing.TryGetValue(ingredient.IngredientId, out var item))
