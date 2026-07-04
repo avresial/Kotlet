@@ -42,6 +42,8 @@ export interface RecipeSummary {
   id: string;
   title: string;
   slug: string;
+  /** User id of the household member who created the recipe. */
+  createdByUserId: string;
   ingredientCount: number;
   servings: number;
   mealType: RecipeMealType | null;
@@ -54,6 +56,8 @@ export interface RecipeDetail {
   id: string;
   title: string;
   slug: string;
+  /** User id of the household member who created the recipe. */
+  createdByUserId: string;
   descriptionMarkdown: string | null;
   servings: number;
   mealType: RecipeMealType | null;

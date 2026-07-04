@@ -253,7 +253,7 @@ public sealed class RecipeService(
     }
 
     private RecipeDetailResponse ToDetailResponse(Recipe recipe, IReadOnlyList<RecipeImageResponse>? images = null) =>
-        new(recipe.Id, recipe.Title, recipe.Slug, recipe.DescriptionMarkdown, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
+        new(recipe.Id, recipe.Title, recipe.Slug, recipe.OwnerUserId, recipe.DescriptionMarkdown, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
             recipe.Ingredients
                 .OrderBy(i => i.SortOrder)
                 .Select(i =>
@@ -280,7 +280,7 @@ public sealed class RecipeService(
         string? firstImageUrl = null;
         if (firstImageIds is not null && firstImageIds.TryGetValue(recipe.Id, out var imageId))
             firstImageUrl = $"/api/recipes/{recipe.Id}/images/{imageId}/content";
-        return new(recipe.Id, recipe.Title, recipe.Slug, recipe.Ingredients.Count, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
+        return new(recipe.Id, recipe.Title, recipe.Slug, recipe.OwnerUserId, recipe.Ingredients.Count, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
             firstImageUrl, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
     }
 
