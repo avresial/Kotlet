@@ -69,8 +69,8 @@ public sealed class PantryMcp
     public static async Task<object> RemovePantryItem(
         [Description("Pantry item ID from get_pantry.")] Guid itemId,
         PantryService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
-        new { Removed = await service.DeleteAsync(itemId, RequireHouse(currentUser), cancellationToken)
-            is PantryOperationStatus.Success };
+        Removed(await service.DeleteAsync(itemId, RequireHouse(currentUser), cancellationToken)
+            is PantryOperationStatus.Success);
 
     [McpServerResource(UriTemplate = "kotlet://pantry", Name = "pantry",
         Title = "Pantry", MimeType = "application/json"),

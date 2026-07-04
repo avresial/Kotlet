@@ -123,8 +123,8 @@ public sealed class MealPlannerMcp
     public static async Task<object> RemoveMealFromPlan(
         [Description("Meal id (the meal-plan item id) from get_meal_plan.")] Guid mealId,
         MealPlannerService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
-        new { Removed = await service.RemoveItemAsync(RequireHouse(currentUser), mealId, cancellationToken)
-            is MealPlannerOperationStatus.Success };
+        Removed(await service.RemoveItemAsync(RequireHouse(currentUser), mealId, cancellationToken)
+            is MealPlannerOperationStatus.Success);
 
     [McpServerResource(UriTemplate = "kotlet://meal-plans/days/{date}", Name = "daily-meal-plan",
         Title = "Daily meal plan", MimeType = "application/json"),

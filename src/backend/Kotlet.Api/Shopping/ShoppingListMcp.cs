@@ -50,8 +50,8 @@ public sealed class ShoppingListMcp
     public static async Task<object> RemoveShoppingListItem(
         [Description("Shopping-list item ID from the kotlet://shopping-list resource.")] Guid itemId,
         ShoppingListService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
-        new { Removed = await service.DeleteAsync(itemId, RequireHouse(currentUser), cancellationToken)
-            is ShoppingListOperationStatus.Success };
+        Removed(await service.DeleteAsync(itemId, RequireHouse(currentUser), cancellationToken)
+            is ShoppingListOperationStatus.Success);
 
     [McpServerTool(Name = "clear_purchased_shopping_items", ReadOnly = false, Destructive = true,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),

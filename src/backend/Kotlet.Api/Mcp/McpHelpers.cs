@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Kotlet.Api.Auth;
+using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 
 namespace Kotlet.Api.Mcp;
@@ -11,12 +12,17 @@ namespace Kotlet.Api.Mcp;
 /// </summary>
 internal static class McpHelpers
 {
+    // McpException messages are forwarded to the client; other exception types are collapsed
+    // by the SDK into a generic "An error occurred invoking ..." response, which would hide the
+    // actionable guidance below (e.g. "select a household").
     public static Guid RequireUser(ICurrentUser currentUser) =>
-        currentUser.UserId ?? throw new UnauthorizedAccessException("The authenticated user is unavailable.");
+        currentUser.UserId ?? throw new McpException("The authenticated user is unavailable.");
 
     public static Guid RequireHouse(ICurrentUser currentUser) =>
-        currentUser.HouseId ?? throw new UnauthorizedAccessException(
+        currentUser.HouseId ?? throw new McpException(
             "No active household is available. Select a household in Kotlet and reconnect this MCP server.");
+
+    public static object Removed(bool removed) => new { Removed = removed };
 
     public static ResourceLinkBlock Link(string uri, string title, string description) => new()
     {
