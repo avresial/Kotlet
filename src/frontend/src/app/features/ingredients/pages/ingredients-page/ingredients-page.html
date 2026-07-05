@@ -7,36 +7,35 @@
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
   <section class="editor" aria-labelledby="editor-title">
-    <h2 id="editor-title">{{ editingId() ? 'Edit ingredient' : 'Add ingredient' }}</h2>
+    <h2 id="editor-title">{{ (editingId() ? 'ingredients.editTitle' : 'ingredients.addTitle') | t }}</h2>
     <form [formGroup]="form" (ngSubmit)="save()">
-      <div class="col col-name">
-        <label>{{ 'ingredients.name' | t }}<input type="text" formControlName="name" [placeholder]="'ingredients.namePlaceholder' | t" /></label>
-        @if (showTranslation()) {
-          <label>
-            <span class="sr-only">Name translation ({{ languageBadge() }})</span>
-            <span class="translation-input">
-              <input type="text" formControlName="translation" [placeholder]="'ingredients.translationPlaceholder' | t" />
-              <span class="lang-badge" aria-hidden="true">{{ languageBadge() }}</span>
-            </span>
-          </label>
-        }
-      </div>
-      <div class="col">
-        <label>{{ 'ingredients.unit' | t }}<select formControlName="measurementUnit">@for (unit of displayUnits; track unit.value) { <option [value]="unit.value">{{ unit.label | t }}</option> }</select></label>
-        @if (form.controls.measurementUnit.value === 'piece') {
-          <label>{{ 'ingredients.baseUnit' | t }}<select formControlName="pieceBaseUnit">@for (unit of units; track unit.value) { <option [value]="unit.value">{{ unit.label | t }}</option> }</select></label>
-        }
-        <label>{{ 'ingredients.category' | t }}<select formControlName="category">@for (category of categories; track category.value) { <option [ngValue]="category.value">{{ category.label | t }}</option> }</select></label>
-        <label>{{ 'ingredients.caloriesPer' | t }} {{ nutritionBasis() }}<input type="number" min="0" max="999999.99" step="0.01" formControlName="caloriesPer100BaseUnits" /></label>
-        <label>{{ 'ingredients.pricePer' | t }} {{ nutritionBasis() }}<input type="number" min="0" max="99999999.99" step="0.01" formControlName="pricePer100BaseUnits" /></label>
-      </div>
-      <div class="col">
-        @if (form.controls.measurementUnit.value === 'piece') {
-          <label>{{ 'ingredients.unitsPerPiece' | t }}<input type="number" min="0.001" max="999999999.999" step="0.001" formControlName="measurementUnitsPerPiece" /></label>
-        }
-        <div class="actions">
-          @if (editingId()) { <button class="secondary" type="button" (click)="cancelEdit()">{{ 'common.cancel' | t }}</button> }
-          <button class="primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Saving…' : editingId() ? 'Save changes' : 'Add ingredient' }}</button>
+      <div class="form-grid">
+        <div class="field-group">
+          <p class="group-title">{{ 'ingredients.groupBasic' | t }}</p>
+          <label>{{ 'ingredients.name' | t }}<input type="text" formControlName="name" [placeholder]="'ingredients.namePlaceholder' | t" /></label>
+          @if (showTranslation()) {
+            <label>
+              <span class="sr-only">Name translation ({{ languageBadge() }})</span>
+              <span class="translation-input">
+                <input type="text" formControlName="translation" [placeholder]="'ingredients.translationPlaceholder' | t" />
+                <span class="lang-badge" aria-hidden="true">{{ languageBadge() }}</span>
+              </span>
+            </label>
+          }
+          <label>{{ 'ingredients.category' | t }}<select formControlName="category">@for (category of categories; track category.value) { <option [ngValue]="category.value">{{ category.label | t }}</option> }</select></label>
+        </div>
+        <div class="field-group">
+          <p class="group-title">{{ 'ingredients.groupMeasurement' | t }}</p>
+          <label>{{ 'ingredients.unit' | t }}<select formControlName="measurementUnit">@for (unit of displayUnits; track unit.value) { <option [value]="unit.value">{{ unit.label | t }}</option> }</select></label>
+          @if (form.controls.measurementUnit.value === 'piece') {
+            <label>{{ 'ingredients.baseUnit' | t }}<select formControlName="pieceBaseUnit">@for (unit of units; track unit.value) { <option [value]="unit.value">{{ unit.label | t }}</option> }</select></label>
+            <label>{{ 'ingredients.unitsPerPiece' | t }}<input type="number" min="0.001" max="999999999.999" step="0.001" formControlName="measurementUnitsPerPiece" /></label>
+          }
+        </div>
+        <div class="field-group">
+          <p class="group-title">{{ 'ingredients.groupNutrition' | t }}</p>
+          <label>{{ 'ingredients.caloriesPer' | t }} {{ nutritionBasis() }}<input type="number" min="0" max="999999.99" step="0.01" formControlName="caloriesPer100BaseUnits" /></label>
+          <label>{{ 'ingredients.pricePer' | t }} {{ nutritionBasis() }}<input type="number" min="0" max="99999999.99" step="0.01" formControlName="pricePer100BaseUnits" /></label>
         </div>
       </div>
       <div class="col-flags">
@@ -64,6 +63,10 @@
             }
           </div>
         </fieldset>
+      </div>
+      <div class="form-footer">
+        @if (editingId()) { <button class="secondary" type="button" (click)="cancelEdit()">{{ 'common.cancel' | t }}</button> }
+        <button class="primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? ('common.saving' | t) : (editingId() ? 'ingredients.saveChanges' : 'ingredients.addTitle') | t }}</button>
       </div>
     </form>
   </section>
