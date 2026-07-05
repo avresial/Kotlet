@@ -30,8 +30,9 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
                  {
                      "get_recipes", "get_recipe", "get_ingredients", "get_ingredient",
                      "get_shopping_list", "get_pantry", "get_meal_plan_overview", "get_meal_plan",
-                     "add_recipe", "create_ingredient",
-                     "add_pantry_item", "update_pantry_item", "remove_pantry_item"
+                     "get_meal_plan_members", "add_recipe", "create_ingredient",
+                     "add_pantry_item", "update_pantry_item", "remove_pantry_item",
+                     "add_meal_to_plan", "add_meal_participants", "remove_meal_from_plan"
                  })
             Assert.Contains($"\"{tool}\"", body);
     }
@@ -177,6 +178,60 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
 
         var invalid = await CallTool(client, accessToken, "get_meal_plan", new { from = "06.07.2026", days = 3 });
         Assert.Contains("yyyy-MM-dd", await invalid.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task MealPlanning_AddsRecipeMeal_AssignsMember_ThenRemovesIt()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+
+        // A recipe the agent can plan needs an ingredient and a recipe first.
+        var created = await CallTool(client, accessToken, "create_ingredient", new
+        {
+            request = new { name = $"Tomato {Guid.NewGuid():N}", measurementUnit = "g", caloriesPer100BaseUnits = 18 }
+        });
+        var ingredientId = ExtractGuidAfter(await created.Content.ReadAsStringAsync(), "\"id\":\"");
+        var recipe = await CallTool(client, accessToken, "add_recipe", new
+        {
+            request = new
+            {
+                title = $"Tomato soup {Guid.NewGuid():N}",
+                servings = 2,
+                descriptionMarkdown = "1. Simmer tomatoes.",
+                ingredients = new[] { new { ingredientId, quantity = 400, unit = "g" } }
+            }
+        });
+        var recipeId = ExtractGuidAfter(await recipe.Content.ReadAsStringAsync(), "\"id\":\"");
+
+        // Plan the recipe onto a specific day and slot.
+        var added = await CallTool(client, accessToken, "add_meal_to_plan", new
+        {
+            request = new { date = "2026-07-10", slot = "dinner", recipeId }
+        });
+        var addedBody = await added.Content.ReadAsStringAsync();
+        Assert.Contains("\"Success\"", addedBody);
+        var mealId = ExtractGuidAfter(addedBody, "\"id\":\"");
+
+        // The registering user is a member of the house and can be assigned to the meal.
+        var members = await CallTool(client, accessToken, "get_meal_plan_members", new { });
+        var memberId = ExtractGuidAfter(await members.Content.ReadAsStringAsync(), "\"userId\":\"");
+        var assigned = await CallTool(client, accessToken, "add_meal_participants", new
+        {
+            mealId, userIds = new[] { memberId }
+        });
+        var assignedBody = await assigned.Content.ReadAsStringAsync();
+        Assert.Contains("\"Success\"", assignedBody);
+        Assert.Contains(memberId.ToString(), assignedBody);
+
+        // The meal now shows up in the day's plan.
+        var plan = await CallTool(client, accessToken, "get_meal_plan", new { from = "2026-07-10", days = 1 });
+        Assert.Contains(mealId.ToString(), await plan.Content.ReadAsStringAsync());
+
+        // Removing the meal reports success and clears it from the plan.
+        var removed = await CallTool(client, accessToken, "remove_meal_from_plan", new { mealId });
+        Assert.Contains("true", (await removed.Content.ReadAsStringAsync()).ToLowerInvariant());
+        var afterRemoval = await CallTool(client, accessToken, "remove_meal_from_plan", new { mealId });
+        Assert.Contains("false", (await afterRemoval.Content.ReadAsStringAsync()).ToLowerInvariant());
     }
 
     /// <summary>Registers a user with a home and runs the OAuth PKCE flow for an MCP-scoped token.</summary>

@@ -55,6 +55,7 @@ Example response:
   "mcp_endpoint": "https://<kotlet-host>/mcp",
   "authorization_endpoint": "https://<kotlet-host>/connect/authorize",
   "token_endpoint": "https://<kotlet-host>/connect/token",
+  "client_id": "kotlet-chatgpt",
   "scopes_supported": ["mcp"]
 }
 ```
@@ -94,6 +95,15 @@ For any client that needs values entered by hand:
 | Transport | HTTP (streamable) |
 | Authentication | OAuth 2.0 (Authorization Code + PKCE) |
 | Scope | `mcp` |
+| OAuth client ID | `kotlet-chatgpt` (the value of `OAuth:ClientId`; served as `client_id` in `/.well-known/mcp.json`) |
+| OAuth client secret | none — public client, token endpoint auth method `none` |
+
+Only clients that ask for a **user-defined OAuth client** (such as ChatGPT) need
+the client ID entered by hand. Clients that discover it automatically (such as
+Claude) only need the server URL. The client ID is a public identifier, not a
+secret; the server accepts exactly the one client ID configured in
+`OAuth:ClientId`, and each client's redirect/callback URL must be pre-registered
+in `OAuth:RedirectUris`.
 
 Troubleshooting:
 

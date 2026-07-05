@@ -58,7 +58,19 @@
       <div><dt>{{ 'mcp.manualAuthType' | t }}</dt><dd>OAuth 2.0 (Authorization Code + PKCE)</dd></div>
       <div><dt>{{ 'mcp.manualTransport' | t }}</dt><dd>HTTP (streamable)</dd></div>
       <div><dt>{{ 'mcp.manualScope' | t }}</dt><dd><code>mcp</code></dd></div>
+      <div>
+        <dt>{{ 'mcp.manualClientId' | t }}</dt>
+        <dd class="copy-row">
+          <code>{{ clientId() || ('mcp.loading' | t) }}</code>
+          <p-button type="button" size="small" [outlined]="true" [label]="'mcp.copy' | t" [disabled]="!clientId()" (onClick)="copy(clientId(), 'clientId')" />
+        </dd>
+      </div>
+      <div><dt>{{ 'mcp.manualClientSecret' | t }}</dt><dd>{{ 'mcp.manualClientSecretValue' | t }}</dd></div>
+      <div><dt>{{ 'mcp.manualAuthEndpoint' | t }}</dt><dd><code>{{ authorizationEndpoint() }}</code></dd></div>
+      <div><dt>{{ 'mcp.manualTokenEndpoint' | t }}</dt><dd><code>{{ tokenEndpoint() }}</code></dd></div>
     </dl>
+    @if (copied() === 'clientId') { <p-message severity="success" size="small" variant="simple" role="status">{{ 'mcp.copied' | t }}</p-message> }
+    <p class="troubleshooting">{{ 'mcp.manualClientIdHelp' | t }}</p>
     <p class="troubleshooting">{{ 'mcp.troubleshooting' | t }}</p>
   </section>
 </main>

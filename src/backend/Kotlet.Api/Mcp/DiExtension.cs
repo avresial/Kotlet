@@ -53,10 +53,11 @@ public static class DiExtension
                 says otherwise. Dates use yyyy-MM-dd.
                 """)
             .WithHttpTransport(options => options.Stateless = true)
-            .WithTools<KotletReadTools>()
-            .WithTools<KotletWriteTools>()
-            .WithPrompts<KotletPrompts>()
-            .WithResources<KotletResources>();
+            // Tools, prompts, and resources live next to each feature's HTTP endpoints
+            // (e.g. Recipes/RecipeMcp.cs). Scan the assembly so new domains register automatically.
+            .WithToolsFromAssembly()
+            .WithPromptsFromAssembly()
+            .WithResourcesFromAssembly();
         return services;
     }
 

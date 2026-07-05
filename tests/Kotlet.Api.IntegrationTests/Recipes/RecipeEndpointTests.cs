@@ -145,6 +145,31 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
     }
 
     [Fact]
+    public async Task Recipe_SurfacesCreatorToHouseMembers()
+    {
+        var (owner, houseId) = await TestAuth.WithHomeAsync(_factory, "recipe-creator");
+        var creatorId = (await owner.GetFromJsonAsync<JsonElement>("/api/auth/me")).GetProperty("id").GetGuid();
+        var member = await TestAuth.RegisterAsync(_factory, "recipe-creator-member");
+        await TestAuth.JoinHomeAsync(owner, houseId, member);
+
+        var create = await owner.PostAsJsonAsync("/api/recipes", new
+        {
+            title = $"Attributed {Guid.NewGuid():N}", descriptionMarkdown = (string?)null, ingredients = Array.Empty<object>()
+        });
+        var created = await create.Content.ReadFromJsonAsync<JsonElement>();
+        var id = created.GetProperty("id").GetGuid();
+        Assert.Equal(creatorId, created.GetProperty("createdByUserId").GetGuid());
+
+        // Another house member sees the same creator (visibility stays house-scoped).
+        var memberView = await member.Client.GetFromJsonAsync<JsonElement>($"/api/recipes/{id}");
+        Assert.Equal(creatorId, memberView.GetProperty("createdByUserId").GetGuid());
+
+        var list = await member.Client.GetFromJsonAsync<JsonElement>("/api/recipes");
+        var summary = list.GetProperty("items").EnumerateArray().Single(r => r.GetProperty("id").GetGuid() == id);
+        Assert.Equal(creatorId, summary.GetProperty("createdByUserId").GetGuid());
+    }
+
+    [Fact]
     public async Task HouseMember_CanUpdateAnotherMembersRecipe()
     {
         var (client1, client2, _) = await TestAuth.HouseholdAsync(_factory, "recipe");

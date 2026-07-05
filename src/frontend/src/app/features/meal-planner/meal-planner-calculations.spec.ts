@@ -21,6 +21,9 @@ const ingredient: Ingredient = {
   pricePer100BaseUnits: 5,
   svgIcon: null,
   category: 0,
+  allergens: 0,
+  attributes: 0,
+  suitability: 0,
   createdAtUtc: '2026-01-01T00:00:00Z',
 };
 
@@ -28,6 +31,7 @@ const recipe: RecipeDetail = {
   id: 'recipe',
   title: 'Pasta dinner',
   slug: 'pasta-dinner',
+  createdByUserId: 'user',
   descriptionMarkdown: null,
   servings: 4,
   mealType: null,
