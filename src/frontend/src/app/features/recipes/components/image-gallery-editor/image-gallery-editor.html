@@ -4,6 +4,8 @@
   <app-image-gallery [images]="images()"></app-image-gallery>
   @if (images().length < 10) {
     <app-image-upload [busy]="busy()" [progress]="uploadProgress()" (selected)="upload($event)"></app-image-upload>
+  } @else {
+    <p class="limit-hint">{{ 'recipes.maxImagesReached' | t }}</p>
   }
   @if (images().length > 0) {
     <ol class="image-list">
