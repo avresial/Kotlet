@@ -31,6 +31,7 @@ const recipe: RecipeDetail = {
   id: 'recipe',
   title: 'Pasta dinner',
   slug: 'pasta-dinner',
+  createdByUserId: 'user',
   descriptionMarkdown: null,
   servings: 4,
   mealType: null,

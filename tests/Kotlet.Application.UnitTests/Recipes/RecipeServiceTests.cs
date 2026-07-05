@@ -64,6 +64,18 @@ public sealed class RecipeServiceTests
     }
 
     [Fact]
+    public async Task Create_ExposesCreatedByUserId()
+    {
+        var repo = new FakeRecipeRepository();
+        var service = CreateService(repo);
+
+        var result = await service.CreateAsync(OwnerId, OwnerId, ValidCreateRequest(), CancellationToken.None);
+
+        Assert.NotNull(result.Recipe);
+        Assert.Equal(OwnerId, result.Recipe.CreatedByUserId);
+    }
+
+    [Fact]
     public async Task Create_WithEmptyTitle_ReturnsValidationFailed()
     {
         var repo = new FakeRecipeRepository();
