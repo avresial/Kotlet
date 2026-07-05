@@ -22,7 +22,8 @@
     }
 
     input[type='text'],
-    input[type='number'] {
+    input[type='number'],
+    select {
       padding: 10px 12px;
       border: 1px solid #cfc3b4;
       border-radius: 8px;
@@ -48,6 +49,21 @@
   }
 
   input[type='number'] { max-width: 140px; }
+
+  .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 20px 32px;
+
+    .form-field { flex: 0 1 auto; }
+
+    select {
+      width: auto;
+      min-width: 220px;
+      cursor: pointer;
+    }
+  }
 
   .form-actions {
     display: flex;

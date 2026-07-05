@@ -1,15 +1,23 @@
 <div class="upload">
   <div class="file-picker">
     <label class="file-button">
-      <input type="file" accept="image/jpeg,image/png,image/webp" (change)="choose($event)">
-      Choose image
+      <input #fileInput type="file" accept="image/jpeg,image/png,image/webp" [disabled]="busy()" (change)="choose($event)">
+      {{ 'recipes.chooseImage' | t }}
     </label>
-    <span class="file-name">{{ file?.name || 'JPEG, PNG or WebP · max 5 MB' }}</span>
+    <span class="file-name">{{ file?.name || ('recipes.imageHint' | t) }}</span>
   </div>
   <label class="field">
     <span>{{ 'recipes.altText' | t }} <small>{{ 'common.optional' | t }}</small></span>
-    <input type="text" maxlength="300" [placeholder]="'recipes.altPlaceholder' | t" [value]="altText" (input)="altText = $any($event.target).value">
+    <input type="text" maxlength="300" [placeholder]="'recipes.altPlaceholder' | t" [disabled]="busy()" [value]="altText" (input)="altText = $any($event.target).value">
   </label>
   @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-  <button type="button" [disabled]="!file" (click)="submit()">{{ 'recipes.uploadImage' | t }}</button>
+  @if (progress() !== null) {
+    <div class="upload-progress">
+      <div class="progress-track" role="progressbar" [attr.aria-valuenow]="progress()" aria-valuemin="0" aria-valuemax="100" [attr.aria-label]="'recipes.uploading' | t">
+        <div class="progress-fill" [style.width.%]="progress()"></div>
+      </div>
+      <span class="progress-label">{{ 'recipes.uploading' | t }} {{ progress() }}%</span>
+    </div>
+  }
+  <button type="button" [disabled]="!file || busy()" (click)="submit()">{{ 'recipes.uploadImage' | t }}</button>
 </div>

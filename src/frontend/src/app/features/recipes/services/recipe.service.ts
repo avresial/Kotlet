@@ -51,10 +51,22 @@ export class RecipeService {
   }
 
   uploadImage(recipeId: string, file: File, altText?: string) {
+    return this.http.post<RecipeImage>(apiUrl(`/api/recipes/${recipeId}/images`), this.imageBody(file, altText));
+  }
+
+  /** Same as uploadImage, but emits HttpEvents so callers can track upload progress. */
+  uploadImageWithProgress(recipeId: string, file: File, altText?: string) {
+    return this.http.post<RecipeImage>(apiUrl(`/api/recipes/${recipeId}/images`), this.imageBody(file, altText), {
+      reportProgress: true,
+      observe: 'events',
+    });
+  }
+
+  private imageBody(file: File, altText?: string): FormData {
     const body = new FormData();
     body.append('file', file);
     if (altText?.trim()) body.append('altText', altText.trim());
-    return this.http.post<RecipeImage>(apiUrl(`/api/recipes/${recipeId}/images`), body);
+    return body;
   }
 
   updateImage(recipeId: string, imageId: string, altText: string | null) {

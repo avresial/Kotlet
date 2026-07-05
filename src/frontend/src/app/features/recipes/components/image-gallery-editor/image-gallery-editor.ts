@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, input, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, OnInit, signal, viewChild } from '@angular/core';
+import { HttpEventType } from '@angular/common/http';
 import { finalize, Observable } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { RecipeImage } from '../../models/recipe.models';
@@ -18,9 +19,11 @@ import { TranslationService } from '../../../../core/i18n/translation.service';
 export class ImageGalleryEditor implements OnInit {
   private readonly service = inject(RecipeService);
   private readonly translations = inject(TranslationService);
+  private readonly uploader = viewChild(ImageUpload);
   readonly recipeId = input.required<string>();
   readonly images = signal<RecipeImage[]>([]);
   readonly busy = signal(false);
+  readonly uploadProgress = signal<number | null>(null);
   readonly error = signal<string | null>(null);
 
   ngOnInit(): void { this.reload(); }
@@ -32,7 +35,20 @@ export class ImageGalleryEditor implements OnInit {
     });
   }
   upload(value: { file: File; altText: string }): void {
-    this.run(this.service.uploadImage(this.recipeId(), value.file, value.altText), () => this.reload());
+    this.busy.set(true); this.error.set(null); this.uploadProgress.set(0);
+    this.service.uploadImageWithProgress(this.recipeId(), value.file, value.altText)
+      .pipe(finalize(() => { this.busy.set(false); this.uploadProgress.set(null); }))
+      .subscribe({
+        next: event => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            this.uploadProgress.set(Math.round((event.loaded / event.total) * 100));
+          } else if (event.type === HttpEventType.Response) {
+            this.uploader()?.reset();
+            this.reload();
+          }
+        },
+        error: (err: unknown) => this.error.set(getApiError(err, this.translations.translate('recipes.imageOperationError'))),
+      });
   }
   saveAlt(image: RecipeImage, event: Event): void {
     const altText = (event.target as HTMLInputElement).value;
