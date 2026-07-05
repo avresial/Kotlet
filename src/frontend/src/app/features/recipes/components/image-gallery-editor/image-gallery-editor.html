@@ -2,16 +2,28 @@
   <h2>{{ 'recipes.images' | t }}</h2>
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
   <app-image-gallery [images]="images()"></app-image-gallery>
-  @if (images().length < 10) { <app-image-upload (selected)="upload($event)"></app-image-upload> }
-  <ol class="image-list">
-    @for (image of images(); track image.id; let i = $index) {
-      <li>
-        <span>{{ image.fileName }} @if (i === 0) { <strong>({{ 'recipes.cover' | t }})</strong> }</span>
-        <input [attr.aria-label]="'recipes.altText' | t" maxlength="300" [value]="image.altText || ''" (change)="saveAlt(image, $event)">
-        <button type="button" [disabled]="busy() || i === 0" (click)="move(i, -1)">{{ 'common.moveUp' | t }}</button>
-        <button type="button" [disabled]="busy() || i === images().length - 1" (click)="move(i, 1)">{{ 'common.moveDown' | t }}</button>
-        <button type="button" [disabled]="busy()" (click)="remove(image)">{{ 'common.delete' | t }}</button>
-      </li>
-    }
-  </ol>
+  @if (images().length < 10) {
+    <app-image-upload [busy]="busy()" [progress]="uploadProgress()" (selected)="upload($event)"></app-image-upload>
+  }
+  @if (images().length > 0) {
+    <ol class="image-list">
+      @for (image of images(); track image.id; let i = $index) {
+        <li class="image-item">
+          <span class="item-index" aria-hidden="true">{{ i + 1 }}</span>
+          <div class="item-body">
+            <div class="item-meta">
+              <span class="file-name">{{ image.fileName }}</span>
+              @if (i === 0) { <span class="cover-badge">{{ 'recipes.cover' | t }}</span> }
+            </div>
+            <input class="alt-input" [attr.aria-label]="'recipes.altText' | t" maxlength="300" [placeholder]="'recipes.altPlaceholder' | t" [value]="image.altText || ''" (change)="saveAlt(image, $event)">
+          </div>
+          <div class="item-actions">
+            <button type="button" [disabled]="busy() || i === 0" (click)="move(i, -1)" [title]="'common.moveUp' | t" [attr.aria-label]="'common.moveUp' | t">↑</button>
+            <button type="button" [disabled]="busy() || i === images().length - 1" (click)="move(i, 1)" [title]="'common.moveDown' | t" [attr.aria-label]="'common.moveDown' | t">↓</button>
+            <button type="button" class="delete" [disabled]="busy()" (click)="remove(image)" [title]="'common.delete' | t" [attr.aria-label]="'common.delete' | t">×</button>
+          </div>
+        </li>
+      }
+    </ol>
+  }
 </section>

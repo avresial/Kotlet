@@ -1,5 +1,109 @@
 .gallery-editor { display: grid; gap: 1rem; margin-top: 2rem; }
-.image-list { display: grid; gap: .75rem; padding-left: 1.25rem; }
-.image-list li { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
-.image-list input { flex: 1 1 14rem; }
 .error { color: #b91c1c; }
+
+.image-list {
+  display: grid;
+  gap: .5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.image-item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem 1rem;
+  border: 1px solid #ded3c5;
+  border-radius: .75rem;
+  background: #fffaf2;
+
+  .item-index {
+    min-width: 1.5rem;
+    color: #756d62;
+    font-size: .8rem;
+    text-align: center;
+  }
+
+  .item-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5rem .75rem;
+    min-width: 0;
+  }
+
+  .item-meta {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    flex: 1 1 12rem;
+
+    .file-name {
+      overflow: hidden;
+      color: #29251f;
+      font-weight: 500;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .cover-badge {
+      flex-shrink: 0;
+      padding: .15rem .55rem;
+      border-radius: 999px;
+      background: #963827;
+      color: #fff;
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+  }
+
+  .alt-input {
+    flex: 1 1 14rem;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: .55rem .7rem;
+    border: 1px solid #cfc3b4;
+    border-radius: .5rem;
+    color: #29251f;
+    background: #fffdf9;
+    font-size: .9rem;
+
+    &:focus { outline: 2px solid #b96554; outline-offset: 1px; }
+  }
+
+  .item-actions {
+    display: flex;
+    gap: 4px;
+
+    button {
+      width: 2.35rem;
+      min-height: 2.35rem;
+      padding: 0;
+      border: 1px solid #cfc3b4;
+      border-radius: 8px;
+      color: #5d554c;
+      background: #fffdf9;
+      cursor: pointer;
+      font-size: .8rem;
+      line-height: 1;
+
+      &:hover:not(:disabled) { border-color: #aa9180; background: #f4ece1; }
+      &:disabled { opacity: .28; cursor: not-allowed; }
+      &.delete { color: #963827; font-size: 1rem; }
+      &.delete:hover:not(:disabled) { border-color: #c98e83; background: #fff0ec; }
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .image-item {
+    flex-wrap: wrap;
+
+    .item-actions { margin-left: auto; }
+  }
+}

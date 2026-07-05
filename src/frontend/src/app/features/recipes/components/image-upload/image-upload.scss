@@ -10,6 +10,10 @@
 .field input { box-sizing: border-box; width: 100%; padding: .7rem .75rem; border: 1px solid #cfc3b4; border-radius: .5rem; color: #29251f; background: #fffdf9; }
 .field input:focus { outline: 2px solid #b96554; outline-offset: 1px; }
 .error { margin: 0; color: #b91c1c; font-size: .875rem; }
+.upload-progress { display: grid; gap: .35rem; }
+.progress-track { height: .5rem; border-radius: 999px; background: #ece3d6; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: inherit; background: #963827; transition: width .2s ease; }
+.progress-label { color: #6b6358; font-size: .8rem; }
 button { justify-self: start; padding: .7rem 1.25rem; border: 1px solid #963827; border-radius: .5rem; color: #fff; background: #963827; font-weight: 600; cursor: pointer; }
 button:hover:not(:disabled) { filter: brightness(.96); }
 button:disabled { opacity: .45; cursor: not-allowed; }
