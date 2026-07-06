@@ -32,7 +32,7 @@ public static class HouseEndpoints
     {
         if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
         // Sequential awaits: both services share the scoped DbContext, which forbids concurrent queries.
-        var recipePage = await recipes.ListAsync(houseId, 1, 1, null, null, ct);
+        var recipePage = await recipes.ListAsync(houseId, 1, 1, null, null, null, ct);
         var pantryItems = await pantry.GetAllAsync(houseId, language.Language, ct);
         return Results.Ok(new DashboardStatsResponse(recipePage.TotalCount, pantryItems.Count));
     }

@@ -14,6 +14,15 @@ describe('RecipeService image gallery', () => {
   });
   afterEach(() => http.verify());
 
+  it('sends every selected ingredient as a repeated query parameter', () => {
+    service.list(2, 20, 'soup', 'dinner', ['ingredient-1', 'ingredient-2']).subscribe();
+    const request = http.expectOne(request => request.url === '/api/recipes');
+    expect(request.request.params.getAll('ingredientIds')).toEqual(['ingredient-1', 'ingredient-2']);
+    expect(request.request.params.get('search')).toBe('soup');
+    expect(request.request.params.get('mealType')).toBe('dinner');
+    request.flush({ items: [], page: 2, pageSize: 20, totalCount: 0 });
+  });
+
   it('uploads a multipart image with alt text', () => {
     const file = new File(['image'], 'soup.webp', { type: 'image/webp' });
     service.uploadImage('recipe-1', file, 'Soup').subscribe();
