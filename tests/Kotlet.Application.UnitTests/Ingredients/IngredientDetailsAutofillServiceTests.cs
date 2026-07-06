@@ -19,6 +19,20 @@ public sealed class IngredientDetailsAutofillServiceTests
             DietarySuitability.Vegan | DietarySuitability.Vegetarian), result);
     }
 
+    [Fact]
+    public async Task Backfill_SavesEveryTenItemsAndFinalRemainder()
+    {
+        var repository = new Repository(Enumerable.Range(0, 11).Select(i => Ingredient($"Apple {i}")).ToArray());
+        var service = new IngredientDetailsAutofillService(repository, new Resolver(new Client()));
+
+        var written = await service.BackfillAsync(CancellationToken.None);
+
+        Assert.Equal(11, written);
+        Assert.Equal(2, repository.SaveCount);
+    }
+
+    private static Ingredient Ingredient(string name) => new() { Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g" };
+
     private sealed class Resolver(IChatClient client) : IApplicationChatClientResolver
     {
         public IChatClient? Resolve() => client;
@@ -44,5 +58,17 @@ public sealed class IngredientDetailsAutofillServiceTests
         public void Add(Ingredient ingredient) => throw new NotSupportedException();
         public void Remove(Ingredient ingredient) => throw new NotSupportedException();
         public Task SaveChangesAsync(CancellationToken ct) => throw new NotSupportedException();
+    }
+
+    private sealed class Repository(params Ingredient[] ingredients) : IIngredientRepository
+    {
+        public int SaveCount { get; private set; }
+        public Task<IReadOnlyCollection<Ingredient>> GetAllAsync(CancellationToken ct) => Task.FromResult<IReadOnlyCollection<Ingredient>>(ingredients);
+        public Task<Ingredient?> GetByIdAsync(Guid id, bool tracked, CancellationToken ct) => Task.FromResult(ingredients.SingleOrDefault(x => x.Id == id));
+        public Task SaveChangesAsync(CancellationToken ct) { SaveCount++; return Task.CompletedTask; }
+        public Task<IReadOnlyDictionary<Guid, Ingredient>> GetByIdsAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) => throw new NotSupportedException();
+        public Task<bool> IsInUseAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
+        public void Add(Ingredient ingredient) => throw new NotSupportedException();
+        public void Remove(Ingredient ingredient) => throw new NotSupportedException();
     }
 }

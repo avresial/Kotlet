@@ -9,6 +9,8 @@ public sealed record IngredientDetailsSuggestion(FoodCategory Category, Allergen
 
 public sealed class IngredientDetailsAutofillService(IIngredientRepository repository, IApplicationChatClientResolver clientResolver)
 {
+    private const int BatchSize = 10;
+
     public async Task<IngredientDetailsSuggestion?> SuggestAsync(string name, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 150) return null;
@@ -47,8 +49,9 @@ public sealed class IngredientDetailsAutofillService(IIngredientRepository repos
             ingredient.Suitability = suggestion.Suitability;
             ingredient.IsAiModified = true;
             written++;
+            if (written % BatchSize == 0) await repository.SaveChangesAsync(cancellationToken);
         }
-        if (written > 0) await repository.SaveChangesAsync(cancellationToken);
+        if (written % BatchSize != 0) await repository.SaveChangesAsync(cancellationToken);
         return written;
     }
 
