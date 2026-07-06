@@ -55,6 +55,13 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
             .Take(limit)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Recipe>> GetAllForDuplicateCheckAsync(
+        Guid houseId, CancellationToken cancellationToken) =>
+        await dbContext.Recipes
+            .AsNoTracking()
+            .Where(r => r.HouseId == houseId)
+            .ToListAsync(cancellationToken);
+
     public Task<Recipe?> GetByIdAsync(Guid id, Guid houseId, bool tracked, CancellationToken cancellationToken)
     {
         var query = tracked

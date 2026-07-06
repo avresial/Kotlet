@@ -70,6 +70,31 @@ public sealed class IngredientMcp
             await service.CreateAsync(command, language.Language, cancellationToken));
     }
 
+    [McpServerTool(Name = "resolve_ingredients_batch", ReadOnly = false, Destructive = false,
+        Idempotent = false, OpenWorld = false, UseStructuredContent = true),
+     Description("Resolves many ingredient names to catalog ingredient IDs in one call, replacing repeated get_ingredients/create_ingredient roundtrips when importing a recipe. Exact (case-insensitive, singular/plural-tolerant) matches are preferred; when several catalog ingredients could match, the name is returned as ambiguous instead of guessing — pick the right one and resolve it yourself. With createMissing=true, names with no match at all are created using the optional hints (category defaults to Unknown, calories and price to 0).")]
+    public static async Task<McpIngredientBatchResolutionResult> ResolveIngredientsBatch(
+        [Description("Ingredient candidates to resolve, at most 100 per call.")]
+        IReadOnlyList<McpIngredientCandidate> ingredients,
+        IngredientBatchResolutionService service,
+        ILanguageContext language,
+        [Description("When true, ingredients without any catalog match are created automatically. Ambiguous names are never auto-created.")]
+        bool createMissing = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (ingredients is not { Count: > 0 })
+            throw new McpException("Provide at least one ingredient candidate.");
+        if (ingredients.Count > 100)
+            throw new McpException("At most 100 ingredient candidates are allowed per call.");
+        return McpIngredientBatchResolutionResult.From(await service.ResolveAsync(
+            ingredients
+                .Select(candidate => new IngredientResolutionCandidate(
+                    candidate.Name, candidate.ExpectedUnit, candidate.CategoryHint,
+                    candidate.CaloriesPer100BaseUnits, candidate.MeasurementUnitsPerPiece))
+                .ToList(),
+            createMissing, language.Language, cancellationToken));
+    }
+
     [McpServerResource(UriTemplate = "kotlet://ingredients/{ingredientId}", Name = "ingredient",
         Title = "Kotlet ingredient", MimeType = "application/json"),
      Description("Complete ingredient details, including measurement, calories, price, and localization.")]
