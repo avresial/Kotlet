@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.Measurements;
+using Kotlet.Application.Translations;
 using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.MealPlanner;
@@ -12,6 +13,7 @@ public sealed class RecipeService(
     IRecipeRepository repository,
     IIngredientRepository ingredientRepository,
     MeasurementMappingService measurementMappingService,
+    ITranslationRepository translations,
     IRecipeImageRepository? imageRepository = null)
 {
     private const int MaxIngredients = 100;
@@ -41,18 +43,18 @@ public sealed class RecipeService(
     }
 
     public async Task<RecipeDetailResponse?> GetByIdAsync(
-        Guid id, Guid houseId, CancellationToken cancellationToken)
+        Guid id, Guid houseId, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {
         var recipe = await repository.GetByIdAsync(id, houseId, tracked: false, cancellationToken);
         if (recipe is null) return null;
         var images = imageRepository is null
             ? []
             : await imageRepository.ListAsync(id, false, cancellationToken);
-        return ToDetailResponse(recipe, images.Select(ToImageResponse).ToList());
+        return await ToDetailResponseAsync(recipe, languageCode, images.Select(ToImageResponse).ToList(), cancellationToken);
     }
 
     public async Task<RecipeOperationResult> CreateAsync(
-        Guid ownerUserId, Guid houseId, CreateRecipeRequest request, CancellationToken cancellationToken)
+        Guid ownerUserId, Guid houseId, CreateRecipeRequest request, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {
         var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType);
         if (errors.Count > 0)
@@ -89,11 +91,11 @@ public sealed class RecipeService(
         repository.Add(recipe);
         await repository.SaveChangesAsync(cancellationToken);
         HydrateIngredientNavigation(mappedIngredients);
-        return new(RecipeOperationStatus.Success, ToDetailResponse(recipe));
+        return new(RecipeOperationStatus.Success, await ToDetailResponseAsync(recipe, languageCode, cancellationToken: cancellationToken));
     }
 
     public async Task<RecipeOperationResult> UpdateAsync(
-        Guid id, Guid houseId, UpdateRecipeRequest request, CancellationToken cancellationToken)
+        Guid id, Guid houseId, UpdateRecipeRequest request, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {
         var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType);
         if (errors.Count > 0)
@@ -125,7 +127,7 @@ public sealed class RecipeService(
             recipe.Ingredients.Add(ing);
         await repository.SaveChangesAsync(cancellationToken);
         HydrateIngredientNavigation(mappedIngredients);
-        return new(RecipeOperationStatus.Success, ToDetailResponse(recipe));
+        return new(RecipeOperationStatus.Success, await ToDetailResponseAsync(recipe, languageCode, cancellationToken: cancellationToken));
     }
 
     public async Task<RecipeOperationStatus> DeleteAsync(
@@ -369,19 +371,36 @@ public sealed class RecipeService(
         return errors;
     }
 
-    private RecipeDetailResponse ToDetailResponse(Recipe recipe, IReadOnlyList<RecipeImageResponse>? images = null) =>
-        new(recipe.Id, recipe.Title, recipe.Slug, recipe.OwnerUserId, recipe.DescriptionMarkdown, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
-            recipe.Ingredients
-                .OrderBy(i => i.SortOrder)
-                .Select(i =>
-                {
-                    var display = measurementMappingService.ToDisplay(i.NormalizedQuantity.Amount, i.NormalizedUnit, i.Ingredient);
-                    return new RecipeIngredientResponse(i.Id, i.SortOrder, i.IngredientId, i.Ingredient.Name,
-                        display.Quantity, display.Unit, i.NormalizedQuantity.Amount, i.NormalizedUnit, i.Note);
-                })
-                .ToList(),
+    private async Task<RecipeDetailResponse> ToDetailResponseAsync(
+        Recipe recipe, string languageCode, IReadOnlyList<RecipeImageResponse>? images = null, CancellationToken cancellationToken = default)
+    {
+        var dictionary = await LoadTranslationsAsync(languageCode, cancellationToken);
+        var ingredients = recipe.Ingredients
+            .OrderBy(i => i.SortOrder)
+            .Select(i =>
+            {
+                var display = measurementMappingService.ToDisplay(i.NormalizedQuantity.Amount, i.NormalizedUnit, i.Ingredient);
+                var resolvedName = ResolveName(i.IngredientId, i.Ingredient.Name, languageCode, dictionary);
+                return new RecipeIngredientResponse(i.Id, i.SortOrder, i.IngredientId, resolvedName,
+                    display.Quantity, display.Unit, i.NormalizedQuantity.Amount, i.NormalizedUnit, i.Note);
+            })
+            .ToList();
+
+        return new RecipeDetailResponse(recipe.Id, recipe.Title, recipe.Slug, recipe.OwnerUserId, recipe.DescriptionMarkdown, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
+            ingredients,
             images ?? [],
             recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
+    }
+
+    private Task<IReadOnlyDictionary<string, string>> LoadTranslationsAsync(string languageCode, CancellationToken cancellationToken) =>
+        TranslationKeys.IsDefaultLanguage(languageCode)
+            ? Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>())
+            : translations.GetAllAsync(cancellationToken);
+
+    private static string ResolveName(Guid ingredientId, string fallback, string languageCode, IReadOnlyDictionary<string, string> dictionary) =>
+        !TranslationKeys.IsDefaultLanguage(languageCode)
+        && dictionary.TryGetValue(TranslationKeys.Ingredient(ingredientId, languageCode), out var translated)
+        && !string.IsNullOrWhiteSpace(translated) ? translated : fallback;
 
     private async Task<IReadOnlyDictionary<Guid, Guid>> GetFirstImageIdsAsync(
         IReadOnlyList<Guid> recipeIds, CancellationToken cancellationToken)

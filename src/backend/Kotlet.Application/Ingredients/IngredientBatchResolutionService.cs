@@ -38,7 +38,8 @@ public sealed class IngredientBatchResolutionService(IngredientService ingredien
             var exactMatches = catalog.Where(dto => IsExactMatch(dto, inputName)).ToList();
             if (exactMatches.Count == 1)
             {
-                resolved.Add(new(inputName, exactMatches[0].Id, exactMatches[0].Name, IngredientResolutionStatus.Existing));
+                resolved.Add(new(inputName, exactMatches[0].Id, exactMatches[0].Name,
+                    exactMatches[0].MeasurementUnit, IngredientResolutionStatus.Existing));
                 continue;
             }
             if (exactMatches.Count > 1)
@@ -64,7 +65,8 @@ public sealed class IngredientBatchResolutionService(IngredientService ingredien
             if (creation.Created is not null)
             {
                 catalog.Add(creation.Created);
-                resolved.Add(new(inputName, creation.Created.Id, creation.Created.Name, IngredientResolutionStatus.Created));
+                resolved.Add(new(inputName, creation.Created.Id, creation.Created.Name,
+                    creation.Created.MeasurementUnit, IngredientResolutionStatus.Created));
             }
             else
             {
@@ -165,7 +167,8 @@ public enum IngredientResolutionStatus
 }
 
 public sealed record ResolvedIngredientEntry(
-    string InputName, Guid IngredientId, string MatchedName, IngredientResolutionStatus Status);
+    string InputName, Guid IngredientId, string MatchedName, string MeasurementUnit,
+    IngredientResolutionStatus Status);
 
 public sealed record IngredientNameMatch(Guid IngredientId, string Name);
 
