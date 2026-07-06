@@ -72,13 +72,13 @@ public sealed class IngredientMcp
 
     [McpServerTool(Name = "resolve_ingredients_batch", ReadOnly = false, Destructive = false,
         Idempotent = false, OpenWorld = false, UseStructuredContent = true),
-     Description("Resolves many ingredient names to catalog ingredient IDs in one call, replacing repeated get_ingredients/create_ingredient roundtrips when importing a recipe. Exact (case-insensitive, singular/plural-tolerant) matches are preferred; when several catalog ingredients could match, the name is returned as ambiguous instead of guessing — pick the right one and resolve it yourself. With createMissing=true, names with no match at all are created using the optional hints (category defaults to Unknown, calories and price to 0).")]
+     Description("Looks up many ingredient names against the shared catalog in ONE call and buckets every name into `resolved`, `ambiguous`, or `missing`. This is the tool to use when importing a recipe: pass every ingredient name from the source at once instead of calling get_ingredients per name. `resolved` entries carry the ingredientId and measurementUnit you need for add_recipe. `ambiguous` names matched several ingredients — pick one yourself. `missing` names are not in the catalog yet. Matching is case-insensitive and singular/plural-tolerant. By default (createMissing=false) NOTHING is created: report the `missing` names to the user and let them decide whether to add them. Only set createMissing=true once the user has agreed to add the new ingredients.")]
     public static async Task<McpIngredientBatchResolutionResult> ResolveIngredientsBatch(
-        [Description("Ingredient candidates to resolve, at most 100 per call.")]
+        [Description("Every ingredient name from the recipe, at most 100 per call. Prefer generic names (\"Soy sauce\", not a brand); the catalog is shared by all households.")]
         IReadOnlyList<McpIngredientCandidate> ingredients,
         IngredientBatchResolutionService service,
         ILanguageContext language,
-        [Description("When true, ingredients without any catalog match are created automatically. Ambiguous names are never auto-created.")]
+        [Description("Leave false to only search (the default): missing names are reported, not created. Set true only after the user has confirmed they want the `missing` ingredients added; they are then created from the optional hints (category defaults to Unknown, calories and price to 0). Ambiguous names are never auto-created.")]
         bool createMissing = false,
         CancellationToken cancellationToken = default)
     {

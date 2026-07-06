@@ -60,7 +60,7 @@ public sealed class RecipeMcp
 
     [McpServerTool(Name = "add_recipe", ReadOnly = false, Destructive = false,
         Idempotent = false, OpenWorld = false, UseStructuredContent = true),
-     Description("Creates one new household recipe. This is an add-only one-shot tool: gather ingredient IDs first (via get_ingredients, creating missing ones with create_ingredient), include quantities, units, optional notes, servings, and a Markdown description with preparation steps before calling it. When importing a recipe from the internet, cite the source URL at the end of the Markdown description. Read the kotlet://recipes/new-recipe-guide resource for the full workflow.")]
+     Description("Creates one new household recipe. This is an add-only one-shot tool: resolve every ingredient to a catalog ID first with resolve_ingredients_batch (report any `missing` ones to the user before creating them), then call this once with quantities, units, optional notes, servings, and a Markdown description with preparation steps. When importing a recipe from the internet, cite the source URL at the end of the Markdown description. Read the kotlet://recipes/new-recipe-guide resource for the full workflow.")]
     public static Task<RecipeOperationResult> AddRecipe(
         [Description("Complete recipe to create. DescriptionMarkdown should include a concise overview and numbered cooking steps. Ingredients must use existing ingredient IDs from get_ingredients or kotlet://ingredients/{ingredientId} resources.")]
         CreateRecipeRequest request,
@@ -85,14 +85,24 @@ public sealed class RecipeMcp
            the title. If it reports a match, tell the user instead of adding the recipe again.
         3. Write `descriptionMarkdown` with a short overview followed by numbered preparation/cooking steps.
            For imported recipes, cite the source URL on the last line, e.g. `Source: <url>`.
-        4. Resolve all ingredients in one call with `resolve_ingredients_batch` (pass every ingredient
-           name, with optional unit/category/calorie hints and `createMissing: true`). Resolve any
-           `ambiguous` entries yourself — pick the right match or fall back to `get_ingredients` /
-           `get_ingredient` for details. Prefer generic names ("Soy sauce", not a brand); the
-           ingredient catalog is shared by all households.
-        5. Call `add_recipe` exactly once when the recipe is complete. Include each ingredient's existing
-           `ingredientId`, positive `quantity`, `unit`, and optional `note`.
-        6. Do not attempt to edit an existing recipe. If the result has validation errors, report them to the user instead of guessing a second creation attempt unless the user explicitly asks you to try again.
+        4. Search all ingredients in ONE call with `resolve_ingredients_batch`: pass every ingredient
+           name from the source (with optional unit/category/calorie hints). Leave `createMissing`
+           false so this is a pure lookup — nothing is created yet. The result splits your names into:
+           - `resolved`  — found; each carries the `ingredientId` and `measurementUnit` for step 6.
+           - `ambiguous` — matched several ingredients; pick the right one yourself (use
+             `get_ingredients` / `get_ingredient` for details).
+           - `missing`   — not in the shared catalog yet.
+           Prefer generic names ("Soy sauce", not a brand); the catalog is shared by all households.
+        5. Check the result before adding the recipe:
+           - If `missing` is empty and you have resolved every `ambiguous` name, proceed to step 6.
+           - If `missing` is non-empty, list those ingredients to the user and ask whether to add them.
+             Only when the user agrees, create them — either call `resolve_ingredients_batch` again
+             with `createMissing: true`, or add them individually with `create_ingredient`. Do not
+             invent ingredients the user has not approved.
+        6. Call `add_recipe` exactly once when every ingredient is resolved. Include each ingredient's
+           `ingredientId`, positive `quantity`, the `unit` (use the resolved `measurementUnit`), and an
+           optional `note`.
+        7. Do not attempt to edit an existing recipe. If the result has validation errors, report them to the user instead of guessing a second creation attempt unless the user explicitly asks you to try again.
         """;
 
     [McpServerResource(UriTemplate = "kotlet://recipes/{recipeId}", Name = "recipe",
@@ -115,7 +125,7 @@ public sealed class RecipeMcp
             1. Gather the user's recipe intent, including title, serving count, ingredients, quantities, and any ingredient-specific notes.
                When the user points at an internet source (website, video, blog), extract those details from the source yourself and confirm them with the user before saving.
             2. Call `check_recipe_exists` with the source URL and/or title first; if the recipe already exists, report the match to the user instead of adding a duplicate.
-            3. Resolve all ingredient IDs in one call with `resolve_ingredients_batch` (use `createMissing: true` to auto-create genuinely new ingredients). For `ambiguous` results pick the right match yourself, using `get_ingredients`/`get_ingredient` when needed. The ingredient catalog is shared by all households: prefer generic ingredient names over brands.
+            3. Search all ingredient names in one call with `resolve_ingredients_batch`, leaving `createMissing` false so it only looks them up. Inspect the result: pick the right match for any `ambiguous` name (use `get_ingredients`/`get_ingredient` when needed); each `resolved` entry gives you the `ingredientId` and `measurementUnit`. If any names come back as `missing`, they are new to the shared catalog — list them for the user and ask whether to add them. Only after the user agrees, create them (re-run with `createMissing: true` or use `create_ingredient`). Prefer generic ingredient names over brands.
             4. Compose `descriptionMarkdown` yourself. It must include a concise description and numbered preparation/cooking steps. For imported recipes, end it with a `Source: <url>` line.
             5. Call `add_recipe` once with a complete `CreateRecipeRequest`:
                - `title`: non-empty recipe title.
