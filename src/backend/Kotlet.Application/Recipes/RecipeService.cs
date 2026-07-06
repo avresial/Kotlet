@@ -18,11 +18,13 @@ public sealed class RecipeService(
     private const int MaxServings = 99;
 
     public async Task<PagedResponse<RecipeSummaryResponse>> ListAsync(
-        Guid houseId, int page, int pageSize, string? search, string? mealType, CancellationToken cancellationToken)
+        Guid houseId, int page, int pageSize, string? search, string? mealType,
+        IReadOnlyCollection<Guid>? ingredientIds, CancellationToken cancellationToken)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
-        var (items, total) = await repository.GetPagedAsync(houseId, page, pageSize, search, ParseMealType(mealType), cancellationToken);
+        var (items, total) = await repository.GetPagedAsync(
+            houseId, page, pageSize, search, ParseMealType(mealType), ingredientIds, cancellationToken);
         var firstImageIds = await GetFirstImageIdsAsync(items.Select(r => r.Id).ToList(), cancellationToken);
         return new PagedResponse<RecipeSummaryResponse>(
             items.Select(r => ToSummaryResponse(r, firstImageIds)).ToList(),

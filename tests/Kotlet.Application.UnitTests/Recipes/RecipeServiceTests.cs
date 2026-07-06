@@ -176,7 +176,7 @@ public sealed class RecipeServiceTests
         repo.Recipes.Add(MakeRecipe("Other Recipe", "other-recipe", OtherOwnerId));
         var service = CreateService(repo);
 
-        var result = await service.ListAsync(OwnerId, 1, 20, null, null, CancellationToken.None);
+        var result = await service.ListAsync(OwnerId, 1, 20, null, null, null, CancellationToken.None);
 
         Assert.Single(result.Items);
         Assert.Equal("My Recipe", result.Items[0].Title);
@@ -192,7 +192,7 @@ public sealed class RecipeServiceTests
         dinner.MealType = MealSlot.Dinner;
         repo.Recipes.AddRange([breakfast, dinner]);
 
-        var result = await CreateService(repo).ListAsync(OwnerId, 1, 20, null, "breakfast", CancellationToken.None);
+        var result = await CreateService(repo).ListAsync(OwnerId, 1, 20, null, "breakfast", null, CancellationToken.None);
 
         Assert.Equal("Breakfast", Assert.Single(result.Items).Title);
     }
@@ -463,12 +463,16 @@ public sealed class RecipeServiceTests
         public int SaveCount { get; private set; }
 
         public Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
-            Guid ownerUserId, int page, int pageSize, string? search, MealSlot? mealType, CancellationToken cancellationToken)
+            Guid ownerUserId, int page, int pageSize, string? search, MealSlot? mealType,
+            IReadOnlyCollection<Guid>? ingredientIds, CancellationToken cancellationToken)
         {
             var query = Recipes.Where(r => r.OwnerUserId == ownerUserId);
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(r => r.Title.Contains(search, StringComparison.OrdinalIgnoreCase));
             if (mealType is not null) query = query.Where(r => r.MealType == mealType);
+            var requiredIngredientIds = ingredientIds?.Distinct().ToArray() ?? [];
+            if (requiredIngredientIds.Length > 0)
+                query = query.Where(r => requiredIngredientIds.All(id => r.Ingredients.Any(i => i.IngredientId == id)));
             var filtered = query.ToList();
             var list = filtered.OrderByDescending(r => r.UpdatedAtUtc).Skip((page - 1) * pageSize).Take(pageSize).ToList();
             return Task.FromResult<(IReadOnlyList<Recipe>, int)>((list, filtered.Count));

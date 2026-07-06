@@ -25,7 +25,7 @@ public sealed class RecipeMcp
         [Description("Recipes per page, from 1 to 100.")] int pageSize = 20,
         [Description("Optional text to search for in recipes.")] string? search = null,
         CancellationToken cancellationToken = default) =>
-        (await service.ListAsync(RequireHouse(currentUser), page, pageSize, search, null, cancellationToken)).Items
+        (await service.ListAsync(RequireHouse(currentUser), page, pageSize, search, null, null, cancellationToken)).Items
         .Select(recipe => Link(
             $"kotlet://recipes/{recipe.Id}", recipe.Title,
             $"Recipe for {recipe.Servings} serving(s) with {recipe.IngredientCount} ingredient(s)."))

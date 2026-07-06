@@ -15,8 +15,28 @@
       <option value="">{{ 'recipes.allMealTypes' | t }}</option>
       @for (type of mealTypes; track type.value) { <option [value]="type.value">{{ type.label | t }}</option> }
     </select>
+    <div class="ingredient-filter">
+      <app-ingredient-picker
+        [ingredients]="availableIngredients()"
+        [(ngModel)]="ingredientPickerValue"
+        [placeholder]="'common.ingredient' | t"
+        [ariaLabel]="'common.ingredient' | t"
+        [disabled]="selectedIngredientIds().length >= 100"
+        (ingredientSelected)="addIngredient($event)"
+      />
+      @if (selectedIngredients().length) {
+        <div class="selected-ingredients" [attr.aria-label]="'common.ingredient' | t">
+          @for (ingredient of selectedIngredients(); track ingredient.id) {
+            <span class="filter-chip">
+              {{ ingredient.name }}
+              <button type="button" (click)="removeIngredient(ingredient.id)" [attr.aria-label]="('common.remove' | t) + ' ' + ingredient.name">×</button>
+            </span>
+          }
+        </div>
+      }
+    </div>
     <button type="button" class="button primary" (click)="onSearch()">{{ 'common.search' | t }}</button>
-    @if (search() || mealType()) {
+    @if (search() || mealType() || selectedIngredientIds().length) {
       <button type="button" class="secondary" (click)="clearSearch()">{{ 'common.clear' | t }}</button>
     }
   </div>
@@ -27,7 +47,7 @@
     <p class="empty">{{ 'recipes.loading' | t }}</p>
   } @else if (recipes().length === 0) {
     <p class="empty">
-      @if (search() || mealType()) { No recipes match the selected filters. }
+      @if (search() || mealType() || selectedIngredientIds().length) { No recipes match the selected filters. }
       @else { {{ 'recipes.empty' | t }} <a routerLink="/recipes/new">{{ 'recipes.createFirst' | t }}</a> }
     </p>
   } @else {
