@@ -138,6 +138,121 @@ public sealed class RecipeService(
         return RecipeOperationStatus.Success;
     }
 
+    /// <summary>
+    /// Duplicate detection for recipe imports. Recipes have no source-URL column; by
+    /// convention imported recipes cite the URL in the Markdown description, so URL
+    /// matching searches the description text.
+    /// </summary>
+    public async Task<RecipeExistenceResult> CheckExistsAsync(
+        Guid houseId, string? title, string? sourceUrl, CancellationToken cancellationToken)
+    {
+        var recipes = await repository.GetAllForDuplicateCheckAsync(houseId, cancellationToken);
+        var normalizedUrl = NormalizeSourceUrl(sourceUrl);
+        var titleTokens = TokenizeTitle(title);
+
+        var matches = new List<RecipeExistenceMatch>();
+        foreach (var recipe in recipes)
+        {
+            var matchType = Classify(recipe, normalizedUrl, titleTokens);
+            if (matchType is not null)
+                matches.Add(new(recipe.Id, recipe.Title, ExtractSourceUrl(recipe.DescriptionMarkdown), matchType.Value));
+        }
+
+        var ordered = matches.OrderBy(m => m.MatchType).ThenBy(m => m.Title, StringComparer.OrdinalIgnoreCase).ToList();
+        return new(ordered.Count > 0, ordered);
+    }
+
+    private static RecipeMatchType? Classify(Recipe recipe, string? normalizedUrl, IReadOnlyList<string> titleTokens)
+    {
+        if (normalizedUrl is not null && DescriptionContainsUrl(recipe.DescriptionMarkdown, normalizedUrl))
+            return RecipeMatchType.SourceUrl;
+        if (titleTokens.Count == 0)
+            return null;
+
+        var recipeTokens = TokenizeTitle(recipe.Title);
+        if (recipeTokens.Count == 0)
+            return null;
+        if (recipeTokens.SequenceEqual(titleTokens))
+            return RecipeMatchType.ExactTitle;
+        return TitleSimilarity(titleTokens, recipeTokens) >= SimilarTitleThreshold
+            ? RecipeMatchType.SimilarTitle
+            : null;
+    }
+
+    private const double SimilarTitleThreshold = 0.6;
+
+    private static string? NormalizeSourceUrl(string? url)
+    {
+        var trimmed = url?.Trim().TrimEnd('/');
+        return string.IsNullOrEmpty(trimmed) ? null : trimmed;
+    }
+
+    private static bool DescriptionContainsUrl(string? description, string normalizedUrl)
+    {
+        if (string.IsNullOrEmpty(description))
+            return false;
+        var start = 0;
+        while (true)
+        {
+            var index = description.IndexOf(normalizedUrl, start, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+                return false;
+            // "…/recipe" must not match "…/recipe-2" or "…/recipes": the found URL may only
+            // continue with a trailing slash or a query/fragment, not with more path characters.
+            var rest = description.AsSpan(index + normalizedUrl.Length).TrimStart('/');
+            if (rest.IsEmpty || !IsUrlPathChar(rest[0]))
+                return true;
+            start = index + 1;
+        }
+    }
+
+    private static bool IsUrlPathChar(char c) =>
+        char.IsLetterOrDigit(c) || c is '-' or '_' or '.' or '%' or '~' or '+';
+
+    private static readonly Regex SourceLinePattern = new(
+        @"^[\s>*_#-]*source[\s*_]*:?\s*<?(?<url>https?://[^\s<>)\]]+)",
+        RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
+
+    /// <summary>Pulls the cited source URL out of a "Source: ..." line in the description.</summary>
+    internal static string? ExtractSourceUrl(string? description)
+    {
+        if (string.IsNullOrEmpty(description))
+            return null;
+        var match = SourceLinePattern.Match(description);
+        return match.Success ? match.Groups["url"].Value.TrimEnd('.', ',', ';') : null;
+    }
+
+    private static IReadOnlyList<string> TokenizeTitle(string? title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return [];
+        var tokens = new List<string>();
+        var current = new System.Text.StringBuilder();
+        foreach (var c in title)
+        {
+            if (char.IsLetterOrDigit(c))
+                current.Append(char.ToLowerInvariant(c));
+            else if (current.Length > 0)
+            {
+                tokens.Add(current.ToString());
+                current.Clear();
+            }
+        }
+        if (current.Length > 0)
+            tokens.Add(current.ToString());
+        return tokens;
+    }
+
+    /// <summary>Jaccard similarity over title word sets; deliberately conservative.</summary>
+    private static double TitleSimilarity(IReadOnlyList<string> left, IReadOnlyList<string> right)
+    {
+        var leftSet = left.ToHashSet(StringComparer.Ordinal);
+        var rightSet = right.ToHashSet(StringComparer.Ordinal);
+        var intersection = leftSet.Intersect(rightSet).Count();
+        var union = leftSet.Union(rightSet).Count();
+        return union == 0 ? 0 : (double)intersection / union;
+    }
+
     private async Task<MappedIngredients> MapIngredientsAsync(
         IReadOnlyList<RecipeIngredientRequest> requests, Guid recipeId, CancellationToken cancellationToken)
     {

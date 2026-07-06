@@ -66,6 +66,65 @@ public sealed record CreateIngredientMcpRequest(
     [property: Description("Diets the ingredient suits, from: Vegan, Vegetarian, Pescatarian, GlutenFree, LactoseFree, LowFodmap, LowHistamine, Keto, LowCarb.")]
     string[]? Suitability = null);
 
+public sealed record McpIngredientCandidate(
+    [property: Description("Ingredient name to resolve, e.g. \"chickpeas\".")]
+    string Name,
+    [property: Description("Optional unit hint: \"g\", \"ml\", or \"pcs\". Used only when creating a missing ingredient.")]
+    string? ExpectedUnit = null,
+    [property: Description("Optional category hint using the documented Kotlet category names (e.g. Legume). Unknown hints fall back to Unknown.")]
+    string? CategoryHint = null,
+    [property: Description("Kilocalories per 100 base units. Used only when creating a missing ingredient; defaults to 0.")]
+    decimal? CaloriesPer100BaseUnits = null,
+    [property: Description("Grams or millilitres in one piece. Used only when creating a missing \"pcs\" ingredient; defaults to 100.")]
+    decimal? MeasurementUnitsPerPiece = null);
+
+public sealed record McpResolvedIngredient(
+    string InputName, Guid IngredientId, string MatchedName, string Status);
+
+public sealed record McpIngredientNameMatch(Guid IngredientId, string Name);
+
+public sealed record McpAmbiguousIngredient(
+    string InputName, IReadOnlyList<McpIngredientNameMatch> Matches);
+
+public sealed record McpMissingIngredient(string InputName, string Reason);
+
+public sealed record McpIngredientBatchResolutionResult(
+    IReadOnlyList<McpResolvedIngredient> Resolved,
+    IReadOnlyList<McpAmbiguousIngredient> Ambiguous,
+    IReadOnlyList<McpMissingIngredient> Missing)
+{
+    public static McpIngredientBatchResolutionResult From(IngredientBatchResolutionResult result) => new(
+        result.Resolved
+            .Select(entry => new McpResolvedIngredient(
+                entry.InputName, entry.IngredientId, entry.MatchedName,
+                entry.Status == IngredientResolutionStatus.Created ? "created" : "existing"))
+            .ToList(),
+        result.Ambiguous
+            .Select(entry => new McpAmbiguousIngredient(
+                entry.InputName,
+                entry.Matches.Select(match => new McpIngredientNameMatch(match.IngredientId, match.Name)).ToList()))
+            .ToList(),
+        result.Missing
+            .Select(entry => new McpMissingIngredient(entry.InputName, entry.Reason))
+            .ToList());
+}
+
+public sealed record McpRecipeMatch(Guid RecipeId, string Title, string? SourceUrl, string MatchType);
+
+public sealed record McpRecipeExistenceResult(bool Exists, IReadOnlyList<McpRecipeMatch> Matches)
+{
+    public static McpRecipeExistenceResult From(Kotlet.Application.Recipes.RecipeExistenceResult result) => new(
+        result.Exists,
+        result.Matches
+            .Select(match => new McpRecipeMatch(match.RecipeId, match.Title, match.SourceUrl, match.MatchType switch
+            {
+                Kotlet.Application.Recipes.RecipeMatchType.SourceUrl => "sourceUrl",
+                Kotlet.Application.Recipes.RecipeMatchType.ExactTitle => "exactTitle",
+                _ => "similarTitle"
+            }))
+            .ToList());
+}
+
 public sealed record McpShoppingListItem(
     Guid Id,
     Guid IngredientId,

@@ -31,6 +31,7 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
                      "get_recipes", "get_recipe", "get_ingredients", "get_ingredient",
                      "get_shopping_list", "get_pantry", "get_meal_plan_overview", "get_meal_plan",
                      "get_meal_plan_members", "add_recipe", "create_ingredient",
+                     "resolve_ingredients_batch", "check_recipe_exists",
                      "add_pantry_item", "update_pantry_item", "remove_pantry_item",
                      "add_meal_to_plan", "add_meal_participants", "remove_meal_from_plan"
                  })
@@ -88,6 +89,83 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         var detailBody = await detail.Content.ReadAsStringAsync();
         Assert.Contains("Source: https://example.com/goulash", detailBody);
         Assert.Contains("sweet variety", detailBody);
+    }
+
+    [Fact]
+    public async Task BatchImportFlow_ChecksDuplicates_ResolvesIngredientsInOneCall_ThenAddsRecipe()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+
+        // A fresh household: the recipe does not exist yet.
+        var sourceUrl = $"https://example.com/recipes/chickpea-balls-{Guid.NewGuid():N}";
+        var notFound = await CallTool(client, accessToken, "check_recipe_exists", new { sourceUrl });
+        Assert.Contains("\"exists\":false", await notFound.Content.ReadAsStringAsync());
+
+        // One existing ingredient plus one missing; both resolve in a single batch call.
+        var existingName = $"Chickpeas {Guid.NewGuid():N}";
+        await CallTool(client, accessToken, "create_ingredient", new
+        {
+            request = new { name = existingName, measurementUnit = "g", caloriesPer100BaseUnits = 164 }
+        });
+        var missingName = $"Tomato passata {Guid.NewGuid():N}";
+        var resolvedResponse = await CallTool(client, accessToken, "resolve_ingredients_batch", new
+        {
+            ingredients = new object[]
+            {
+                new { name = existingName.ToLowerInvariant() },
+                new { name = missingName, expectedUnit = "ml", categoryHint = "Sauce", caloriesPer100BaseUnits = 38 }
+            },
+            createMissing = true
+        });
+        var resolvedBody = await resolvedResponse.Content.ReadAsStringAsync();
+        Assert.Contains("\"existing\"", resolvedBody);
+        Assert.Contains("\"created\"", resolvedBody);
+        // Resolved entries keep the input order: the existing ingredient first, the created one second.
+        var firstIdIndex = resolvedBody.IndexOf("\"ingredientId\":\"", StringComparison.Ordinal);
+        var existingId = ExtractGuidAfter(resolvedBody, "\"ingredientId\":\"");
+        var createdId = ExtractGuidAfter(resolvedBody[(firstIdIndex + 1)..], "\"ingredientId\":\"");
+
+        var title = $"Chickpea balls {Guid.NewGuid():N}";
+        var recipe = await CallTool(client, accessToken, "add_recipe", new
+        {
+            request = new
+            {
+                title,
+                servings = 4,
+                descriptionMarkdown = $"Crispy chickpea balls.\n\n1. Blend chickpeas.\n2. Fry and serve with passata.\n\nSource: {sourceUrl}",
+                ingredients = new object[]
+                {
+                    new { ingredientId = existingId, quantity = 400, unit = "g" },
+                    new { ingredientId = createdId, quantity = 250, unit = "ml" }
+                }
+            }
+        });
+        Assert.Contains("\"Success\"", await recipe.Content.ReadAsStringAsync());
+
+        // A second import attempt is now caught by URL and by title.
+        var byUrl = await CallTool(client, accessToken, "check_recipe_exists", new { sourceUrl });
+        var byUrlBody = await byUrl.Content.ReadAsStringAsync();
+        Assert.Contains("\"exists\":true", byUrlBody);
+        Assert.Contains("\"sourceUrl\"", byUrlBody);
+        var byTitle = await CallTool(client, accessToken, "check_recipe_exists", new { title = title.ToUpperInvariant() });
+        var byTitleBody = await byTitle.Content.ReadAsStringAsync();
+        Assert.Contains("\"exists\":true", byTitleBody);
+        Assert.Contains("\"exactTitle\"", byTitleBody);
+
+        // Ambiguous names are reported instead of guessed.
+        var ambiguous = await CallTool(client, accessToken, "resolve_ingredients_batch", new
+        {
+            ingredients = new object[] { new { name = "Tomato passata" } },
+            createMissing = true
+        });
+        var ambiguousBody = await ambiguous.Content.ReadAsStringAsync();
+        // The partial match against the passata ingredient created above is reported, not guessed or re-created.
+        Assert.Contains(missingName, ambiguousBody);
+        Assert.DoesNotContain("\"created\"", ambiguousBody);
+
+        // Both arguments missing is rejected with actionable guidance.
+        var invalid = await CallTool(client, accessToken, "check_recipe_exists", new { });
+        Assert.Contains("at least one of title or sourceUrl", await invalid.Content.ReadAsStringAsync());
     }
 
     [Fact]

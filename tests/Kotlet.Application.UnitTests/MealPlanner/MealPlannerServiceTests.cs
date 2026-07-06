@@ -612,6 +612,9 @@ public sealed class MealPlannerServiceTests
         public Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken) =>
             Task.FromResult(recipes.SingleOrDefault(r => r.Id == id));
 
+        public Task<IReadOnlyList<Recipe>> GetAllForDuplicateCheckAsync(Guid ownerUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
         public Task<bool> SlugExistsAsync(Guid ownerUserId, string slug, Guid? excludedId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
