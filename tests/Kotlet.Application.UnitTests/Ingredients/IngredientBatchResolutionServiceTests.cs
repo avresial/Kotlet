@@ -21,6 +21,7 @@ public sealed class IngredientBatchResolutionServiceTests
         var resolved = Assert.Single(result.Resolved);
         Assert.Equal(chickpeas.Id, resolved.IngredientId);
         Assert.Equal("Chickpeas", resolved.MatchedName);
+        Assert.Equal("g", resolved.MeasurementUnit);
         Assert.Equal(IngredientResolutionStatus.Existing, resolved.Status);
         Assert.Empty(result.Ambiguous);
         Assert.Empty(result.Missing);
