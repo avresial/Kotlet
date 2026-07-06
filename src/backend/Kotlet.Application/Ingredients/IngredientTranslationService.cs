@@ -43,14 +43,14 @@ public sealed class IngredientTranslationService(
         var allIngredients = await ingredients.GetAllAsync(cancellationToken);
         var dictionary = await translations.GetAllAsync(cancellationToken);
 
+        var candidates = allIngredients.Where(ingredient => !string.IsNullOrWhiteSpace(ingredient.Name)
+            && !string.Equals(ingredient.Name, UnknownName, StringComparison.Ordinal)).ToArray();
         var written = 0;
         var failed = 0;
-        foreach (var ingredient in allIngredients)
+        var total = candidates.Length;
+        var processed = 0;
+        foreach (var ingredient in candidates)
         {
-            if (string.IsNullOrWhiteSpace(ingredient.Name) ||
-                string.Equals(ingredient.Name, UnknownName, StringComparison.Ordinal))
-                continue;
-
             foreach (var language in TranslationKeys.TranslatedLanguages)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -77,6 +77,9 @@ public sealed class IngredientTranslationService(
 
                 if(written%10 == 0) await translations.SaveChangesAsync(cancellationToken);   
             }
+            processed++;
+            if (processed % 10 == 0 || processed == total)
+                logger.LogInformation("Ingredient translation progress: {Processed}/{Total}, {Written} written, {Failed} failed.", processed, total, written, failed);
         }
 
         // A single commit for the whole pass keeps the write cheap and lets the translation-cache

@@ -2,12 +2,16 @@ using System.Text.Json;
 using Kotlet.Application.Ai;
 using Kotlet.Domain.Ingredients;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace Kotlet.Application.Ingredients;
 
 public sealed record IngredientDetailsSuggestion(FoodCategory Category, Allergen Allergens, FoodAttribute Attributes, DietarySuitability Suitability);
 
-public sealed class IngredientDetailsAutofillService(IIngredientRepository repository, IApplicationChatClientResolver clientResolver)
+public sealed class IngredientDetailsAutofillService(
+    IIngredientRepository repository,
+    IApplicationChatClientResolver clientResolver,
+    ILogger<IngredientDetailsAutofillService> logger)
 {
     private const int BatchSize = 10;
 
@@ -36,20 +40,29 @@ public sealed class IngredientDetailsAutofillService(IIngredientRepository repos
 
     public async Task<int> BackfillAsync(CancellationToken cancellationToken)
     {
+        var candidates = (await repository.GetAllAsync(cancellationToken)).Where(IsEmpty).ToArray();
         var written = 0;
-        foreach (var candidate in (await repository.GetAllAsync(cancellationToken)).Where(IsEmpty))
+        var processed = 0;
+        foreach (var candidate in candidates)
         {
             var suggestion = await SuggestAsync(candidate.Name, cancellationToken);
-            if (suggestion is null) continue;
-            var ingredient = await repository.GetByIdAsync(candidate.Id, tracked: true, cancellationToken);
-            if (ingredient is null || !IsEmpty(ingredient)) continue;
-            ingredient.Category = suggestion.Category;
-            ingredient.Allergens = suggestion.Allergens;
-            ingredient.Attributes = suggestion.Attributes;
-            ingredient.Suitability = suggestion.Suitability;
-            ingredient.IsAiModified = true;
-            written++;
-            if (written % BatchSize == 0) await repository.SaveChangesAsync(cancellationToken);
+            if (suggestion is not null)
+            {
+                var ingredient = await repository.GetByIdAsync(candidate.Id, tracked: true, cancellationToken);
+                if (ingredient is not null && IsEmpty(ingredient))
+                {
+                    ingredient.Category = suggestion.Category;
+                    ingredient.Allergens = suggestion.Allergens;
+                    ingredient.Attributes = suggestion.Attributes;
+                    ingredient.Suitability = suggestion.Suitability;
+                    ingredient.IsAiModified = true;
+                    written++;
+                    if (written % BatchSize == 0) await repository.SaveChangesAsync(cancellationToken);
+                }
+            }
+            processed++;
+            if (processed % BatchSize == 0 || processed == candidates.Length)
+                logger.LogInformation("Ingredient details autofill progress: {Processed}/{Total}, {Written} written.", processed, candidates.Length, written);
         }
         if (written % BatchSize != 0) await repository.SaveChangesAsync(cancellationToken);
         return written;

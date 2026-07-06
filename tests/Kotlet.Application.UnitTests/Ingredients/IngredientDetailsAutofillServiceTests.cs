@@ -2,6 +2,7 @@ using Kotlet.Application.Ai;
 using Kotlet.Application.Ingredients;
 using Kotlet.Domain.Ingredients;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Kotlet.Application.UnitTests.Ingredients;
@@ -11,7 +12,7 @@ public sealed class IngredientDetailsAutofillServiceTests
     [Fact]
     public async Task Suggest_ParsesKnownTaxonomyValues()
     {
-        var service = new IngredientDetailsAutofillService(new UnusedRepository(), new Resolver(new Client()));
+        var service = new IngredientDetailsAutofillService(new UnusedRepository(), new Resolver(new Client()), NullLogger<IngredientDetailsAutofillService>.Instance);
 
         var result = await service.SuggestAsync("Apple", CancellationToken.None);
 
@@ -23,7 +24,7 @@ public sealed class IngredientDetailsAutofillServiceTests
     public async Task Backfill_SavesEveryTenItemsAndFinalRemainder()
     {
         var repository = new Repository(Enumerable.Range(0, 11).Select(i => Ingredient($"Apple {i}")).ToArray());
-        var service = new IngredientDetailsAutofillService(repository, new Resolver(new Client()));
+        var service = new IngredientDetailsAutofillService(repository, new Resolver(new Client()), NullLogger<IngredientDetailsAutofillService>.Instance);
 
         var written = await service.BackfillAsync(CancellationToken.None);
 
