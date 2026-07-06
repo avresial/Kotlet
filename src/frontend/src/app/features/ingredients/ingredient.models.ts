@@ -16,6 +16,7 @@ export interface Ingredient {
   allergens: number;
   attributes: number;
   suitability: number;
+  isAiModified: boolean;
   createdAtUtc: string;
 }
 
@@ -33,7 +34,10 @@ export interface IngredientRequest {
   allergens: number;
   attributes: number;
   suitability: number;
+  isAiModified?: boolean;
 }
+
+export interface IngredientDetailsSuggestion { category: number; allergens: number; attributes: number; suitability: number; }
 
 export const measurementUnits = [
   { label: 'units.grams', value: 'g' },

@@ -13,6 +13,7 @@
         <div class="field-group">
           <p class="group-title">{{ 'ingredients.groupBasic' | t }}</p>
           <label>{{ 'ingredients.name' | t }}<input type="text" formControlName="name" [placeholder]="'ingredients.namePlaceholder' | t" /></label>
+          <button class="secondary" type="button" [disabled]="!form.controls.name.value.trim() || isAutofilling()" (click)="autofill()">{{ (isAutofilling() ? 'ingredients.autofilling' : 'ingredients.autofill') | t }}</button>
           @if (showTranslation()) {
             <label>
               <span class="sr-only">Name translation ({{ languageBadge() }})</span>
@@ -88,7 +89,7 @@
       <div class="table-wrap"><table>
         <thead><tr><th>{{ 'ingredients.name' | t }}</th><th>{{ 'ingredients.baseUnitShort' | t }}</th><th>{{ 'ingredients.pieceSize' | t }}</th><th>kcal / 100</th><th>{{ 'ingredients.pricePer100' | t }}</th><th>{{ 'ingredients.allergens' | t }}</th><th><span class="sr-only">{{ 'common.actions' | t }}</span></th></tr></thead>
         <tbody>@for (ingredient of pagedIngredients(); track ingredient.id) {
-          <tr><td [attr.data-label]="'ingredients.name' | t"><strong>{{ ingredient.name }}</strong></td><td [attr.data-label]="'ingredients.baseUnitShort' | t">{{ unitLabel(ingredient.measurementUnit) }}</td><td [attr.data-label]="'ingredients.pieceSize' | t">{{ ingredient.isCountable ? ingredient.measurementUnitsPerPiece + ' ' + ingredient.measurementUnit : '—' }}</td><td data-label="kcal / 100">{{ ingredient.caloriesPer100BaseUnits }}</td><td [attr.data-label]="'ingredients.pricePer100' | t">{{ ingredient.pricePer100BaseUnits.toFixed(2) }}</td><td class="allergens-cell" [attr.data-label]="'ingredients.allergens' | t" [title]="allergenNames(ingredient)">{{ allergenNames(ingredient) }}</td>
+          <tr><td [attr.data-label]="'ingredients.name' | t"><strong>{{ ingredient.name }}</strong>@if (ingredient.isAiModified) { <span class="ai-badge">{{ 'ingredients.aiModified' | t }}</span> }</td><td [attr.data-label]="'ingredients.baseUnitShort' | t">{{ unitLabel(ingredient.measurementUnit) }}</td><td [attr.data-label]="'ingredients.pieceSize' | t">{{ ingredient.isCountable ? ingredient.measurementUnitsPerPiece + ' ' + ingredient.measurementUnit : '—' }}</td><td data-label="kcal / 100">{{ ingredient.caloriesPer100BaseUnits }}</td><td [attr.data-label]="'ingredients.pricePer100' | t">{{ ingredient.pricePer100BaseUnits.toFixed(2) }}</td><td class="allergens-cell" [attr.data-label]="'ingredients.allergens' | t" [title]="allergenNames(ingredient)">{{ allergenNames(ingredient) }}</td>
           <td class="row-actions" [attr.data-label]="'common.actions' | t"><button type="button" (click)="edit(ingredient)">{{ 'common.edit' | t }}</button><button class="delete" type="button" [disabled]="deletingId() === ingredient.id" (click)="remove(ingredient)">{{ (deletingId() === ingredient.id ? 'common.deleting' : 'common.delete') | t }}</button></td></tr>
         }</tbody>
       </table></div>
