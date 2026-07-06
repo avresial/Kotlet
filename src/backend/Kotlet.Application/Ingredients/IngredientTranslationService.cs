@@ -43,14 +43,14 @@ public sealed class IngredientTranslationService(
         var allIngredients = await ingredients.GetAllAsync(cancellationToken);
         var dictionary = await translations.GetAllAsync(cancellationToken);
 
+        var candidates = allIngredients.Where(ingredient => !string.IsNullOrWhiteSpace(ingredient.Name)
+            && !string.Equals(ingredient.Name, UnknownName, StringComparison.Ordinal)).ToArray();
         var written = 0;
         var failed = 0;
-        foreach (var ingredient in allIngredients)
+        var total = candidates.Length;
+        var processed = 0;
+        foreach (var ingredient in candidates)
         {
-            if (string.IsNullOrWhiteSpace(ingredient.Name) ||
-                string.Equals(ingredient.Name, UnknownName, StringComparison.Ordinal))
-                continue;
-
             foreach (var language in TranslationKeys.TranslatedLanguages)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -67,7 +67,7 @@ public sealed class IngredientTranslationService(
                 }
 
                 translation = char.ToUpper(translation[0], CultureInfo.InvariantCulture) + translation.Substring(1);
-               
+
                 logger.LogInformation(
                     "Translated ingredient {IngredientId} ({Source}) to {Language}: {Translation}",
                     ingredient.Id, ingredient.Name, language, translation);
@@ -75,13 +75,16 @@ public sealed class IngredientTranslationService(
                 await translations.SetAsync(key, translation, cancellationToken);
                 written++;
 
-                if(written%10 == 0) await translations.SaveChangesAsync(cancellationToken);   
+                if (written % 10 == 0) await translations.SaveChangesAsync(cancellationToken);
             }
+            processed++;
+            if (processed % 10 == 0 || processed == total)
+                logger.LogInformation("Ingredient translation progress: {Processed}/{Total}, {Written} written, {Failed} failed.", processed, total, written, failed);
         }
 
         // A single commit for the whole pass keeps the write cheap and lets the translation-cache
         // interceptor evict once rather than per key.
-        if (written > 0)
+        if (written > 0 && written % 10 != 0)
             await translations.SaveChangesAsync(cancellationToken);
 
         return new IngredientTranslationResult(ProviderConfigured: true, written, failed);

@@ -35,7 +35,11 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions, IOptions<AuthO
         var now = DateTime.UtcNow;
         return (raw, new RefreshToken
         {
-            Id = Guid.NewGuid(), UserId = user.Id, HouseId = activeHouseId, TokenHash = Hash(raw), CreatedAtUtc = now,
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            HouseId = activeHouseId,
+            TokenHash = Hash(raw),
+            CreatedAtUtc = now,
             ExpiresAtUtc = now.AddDays(_auth.RefreshTokenDays),
             CreatedByIp = context.Connection.RemoteIpAddress?.ToString(),
             UserAgent = context.Request.Headers.UserAgent.ToString() is { Length: > 0 } value ? value[..Math.Min(value.Length, 512)] : null
@@ -54,7 +58,10 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions, IOptions<AuthO
 
     private static CookieOptions CookieOptions(DateTime expires, bool secure) => new()
     {
-        HttpOnly = true, Secure = secure, SameSite = secure ? SameSiteMode.None : SameSiteMode.Lax, Expires = expires,
+        HttpOnly = true,
+        Secure = secure,
+        SameSite = secure ? SameSiteMode.None : SameSiteMode.Lax,
+        Expires = expires,
         // Broadened from "/api/auth" so house switching (under /api/houses) can read and update the
         // active-home pointer on the live refresh token, keeping a switch sticky across silent refreshes.
         Path = "/"

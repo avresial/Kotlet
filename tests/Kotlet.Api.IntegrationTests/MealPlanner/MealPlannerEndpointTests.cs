@@ -201,8 +201,10 @@ public sealed class MealPlannerEndpointTests(TestWebApplicationFactory factory) 
     {
         var response = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name = $"Meal ingredient {Guid.NewGuid():N}", measurementUnit = "g",
-            caloriesPer100BaseUnits = 100m, pricePer100BaseUnits = 5m
+            name = $"Meal ingredient {Guid.NewGuid():N}",
+            measurementUnit = "g",
+            caloriesPer100BaseUnits = 100m,
+            pricePer100BaseUnits = 5m
         });
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         return body.GetProperty("id").GetGuid();
@@ -213,7 +215,9 @@ public sealed class MealPlannerEndpointTests(TestWebApplicationFactory factory) 
         var client = factory.CreateClient();
         var response = await client.PostAsJsonAsync("/api/auth/register", new
         {
-            email = $"{prefix}-{Guid.NewGuid():N}@example.com", password = "Password1!", confirmPassword = "Password1!"
+            email = $"{prefix}-{Guid.NewGuid():N}@example.com",
+            password = "Password1!",
+            confirmPassword = "Password1!"
         });
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());

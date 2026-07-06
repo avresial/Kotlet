@@ -66,8 +66,11 @@ public sealed class IngredientService(
             MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null,
             CaloriesPer100BaseUnits = Calories.FromKilocalories(command.CaloriesPer100BaseUnits),
             PricePer100BaseUnits = Price.FromAmount(command.PricePer100BaseUnits),
-            Category = command.Category, Allergens = command.Allergens,
-            Attributes = command.Attributes, Suitability = command.Suitability,
+            Category = command.Category,
+            Allergens = command.Allergens,
+            Attributes = command.Attributes,
+            Suitability = command.Suitability,
+            IsAiModified = command.IsAiModified,
             CreatedAtUtc = DateTimeOffset.UtcNow
         };
         repository.Add(ingredient);
@@ -121,6 +124,7 @@ public sealed class IngredientService(
         ingredient.Allergens = command.Allergens;
         ingredient.Attributes = command.Attributes;
         ingredient.Suitability = command.Suitability;
+        ingredient.IsAiModified = false;
         if (persistedTranslation is not null)
             await translations.SetAsync(TranslationKeys.Ingredient(ingredient.Id, languageCode), persistedTranslation, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
@@ -221,7 +225,7 @@ public sealed class IngredientService(
             ingredient.MeasurementUnit, ingredient.IsCountable,
             ingredient.MeasurementUnitsPerPiece, ingredient.CaloriesPer100BaseUnits.Kilocalories,
             ingredient.PricePer100BaseUnits.Amount, ingredient.SvgIcon, ingredient.Category,
-            ingredient.Allergens, ingredient.Attributes, ingredient.Suitability, ingredient.CreatedAtUtc);
+            ingredient.Allergens, ingredient.Attributes, ingredient.Suitability, ingredient.IsAiModified, ingredient.CreatedAtUtc);
     private static IngredientOperationResult Conflict() =>
         new(IngredientOperationStatus.Conflict, Message: "An ingredient with this name already exists.");
 }

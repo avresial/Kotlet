@@ -21,7 +21,9 @@ internal static class TestAuth
         var email = $"{prefix}-{Guid.NewGuid():N}@example.com";
         var response = await client.PostAsJsonAsync("/api/auth/register", new
         {
-            email, password = "Password1!", confirmPassword = "Password1!"
+            email,
+            password = "Password1!",
+            confirmPassword = "Password1!"
         });
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         var token = body.GetProperty("accessToken").GetString()!;

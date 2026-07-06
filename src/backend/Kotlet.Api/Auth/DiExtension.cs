@@ -61,11 +61,14 @@ public static class DiExtension
                 options.MapInboundClaims = true;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true, ValidIssuer = jwt.Issuer,
-                    ValidateAudience = true, ValidAudience = jwt.Audience,
+                    ValidateIssuer = true,
+                    ValidIssuer = jwt.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = jwt.Audience,
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey)),
-                    ValidateLifetime = true, ClockSkew = TimeSpan.FromSeconds(30),
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromSeconds(30),
                     NameClaimType = ClaimTypes.NameIdentifier,
                     RoleClaimType = ClaimTypes.Role
                 };

@@ -25,8 +25,12 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
 
         var create = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name, measurementUnit = "g", isCountable = false, measurementUnitsPerPiece = (decimal?)null,
-            caloriesPer100BaseUnits = 165.5m, pricePer100BaseUnits = 12.99m
+            name,
+            measurementUnit = "g",
+            isCountable = false,
+            measurementUnitsPerPiece = (decimal?)null,
+            caloriesPer100BaseUnits = 165.5m,
+            pricePer100BaseUnits = 12.99m
         });
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
         var created = await create.Content.ReadFromJsonAsync<JsonElement>();
@@ -39,8 +43,12 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
 
         var update = await client.PutAsJsonAsync($"/api/ingredients/{id}", new
         {
-            name = $"{name} updated", measurementUnit = "ml", isCountable = true, measurementUnitsPerPiece = 250m,
-            caloriesPer100BaseUnits = 170m, pricePer100BaseUnits = 15m
+            name = $"{name} updated",
+            measurementUnit = "ml",
+            isCountable = true,
+            measurementUnitsPerPiece = 250m,
+            caloriesPer100BaseUnits = 170m,
+            pricePer100BaseUnits = 15m
         });
         Assert.Equal(HttpStatusCode.OK, update.StatusCode);
         var updated = await update.Content.ReadFromJsonAsync<JsonElement>();
@@ -62,8 +70,12 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
         client.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("pl"));
         var create = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name = polishName, measurementUnit = "g", isCountable = false, measurementUnitsPerPiece = (decimal?)null,
-            caloriesPer100BaseUnits = 50m, pricePer100BaseUnits = 2m
+            name = polishName,
+            measurementUnit = "g",
+            isCountable = false,
+            measurementUnitsPerPiece = (decimal?)null,
+            caloriesPer100BaseUnits = 50m,
+            pricePer100BaseUnits = 2m
         });
         Assert.Equal(HttpStatusCode.Created, create.StatusCode);
         var created = await create.Content.ReadFromJsonAsync<JsonElement>();
@@ -88,8 +100,12 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
         var client = await CreateAuthenticatedClient();
         var response = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name = "", measurementUnit = "bucket", isCountable = true, measurementUnitsPerPiece = (decimal?)null,
-            caloriesPer100BaseUnits = -1, pricePer100BaseUnits = -1
+            name = "",
+            measurementUnit = "bucket",
+            isCountable = true,
+            measurementUnitsPerPiece = (decimal?)null,
+            caloriesPer100BaseUnits = -1,
+            pricePer100BaseUnits = -1
         });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }

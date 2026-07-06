@@ -271,17 +271,17 @@ public sealed class UserAiProviderServiceTests
 
     private static UserAiProviderConfiguration Configuration(
         string providerName = "OpenAI", string? apiKey = "sk-secret") => new()
-    {
-        Id = Guid.NewGuid(),
-        UserId = UserId,
-        ProviderName = providerName,
-        BaseUrl = "https://api.openai.com/v1",
-        ApiKey = apiKey,
-        DefaultModel = "gpt-4o",
-        IsEnabled = true,
-        CreatedAtUtc = DateTime.UtcNow,
-        UpdatedAtUtc = DateTime.UtcNow
-    };
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            ProviderName = providerName,
+            BaseUrl = "https://api.openai.com/v1",
+            ApiKey = apiKey,
+            DefaultModel = "gpt-4o",
+            IsEnabled = true,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
 
     private sealed class FakeRepository(UserAiProviderConfiguration? seed = null) : IUserAiProviderRepository
     {

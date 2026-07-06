@@ -83,8 +83,11 @@ public sealed class HouseService(IHouseRepository repository)
 
         var invitation = new HouseInvitation
         {
-            Id = Guid.NewGuid(), HouseId = houseId, InvitedUserId = invitee.Id,
-            InvitedByUserId = userId, CreatedAtUtc = DateTime.UtcNow
+            Id = Guid.NewGuid(),
+            HouseId = houseId,
+            InvitedUserId = invitee.Id,
+            InvitedByUserId = userId,
+            CreatedAtUtc = DateTime.UtcNow
         };
         repository.AddInvitation(invitation);
         await repository.SaveChangesAsync(cancellationToken);

@@ -15,8 +15,13 @@ public sealed class AccountService(IAuthRepository repository, IUserPasswordServ
         var now = DateTime.UtcNow;
         var user = new User
         {
-            Id = Guid.NewGuid(), Email = email.Value, NormalizedEmail = email.Normalized, PasswordHash = "",
-            DisplayName = ResolveDisplayName(request.DisplayName, email.Value), CreatedAtUtc = now, UpdatedAtUtc = now,
+            Id = Guid.NewGuid(),
+            Email = email.Value,
+            NormalizedEmail = email.Normalized,
+            PasswordHash = "",
+            DisplayName = ResolveDisplayName(request.DisplayName, email.Value),
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now,
             Roles = [await repository.GetRoleAsync(RoleNames.User, cancellationToken)]
         };
         user.PasswordHash = passwords.Hash(user, request.Password);

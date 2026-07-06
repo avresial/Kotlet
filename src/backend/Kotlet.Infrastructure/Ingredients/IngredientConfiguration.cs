@@ -29,6 +29,7 @@ internal sealed class IngredientConfiguration : IEntityTypeConfiguration<Ingredi
         builder.Property(ingredient => ingredient.Allergens).HasColumnName("allergens").HasDefaultValue(Allergen.None).IsRequired();
         builder.Property(ingredient => ingredient.Attributes).HasColumnName("attributes").HasDefaultValue(FoodAttribute.None).IsRequired();
         builder.Property(ingredient => ingredient.Suitability).HasColumnName("suitability").HasDefaultValue(DietarySuitability.None).IsRequired();
+        builder.Property(ingredient => ingredient.IsAiModified).HasColumnName("is_ai_modified").HasDefaultValue(false).IsRequired();
         builder.Property(ingredient => ingredient.CreatedAtUtc).HasColumnName("created_at_utc").HasDefaultValueSql("CURRENT_TIMESTAMP").IsRequired();
         // The name is no longer unique: ingredients created in a non-default language store the
         // placeholder "Unknown" as their default-language name, so duplicates are expected. Uniqueness

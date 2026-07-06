@@ -70,7 +70,9 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
             {
                 repository.Add(new ShoppingListItem
                 {
-                    Id = Guid.NewGuid(), HouseId = houseId, IngredientId = ingredient.IngredientId,
+                    Id = Guid.NewGuid(),
+                    HouseId = houseId,
+                    IngredientId = ingredient.IngredientId,
                     Quantity = Quantity.FromAmount(ingredient.Quantity)
                 });
             }

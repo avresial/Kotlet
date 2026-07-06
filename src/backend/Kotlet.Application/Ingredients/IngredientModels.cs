@@ -17,6 +17,7 @@ public sealed record IngredientDto(
     Allergen Allergens,
     FoodAttribute Attributes,
     DietarySuitability Suitability,
+    bool IsAiModified,
     DateTimeOffset CreatedAtUtc);
 
 public sealed record SaveIngredientCommand(
@@ -30,7 +31,8 @@ public sealed record SaveIngredientCommand(
     FoodCategory Category = FoodCategory.Unknown,
     Allergen Allergens = Allergen.None,
     FoodAttribute Attributes = FoodAttribute.None,
-    DietarySuitability Suitability = DietarySuitability.None);
+    DietarySuitability Suitability = DietarySuitability.None,
+    bool IsAiModified = false);
 
 public enum IngredientOperationStatus
 {

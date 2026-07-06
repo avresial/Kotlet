@@ -1,4 +1,6 @@
 {
+  "ingredients.aiModified": "Zmienione przez AI",
+  "ingredients.autofill": "Uzupełnij szczegóły przez AI", "ingredients.autofilling": "Uzupełnianie…", "ingredients.autofillError": "Nie udało się uzupełnić szczegółów składnika.",
   "units.kilograms": "Kilogramy (kg)", "units.litres": "Litry (l)", "ingredients.unit": "Jednostka", "ingredients.caloriesPer": "Kalorie na", "ingredients.pricePer": "Cena za",
   "home.dashboard.quickStats": "Szybkie statystyki", "home.dashboard.atAGlance": "W skrócie", "home.dashboard.statsLoading": "Ładowanie statystyk…", "home.dashboard.statsError": "Nie udało się załadować statystyk.",
   "recipes.mealType": "Typ posiłku", "recipes.mealTypeNone": "Bez typu posiłku", "recipes.allMealTypes": "Wszystkie typy posiłków",
