@@ -1,7 +1,9 @@
+using System.Globalization;
 using Kotlet.Application.Ai;
 using Kotlet.Application.Translations;
 using Kotlet.Domain.Ingredients;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace Kotlet.Application.Ingredients;
 
@@ -24,7 +26,8 @@ public sealed record IngredientTranslationResult(
 public sealed class IngredientTranslationService(
     IIngredientRepository ingredients,
     ITranslationRepository translations,
-    IApplicationChatClientResolver clientResolver)
+    IApplicationChatClientResolver clientResolver,
+    ILogger<IngredientTranslationService> logger)
 {
     // Ingredients created in a non-default language keep this placeholder canonical name until an
     // English name is supplied (see IngredientService). There is nothing meaningful to translate from,
@@ -63,8 +66,16 @@ public sealed class IngredientTranslationService(
                     continue;
                 }
 
+                translation = char.ToUpper(translation[0], CultureInfo.InvariantCulture) + translation.Substring(1);
+               
+                logger.LogInformation(
+                    "Translated ingredient {IngredientId} ({Source}) to {Language}: {Translation}",
+                    ingredient.Id, ingredient.Name, language, translation);
+
                 await translations.SetAsync(key, translation, cancellationToken);
                 written++;
+
+                if(written%10 == 0) await translations.SaveChangesAsync(cancellationToken);   
             }
         }
 

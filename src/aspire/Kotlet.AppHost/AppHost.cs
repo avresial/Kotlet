@@ -19,6 +19,7 @@ else if (databaseProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCas
     var database = builder.AddPostgres("postgres")
         .WithDataVolume()
         .AddDatabase("kotletdb");
+        
     api.WithReference(database)
         .WaitFor(database);
 }
