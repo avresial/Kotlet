@@ -543,13 +543,17 @@ public sealed class MealPlannerServiceTests
 
     private static Recipe MakeRecipe(string title) => new()
     {
-        Id = Guid.NewGuid(), Title = title, Slug = title.ToLowerInvariant().Replace(' ', '-'),
+        Id = Guid.NewGuid(),
+        Title = title,
+        Slug = title.ToLowerInvariant().Replace(' ', '-'),
         OwnerUserId = Guid.NewGuid()
     };
 
     private static Ingredient MakeIngredient(string name) => new()
     {
-        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g"
+        Id = Guid.NewGuid(),
+        Name = name,
+        MeasurementUnit = "g"
     };
 
     private sealed class FakeMealPlanRepository(params MealHouseMember[] members) : IMealPlanRepository
@@ -561,9 +565,15 @@ public sealed class MealPlannerServiceTests
         {
             var item = new MealPlanItem
             {
-                Id = Guid.NewGuid(), HouseId = HouseId, UserId = CurrentUserId, Date = date,
-                Slot = slot, RecipeId = recipeId, SortOrder = sortOrder,
-                CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow
+                Id = Guid.NewGuid(),
+                HouseId = HouseId,
+                UserId = CurrentUserId,
+                Date = date,
+                Slot = slot,
+                RecipeId = recipeId,
+                SortOrder = sortOrder,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
             };
             Items.Add(item);
             return item;

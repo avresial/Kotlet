@@ -15,8 +15,11 @@ public sealed class AiProviderEndpointTests(TestWebApplicationFactory factory) :
 
         var savedResponse = await owner.Client.PutAsJsonAsync("/api/ai-provider", new
         {
-            providerName = "OpenRouter", baseUrl = "https://openrouter.ai/api/v1",
-            apiKey = "secret-key", defaultModel = "openai/gpt-4.1-mini", isEnabled = true
+            providerName = "OpenRouter",
+            baseUrl = "https://openrouter.ai/api/v1",
+            apiKey = "secret-key",
+            defaultModel = "openai/gpt-4.1-mini",
+            isEnabled = true
         });
         Assert.Equal(HttpStatusCode.OK, savedResponse.StatusCode);
         var saved = await savedResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -27,8 +30,10 @@ public sealed class AiProviderEndpointTests(TestWebApplicationFactory factory) :
 
         var updatedResponse = await owner.Client.PutAsJsonAsync("/api/ai-provider", new
         {
-            providerName = "OpenRouter", baseUrl = "https://openrouter.ai/api/v1",
-            defaultModel = "openai/gpt-4.1", isEnabled = true
+            providerName = "OpenRouter",
+            baseUrl = "https://openrouter.ai/api/v1",
+            defaultModel = "openai/gpt-4.1",
+            isEnabled = true
         });
         var updated = await updatedResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(updated.GetProperty("hasApiKey").GetBoolean());

@@ -127,7 +127,10 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
 
         var added = await CallTool(client, accessToken, "add_pantry_item", new
         {
-            ingredientId, quantity = 1000, storageLocation = "Refrigerator", expirationDate = "2027-01-15"
+            ingredientId,
+            quantity = 1000,
+            storageLocation = "Refrigerator",
+            expirationDate = "2027-01-15"
         });
         var addedBody = await added.Content.ReadAsStringAsync();
         Assert.Contains("\"Success\"", addedBody);
@@ -150,7 +153,9 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
 
         var invalidLocation = await CallTool(client, accessToken, "add_pantry_item", new
         {
-            ingredientId, quantity = 10, storageLocation = "Garage"
+            ingredientId,
+            quantity = 10,
+            storageLocation = "Garage"
         });
         var invalidBody = await invalidLocation.Content.ReadAsStringAsync();
         Assert.Contains("ValidationFailed", invalidBody);
@@ -217,7 +222,8 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         var memberId = ExtractGuidAfter(await members.Content.ReadAsStringAsync(), "\"userId\":\"");
         var assigned = await CallTool(client, accessToken, "add_meal_participants", new
         {
-            mealId, userIds = new[] { memberId }
+            mealId,
+            userIds = new[] { memberId }
         });
         var assignedBody = await assigned.Content.ReadAsStringAsync();
         Assert.Contains("\"Success\"", assignedBody);
@@ -241,7 +247,9 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         var email = $"mcp-browse-{Guid.NewGuid():N}@example.com";
         var registration = await client.PostAsJsonAsync("/api/auth/register", new
         {
-            email, password = "Password1!", confirmPassword = "Password1!"
+            email,
+            password = "Password1!",
+            confirmPassword = "Password1!"
         });
         registration.EnsureSuccessStatusCode();
         var registrationToken = (await registration.Content.ReadFromJsonAsync<JsonElement>())

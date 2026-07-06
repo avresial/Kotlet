@@ -209,7 +209,9 @@ public sealed class PantryServiceTests
 
     private static Ingredient Ingredient(string name) => new()
     {
-        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g"
+        Id = Guid.NewGuid(),
+        Name = name,
+        MeasurementUnit = "g"
     };
 
     private sealed class FakeRepository(params Ingredient[] ingredients) : IPantryRepository
@@ -221,8 +223,11 @@ public sealed class PantryServiceTests
         {
             var item = new PantryItem
             {
-                Id = Guid.NewGuid(), HouseId = houseId, IngredientId = ingredient.Id,
-                Quantity = Quantity.FromAmount(quantity), Ingredient = ingredient
+                Id = Guid.NewGuid(),
+                HouseId = houseId,
+                IngredientId = ingredient.Id,
+                Quantity = Quantity.FromAmount(quantity),
+                Ingredient = ingredient
             };
             Items.Add(item);
             return item;

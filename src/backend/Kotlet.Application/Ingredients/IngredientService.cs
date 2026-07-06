@@ -66,8 +66,10 @@ public sealed class IngredientService(
             MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null,
             CaloriesPer100BaseUnits = Calories.FromKilocalories(command.CaloriesPer100BaseUnits),
             PricePer100BaseUnits = Price.FromAmount(command.PricePer100BaseUnits),
-            Category = command.Category, Allergens = command.Allergens,
-            Attributes = command.Attributes, Suitability = command.Suitability,
+            Category = command.Category,
+            Allergens = command.Allergens,
+            Attributes = command.Attributes,
+            Suitability = command.Suitability,
             IsAiModified = command.IsAiModified,
             CreatedAtUtc = DateTimeOffset.UtcNow
         };

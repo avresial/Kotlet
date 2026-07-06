@@ -67,7 +67,7 @@ public sealed class IngredientTranslationService(
                 }
 
                 translation = char.ToUpper(translation[0], CultureInfo.InvariantCulture) + translation.Substring(1);
-               
+
                 logger.LogInformation(
                     "Translated ingredient {IngredientId} ({Source}) to {Language}: {Translation}",
                     ingredient.Id, ingredient.Name, language, translation);
@@ -75,7 +75,7 @@ public sealed class IngredientTranslationService(
                 await translations.SetAsync(key, translation, cancellationToken);
                 written++;
 
-                if(written%10 == 0) await translations.SaveChangesAsync(cancellationToken);   
+                if (written % 10 == 0) await translations.SaveChangesAsync(cancellationToken);
             }
             processed++;
             if (processed % 10 == 0 || processed == total)
@@ -84,7 +84,7 @@ public sealed class IngredientTranslationService(
 
         // A single commit for the whole pass keeps the write cheap and lets the translation-cache
         // interceptor evict once rather than per key.
-        if (written > 0 && written%10 != 0)
+        if (written > 0 && written % 10 != 0)
             await translations.SaveChangesAsync(cancellationToken);
 
         return new IngredientTranslationResult(ProviderConfigured: true, written, failed);
