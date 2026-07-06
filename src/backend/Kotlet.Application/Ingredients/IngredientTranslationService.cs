@@ -81,7 +81,7 @@ public sealed class IngredientTranslationService(
 
         // A single commit for the whole pass keeps the write cheap and lets the translation-cache
         // interceptor evict once rather than per key.
-        if (written > 0)
+        if (written > 0 && written%10 != 0)
             await translations.SaveChangesAsync(cancellationToken);
 
         return new IngredientTranslationResult(ProviderConfigured: true, written, failed);
