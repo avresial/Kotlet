@@ -56,6 +56,7 @@ describe('RecipeForm image picker', () => {
       allergens: 0,
       attributes: 0,
       suitability: 0,
+      isAiModified: false,
       createdAtUtc: '2026-01-01T00:00:00Z',
     }]);
     editor.isLoadingIngredients.set(false);

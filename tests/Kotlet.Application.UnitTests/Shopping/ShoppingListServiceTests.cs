@@ -222,7 +222,11 @@ public sealed class ShoppingListServiceTests
 
     private static Ingredient Ingredient(string name, decimal pricePer100, FoodCategory category = FoodCategory.Unknown) => new()
     {
-        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g", PricePer100BaseUnits = Price.FromAmount(pricePer100), Category = category
+        Id = Guid.NewGuid(),
+        Name = name,
+        MeasurementUnit = "g",
+        PricePer100BaseUnits = Price.FromAmount(pricePer100),
+        Category = category
     };
 
     private sealed class FakeRepository(params Ingredient[] ingredients) : IShoppingListRepository
@@ -235,8 +239,11 @@ public sealed class ShoppingListServiceTests
         {
             var item = new ShoppingListItem
             {
-                Id = Guid.NewGuid(), HouseId = houseId, IngredientId = ingredient.Id,
-                Quantity = Quantity.FromAmount(quantity), Ingredient = ingredient
+                Id = Guid.NewGuid(),
+                HouseId = houseId,
+                IngredientId = ingredient.Id,
+                Quantity = Quantity.FromAmount(quantity),
+                Ingredient = ingredient
             };
             Items.Add(item);
             return item;

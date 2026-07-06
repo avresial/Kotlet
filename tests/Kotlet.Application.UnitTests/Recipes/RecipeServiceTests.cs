@@ -320,7 +320,9 @@ public sealed class RecipeServiceTests
 
     private static Ingredient Ingredient(string name) => new()
     {
-        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g"
+        Id = Guid.NewGuid(),
+        Name = name,
+        MeasurementUnit = "g"
     };
 
     private static RecipeService CreateService(FakeRecipeRepository repository) =>

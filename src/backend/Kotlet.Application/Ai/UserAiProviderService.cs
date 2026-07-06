@@ -31,10 +31,15 @@ public sealed class UserAiProviderService(IUserAiProviderRepository repository)
             // ponytail: Raw-key access stays in this service; add encryption here when protected key storage is configured.
             existing = new UserAiProviderConfiguration
             {
-                Id = Guid.NewGuid(), UserId = userId, ProviderName = command.ProviderName!.Trim(),
-                BaseUrl = command.BaseUrl?.Trim() ?? "", ApiKey = NormalizeKey(command.ApiKey),
-                DefaultModel = NullIfWhiteSpace(command.DefaultModel), IsEnabled = command.IsEnabled,
-                CreatedAtUtc = now, UpdatedAtUtc = now
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                ProviderName = command.ProviderName!.Trim(),
+                BaseUrl = command.BaseUrl?.Trim() ?? "",
+                ApiKey = NormalizeKey(command.ApiKey),
+                DefaultModel = NullIfWhiteSpace(command.DefaultModel),
+                IsEnabled = command.IsEnabled,
+                CreatedAtUtc = now,
+                UpdatedAtUtc = now
             };
             repository.Add(existing);
         }

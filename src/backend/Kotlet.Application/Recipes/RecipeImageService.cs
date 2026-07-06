@@ -9,7 +9,9 @@ public sealed class RecipeImageService(IRecipeImageRepository repository)
     private static readonly HashSet<string> AllowedTypes = ["image/jpeg", "image/png", "image/webp"];
     private static readonly Dictionary<string, string[]> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["image/jpeg"] = [".jpg", ".jpeg"], ["image/png"] = [".png"], ["image/webp"] = [".webp"]
+        ["image/jpeg"] = [".jpg", ".jpeg"],
+        ["image/png"] = [".png"],
+        ["image/webp"] = [".webp"]
     };
 
     public async Task<RecipeImageOperationResult> AddAsync(Guid recipeId, Guid ownerUserId, string fileName,
@@ -23,8 +25,14 @@ public sealed class RecipeImageService(IRecipeImageRepository repository)
             new Dictionary<string, string[]> { ["file"] = [$"A recipe cannot have more than {MaxImages} images."] });
         var image = new RecipeImage
         {
-            Id = Guid.NewGuid(), RecipeId = recipeId, FileName = Path.GetFileName(fileName), ContentType = contentType,
-            FileSizeBytes = content.LongLength, Content = content, AltText = altText?.Trim(), SortOrder = count,
+            Id = Guid.NewGuid(),
+            RecipeId = recipeId,
+            FileName = Path.GetFileName(fileName),
+            ContentType = contentType,
+            FileSizeBytes = content.LongLength,
+            Content = content,
+            AltText = altText?.Trim(),
+            SortOrder = count,
             CreatedAtUtc = DateTimeOffset.UtcNow
         };
         repository.Add(image);

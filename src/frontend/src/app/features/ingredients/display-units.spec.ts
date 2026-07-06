@@ -5,7 +5,7 @@ import { displayMeasurement, fromBasePer100, toBasePer100, toBaseQuantity } from
 const ingredient = (measurementUnit: 'g' | 'ml', pieceSize: number | null = null): Ingredient => ({
   id: '1', name: 'Test', defaultName: 'Test', translation: null, measurementUnit,
   isCountable: pieceSize !== null, measurementUnitsPerPiece: pieceSize,
-  caloriesPer100BaseUnits: 0, pricePer100BaseUnits: 0, svgIcon: null, category: 0, allergens: 0, attributes: 0, suitability: 0, createdAtUtc: '2026-01-01T00:00:00Z',
+  caloriesPer100BaseUnits: 0, pricePer100BaseUnits: 0, svgIcon: null, category: 0, allergens: 0, attributes: 0, suitability: 0, isAiModified: false, createdAtUtc: '2026-01-01T00:00:00Z',
 });
 
 describe('display units', () => {

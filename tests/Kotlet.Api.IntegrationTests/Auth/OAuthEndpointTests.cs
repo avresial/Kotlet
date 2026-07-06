@@ -49,7 +49,9 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
             var db = scope.ServiceProvider.GetRequiredService<KotletDbContext>();
             db.Ingredients.Add(new Ingredient
             {
-                Id = ingredientId, Name = "OAuth tomato", MeasurementUnit = "g"
+                Id = ingredientId,
+                Name = "OAuth tomato",
+                MeasurementUnit = "g"
             });
             await db.SaveChangesAsync();
         }

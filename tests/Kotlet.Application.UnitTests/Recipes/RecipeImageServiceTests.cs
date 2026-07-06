@@ -345,9 +345,14 @@ public sealed class RecipeImageServiceTests
         {
             var image = new RecipeImage
             {
-                Id = Guid.NewGuid(), RecipeId = recipeId, FileName = $"image-{sortOrder}.jpg",
-                ContentType = "image/jpeg", FileSizeBytes = SampleContent.LongLength, Content = SampleContent,
-                SortOrder = sortOrder, CreatedAtUtc = DateTimeOffset.UtcNow
+                Id = Guid.NewGuid(),
+                RecipeId = recipeId,
+                FileName = $"image-{sortOrder}.jpg",
+                ContentType = "image/jpeg",
+                FileSizeBytes = SampleContent.LongLength,
+                Content = SampleContent,
+                SortOrder = sortOrder,
+                CreatedAtUtc = DateTimeOffset.UtcNow
             };
             Images.Add(image);
             return image;

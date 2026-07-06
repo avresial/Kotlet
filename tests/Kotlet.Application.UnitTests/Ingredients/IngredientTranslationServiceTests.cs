@@ -3,6 +3,7 @@ using Kotlet.Application.Ingredients;
 using Kotlet.Application.Translations;
 using Kotlet.Domain.Ingredients;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Kotlet.Application.UnitTests.Ingredients;
@@ -18,7 +19,7 @@ public sealed class IngredientTranslationServiceTests
         var service = new IngredientTranslationService(
             new FakeIngredientRepository(Ingredient("Flour")),
             translations,
-            new StubResolver(null));
+            new StubResolver(null), NullLogger<IngredientTranslationService>.Instance);
 
         var result = await service.BackfillMissingTranslationsAsync(CancellationToken.None);
 
@@ -36,7 +37,7 @@ public sealed class IngredientTranslationServiceTests
         var service = new IngredientTranslationService(
             new FakeIngredientRepository(flour, sugar),
             translations,
-            new StubResolver(new StubChatClient()));
+            new StubResolver(new StubChatClient()), NullLogger<IngredientTranslationService>.Instance);
 
         var result = await service.BackfillMissingTranslationsAsync(CancellationToken.None);
 
@@ -56,7 +57,7 @@ public sealed class IngredientTranslationServiceTests
         var service = new IngredientTranslationService(
             new FakeIngredientRepository(flour),
             translations,
-            new StubResolver(new StubChatClient()));
+            new StubResolver(new StubChatClient()), NullLogger<IngredientTranslationService>.Instance);
 
         var result = await service.BackfillMissingTranslationsAsync(CancellationToken.None);
 
@@ -73,7 +74,7 @@ public sealed class IngredientTranslationServiceTests
         var service = new IngredientTranslationService(
             new FakeIngredientRepository(Ingredient("Unknown")),
             translations,
-            new StubResolver(new StubChatClient()));
+            new StubResolver(new StubChatClient()), NullLogger<IngredientTranslationService>.Instance);
 
         var result = await service.BackfillMissingTranslationsAsync(CancellationToken.None);
 
@@ -88,7 +89,7 @@ public sealed class IngredientTranslationServiceTests
         var service = new IngredientTranslationService(
             new FakeIngredientRepository(Ingredient("Flour")),
             translations,
-            new StubResolver(new StubChatClient(throwOnCall: true)));
+            new StubResolver(new StubChatClient(throwOnCall: true)), NullLogger<IngredientTranslationService>.Instance);
 
         var result = await service.BackfillMissingTranslationsAsync(CancellationToken.None);
 

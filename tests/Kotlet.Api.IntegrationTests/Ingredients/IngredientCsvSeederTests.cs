@@ -49,7 +49,9 @@ public sealed class IngredientCsvSeederTests
         await dbContext.Database.EnsureCreatedAsync();
         dbContext.Ingredients.Add(new Ingredient
         {
-            Id = Guid.NewGuid(), Name = "Custom", MeasurementUnit = "g"
+            Id = Guid.NewGuid(),
+            Name = "Custom",
+            MeasurementUnit = "g"
         });
         await dbContext.SaveChangesAsync();
 

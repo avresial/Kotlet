@@ -133,10 +133,17 @@ public sealed class MealPlannerService(
             var slotKey = (meal.Date, slot);
             var item = new MealPlanItem
             {
-                Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = meal.Date,
-                Slot = slot, RecipeId = meal.RecipeId, IngredientId = meal.IngredientId,
-                Note = meal.Note?.Trim(), SortOrder = slotCounts.GetValueOrDefault(slotKey),
-                CreatedAt = now, UpdatedAt = now
+                Id = Guid.NewGuid(),
+                HouseId = houseId,
+                UserId = userId,
+                Date = meal.Date,
+                Slot = slot,
+                RecipeId = meal.RecipeId,
+                IngredientId = meal.IngredientId,
+                Note = meal.Note?.Trim(),
+                SortOrder = slotCounts.GetValueOrDefault(slotKey),
+                CreatedAt = now,
+                UpdatedAt = now
             };
             slotCounts[slotKey] = item.SortOrder + 1;
             repository.Add(item);
@@ -170,12 +177,21 @@ public sealed class MealPlannerService(
         {
             var copy = new MealPlanItem
             {
-                Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = request.TargetDate,
-                Slot = original.Slot, RecipeId = original.RecipeId, IngredientId = original.IngredientId,
-                Note = original.Note, SortOrder = original.SortOrder, Servings = original.Servings,
-                Guests = original.Guests, CreatedAt = now, UpdatedAt = now,
+                Id = Guid.NewGuid(),
+                HouseId = houseId,
+                UserId = userId,
+                Date = request.TargetDate,
+                Slot = original.Slot,
+                RecipeId = original.RecipeId,
+                IngredientId = original.IngredientId,
+                Note = original.Note,
+                SortOrder = original.SortOrder,
+                Servings = original.Servings,
+                Guests = original.Guests,
+                CreatedAt = now,
+                UpdatedAt = now,
                 Participants = original.Participants.Select(participant => new MealPlanItemParticipant
-                    { UserId = participant.UserId }).ToList()
+                { UserId = participant.UserId }).ToList()
             };
             repository.Add(copy);
         }
@@ -206,12 +222,21 @@ public sealed class MealPlannerService(
         {
             repository.Add(new MealPlanItem
             {
-                Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = original.Date.AddDays(offset),
-                Slot = original.Slot, RecipeId = original.RecipeId, IngredientId = original.IngredientId,
-                Note = original.Note, SortOrder = original.SortOrder, Servings = original.Servings,
-                Guests = original.Guests, CreatedAt = now, UpdatedAt = now,
+                Id = Guid.NewGuid(),
+                HouseId = houseId,
+                UserId = userId,
+                Date = original.Date.AddDays(offset),
+                Slot = original.Slot,
+                RecipeId = original.RecipeId,
+                IngredientId = original.IngredientId,
+                Note = original.Note,
+                SortOrder = original.SortOrder,
+                Servings = original.Servings,
+                Guests = original.Guests,
+                CreatedAt = now,
+                UpdatedAt = now,
                 Participants = original.Participants.Select(participant => new MealPlanItemParticipant
-                    { UserId = participant.UserId }).ToList()
+                { UserId = participant.UserId }).ToList()
             });
         }
 

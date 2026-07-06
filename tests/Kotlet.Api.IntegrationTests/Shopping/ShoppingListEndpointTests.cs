@@ -54,15 +54,20 @@ public sealed class ShoppingListEndpointTests(TestWebApplicationFactory factory)
         var translatedName = $"Zakupy {Guid.NewGuid():N}";
         var response = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name = $"Shopping {Guid.NewGuid():N}", translation = translatedName,
-            measurementUnit = "ml", isCountable = false, measurementUnitsPerPiece = (decimal?)null,
-            caloriesPer100BaseUnits = 50m, pricePer100BaseUnits = 2m
+            name = $"Shopping {Guid.NewGuid():N}",
+            translation = translatedName,
+            measurementUnit = "ml",
+            isCountable = false,
+            measurementUnitsPerPiece = (decimal?)null,
+            caloriesPer100BaseUnits = 50m,
+            pricePer100BaseUnits = 2m
         });
         var ingredient = await response.Content.ReadFromJsonAsync<JsonElement>();
 
         var createdResponse = await client.PostAsJsonAsync("/api/shopping-list", new
         {
-            ingredientId = ingredient.GetProperty("id").GetGuid(), quantity = 100m
+            ingredientId = ingredient.GetProperty("id").GetGuid(),
+            quantity = 100m
         });
         var created = await createdResponse.Content.ReadFromJsonAsync<JsonElement>();
 
@@ -74,8 +79,10 @@ public sealed class ShoppingListEndpointTests(TestWebApplicationFactory factory)
     {
         var response = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name = $"Shopping ingredient {Guid.NewGuid():N}", measurementUnit = "g",
-            caloriesPer100BaseUnits = 100m, pricePer100BaseUnits = price
+            name = $"Shopping ingredient {Guid.NewGuid():N}",
+            measurementUnit = "g",
+            caloriesPer100BaseUnits = 100m,
+            pricePer100BaseUnits = price
         });
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         return body.GetProperty("id").GetGuid();
@@ -86,7 +93,9 @@ public sealed class ShoppingListEndpointTests(TestWebApplicationFactory factory)
         var client = factory.CreateClient();
         var response = await client.PostAsJsonAsync("/api/auth/register", new
         {
-            email = $"shopping-{Guid.NewGuid():N}@example.com", password = "Password1!", confirmPassword = "Password1!"
+            email = $"shopping-{Guid.NewGuid():N}@example.com",
+            password = "Password1!",
+            confirmPassword = "Password1!"
         });
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.GetProperty("accessToken").GetString());

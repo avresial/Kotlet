@@ -32,7 +32,7 @@ public static class MealPlannerEndpoints
 
         if (!DateOnly.TryParse(date, out var parsedDate))
             return Results.ValidationProblem(new Dictionary<string, string[]>
-                { ["date"] = ["date query parameter is required and must be in yyyy-MM-dd format."] });
+            { ["date"] = ["date query parameter is required and must be in yyyy-MM-dd format."] });
 
         return Results.Ok(await service.GetForDateAsync(userId, houseId, parsedDate, cancellationToken));
     }
@@ -56,10 +56,10 @@ public static class MealPlannerEndpoints
         if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
         if (!DateOnly.TryParse(from, out var parsedFrom))
             return Results.ValidationProblem(new Dictionary<string, string[]>
-                { ["from"] = ["from query parameter is required and must be in yyyy-MM-dd format."] });
+            { ["from"] = ["from query parameter is required and must be in yyyy-MM-dd format."] });
         if (days is < 1 or > 62)
             return Results.ValidationProblem(new Dictionary<string, string[]>
-                { ["days"] = ["days must be between 1 and 62."] });
+            { ["days"] = ["days must be between 1 and 62."] });
 
         return Results.Ok(await service.GetOverviewAsync(houseId, parsedFrom, days, cancellationToken));
     }

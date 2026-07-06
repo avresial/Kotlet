@@ -14,6 +14,10 @@ public static class IngredientEndpoints
             await service.GetByIdAsync(id, language.Language, ct) is { } ingredient ? Results.Ok(ingredient) : Results.NotFound())
             .WithName("GetIngredient");
         ingredients.MapPost("", Create).WithName("CreateIngredient");
+        ingredients.MapPost("/autofill", async (AutofillIngredientRequest request, IngredientDetailsAutofillService service, CancellationToken ct) =>
+            await service.SuggestAsync(request.Name, ct) is { } suggestion ? Results.Ok(suggestion)
+                : Results.Problem("Ingredient details could not be generated.", statusCode: StatusCodes.Status503ServiceUnavailable))
+            .WithName("AutofillIngredientDetails");
         ingredients.MapPut("/{id:guid}", Update).WithName("UpdateIngredient");
         ingredients.MapDelete("/{id:guid}", Delete).WithName("DeleteIngredient");
         return endpoints;
@@ -59,3 +63,5 @@ public static class IngredientEndpoints
         _ => throw new InvalidOperationException($"Unsupported ingredient operation status: {result.Status}")
     };
 }
+
+public sealed record AutofillIngredientRequest(string Name);

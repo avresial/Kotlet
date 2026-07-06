@@ -61,6 +61,8 @@ export class IngredientsPage implements OnInit {
   readonly editingId = signal<string | null>(null);
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
+  readonly isAutofilling = signal(false);
+  readonly aiModified = signal(false);
   readonly deletingId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
 
@@ -127,6 +129,21 @@ export class IngredientsPage implements OnInit {
     return (mask & bit) !== 0;
   }
 
+  autofill(): void {
+    const name = this.form.controls.name.value.trim();
+    if (!name || this.isAutofilling()) { this.form.controls.name.markAsTouched(); return; }
+    this.isAutofilling.set(true);
+    this.error.set(null);
+    this.service.autofill(name).pipe(finalize(() => this.isAutofilling.set(false))).subscribe({
+      next: value => {
+        this.form.controls.category.setValue(value.category);
+        this.allergens.set(value.allergens); this.attributes.set(value.attributes); this.suitability.set(value.suitability);
+        this.aiModified.set(true);
+      },
+      error: error => this.error.set(getApiError(error, this.translation.translate('ingredients.autofillError'))),
+    });
+  }
+
   edit(ingredient: Ingredient): void {
     this.editingId.set(ingredient.id);
     this.error.set(null);
@@ -149,6 +166,7 @@ export class IngredientsPage implements OnInit {
     this.allergens.set(0);
     this.attributes.set(0);
     this.suitability.set(0);
+    this.aiModified.set(false);
     this.form.reset({ name: '', translation: '', measurementUnit: 'g', pieceBaseUnit: 'g', category: 0, measurementUnitsPerPiece: null,
       caloriesPer100BaseUnits: 0, pricePer100BaseUnits: 0 });
   }
@@ -167,6 +185,7 @@ export class IngredientsPage implements OnInit {
     }
     const baseUnit = displayUnit === 'kg' ? 'g' : displayUnit === 'l' ? 'ml'
       : displayUnit === 'piece' ? value.pieceBaseUnit : displayUnit;
+    const id = this.editingId();
     const request: IngredientRequest = {
       name: value.name,
       measurementUnit: baseUnit,
@@ -178,9 +197,9 @@ export class IngredientsPage implements OnInit {
       allergens: this.allergens(),
       attributes: this.attributes(),
       suitability: this.suitability(),
+      isAiModified: !id && this.aiModified(),
       ...(this.showTranslation() ? { translation: value.translation.trim() } : {}),
     };
-    const id = this.editingId();
     const operation = id ? this.service.update(id, request) : this.service.create(request);
     operation.pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: (ingredient) => {

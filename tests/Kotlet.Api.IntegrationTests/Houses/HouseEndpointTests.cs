@@ -21,15 +21,18 @@ public sealed class HouseEndpointTests(TestWebApplicationFactory factory) : ICla
         var (client, _) = await TestAuth.WithHomeAsync(factory, "dashboard-stats");
         var ingredientResponse = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name = $"Stats ingredient {Guid.NewGuid():N}", measurementUnit = "g",
-            caloriesPer100BaseUnits = 1m, pricePer100BaseUnits = 1m
+            name = $"Stats ingredient {Guid.NewGuid():N}",
+            measurementUnit = "g",
+            caloriesPer100BaseUnits = 1m,
+            pricePer100BaseUnits = 1m
         });
         var ingredient = await ingredientResponse.Content.ReadFromJsonAsync<JsonElement>();
         var ingredientId = ingredient.GetProperty("id").GetGuid();
         await client.PostAsJsonAsync("/api/pantry", new { ingredientId, quantity = 1m });
         await client.PostAsJsonAsync("/api/recipes", new
         {
-            title = $"Stats recipe {Guid.NewGuid():N}", descriptionMarkdown = (string?)null,
+            title = $"Stats recipe {Guid.NewGuid():N}",
+            descriptionMarkdown = (string?)null,
             ingredients = Array.Empty<object>()
         });
 

@@ -20,9 +20,16 @@ internal sealed class RecipeImageRepository(KotletDbContext dbContext) : IRecipe
         return await dbContext.RecipeImages.AsNoTracking().Where(i => i.RecipeId == recipeId).OrderBy(i => i.SortOrder)
             .Select(i => new RecipeImage
             {
-                Id = i.Id, RecipeId = i.RecipeId, FileName = i.FileName, ContentType = i.ContentType,
-                FileSizeBytes = i.FileSizeBytes, Content = Array.Empty<byte>(), AltText = i.AltText,
-                SortOrder = i.SortOrder, CreatedAtUtc = i.CreatedAtUtc, UpdatedAtUtc = i.UpdatedAtUtc
+                Id = i.Id,
+                RecipeId = i.RecipeId,
+                FileName = i.FileName,
+                ContentType = i.ContentType,
+                FileSizeBytes = i.FileSizeBytes,
+                Content = Array.Empty<byte>(),
+                AltText = i.AltText,
+                SortOrder = i.SortOrder,
+                CreatedAtUtc = i.CreatedAtUtc,
+                UpdatedAtUtc = i.UpdatedAtUtc
             }).ToListAsync(ct);
     }
     public Task<RecipeImage?> GetAsync(Guid recipeId, Guid imageId, bool includeContent, CancellationToken ct)
@@ -32,9 +39,16 @@ internal sealed class RecipeImageRepository(KotletDbContext dbContext) : IRecipe
             ? query.AsNoTracking().SingleOrDefaultAsync(ct)
             : query.AsNoTracking().Select(i => new RecipeImage
             {
-                Id = i.Id, RecipeId = i.RecipeId, FileName = i.FileName, ContentType = i.ContentType,
-                FileSizeBytes = i.FileSizeBytes, Content = Array.Empty<byte>(), AltText = i.AltText,
-                SortOrder = i.SortOrder, CreatedAtUtc = i.CreatedAtUtc, UpdatedAtUtc = i.UpdatedAtUtc
+                Id = i.Id,
+                RecipeId = i.RecipeId,
+                FileName = i.FileName,
+                ContentType = i.ContentType,
+                FileSizeBytes = i.FileSizeBytes,
+                Content = Array.Empty<byte>(),
+                AltText = i.AltText,
+                SortOrder = i.SortOrder,
+                CreatedAtUtc = i.CreatedAtUtc,
+                UpdatedAtUtc = i.UpdatedAtUtc
             }).SingleOrDefaultAsync(ct);
     }
     public async Task<IReadOnlyDictionary<Guid, Guid>> GetFirstImageIdsAsync(IReadOnlyList<Guid> recipeIds, CancellationToken ct)

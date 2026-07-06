@@ -80,6 +80,7 @@ public sealed class IngredientServiceTests
     public async Task Update_InNonDefaultLanguage_WithCanonicalNameAndTranslation_UpdatesBoth()
     {
         var existing = Ingredient("Unknown");
+        existing.IsAiModified = true;
         var repository = new FakeIngredientRepository(existing);
         var translations = new FakeTranslationRepository();
         var service = new IngredientService(repository, translations, NullSignal);
@@ -93,6 +94,7 @@ public sealed class IngredientServiceTests
         Assert.Equal(IngredientOperationStatus.Success, result.Status);
         Assert.Equal("Mleko", result.Ingredient!.Name);
         Assert.Equal("Milk", existing.Name);
+        Assert.False(existing.IsAiModified);
         Assert.Equal("Mleko", translations.Entries[TranslationKeys.Ingredient(existing.Id, Polish)]);
     }
 
@@ -204,7 +206,11 @@ public sealed class IngredientServiceTests
 
     private static Ingredient Ingredient(string name) => new()
     {
-        Id = Guid.NewGuid(), Name = name, MeasurementUnit = "g", CaloriesPer100BaseUnits = Calories.Zero, PricePer100BaseUnits = Price.Zero
+        Id = Guid.NewGuid(),
+        Name = name,
+        MeasurementUnit = "g",
+        CaloriesPer100BaseUnits = Calories.Zero,
+        PricePer100BaseUnits = Price.Zero
     };
 
     private sealed class FakeIngredientRepository(params Ingredient[] ingredients) : IIngredientRepository

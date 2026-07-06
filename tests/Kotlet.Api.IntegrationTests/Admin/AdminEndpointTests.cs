@@ -49,16 +49,20 @@ public sealed class AdminEndpointTests(TestWebApplicationFactory factory) : ICla
 
         var removeRole = await admin.PutAsJsonAsync($"/api/admin/users/{id}", new
         {
-            email = updated.GetProperty("email").GetString(), displayName = "Updated Cook",
-            preferredLanguage = "pl", roles = new[] { RoleNames.User }
+            email = updated.GetProperty("email").GetString(),
+            displayName = "Updated Cook",
+            preferredLanguage = "pl",
+            roles = new[] { RoleNames.User }
         });
         Assert.Equal([RoleNames.User], (await removeRole.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("roles").EnumerateArray().Select(x => x.GetString()!).ToArray());
 
         var selfDemotion = await admin.PutAsJsonAsync($"/api/admin/users/{adminUser.GetProperty("id").GetGuid()}", new
         {
-            email = adminUser.GetProperty("email").GetString(), displayName = (string?)null,
-            preferredLanguage = (string?)null, roles = new[] { RoleNames.User }
+            email = adminUser.GetProperty("email").GetString(),
+            displayName = (string?)null,
+            preferredLanguage = (string?)null,
+            roles = new[] { RoleNames.User }
         });
         Assert.Equal(HttpStatusCode.BadRequest, selfDemotion.StatusCode);
 
@@ -77,7 +81,9 @@ public sealed class AdminEndpointTests(TestWebApplicationFactory factory) : ICla
         {
             var response = await factory.CreateClient().PostAsJsonAsync("/api/auth/register", new
             {
-                email = $"{prefix}-{index:D2}@example.com", password = "Password1!", confirmPassword = "Password1!"
+                email = $"{prefix}-{index:D2}@example.com",
+                password = "Password1!",
+                confirmPassword = "Password1!"
             });
             response.EnsureSuccessStatusCode();
         }

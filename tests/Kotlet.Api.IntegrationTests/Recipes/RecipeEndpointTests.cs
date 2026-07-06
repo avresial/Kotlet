@@ -95,7 +95,9 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         var client = await CreateAuthenticatedClient();
         var response = await client.PostAsJsonAsync("/api/recipes", new
         {
-            title = "", descriptionMarkdown = (string?)null, ingredients = Array.Empty<object>()
+            title = "",
+            descriptionMarkdown = (string?)null,
+            ingredients = Array.Empty<object>()
         });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -137,7 +139,9 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
 
         var create = await client1.PostAsJsonAsync("/api/recipes", new
         {
-            title = "Private Recipe", descriptionMarkdown = (string?)null, ingredients = Array.Empty<object>()
+            title = "Private Recipe",
+            descriptionMarkdown = (string?)null,
+            ingredients = Array.Empty<object>()
         });
         var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
@@ -154,7 +158,9 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
 
         var create = await owner.PostAsJsonAsync("/api/recipes", new
         {
-            title = $"Attributed {Guid.NewGuid():N}", descriptionMarkdown = (string?)null, ingredients = Array.Empty<object>()
+            title = $"Attributed {Guid.NewGuid():N}",
+            descriptionMarkdown = (string?)null,
+            ingredients = Array.Empty<object>()
         });
         var created = await create.Content.ReadFromJsonAsync<JsonElement>();
         var id = created.GetProperty("id").GetGuid();
@@ -176,13 +182,17 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
 
         var create = await client1.PostAsJsonAsync("/api/recipes", new
         {
-            title = "My Recipe", descriptionMarkdown = (string?)null, ingredients = Array.Empty<object>()
+            title = "My Recipe",
+            descriptionMarkdown = (string?)null,
+            ingredients = Array.Empty<object>()
         });
         var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
         var update = await client2.PutAsJsonAsync($"/api/recipes/{id}", new
         {
-            title = "Hacked Title", descriptionMarkdown = (string?)null, ingredients = Array.Empty<object>()
+            title = "Hacked Title",
+            descriptionMarkdown = (string?)null,
+            ingredients = Array.Empty<object>()
         });
         Assert.Equal(HttpStatusCode.OK, update.StatusCode);
     }
@@ -194,7 +204,9 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
 
         var create = await client1.PostAsJsonAsync("/api/recipes", new
         {
-            title = "My Recipe", descriptionMarkdown = (string?)null, ingredients = Array.Empty<object>()
+            title = "My Recipe",
+            descriptionMarkdown = (string?)null,
+            ingredients = Array.Empty<object>()
         });
         var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
@@ -233,8 +245,12 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
     {
         var response = await client.PostAsJsonAsync("/api/ingredients", new
         {
-            name = $"{label} {Guid.NewGuid():N}", measurementUnit = "g", isCountable,
-            measurementUnitsPerPiece = pieceSize, caloriesPer100BaseUnits = 0m, pricePer100BaseUnits = 1m
+            name = $"{label} {Guid.NewGuid():N}",
+            measurementUnit = "g",
+            isCountable,
+            measurementUnitsPerPiece = pieceSize,
+            caloriesPer100BaseUnits = 0m,
+            pricePer100BaseUnits = 1m
         });
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         return body.GetProperty("id").GetGuid();

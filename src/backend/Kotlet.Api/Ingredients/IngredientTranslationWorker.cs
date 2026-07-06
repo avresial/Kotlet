@@ -47,6 +47,8 @@ public sealed class IngredientTranslationWorker(
             await using var scope = scopeFactory.CreateAsyncScope();
             var service = scope.ServiceProvider.GetRequiredService<IngredientTranslationService>();
             var result = await service.BackfillMissingTranslationsAsync(stoppingToken);
+            var autofilled = await scope.ServiceProvider.GetRequiredService<IngredientDetailsAutofillService>()
+                .BackfillAsync(stoppingToken);
 
             if (!result.ProviderConfigured)
                 logger.LogDebug("Ingredient translation skipped: no application AI credentials configured.");
@@ -54,6 +56,8 @@ public sealed class IngredientTranslationWorker(
                 logger.LogInformation(
                     "Ingredient translation pass complete: {Written} written, {Failed} failed.",
                     result.Written, result.Failed);
+            if (autofilled > 0)
+                logger.LogInformation("Ingredient details autofill pass complete: {Written} written.", autofilled);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
