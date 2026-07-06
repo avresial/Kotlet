@@ -1,6 +1,8 @@
 using Kotlet.Application.Recipes;
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.Measurements;
+using Kotlet.Application.Translations;
+using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.MealPlanner;
 using Kotlet.Domain.Recipes;
@@ -241,6 +243,35 @@ public sealed class RecipeServiceTests
         Assert.Equal("My Recipe", result.Title);
     }
 
+    [Fact]
+    public async Task GetById_TranslatesIngredientNames()
+    {
+        var recipe = MakeRecipe("My Recipe", "my-recipe", OwnerId);
+        recipe.Ingredients.Add(new RecipeIngredient
+        {
+            Id = Guid.NewGuid(),
+            IngredientId = Tomatoes.Id,
+            Ingredient = Tomatoes,
+            NormalizedQuantity = Quantity.FromAmount(500),
+            NormalizedUnit = "g",
+            SortOrder = 0
+        });
+
+        var repo = new FakeRecipeRepository();
+        repo.Recipes.Add(recipe);
+
+        var translations = new FakeTranslationRepository();
+        await translations.SetAsync(TranslationKeys.Ingredient(Tomatoes.Id, "pl"), "Pomidory", CancellationToken.None);
+
+        var service = CreateService(repo, translations);
+
+        var result = await service.GetByIdAsync(recipe.Id, OwnerId, CancellationToken.None, "pl");
+
+        Assert.NotNull(result);
+        var ing = Assert.Single(result.Ingredients);
+        Assert.Equal("Pomidory", ing.Name);
+    }
+
     // ---- Update ----
 
     [Fact]
@@ -440,8 +471,8 @@ public sealed class RecipeServiceTests
         MeasurementUnit = "g"
     };
 
-    private static RecipeService CreateService(FakeRecipeRepository repository) =>
-        new(repository, new FakeIngredientRepository(Tomatoes, Garlic, Pasta), new MeasurementMappingService());
+    private static RecipeService CreateService(FakeRecipeRepository repository, FakeTranslationRepository? translations = null) =>
+        new(repository, new FakeIngredientRepository(Tomatoes, Garlic, Pasta), new MeasurementMappingService(), translations ?? new FakeTranslationRepository());
 
     private sealed class FakeIngredientRepository(params Ingredient[] ingredients) : IIngredientRepository
     {
@@ -498,5 +529,28 @@ public sealed class RecipeServiceTests
         public void Add(Recipe recipe) => Recipes.Add(recipe);
         public void Remove(Recipe recipe) => Recipes.Remove(recipe);
         public Task SaveChangesAsync(CancellationToken cancellationToken) { SaveCount++; return Task.CompletedTask; }
+    }
+
+    private sealed class FakeTranslationRepository : ITranslationRepository
+    {
+        public Dictionary<string, string> Data { get; } = new();
+
+        public Task<IReadOnlyDictionary<string, string>> GetAllAsync(CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<string, string>>(Data);
+
+        public Task SetAsync(string key, string value, CancellationToken cancellationToken)
+        {
+            Data[key] = value;
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveByPrefixAsync(string keyPrefix, CancellationToken cancellationToken)
+        {
+            var toRemove = Data.Keys.Where(k => k.StartsWith(keyPrefix)).ToList();
+            foreach (var k in toRemove) Data.Remove(k);
+            return Task.CompletedTask;
+        }
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

@@ -1,4 +1,5 @@
 using Kotlet.Api.Auth;
+using Kotlet.Api.Localization;
 using Kotlet.Application.Recipes;
 using Kotlet.Domain.MealPlanner;
 
@@ -115,10 +116,11 @@ public static class RecipeEndpoints
         CreateRecipeRequest request,
         ICurrentUser currentUser,
         RecipeService service,
+        ILanguageContext language,
         CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
-        var result = await service.CreateAsync(userId, houseId, request, cancellationToken);
+        var result = await service.CreateAsync(userId, houseId, request, cancellationToken, language.Language);
         return ToHttpResult(result, created: true);
     }
 
@@ -126,10 +128,11 @@ public static class RecipeEndpoints
         Guid id,
         ICurrentUser currentUser,
         RecipeService service,
+        ILanguageContext language,
         CancellationToken cancellationToken)
     {
         if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
-        var recipe = await service.GetByIdAsync(id, houseId, cancellationToken);
+        var recipe = await service.GetByIdAsync(id, houseId, cancellationToken, language.Language);
         return recipe is null ? Results.NotFound() : Results.Ok(recipe);
     }
 
@@ -138,10 +141,11 @@ public static class RecipeEndpoints
         UpdateRecipeRequest request,
         ICurrentUser currentUser,
         RecipeService service,
+        ILanguageContext language,
         CancellationToken cancellationToken)
     {
         if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
-        var result = await service.UpdateAsync(id, houseId, request, cancellationToken);
+        var result = await service.UpdateAsync(id, houseId, request, cancellationToken, language.Language);
         return ToHttpResult(result, created: false);
     }
 

@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Kotlet.Api.Auth;
 using Kotlet.Api.Mcp;
+using Kotlet.Api.Localization;
 using Kotlet.Application.Recipes;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol;
@@ -37,8 +38,9 @@ public sealed class RecipeMcp
         [Description("Recipe ID from get_recipes.")] Guid recipeId,
         RecipeService service,
         ICurrentUser currentUser,
+        ILanguageContext language,
         CancellationToken cancellationToken) =>
-        await service.GetByIdAsync(recipeId, RequireHouse(currentUser), cancellationToken)
+        await service.GetByIdAsync(recipeId, RequireHouse(currentUser), cancellationToken, language.Language)
         ?? throw new McpException("Recipe not found.");
 
     [McpServerTool(Name = "check_recipe_exists", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
@@ -66,8 +68,9 @@ public sealed class RecipeMcp
         CreateRecipeRequest request,
         RecipeService service,
         ICurrentUser currentUser,
+        ILanguageContext language,
         CancellationToken cancellationToken) =>
-        service.CreateAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
+        service.CreateAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken, language.Language);
 
     [McpServerResource(UriTemplate = "kotlet://recipes/new-recipe-guide", Name = "new-recipe-guide",
         Title = "New recipe creation guide", MimeType = "text/markdown"),
@@ -109,8 +112,8 @@ public sealed class RecipeMcp
         Title = "Kotlet recipe", MimeType = "application/json"),
      Description("Complete household recipe, including description, servings, ingredients, and images.")]
     public static async Task<string> Recipe(
-        Guid recipeId, RecipeService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
-        Json(await service.GetByIdAsync(recipeId, RequireHouse(currentUser), cancellationToken)
+        Guid recipeId, RecipeService service, ICurrentUser currentUser, ILanguageContext language, CancellationToken cancellationToken) =>
+        Json(await service.GetByIdAsync(recipeId, RequireHouse(currentUser), cancellationToken, language.Language)
              ?? throw new KeyNotFoundException("Recipe not found."));
 
     [McpServerPrompt(Name = "create_recipe_flow"),
