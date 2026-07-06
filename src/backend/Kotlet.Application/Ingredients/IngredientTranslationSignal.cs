@@ -15,6 +15,6 @@ internal sealed class IngredientTranslationSignal : IIngredientTranslationSignal
 
     public void Notify() => _channel.Writer.TryWrite(0);
 
-    public ValueTask WaitAsync(CancellationToken cancellationToken) =>
-        _channel.Reader.ReadAsync(cancellationToken);
+    public async ValueTask WaitAsync(CancellationToken cancellationToken) =>
+        await _channel.Reader.ReadAsync(cancellationToken);
 }
