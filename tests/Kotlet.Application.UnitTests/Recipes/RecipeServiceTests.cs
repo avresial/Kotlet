@@ -176,7 +176,7 @@ public sealed class RecipeServiceTests
         repo.Recipes.Add(MakeRecipe("Other Recipe", "other-recipe", OtherOwnerId));
         var service = CreateService(repo);
 
-        var result = await service.ListAsync(OwnerId, 1, 20, null, null, CancellationToken.None);
+        var result = await service.ListAsync(OwnerId, 1, 20, null, null, null, CancellationToken.None);
 
         Assert.Single(result.Items);
         Assert.Equal("My Recipe", result.Items[0].Title);
@@ -192,7 +192,7 @@ public sealed class RecipeServiceTests
         dinner.MealType = MealSlot.Dinner;
         repo.Recipes.AddRange([breakfast, dinner]);
 
-        var result = await CreateService(repo).ListAsync(OwnerId, 1, 20, null, "breakfast", CancellationToken.None);
+        var result = await CreateService(repo).ListAsync(OwnerId, 1, 20, null, "breakfast", null, CancellationToken.None);
 
         Assert.Equal("Breakfast", Assert.Single(result.Items).Title);
     }
@@ -308,6 +308,121 @@ public sealed class RecipeServiceTests
         Assert.Equal(0, repo.SaveCount);
     }
 
+    // ---- CheckExists (duplicate detection) ----
+
+    [Fact]
+    public async Task CheckExists_MatchesBySourceUrlCitedInDescription()
+    {
+        var repo = new FakeRecipeRepository();
+        var recipe = MakeRecipe("Goulash", "goulash", OwnerId);
+        recipe.DescriptionMarkdown = "Rich stew.\n\n1. Brown the meat.\n\nSource: https://example.com/goulash";
+        repo.Recipes.Add(recipe);
+        var service = CreateService(repo);
+
+        var result = await service.CheckExistsAsync(OwnerId, null, "https://example.com/goulash/", CancellationToken.None);
+
+        Assert.True(result.Exists);
+        var match = Assert.Single(result.Matches);
+        Assert.Equal(recipe.Id, match.RecipeId);
+        Assert.Equal(RecipeMatchType.SourceUrl, match.MatchType);
+        Assert.Equal("https://example.com/goulash", match.SourceUrl);
+    }
+
+    [Fact]
+    public async Task CheckExists_DoesNotMatchLongerUrlWithSamePrefix()
+    {
+        var repo = new FakeRecipeRepository();
+        var recipe = MakeRecipe("Goulash deluxe", "goulash-deluxe", OwnerId);
+        recipe.DescriptionMarkdown = "Source: https://example.com/goulash-deluxe";
+        repo.Recipes.Add(recipe);
+        var service = CreateService(repo);
+
+        var result = await service.CheckExistsAsync(OwnerId, null, "https://example.com/goulash", CancellationToken.None);
+
+        Assert.False(result.Exists);
+        Assert.Empty(result.Matches);
+    }
+
+    [Fact]
+    public async Task CheckExists_MatchesExactTitle_IgnoringCaseAndPunctuation()
+    {
+        var repo = new FakeRecipeRepository();
+        repo.Recipes.Add(MakeRecipe("Chickpea Balls with Tomato Sauce", "chickpea-balls", OwnerId));
+        var service = CreateService(repo);
+
+        var result = await service.CheckExistsAsync(
+            OwnerId, "chickpea balls, with tomato sauce!", null, CancellationToken.None);
+
+        Assert.True(result.Exists);
+        Assert.Equal(RecipeMatchType.ExactTitle, Assert.Single(result.Matches).MatchType);
+    }
+
+    [Fact]
+    public async Task CheckExists_ReturnsSimilarTitleMatch_ButNotUnrelatedTitles()
+    {
+        var repo = new FakeRecipeRepository();
+        var similar = MakeRecipe("Chickpea balls with tomato sauce", "chickpea-balls", OwnerId);
+        var unrelated = MakeRecipe("Chocolate cake", "chocolate-cake", OwnerId);
+        repo.Recipes.Add(similar);
+        repo.Recipes.Add(unrelated);
+        var service = CreateService(repo);
+
+        var result = await service.CheckExistsAsync(
+            OwnerId, "Chickpea balls in tomato sauce", null, CancellationToken.None);
+
+        Assert.True(result.Exists);
+        var match = Assert.Single(result.Matches);
+        Assert.Equal(similar.Id, match.RecipeId);
+        Assert.Equal(RecipeMatchType.SimilarTitle, match.MatchType);
+    }
+
+    [Fact]
+    public async Task CheckExists_OrdersSourceUrlMatchBeforeTitleMatches()
+    {
+        var repo = new FakeRecipeRepository();
+        var byTitle = MakeRecipe("Goulash", "goulash", OwnerId);
+        var byUrl = MakeRecipe("Hungarian stew", "hungarian-stew", OwnerId);
+        byUrl.DescriptionMarkdown = "Source: https://example.com/goulash";
+        repo.Recipes.Add(byTitle);
+        repo.Recipes.Add(byUrl);
+        var service = CreateService(repo);
+
+        var result = await service.CheckExistsAsync(
+            OwnerId, "Goulash", "https://example.com/goulash", CancellationToken.None);
+
+        Assert.Equal(2, result.Matches.Count);
+        Assert.Equal(byUrl.Id, result.Matches[0].RecipeId);
+        Assert.Equal(RecipeMatchType.SourceUrl, result.Matches[0].MatchType);
+        Assert.Equal(byTitle.Id, result.Matches[1].RecipeId);
+        Assert.Equal(RecipeMatchType.ExactTitle, result.Matches[1].MatchType);
+    }
+
+    [Fact]
+    public async Task CheckExists_WithNoMatch_ReturnsEmptyResult()
+    {
+        var repo = new FakeRecipeRepository();
+        repo.Recipes.Add(MakeRecipe("Chocolate cake", "chocolate-cake", OwnerId));
+        var service = CreateService(repo);
+
+        var result = await service.CheckExistsAsync(
+            OwnerId, "Lentil curry", "https://example.com/lentil-curry", CancellationToken.None);
+
+        Assert.False(result.Exists);
+        Assert.Empty(result.Matches);
+    }
+
+    [Fact]
+    public async Task CheckExists_IgnoresRecipesOfOtherHouseholds()
+    {
+        var repo = new FakeRecipeRepository();
+        repo.Recipes.Add(MakeRecipe("Goulash", "goulash", OtherOwnerId));
+        var service = CreateService(repo);
+
+        var result = await service.CheckExistsAsync(OwnerId, "Goulash", null, CancellationToken.None);
+
+        Assert.False(result.Exists);
+    }
+
     private static Recipe MakeRecipe(string title, string slug, Guid ownerId) => new()
     {
         Id = Guid.NewGuid(),
@@ -348,12 +463,16 @@ public sealed class RecipeServiceTests
         public int SaveCount { get; private set; }
 
         public Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
-            Guid ownerUserId, int page, int pageSize, string? search, MealSlot? mealType, CancellationToken cancellationToken)
+            Guid ownerUserId, int page, int pageSize, string? search, MealSlot? mealType,
+            IReadOnlyCollection<Guid>? ingredientIds, CancellationToken cancellationToken)
         {
             var query = Recipes.Where(r => r.OwnerUserId == ownerUserId);
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(r => r.Title.Contains(search, StringComparison.OrdinalIgnoreCase));
             if (mealType is not null) query = query.Where(r => r.MealType == mealType);
+            var requiredIngredientIds = ingredientIds?.Distinct().ToArray() ?? [];
+            if (requiredIngredientIds.Length > 0)
+                query = query.Where(r => requiredIngredientIds.All(id => r.Ingredients.Any(i => i.IngredientId == id)));
             var filtered = query.ToList();
             var list = filtered.OrderByDescending(r => r.UpdatedAtUtc).Skip((page - 1) * pageSize).Take(pageSize).ToList();
             return Task.FromResult<(IReadOnlyList<Recipe>, int)>((list, filtered.Count));
@@ -369,6 +488,9 @@ public sealed class RecipeServiceTests
 
         public Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken) =>
             Task.FromResult(Recipes.SingleOrDefault(r => r.Id == id && r.OwnerUserId == ownerUserId));
+
+        public Task<IReadOnlyList<Recipe>> GetAllForDuplicateCheckAsync(Guid ownerUserId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<Recipe>>(Recipes.Where(r => r.OwnerUserId == ownerUserId).ToList());
 
         public Task<bool> SlugExistsAsync(Guid ownerUserId, string slug, Guid? excludedId, CancellationToken cancellationToken) =>
             Task.FromResult(Recipes.Any(r => r.OwnerUserId == ownerUserId && r.Slug == slug && r.Id != excludedId));

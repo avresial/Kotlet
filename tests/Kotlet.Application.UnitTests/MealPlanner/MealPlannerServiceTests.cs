@@ -603,7 +603,8 @@ public sealed class MealPlannerServiceTests
     private sealed class FakeRecipeRepository(params Recipe[] recipes) : IRecipeRepository
     {
         public Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
-            Guid ownerUserId, int page, int pageSize, string? search, MealSlot? mealType, CancellationToken cancellationToken) =>
+            Guid ownerUserId, int page, int pageSize, string? search, MealSlot? mealType,
+            IReadOnlyCollection<Guid>? ingredientIds, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
 
         public Task<IReadOnlyList<Recipe>> GetRecentAsync(Guid ownerUserId, int limit, CancellationToken cancellationToken) =>
@@ -611,6 +612,9 @@ public sealed class MealPlannerServiceTests
 
         public Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken) =>
             Task.FromResult(recipes.SingleOrDefault(r => r.Id == id));
+
+        public Task<IReadOnlyList<Recipe>> GetAllForDuplicateCheckAsync(Guid ownerUserId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         public Task<bool> SlugExistsAsync(Guid ownerUserId, string slug, Guid? excludedId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

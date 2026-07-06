@@ -62,6 +62,23 @@ public sealed record PagedResponse<T>(
     int PageSize,
     int TotalCount);
 
+public enum RecipeMatchType
+{
+    SourceUrl,
+    ExactTitle,
+    SimilarTitle
+}
+
+public sealed record RecipeExistenceMatch(
+    Guid RecipeId,
+    string Title,
+    string? SourceUrl,
+    RecipeMatchType MatchType);
+
+public sealed record RecipeExistenceResult(
+    bool Exists,
+    IReadOnlyList<RecipeExistenceMatch> Matches);
+
 public enum RecipeOperationStatus
 {
     Success,

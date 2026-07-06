@@ -226,6 +226,45 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         Assert.Contains(items, r => r.GetProperty("title").GetString() == uniqueTitle);
     }
 
+    [Fact]
+    public async Task List_ByIngredients_RequiresEveryDistinctIngredient()
+    {
+        var client = await CreateAuthenticatedClient();
+        var tomatoId = await CreateIngredient(client, "Filter tomato", false, null);
+        var garlicId = await CreateIngredient(client, "Filter garlic", false, null);
+
+        async Task<Guid> CreateRecipe(string title, params Guid[] ingredientIds)
+        {
+            var response = await client.PostAsJsonAsync("/api/recipes", new
+            {
+                title,
+                descriptionMarkdown = (string?)null,
+                mealType = "dinner",
+                ingredients = ingredientIds.Select(id => new
+                    { ingredientId = id, quantity = 1m, unit = "g", note = (string?)null }).ToArray()
+            });
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        }
+
+        var completeId = await CreateRecipe($"Complete soup {Guid.NewGuid():N}", tomatoId, garlicId);
+        var partialId = await CreateRecipe($"Partial soup {Guid.NewGuid():N}", tomatoId);
+        var query = $"/api/recipes?ingredientIds={tomatoId}&ingredientIds={garlicId}&ingredientIds={tomatoId}&mealType=dinner&search=soup";
+
+        var result = await client.GetFromJsonAsync<JsonElement>(query);
+        var items = result.GetProperty("items").EnumerateArray().ToList();
+        Assert.Contains(items, recipe => recipe.GetProperty("id").GetGuid() == completeId);
+        Assert.DoesNotContain(items, recipe => recipe.GetProperty("id").GetGuid() == partialId);
+        Assert.Equal(items.Count, result.GetProperty("totalCount").GetInt32());
+
+        var unknown = await client.GetFromJsonAsync<JsonElement>($"/api/recipes?ingredientIds={Guid.NewGuid()}");
+        Assert.Equal(0, unknown.GetProperty("totalCount").GetInt32());
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/recipes?ingredientIds=invalid")).StatusCode);
+
+        var oversized = string.Join("&", Enumerable.Range(0, 101).Select(_ => $"ingredientIds={Guid.NewGuid()}"));
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync($"/api/recipes?{oversized}")).StatusCode);
+    }
+
     private async Task<HttpClient> CreateAuthenticatedClient()
     {
         var client = _factory.CreateClient();

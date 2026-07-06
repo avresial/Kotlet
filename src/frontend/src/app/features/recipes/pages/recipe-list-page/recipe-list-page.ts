@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -7,12 +7,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
+import { Ingredient } from '../../../ingredients/ingredient.models';
+import { IngredientService } from '../../../ingredients/ingredient.service';
+import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { RecipeMealType, RecipeSummary, recipeMealTypes } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 
 @Component({
   selector: 'app-recipe-list-page',
-  imports: [RouterLink, FormsModule, DatePipe, TranslatePipe],
+  imports: [RouterLink, FormsModule, DatePipe, TranslatePipe, IngredientPicker],
   templateUrl: './recipe-list-page.html',
   styleUrl: './recipe-list-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,6 +25,7 @@ export class RecipeListPage implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly translations = inject(TranslationService);
+  private readonly ingredientService = inject(IngredientService);
 
   readonly recipes = signal<RecipeSummary[]>([]);
   readonly isLoading = signal(true);
@@ -29,6 +33,14 @@ export class RecipeListPage implements OnInit {
   readonly deletingId = signal<string | null>(null);
   readonly search = signal('');
   readonly mealType = signal<RecipeMealType | ''>('');
+  readonly ingredients = signal<Ingredient[]>([]);
+  readonly selectedIngredientIds = signal<string[]>([]);
+  readonly ingredientPickerValue = signal('');
+  readonly selectedIngredients = computed(() => this.selectedIngredientIds()
+    .map(id => this.ingredients().find(ingredient => ingredient.id === id))
+    .filter((ingredient): ingredient is Ingredient => ingredient !== undefined));
+  readonly availableIngredients = computed(() => this.ingredients()
+    .filter(ingredient => !this.selectedIngredientIds().includes(ingredient.id)));
   readonly mealTypes = recipeMealTypes;
   readonly page = signal(1);
   readonly totalCount = signal(0);
@@ -43,6 +55,10 @@ export class RecipeListPage implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.ingredientService.getAll().subscribe({
+      next: ingredients => this.ingredients.set(ingredients),
+      error: err => this.error.set(getApiError(err, this.translations.translate('ingredients.loadError'))),
+    });
   }
 
   load(): void {
@@ -50,7 +66,7 @@ export class RecipeListPage implements OnInit {
     this.isLoading.set(true);
     this.error.set(null);
     this.loadSub = this.service
-      .list(this.page(), this.pageSize, this.search() || undefined, this.mealType() || undefined)
+      .list(this.page(), this.pageSize, this.search() || undefined, this.mealType() || undefined, this.selectedIngredientIds())
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: (res) => {
@@ -71,7 +87,19 @@ export class RecipeListPage implements OnInit {
   clearSearch(): void {
     this.search.set('');
     this.mealType.set('');
+    this.selectedIngredientIds.set([]);
+    this.ingredientPickerValue.set('');
     this.onSearch();
+  }
+
+  addIngredient(ingredient: Ingredient): void {
+    if (this.selectedIngredientIds().length >= 100) return;
+    this.selectedIngredientIds.update(ids => ids.includes(ingredient.id) ? ids : [...ids, ingredient.id]);
+    this.ingredientPickerValue.set('');
+  }
+
+  removeIngredient(ingredientId: string): void {
+    this.selectedIngredientIds.update(ids => ids.filter(id => id !== ingredientId));
   }
 
   prevPage(): void {

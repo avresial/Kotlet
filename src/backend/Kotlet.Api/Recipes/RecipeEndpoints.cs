@@ -88,12 +88,16 @@ public static class RecipeEndpoints
         int pageSize = 20,
         string? search = null,
         string? mealType = null,
+        Guid[]? ingredientIds = null,
         CancellationToken cancellationToken = default)
     {
         if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
         if (!string.IsNullOrWhiteSpace(mealType) && !MealSlotValues.TryParse(mealType, out _))
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["mealType"] = ["Meal type is invalid."] });
-        var result = await service.ListAsync(houseId, page, pageSize, search, mealType, cancellationToken);
+        ingredientIds = ingredientIds?.Distinct().ToArray();
+        if (ingredientIds?.Length > 100)
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["ingredientIds"] = ["No more than 100 ingredients can be selected."] });
+        var result = await service.ListAsync(houseId, page, pageSize, search, mealType, ingredientIds, cancellationToken);
         return Results.Ok(result);
     }
 

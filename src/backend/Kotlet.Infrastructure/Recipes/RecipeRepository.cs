@@ -9,7 +9,8 @@ namespace Kotlet.Infrastructure.Recipes;
 internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepository
 {
     public async Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
-        Guid houseId, int page, int pageSize, string? search, MealSlot? mealType, CancellationToken cancellationToken)
+        Guid houseId, int page, int pageSize, string? search, MealSlot? mealType,
+        IReadOnlyCollection<Guid>? ingredientIds, CancellationToken cancellationToken)
     {
         var query = dbContext.Recipes
             .AsNoTracking()
@@ -22,6 +23,15 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
             query = query.Where(r => r.Title.ToLower().Contains(term));
         }
         if (mealType is not null) query = query.Where(r => r.MealType == mealType);
+        var requiredIngredientIds = ingredientIds?.Distinct().ToArray() ?? [];
+        if (requiredIngredientIds.Length > 0)
+        {
+            query = query.Where(r => r.Ingredients
+                .Where(i => requiredIngredientIds.Contains(i.IngredientId))
+                .Select(i => i.IngredientId)
+                .Distinct()
+                .Count() == requiredIngredientIds.Length);
+        }
 
         var total = await query.CountAsync(cancellationToken);
         var items = await query
@@ -43,6 +53,13 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
             .OrderByDescending(r => r.CreatedAtUtc)
             .ThenByDescending(r => r.Id)
             .Take(limit)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Recipe>> GetAllForDuplicateCheckAsync(
+        Guid houseId, CancellationToken cancellationToken) =>
+        await dbContext.Recipes
+            .AsNoTracking()
+            .Where(r => r.HouseId == houseId)
             .ToListAsync(cancellationToken);
 
     public Task<Recipe?> GetByIdAsync(Guid id, Guid houseId, bool tracked, CancellationToken cancellationToken)
