@@ -10,13 +10,14 @@ public sealed class IngredientServiceTests
 {
     private const string English = "en";
     private const string Polish = "pl";
+    private static readonly IIngredientTranslationSignal NullSignal = new IngredientTranslationSignal();
 
     [Fact]
     public async Task Create_NormalizesValuesAndPersistsIngredient()
     {
         var repository = new FakeIngredientRepository();
         var translations = new FakeTranslationRepository();
-        var service = new IngredientService(repository, translations);
+        var service = new IngredientService(repository, translations, NullSignal);
 
         var result = await service.CreateAsync(
             new SaveIngredientCommand("  Chicken breast  ", " G ", false, null, 165, 12.99m),
@@ -37,7 +38,7 @@ public sealed class IngredientServiceTests
     {
         var repository = new FakeIngredientRepository();
         var translations = new FakeTranslationRepository();
-        var service = new IngredientService(repository, translations);
+        var service = new IngredientService(repository, translations, NullSignal);
 
         var result = await service.CreateAsync(
             new SaveIngredientCommand("Mleko", "ml", false, null, 42, 3m),
@@ -58,7 +59,7 @@ public sealed class IngredientServiceTests
     {
         var repository = new FakeIngredientRepository();
         var translations = new FakeTranslationRepository();
-        var service = new IngredientService(repository, translations);
+        var service = new IngredientService(repository, translations, NullSignal);
 
         var result = await service.CreateAsync(
             new SaveIngredientCommand("Milk", "ml", false, null, 42, 3m, Translation: "Mleko"),
@@ -81,7 +82,7 @@ public sealed class IngredientServiceTests
         var existing = Ingredient("Unknown");
         var repository = new FakeIngredientRepository(existing);
         var translations = new FakeTranslationRepository();
-        var service = new IngredientService(repository, translations);
+        var service = new IngredientService(repository, translations, NullSignal);
 
         var result = await service.UpdateAsync(
             existing.Id,
@@ -103,7 +104,7 @@ public sealed class IngredientServiceTests
         var repository = new FakeIngredientRepository(translated, untranslated);
         var translations = new FakeTranslationRepository();
         translations.Entries[TranslationKeys.Ingredient(translated.Id, Polish)] = "Mleko";
-        var service = new IngredientService(repository, translations);
+        var service = new IngredientService(repository, translations, NullSignal);
 
         var polish = await service.GetAllAsync(Polish, CancellationToken.None);
 
@@ -118,7 +119,7 @@ public sealed class IngredientServiceTests
         var existing = Ingredient("Milk");
         var repository = new FakeIngredientRepository(existing);
         var translations = new FakeTranslationRepository();
-        var service = new IngredientService(repository, translations);
+        var service = new IngredientService(repository, translations, NullSignal);
 
         var result = await service.UpdateAsync(
             existing.Id,
@@ -138,7 +139,7 @@ public sealed class IngredientServiceTests
         var existing = Ingredient("Salt");
         existing.SvgIcon = "<svg />";
         var repository = new FakeIngredientRepository(existing);
-        var service = new IngredientService(repository, new FakeTranslationRepository());
+        var service = new IngredientService(repository, new FakeTranslationRepository(), NullSignal);
 
         var result = await service.UpdateAsync(
             existing.Id,
@@ -155,7 +156,7 @@ public sealed class IngredientServiceTests
     public async Task Create_ReturnsValidationErrorsWithoutPersisting()
     {
         var repository = new FakeIngredientRepository();
-        var service = new IngredientService(repository, new FakeTranslationRepository());
+        var service = new IngredientService(repository, new FakeTranslationRepository(), NullSignal);
 
         var result = await service.CreateAsync(
             new SaveIngredientCommand("", "bucket", true, null, -1, -1),
@@ -172,7 +173,7 @@ public sealed class IngredientServiceTests
     {
         var existing = Ingredient("Salt");
         var repository = new FakeIngredientRepository(existing, Ingredient("Pepper"));
-        var service = new IngredientService(repository, new FakeTranslationRepository());
+        var service = new IngredientService(repository, new FakeTranslationRepository(), NullSignal);
 
         var result = await service.UpdateAsync(
             existing.Id,
@@ -191,7 +192,7 @@ public sealed class IngredientServiceTests
         var repository = new FakeIngredientRepository(existing);
         var translations = new FakeTranslationRepository();
         translations.Entries[TranslationKeys.Ingredient(existing.Id, Polish)] = "Mleko";
-        var service = new IngredientService(repository, translations);
+        var service = new IngredientService(repository, translations, NullSignal);
 
         var result = await service.CreateAsync(
             new SaveIngredientCommand("Mleko", "ml", false, null, 0, 1),

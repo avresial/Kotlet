@@ -80,6 +80,25 @@ The in-process `AIFunction`s and the MCP server tools wrap the **same
 shapes from REST DTOs; those handlers back both surfaces. One source of truth, two
 transports.
 
+## Ingredient translation worker
+
+Ingredient names are stored in the default language on the entity; other languages live in the
+translation dictionary (`Ingredients_{id}_{lang}`). The `IngredientTranslationService` finds every
+ingredient/language pair that has no dictionary entry and fills it in with a single structured
+translation call, committing the whole pass at once.
+
+It runs from a `BackgroundService` (`IngredientTranslationWorker`) that triggers **on API startup**
+(once migrations and seeding are ready) and **on every ingredient add**. The add trigger is an
+in-process signal (`IIngredientTranslationSignal`, a capacity-one channel): `IngredientService`
+`Notify()`s after a successful create, the worker awaits it, and bursts collapse into one pass because
+the worker always re-scans for *all* missing translations.
+
+Because translation is application-level rather than per-user, the worker uses
+**application AI credentials** (`ApplicationAiOptions`, bound from the `Ai:Application` configuration
+section) resolved through `IApplicationChatClientResolver` — the same `IChatClientFactory` seam, but
+fed app configuration instead of a user's stored provider. When no application API key is configured
+the worker is a quiet no-op, so the feature is opt-in via configuration and never blocks startup.
+
 ## Feature shapes
 
 - **Translation** is a single structured call: `ChatOptions` with a JSON response

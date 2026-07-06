@@ -15,7 +15,8 @@ public interface ILanguageContext
 
 public sealed class LanguageContext(IHttpContextAccessor accessor) : ILanguageContext
 {
-    private static readonly HashSet<string> Supported = new(StringComparer.OrdinalIgnoreCase) { "en", "pl" };
+    private static readonly HashSet<string> Supported =
+        new(TranslationKeys.SupportedLanguages, StringComparer.OrdinalIgnoreCase);
 
     public string Language
     {
