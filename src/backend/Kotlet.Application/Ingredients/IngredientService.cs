@@ -4,7 +4,10 @@ using Kotlet.Domain.Ingredients;
 
 namespace Kotlet.Application.Ingredients;
 
-public sealed class IngredientService(IIngredientRepository repository, ITranslationRepository translations)
+public sealed class IngredientService(
+    IIngredientRepository repository,
+    ITranslationRepository translations,
+    IIngredientTranslationSignal translationSignal)
 {
     private static readonly HashSet<string> MeasurementUnits = ["g", "ml"];
     private static readonly IReadOnlyDictionary<string, string> NoTranslations =
@@ -73,6 +76,9 @@ public sealed class IngredientService(IIngredientRepository repository, ITransla
         if (persistedTranslation is not null)
             await translations.SetAsync(TranslationKeys.Ingredient(ingredient.Id, languageCode), persistedTranslation, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
+
+        // Wake the background worker so the languages this ingredient still lacks get translated.
+        translationSignal.Notify();
 
         return new(IngredientOperationStatus.Success, ToDto(ingredient, isDefaultLanguage ? null : persistedTranslation));
     }

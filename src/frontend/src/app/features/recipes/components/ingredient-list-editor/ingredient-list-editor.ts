@@ -117,7 +117,10 @@ export class IngredientListEditor implements ControlValueAccessor, Validator {
   selectIngredient(row: FormGroup): void {
     const ingredient = this.ingredients().find((item) => item.name === row.get('name')?.value);
     row.get('ingredientId')?.setValue(ingredient?.id ?? '');
-    row.get('unit')?.setValue(ingredient?.measurementUnit ?? null);
+    const defaultUnit = ingredient?.isCountable && ingredient.measurementUnitsPerPiece
+      ? 'piece'
+      : ingredient?.measurementUnit ?? null;
+    row.get('unit')?.setValue(defaultUnit);
     this.onTouched();
   }
 

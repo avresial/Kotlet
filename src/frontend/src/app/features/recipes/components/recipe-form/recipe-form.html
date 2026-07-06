@@ -22,29 +22,31 @@
     }
   </div>
 
-  <div class="form-field">
-    <label for="recipe-servings">{{ 'recipes.servings' | t }} <span aria-hidden="true">*</span></label>
-    <input
-      id="recipe-servings"
-      type="number"
-      formControlName="servings"
-      min="1"
-      max="99"
-      step="1"
-      [class.invalid]="form.get('servings')?.invalid && form.get('servings')?.touched"
-    />
-    <span class="field-hint">{{ 'recipes.servingsHelp' | t }}</span>
-    @if (form.get('servings')?.invalid && form.get('servings')?.touched) {
-      <span class="field-error">{{ 'recipes.servingsError' | t }}</span>
-    }
-  </div>
+  <div class="form-row">
+    <div class="form-field">
+      <label for="recipe-servings">{{ 'recipes.servings' | t }} <span aria-hidden="true">*</span></label>
+      <input
+        id="recipe-servings"
+        type="number"
+        formControlName="servings"
+        min="1"
+        max="99"
+        step="1"
+        [class.invalid]="form.get('servings')?.invalid && form.get('servings')?.touched"
+      />
+      <span class="field-hint">{{ 'recipes.servingsHelp' | t }}</span>
+      @if (form.get('servings')?.invalid && form.get('servings')?.touched) {
+        <span class="field-error">{{ 'recipes.servingsError' | t }}</span>
+      }
+    </div>
 
-  <div class="form-field">
-    <label for="recipe-meal-type">{{ 'recipes.mealType' | t }}</label>
-    <select id="recipe-meal-type" formControlName="mealType">
-      <option [ngValue]="null">{{ 'recipes.mealTypeNone' | t }}</option>
-      @for (mealType of mealTypes; track mealType.value) { <option [value]="mealType.value">{{ mealType.label | t }}</option> }
-    </select>
+    <div class="form-field">
+      <label for="recipe-meal-type">{{ 'recipes.mealType' | t }}</label>
+      <select id="recipe-meal-type" formControlName="mealType">
+        <option [ngValue]="null">{{ 'recipes.mealTypeNone' | t }}</option>
+        @for (mealType of mealTypes; track mealType.value) { <option [value]="mealType.value">{{ mealType.label | t }}</option> }
+      </select>
+    </div>
   </div>
 
   @if (showImagePicker()) {
