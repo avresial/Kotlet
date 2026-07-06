@@ -22,11 +22,6 @@ public sealed class AiTranslationService(IUserChatClientResolver resolver)
 {
     private const int MaxTextLength = 500;
 
-    private const string SystemPrompt =
-        "You are a translation engine for a cooking app. Translate the user's text into the requested " +
-        "language. Reply with ONLY the translated text: no quotes, no notes, no explanations. Preserve " +
-        "culinary meaning; if the text is already in the target language, return it unchanged.";
-
     public async Task<AiTranslationResult> TranslateAsync(
         Guid userId, string? text, string? targetLanguage, CancellationToken cancellationToken)
     {
@@ -46,8 +41,8 @@ public sealed class AiTranslationService(IUserChatClientResolver resolver)
 
         var messages = new List<ChatMessage>
         {
-            new(ChatRole.System, SystemPrompt),
-            new(ChatRole.User, $"Target language: {targetLanguage}\nText: {text}")
+            new(ChatRole.System, AiTranslationPrompts.SystemPrompt),
+            new(ChatRole.User, AiTranslationPrompts.BuildUserMessage(text, targetLanguage))
         };
 
         try

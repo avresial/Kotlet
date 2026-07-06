@@ -13,6 +13,20 @@ public static class TranslationKeys
     /// </summary>
     public const string DefaultLanguage = "en";
 
+    /// <summary>
+    /// Every language the app serves content in, including <see cref="DefaultLanguage"/>. This is the
+    /// single source of truth so request negotiation and background translation agree on the set.
+    /// </summary>
+    public static readonly IReadOnlyList<string> SupportedLanguages = ["en", "pl"];
+
+    /// <summary>
+    /// The languages that need a translation dictionary entry: every supported language except the
+    /// default one (whose value is stored directly on the entity). These are the targets the
+    /// ingredient-translation worker fills in.
+    /// </summary>
+    public static readonly IReadOnlyList<string> TranslatedLanguages =
+        SupportedLanguages.Where(language => !IsDefaultLanguage(language)).ToArray();
+
     public static string Ingredient(Guid ingredientId, string languageCode) =>
         $"Ingredients_{ingredientId}_{languageCode}";
 
