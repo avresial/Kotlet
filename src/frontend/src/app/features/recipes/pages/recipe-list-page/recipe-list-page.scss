@@ -224,8 +224,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
 
-    input, select, .ingredient-filter { min-width: 0; }
-    input { grid-column: 1 / -1; }
+    input, select, .ingredient-filter { min-width: 0; grid-column: 1 / -1; }
     .button { justify-content: center; }
     .button.primary:last-child { grid-column: 1 / -1; }
   }
