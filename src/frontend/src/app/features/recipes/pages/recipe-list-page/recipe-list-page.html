@@ -77,10 +77,12 @@
       }
     </div>
 
-    <nav class="pagination" [attr.aria-label]="'common.pagination' | t">
-      <button type="button" [disabled]="page() <= 1" (click)="prevPage()">← {{ 'common.previous' | t }}</button>
-      <span>Page {{ page() }}</span>
-      <button type="button" [disabled]="!hasNextPage" (click)="nextPage()">{{ 'common.next' | t }} →</button>
-    </nav>
+    @if (totalCount() > pageSize) {
+      <nav class="pagination" [attr.aria-label]="'common.pagination' | t">
+        <button type="button" [disabled]="page() <= 1" (click)="prevPage()">← {{ 'common.previous' | t }}</button>
+        <span>Page {{ page() }}</span>
+        <button type="button" [disabled]="!hasNextPage" (click)="nextPage()">{{ 'common.next' | t }} →</button>
+      </nav>
+    }
   }
 </main>
