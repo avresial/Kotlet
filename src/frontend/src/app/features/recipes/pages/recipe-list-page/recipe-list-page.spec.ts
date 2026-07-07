@@ -20,12 +20,16 @@ describe('RecipeListPage ingredient filters', () => {
     http.expectOne('/api/ingredients').flush([ingredient]);
 
     fixture.componentInstance.addIngredient(ingredient);
+    http.expectOne(request => request.url === '/api/recipes' && request.params.getAll('ingredientIds')?.join() === 'ingredient-1')
+      .flush({ items: [], page: 1, pageSize: 20, totalCount: 0 });
     fixture.detectChanges();
     const chip = fixture.nativeElement.querySelector('.filter-chip') as HTMLElement;
     expect(chip.textContent).toContain('Tomato');
     expect(fixture.componentInstance.availableIngredients()).toEqual([]);
 
     (chip.querySelector('button') as HTMLButtonElement).click();
+    http.expectOne(request => request.url === '/api/recipes' && !request.params.has('ingredientIds'))
+      .flush({ items: [], page: 1, pageSize: 20, totalCount: 0 });
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.filter-chip')).toBeNull();
     expect(fixture.componentInstance.selectedIngredientIds()).toEqual([]);
