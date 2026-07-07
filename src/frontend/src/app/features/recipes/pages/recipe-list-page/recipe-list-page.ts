@@ -93,13 +93,16 @@ export class RecipeListPage implements OnInit {
   }
 
   addIngredient(ingredient: Ingredient): void {
-    if (this.selectedIngredientIds().length >= 100) return;
-    this.selectedIngredientIds.update(ids => ids.includes(ingredient.id) ? ids : [...ids, ingredient.id]);
+    if (this.selectedIngredientIds().length >= 100 || this.selectedIngredientIds().includes(ingredient.id)) return;
+    this.selectedIngredientIds.update(ids => [...ids, ingredient.id]);
     this.ingredientPickerValue.set('');
+    this.onSearch();
   }
 
   removeIngredient(ingredientId: string): void {
+    if (!this.selectedIngredientIds().includes(ingredientId)) return;
     this.selectedIngredientIds.update(ids => ids.filter(id => id !== ingredientId));
+    this.onSearch();
   }
 
   prevPage(): void {

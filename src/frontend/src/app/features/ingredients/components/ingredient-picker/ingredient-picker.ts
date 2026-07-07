@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, forwardRef, input, output, signal } from '@angular/core';
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, forwardRef, input, output, signal } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Ingredient } from '../../ingredient.models';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
@@ -20,6 +20,8 @@ export class IngredientPicker implements ControlValueAccessor {
   readonly placeholder = input('');
   readonly ariaLabel = input('');
   readonly valueMode = input<'id' | 'name'>('id');
+  /** Reset the input after a pick — for chips-style filters where the selection lives outside the picker. */
+  readonly clearOnSelect = input(false, { transform: booleanAttribute });
   readonly ingredientSelected = output<Ingredient>();
   readonly query = signal('');
   readonly isOpen = signal(false);
@@ -65,8 +67,9 @@ export class IngredientPicker implements ControlValueAccessor {
   }
 
   select(ingredient: Ingredient): void {
-    this.value = this.valueMode() === 'name' ? ingredient.name : ingredient.id;
-    this.query.set(ingredient.name);
+    const clear = this.clearOnSelect();
+    this.value = clear ? '' : this.valueMode() === 'name' ? ingredient.name : ingredient.id;
+    this.query.set(clear ? '' : ingredient.name);
     this.isOpen.set(false);
     this.onChange(this.value);
     this.onTouched();

@@ -220,6 +220,13 @@
 }
 
 @media (max-width: 36rem) {
-  .recipe-list-page .search-bar { display: grid; grid-template-columns: 1fr auto; }
-  .recipe-list-page .search-bar input { grid-column: 1 / -1; }
+  .recipe-list-page .search-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    input, select, .ingredient-filter { min-width: 0; }
+    input { grid-column: 1 / -1; }
+    .button { justify-content: center; }
+    .button.primary:last-child { grid-column: 1 / -1; }
+  }
 }
