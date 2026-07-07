@@ -89,6 +89,26 @@
     margin-bottom: 1.5rem;
   }
 
+  .add-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+    min-height: 11rem;
+    border: 2px dashed #cfc3b4;
+    border-radius: 1rem;
+    color: #7d3428;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+
+    .add-icon { font-size: 2.2rem; line-height: 1; }
+
+    &:hover { background: #fffaf2; border-color: #b96554; }
+    &:focus-visible { outline: 2px solid #9a3a2a; outline-offset: 2px; }
+  }
+
   .recipe-card {
     position: relative;
     border: 1px solid #dcd2c4;

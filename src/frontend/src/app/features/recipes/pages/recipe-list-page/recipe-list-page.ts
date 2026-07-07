@@ -41,6 +41,7 @@ export class RecipeListPage implements OnInit {
     .filter((ingredient): ingredient is Ingredient => ingredient !== undefined));
   readonly availableIngredients = computed(() => this.ingredients()
     .filter(ingredient => !this.selectedIngredientIds().includes(ingredient.id)));
+  readonly hasActiveFilters = computed(() => !!(this.search() || this.mealType() || this.selectedIngredientIds().length));
   readonly mealTypes = recipeMealTypes;
   readonly page = signal(1);
   readonly totalCount = signal(0);
