@@ -6,7 +6,6 @@
       <h1>{{ 'nav.recipes' | t }}</h1>
       <p>{{ 'recipes.intro' | t }}</p>
     </div>
-    <a routerLink="/recipes/new" class="button primary">+ {{ 'recipes.new' | t }}</a>
   </header>
 
   <div class="search-bar">
@@ -22,6 +21,7 @@
         [placeholder]="'common.ingredient' | t"
         [ariaLabel]="'common.ingredient' | t"
         [disabled]="selectedIngredientIds().length >= 100"
+        clearOnSelect
         (ingredientSelected)="addIngredient($event)"
       />
       @if (selectedIngredients().length) {
@@ -36,8 +36,8 @@
       }
     </div>
     <button type="button" class="button primary" (click)="onSearch()">{{ 'common.search' | t }}</button>
-    @if (search() || mealType() || selectedIngredientIds().length) {
-      <button type="button" class="secondary" (click)="clearSearch()">{{ 'common.clear' | t }}</button>
+    @if (hasActiveFilters()) {
+      <button type="button" class="button secondary" (click)="clearSearch()">{{ 'common.clear' | t }}</button>
     }
   </div>
 
@@ -45,13 +45,16 @@
 
   @if (isLoading()) {
     <p class="empty">{{ 'recipes.loading' | t }}</p>
-  } @else if (recipes().length === 0) {
-    <p class="empty">
-      @if (search() || mealType() || selectedIngredientIds().length) { No recipes match the selected filters. }
-      @else { {{ 'recipes.empty' | t }} <a routerLink="/recipes/new">{{ 'recipes.createFirst' | t }}</a> }
-    </p>
+  } @else if (recipes().length === 0 && hasActiveFilters()) {
+    <p class="empty">No recipes match the selected filters.</p>
   } @else {
     <div class="recipe-grid">
+      @if (!hasActiveFilters()) {
+        <a class="add-card" routerLink="/recipes/new">
+          <span class="add-icon" aria-hidden="true">+</span>
+          <span>{{ 'recipes.new' | t }}</span>
+        </a>
+      }
       @for (recipe of recipes(); track recipe.id) {
         <article class="recipe-card">
           <details class="card-menu">
@@ -76,10 +79,12 @@
       }
     </div>
 
-    <nav class="pagination" [attr.aria-label]="'common.pagination' | t">
-      <button type="button" [disabled]="page() <= 1" (click)="prevPage()">← {{ 'common.previous' | t }}</button>
-      <span>Page {{ page() }}</span>
-      <button type="button" [disabled]="!hasNextPage" (click)="nextPage()">{{ 'common.next' | t }} →</button>
-    </nav>
+    @if (totalCount() > pageSize) {
+      <nav class="pagination" [attr.aria-label]="'common.pagination' | t">
+        <button type="button" [disabled]="page() <= 1" (click)="prevPage()">← {{ 'common.previous' | t }}</button>
+        <span>Page {{ page() }}</span>
+        <button type="button" [disabled]="!hasNextPage" (click)="nextPage()">{{ 'common.next' | t }} →</button>
+      </nav>
+    }
   }
 </main>

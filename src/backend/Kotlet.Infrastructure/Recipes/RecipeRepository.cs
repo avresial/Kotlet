@@ -62,6 +62,16 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
             .Where(r => r.HouseId == houseId)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Recipe>> GetAllWithIngredientsAsync(
+        Guid houseId, CancellationToken cancellationToken) =>
+        await dbContext.Recipes
+            .AsNoTracking()
+            .Include(r => r.Ingredients).ThenInclude(i => i.Ingredient)
+            .Where(r => r.HouseId == houseId)
+            .OrderByDescending(r => r.UpdatedAtUtc)
+            .ThenByDescending(r => r.Id)
+            .ToListAsync(cancellationToken);
+
     public Task<Recipe?> GetByIdAsync(Guid id, Guid houseId, bool tracked, CancellationToken cancellationToken)
     {
         var query = tracked

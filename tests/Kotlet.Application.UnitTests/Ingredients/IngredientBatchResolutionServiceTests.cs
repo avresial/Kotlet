@@ -188,6 +188,42 @@ public sealed class IngredientBatchResolutionServiceTests
         Assert.Contains("required", missing.Reason, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task ResolveForImport_EchoesRecipeFields_AndMatchesWithoutDiacritics()
+    {
+        var salmon = Ingredient("Łosoś");
+        var service = CreateService(salmon);
+
+        var result = await service.ResolveForImportAsync(
+            [new("losos", 200, "g", "fillet")], English, true, CancellationToken.None);
+
+        var item = Assert.Single(result.Items);
+        Assert.Equal("matched", item.Status);
+        Assert.Equal(salmon.Id, item.MatchedIngredient!.Id);
+        Assert.Equal(200, item.Quantity);
+        Assert.Equal("g", item.Unit);
+        Assert.Equal("fillet", item.Note);
+        Assert.Equal(1, item.MatchedIngredient.Confidence);
+    }
+
+    [Fact]
+    public async Task ResolveForImport_ClassifiesFuzzyAmbiguousAndMissingItems()
+    {
+        var pepper = Ingredient("Black pepper");
+        var passata = Ingredient("Tomato passata");
+        var paste = Ingredient("Tomato paste");
+        var service = CreateService(pepper, passata, paste);
+
+        var result = await service.ResolveForImportAsync(
+            [new("black peper"), new("tomato"), new("dragon fruit")], English, true, CancellationToken.None);
+
+        Assert.Equal("matched", result.Items[0].Status);
+        Assert.Equal(pepper.Id, result.Items[0].MatchedIngredient!.Id);
+        Assert.Equal("ambiguous", result.Items[1].Status);
+        Assert.Equal(2, result.Items[1].Candidates.Count);
+        Assert.Equal("missing", result.Items[2].Status);
+    }
+
     private static IngredientBatchResolutionService CreateService(params Ingredient[] ingredients) =>
         CreateService(new FakeIngredientRepository(ingredients));
 

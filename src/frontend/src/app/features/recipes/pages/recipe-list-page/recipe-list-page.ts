@@ -41,6 +41,7 @@ export class RecipeListPage implements OnInit {
     .filter((ingredient): ingredient is Ingredient => ingredient !== undefined));
   readonly availableIngredients = computed(() => this.ingredients()
     .filter(ingredient => !this.selectedIngredientIds().includes(ingredient.id)));
+  readonly hasActiveFilters = computed(() => !!(this.search() || this.mealType() || this.selectedIngredientIds().length));
   readonly mealTypes = recipeMealTypes;
   readonly page = signal(1);
   readonly totalCount = signal(0);
@@ -93,13 +94,16 @@ export class RecipeListPage implements OnInit {
   }
 
   addIngredient(ingredient: Ingredient): void {
-    if (this.selectedIngredientIds().length >= 100) return;
-    this.selectedIngredientIds.update(ids => ids.includes(ingredient.id) ? ids : [...ids, ingredient.id]);
+    if (this.selectedIngredientIds().length >= 100 || this.selectedIngredientIds().includes(ingredient.id)) return;
+    this.selectedIngredientIds.update(ids => [...ids, ingredient.id]);
     this.ingredientPickerValue.set('');
+    this.onSearch();
   }
 
   removeIngredient(ingredientId: string): void {
+    if (!this.selectedIngredientIds().includes(ingredientId)) return;
     this.selectedIngredientIds.update(ids => ids.filter(id => id !== ingredientId));
+    this.onSearch();
   }
 
   prevPage(): void {
