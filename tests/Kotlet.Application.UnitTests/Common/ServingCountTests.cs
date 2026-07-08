@@ -29,7 +29,7 @@ public sealed class ServingCountTests
         var higher = ServingCount.FromInt32(4);
         Assert.True(lower < higher);
         Assert.True(higher > lower);
-        Assert.True(lower <= lower);
-        Assert.True(higher >= higher);
+        Assert.True(lower <= higher);
+        Assert.True(higher >= lower);
     }
 }
