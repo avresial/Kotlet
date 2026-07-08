@@ -95,6 +95,27 @@ public sealed class IngredientMcp
             createMissing, language.Language, cancellationToken));
     }
 
+    [McpServerTool(Name = "resolve_ingredients", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Pass ALL recipe ingredients at once. Returns each item as matched, ambiguous, or missing, preserving quantity, unit, and note. Use matched IDs directly for add_recipe, ask the user only about ambiguous items, and create missing ingredients only after checking this result.")]
+    public static async Task<IngredientImportResolutionResult> ResolveIngredients(
+        [Description("All recipe ingredients to resolve together, at most 100 items.")]
+        IReadOnlyList<McpIngredientImportItem> items,
+        IngredientBatchResolutionService service,
+        ILanguageContext language,
+        [Description("Enable typo and partial-name matching. Exact, case-insensitive, diacritics-insensitive, and singular/plural matches are always checked first.")]
+        bool allowFuzzyMatching = true,
+        CancellationToken cancellationToken = default)
+    {
+        if (items is not { Count: > 0 })
+            throw new McpException("Provide at least one ingredient item.");
+        if (items.Count > 100)
+            throw new McpException("At most 100 ingredient items are allowed per call.");
+        return await service.ResolveForImportAsync(
+            items.Select(item => new IngredientImportCandidate(
+                item.SourceName, item.Quantity, item.Unit, item.Note)).ToList(),
+            language.Language, allowFuzzyMatching, cancellationToken);
+    }
+
     [McpServerResource(UriTemplate = "kotlet://ingredients/{ingredientId}", Name = "ingredient",
         Title = "Kotlet ingredient", MimeType = "application/json"),
      Description("Complete ingredient details, including measurement, calories, price, and localization.")]
