@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
@@ -10,10 +10,11 @@ import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { PantryItem, storageLocations } from '../../pantry.models';
 import { PantryService } from '../../pantry.service';
+import { PantryRecipeMatches } from '../../components/pantry-recipe-matches/pantry-recipe-matches';
 import { DisplayUnit, displayMeasurement, toBaseQuantity, unitsForIngredient } from '../../../ingredients/display-units';
 
 @Component({
-  selector: 'app-pantry-page', imports: [ReactiveFormsModule, RouterLink, IngredientPicker, TranslatePipe],
+  selector: 'app-pantry-page', imports: [ReactiveFormsModule, RouterLink, IngredientPicker, TranslatePipe, PantryRecipeMatches],
   templateUrl: './pantry-page.html', styleUrl: './pantry-page.scss', changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PantryPage implements OnInit {
@@ -21,6 +22,7 @@ export class PantryPage implements OnInit {
   private readonly ingredientService = inject(IngredientService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly translations = inject(TranslationService);
+  private readonly recipeMatches = viewChild(PantryRecipeMatches);
   readonly items = signal<PantryItem[]>([]);
   readonly ingredients = signal<Ingredient[]>([]);
   readonly availableIngredients = computed(() => this.ingredients().filter(i => !this.items().some(item => item.ingredientId === i.id)));
@@ -55,7 +57,7 @@ export class PantryPage implements OnInit {
     const { ingredientId, quantity, unit, expirationDate, storageLocation } = this.form.getRawValue();
     const ingredient = this.selectedIngredient()!;
     this.pantryService.create(ingredientId!, toBaseQuantity(quantity!, unit as DisplayUnit, ingredient), expirationDate, storageLocation!).pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: item => { this.items.update(items => this.sort([...items, item])); this.form.reset({ ingredientId: '', quantity: 1, unit: 'g', expirationDate: null, storageLocation: 1 }); },
+      next: item => { this.items.update(items => this.sort([...items, item])); this.form.reset({ ingredientId: '', quantity: 1, unit: 'g', expirationDate: null, storageLocation: 1 }); this.recipeMatches()?.reload(); },
       error: error => this.error.set(getApiError(error, this.translations.translate('pantry.addError'))),
     });
   }
@@ -66,7 +68,7 @@ export class PantryPage implements OnInit {
     if (this.updatingId() || normalized === item.quantity) return;
     this.updatingId.set(item.id); this.error.set(null);
     this.pantryService.update(item.id, normalized).pipe(finalize(() => this.updatingId.set(null))).subscribe({
-      next: updated => this.items.update(items => this.sort(items.map(current => current.id === updated.id ? updated : current))),
+      next: updated => { this.items.update(items => this.sort(items.map(current => current.id === updated.id ? updated : current))); this.recipeMatches()?.reload(); },
       error: error => this.error.set(getApiError(error, this.translations.translate('pantry.updateError'))),
     });
   }
@@ -75,7 +77,7 @@ export class PantryPage implements OnInit {
     if (this.updatingId() || !window.confirm(this.translations.translate('pantry.removeConfirm').replace('{name}', item.ingredientName))) return;
     this.updatingId.set(item.id); this.error.set(null);
     this.pantryService.delete(item.id).pipe(finalize(() => this.updatingId.set(null))).subscribe({
-      next: () => this.items.update(items => items.filter(current => current.id !== item.id)),
+      next: () => { this.items.update(items => items.filter(current => current.id !== item.id)); this.recipeMatches()?.reload(); },
       error: error => this.error.set(getApiError(error, this.translations.translate('pantry.removeError'))),
     });
   }

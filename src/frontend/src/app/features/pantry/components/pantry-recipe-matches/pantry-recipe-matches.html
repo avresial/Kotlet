@@ -1,0 +1,17 @@
+<section class="recipe-matches" aria-labelledby="matches-title">
+  <div class="section-heading">
+    <div><p class="eyebrow">{{ 'pantry.matches.eyebrow' | t }}</p><h2 id="matches-title">{{ 'pantry.matches.title' | t }}</h2></div>
+    <span>{{ 'pantry.matches.help' | t }}</span>
+  </div>
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  @else if (isLoading() && matches().length === 0) { <p class="empty">{{ 'pantry.matches.loading' | t }}</p> }
+  @else if (matches().length === 0) { <p class="empty">{{ 'pantry.matches.empty' | t }}</p> }
+  @else { <div class="match-grid">@for (match of matches(); track match.recipeId) {
+    <a class="match-card" [class.full]="match.isFullMatch" [routerLink]="['/recipes', match.recipeId]">
+      <div class="match-head"><h3>{{ match.title }}</h3>@if (match.isFullMatch) { <span class="badge">{{ 'pantry.matches.ready' | t }}</span> }</div>
+      <p class="counts">{{ match.matchedIngredientCount }} {{ 'common.of' | t }} {{ match.totalIngredientCount }} {{ 'pantry.matches.inPantry' | t }}</p>
+      <div class="meter" aria-hidden="true"><span [style.width.%]="matchPercent(match)"></span></div>
+      @if (match.missingIngredients.length > 0) { <p class="missing"><strong>{{ 'pantry.matches.missing' | t }}:</strong> {{ missingNames(match) }}</p> }
+    </a>
+  }</div> }
+</section>

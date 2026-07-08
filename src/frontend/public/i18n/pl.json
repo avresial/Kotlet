@@ -6,6 +6,7 @@
   "recipes.mealType": "Typ posiłku", "recipes.mealTypeNone": "Bez typu posiłku", "recipes.allMealTypes": "Wszystkie typy posiłków",
   "pantry.location": "Lokalizacja", "pantry.location.refrigerator": "Lodówka", "pantry.location.freezer": "Zamrażarka", "pantry.location.cabinet": "Szafka",
   "pantry.expirationDate": "Data ważności (opcjonalnie)", "pantry.expires": "Ważne do",
+  "pantry.matches.eyebrow": "Ugotuj z tego, co masz", "pantry.matches.title": "Propozycje przepisów", "pantry.matches.help": "Do pięciu przepisów wykorzystujących najwięcej składników, które już masz.", "pantry.matches.loading": "Szukanie przepisów…", "pantry.matches.empty": "Żaden przepis nie pasuje jeszcze do Twojej spiżarni.", "pantry.matches.error": "Nie udało się wczytać propozycji przepisów.", "pantry.matches.ready": "Masz wszystko", "pantry.matches.inPantry": "składników w spiżarni", "pantry.matches.missing": "Brakuje",
   "ingredients.allCategories": "Wszystkie kategorie", "ingredients.noFilterMatches": "Brak składników pasujących do wybranych filtrów.",
   "recipes.nutritionAndCost": "Koszt i kalorie przepisu", "recipes.totalCost": "Koszt całości", "recipes.totalCalories": "Kalorie całości", "recipes.serving": "porcję",
   "units.grams": "Gramy (g)", "units.millilitres": "Mililitry (ml)", "units.teaspoon": "łyżeczka", "units.tablespoon": "łyżka", "units.cup": "szklanka", "units.piece": "sztuka", "recipes.save": "Zapisz przepis",
