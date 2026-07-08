@@ -110,41 +110,6 @@ public sealed class IngredientEndpointTests(TestWebApplicationFactory factory) :
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    [Fact]
-    public async Task Resolve_ReturnsMatchedAndMissingItemsWithoutCreatingAnything()
-    {
-        var client = await CreateAuthenticatedClient();
-        var suffix = Guid.NewGuid().ToString("N");
-        var name = $"Śmietana {suffix}";
-        var create = await client.PostAsJsonAsync("/api/ingredients", new
-        {
-            name,
-            measurementUnit = "ml",
-            caloriesPer100BaseUnits = 200
-        });
-        create.EnsureSuccessStatusCode();
-        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
-
-        var response = await client.PostAsJsonAsync("/api/ingredients/resolve", new
-        {
-            items = new object[]
-            {
-                new { sourceName = $"smietana {suffix}", quantity = 200, unit = "ml", note = "30%" },
-                new { sourceName = $"missing {Guid.NewGuid():N}" }
-            },
-            language = "en",
-            allowFuzzyMatching = true
-        });
-
-        response.EnsureSuccessStatusCode();
-        var items = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("items");
-        Assert.Equal("matched", items[0].GetProperty("status").GetString());
-        Assert.Equal(id, items[0].GetProperty("matchedIngredient").GetProperty("id").GetGuid());
-        Assert.Equal(200, items[0].GetProperty("quantity").GetDecimal());
-        Assert.Equal("30%", items[0].GetProperty("note").GetString());
-        Assert.Equal("missing", items[1].GetProperty("status").GetString());
-    }
-
     private async Task<HttpClient> CreateAuthenticatedClient()
     {
         var client = _factory.CreateClient();

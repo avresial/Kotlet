@@ -38,17 +38,17 @@ public static class DiExtension
                 All data is scoped to the authenticated user's household; ingredients live in a catalog
                 shared by every household.
 
-                Browsing data: use get_recipes/get_recipe, get_ingredients/get_ingredient,
+                Browsing data: use get_recipes/get_recipe, get_ingredients,
                 get_shopping_list, get_pantry, and get_meal_plan_overview/get_meal_plan. Search tools
                 return resource links; the singular get_* tools and kotlet:// resources return full data.
 
                 Adding a recipe (e.g. one found on the internet): follow the
                 kotlet://recipes/new-recipe-guide resource. In short: check for duplicates first with
-                check_recipe_exists (source URL and/or title), resolve every ingredient in one call
-                with resolve_ingredients_batch (createMissing true creates genuinely new ones), then
+                check_recipe_exists (source URL and/or title), find every ingredient in one call
+                with get_ingredients, create genuinely missing ones after user confirmation, then
                 call add_recipe exactly once with title, servings, a Markdown description containing
                 numbered steps (cite the source URL when imported), and the ingredient IDs with
-                quantities. get_ingredients and create_ingredient remain available for single lookups.
+                quantities.
                 Recipes cannot be edited through MCP.
 
                 Quantities always use the ingredient's base measurement unit (g or ml) unless the tool

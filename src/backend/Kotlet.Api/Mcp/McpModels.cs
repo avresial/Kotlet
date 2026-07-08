@@ -11,6 +11,23 @@ namespace Kotlet.Api.Mcp;
 /// numeric bitmasks, which AI agents cannot interpret; these records expose the same data
 /// as readable name lists instead.
 /// </summary>
+public sealed record McpIngredientSearchResult(
+    string InputName,
+    Guid? IngredientId,
+    string? MatchedName,
+    string? MatchedLanguage,
+    string? MeasurementUnit,
+    int? Distance,
+    bool ExactMatch,
+    decimal? Similarity,
+    string? ResourceUri)
+{
+    public static McpIngredientSearchResult From(IngredientSearchResult result) => new(
+        result.InputName, result.IngredientId, result.MatchedName, result.MatchedLanguage,
+        result.MeasurementUnit, result.Distance, result.ExactMatch, result.Similarity,
+        result.IngredientId is { } id ? $"kotlet://ingredients/{id}" : null);
+}
+
 public sealed record McpIngredient(
     Guid Id,
     string Name,
@@ -65,78 +82,6 @@ public sealed record CreateIngredientMcpRequest(
     string[]? Attributes = null,
     [property: Description("Diets the ingredient suits, from: Vegan, Vegetarian, Pescatarian, GlutenFree, LactoseFree, LowFodmap, LowHistamine, Keto, LowCarb.")]
     string[]? Suitability = null);
-
-public sealed record McpIngredientCandidate(
-    [property: Description("Ingredient name to resolve, e.g. \"chickpeas\".")]
-    string Name,
-    [property: Description("Optional unit hint: \"g\", \"ml\", or \"pcs\". Used only when creating a missing ingredient.")]
-    string? ExpectedUnit = null,
-    [property: Description("Optional category hint using the documented Kotlet category names (e.g. Legume). Unknown hints fall back to Unknown.")]
-    string? CategoryHint = null,
-    [property: Description("Kilocalories per 100 base units. Used only when creating a missing ingredient; defaults to 0.")]
-    decimal? CaloriesPer100BaseUnits = null,
-    [property: Description("Grams or millilitres in one piece. Used only when creating a missing \"pcs\" ingredient; defaults to 100.")]
-    decimal? MeasurementUnitsPerPiece = null);
-
-public sealed record McpIngredientImportItem(
-    [property: Description("Ingredient name exactly as it appears in the recipe.")]
-    string SourceName,
-    [property: Description("Optional recipe quantity, echoed unchanged in the result.")]
-    decimal? Quantity = null,
-    [property: Description("Optional recipe unit, echoed unchanged in the result.")]
-    string? Unit = null,
-    [property: Description("Optional recipe note, echoed unchanged in the result.")]
-    string? Note = null);
-
-public sealed record McpResolvedIngredient(
-    [property: Description("The name you passed in, echoed back so you can line results up with your input.")]
-    string InputName,
-    [property: Description("Catalog ingredient ID. Use this directly as add_recipe's ingredientId.")]
-    Guid IngredientId,
-    [property: Description("Canonical catalog name of the matched ingredient.")]
-    string MatchedName,
-    [property: Description("Base unit this ingredient is measured in (\"g\", \"ml\", or pieces). Use it to express the quantity in add_recipe.")]
-    string MeasurementUnit,
-    [property: Description("\"existing\" if it was already in the catalog, \"created\" if this call added it (only when createMissing=true).")]
-    string Status);
-
-public sealed record McpIngredientNameMatch(Guid IngredientId, string Name);
-
-public sealed record McpAmbiguousIngredient(
-    [property: Description("The name you passed in that matched more than one catalog ingredient.")]
-    string InputName,
-    [property: Description("Candidate ingredients. Pick the right one yourself; nothing was resolved or created for this name.")]
-    IReadOnlyList<McpIngredientNameMatch> Matches);
-
-public sealed record McpMissingIngredient(
-    [property: Description("The name you passed in that has no catalog match.")]
-    string InputName,
-    [property: Description("Why it is unresolved. When createMissing=false this means the ingredient is new; surface it to the user before adding it.")]
-    string Reason);
-
-public sealed record McpIngredientBatchResolutionResult(
-    [property: Description("Names matched to exactly one catalog ingredient, ready to drop into add_recipe.")]
-    IReadOnlyList<McpResolvedIngredient> Resolved,
-    [property: Description("Names that matched several ingredients. Choose one per entry before adding the recipe.")]
-    IReadOnlyList<McpAmbiguousIngredient> Ambiguous,
-    [property: Description("Names not in the catalog. If non-empty, list them for the user and ask whether to add them before proceeding.")]
-    IReadOnlyList<McpMissingIngredient> Missing)
-{
-    public static McpIngredientBatchResolutionResult From(IngredientBatchResolutionResult result) => new(
-        result.Resolved
-            .Select(entry => new McpResolvedIngredient(
-                entry.InputName, entry.IngredientId, entry.MatchedName, entry.MeasurementUnit,
-                entry.Status == IngredientResolutionStatus.Created ? "created" : "existing"))
-            .ToList(),
-        result.Ambiguous
-            .Select(entry => new McpAmbiguousIngredient(
-                entry.InputName,
-                entry.Matches.Select(match => new McpIngredientNameMatch(match.IngredientId, match.Name)).ToList()))
-            .ToList(),
-        result.Missing
-            .Select(entry => new McpMissingIngredient(entry.InputName, entry.Reason))
-            .ToList());
-}
 
 public sealed record McpRecipeMatch(Guid RecipeId, string Title, string? SourceUrl, string MatchType);
 

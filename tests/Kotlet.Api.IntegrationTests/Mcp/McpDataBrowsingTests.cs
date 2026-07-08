@@ -28,10 +28,10 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         var body = await response.Content.ReadAsStringAsync();
         foreach (var tool in new[]
                  {
-                     "get_recipes", "get_recipe", "get_ingredients", "get_ingredient",
+                     "get_recipes", "get_recipe", "get_ingredients",
                      "get_shopping_list", "get_pantry", "get_meal_plan_overview", "get_meal_plan",
                      "get_meal_plan_members", "add_recipe", "create_ingredient",
-                     "resolve_ingredients", "resolve_ingredients_batch", "check_recipe_exists",
+                     "check_recipe_exists",
                      "add_pantry_item", "update_pantry_item", "remove_pantry_item",
                      "add_meal_to_plan", "add_meal_participants", "remove_meal_from_plan"
                  })
@@ -63,13 +63,6 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         Assert.Contains(ingredientName, createdBody);
         var ingredientId = ExtractGuidAfter(createdBody, "\"id\":\"");
 
-        // Full ingredient details come back with readable category/attribute names, not bitmasks.
-        var ingredient = await CallTool(client, accessToken, "get_ingredient", new { ingredientId });
-        var ingredientBody = await ingredient.Content.ReadAsStringAsync();
-        Assert.Contains("\"Spice\"", ingredientBody);
-        Assert.Contains("\"Smoked\"", ingredientBody);
-        Assert.Contains("\"Vegan\"", ingredientBody);
-
         var recipe = await CallTool(client, accessToken, "add_recipe", new
         {
             request = new
@@ -92,94 +85,38 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task BatchImportFlow_ChecksDuplicates_ResolvesIngredientsInOneCall_ThenAddsRecipe()
+    public async Task GetIngredients_ReturnsClosestMatchesInInputOrder()
     {
         var (client, accessToken) = await AuthorizeMcpClientAsync();
-
-        // A fresh household: the recipe does not exist yet.
-        var sourceUrl = $"https://example.com/recipes/chickpea-balls-{Guid.NewGuid():N}";
-        var notFound = await CallTool(client, accessToken, "check_recipe_exists", new { sourceUrl });
-        Assert.Contains("\"exists\":false", await notFound.Content.ReadAsStringAsync());
-
-        // One existing ingredient plus one missing; both resolve in a single batch call.
-        var existingName = $"Chickpeas {Guid.NewGuid():N}";
-        await CallTool(client, accessToken, "create_ingredient", new
+        var suffix = Guid.NewGuid().ToString("N");
+        var appleName = $"Apple {suffix}";
+        var pearName = $"Pear {suffix}";
+        var apple = await CallTool(client, accessToken, "create_ingredient", new
         {
-            request = new { name = existingName, measurementUnit = "g", caloriesPer100BaseUnits = 164 }
+            request = new { name = appleName, measurementUnit = "g", caloriesPer100BaseUnits = 52 }
         });
-        var missingName = $"Tomato passata {Guid.NewGuid():N}";
-        var lookup = await CallTool(client, accessToken, "resolve_ingredients", new
+        var appleId = ExtractGuidAfter(await apple.Content.ReadAsStringAsync(), "\"id\":\"");
+        var pear = await CallTool(client, accessToken, "create_ingredient", new
         {
-            items = new object[]
-            {
-                new { sourceName = existingName.ToLowerInvariant(), quantity = 400, unit = "g" },
-                new { sourceName = missingName, note = "smooth" }
-            }
+            request = new { name = pearName, measurementUnit = "g", caloriesPer100BaseUnits = 57 }
         });
-        var lookupBody = await lookup.Content.ReadAsStringAsync();
-        Assert.Contains("\"matched\"", lookupBody);
-        Assert.Contains("\"missing\"", lookupBody);
-        Assert.Contains("\"quantity\":400", lookupBody);
-        Assert.Contains("smooth", lookupBody);
+        var pearId = ExtractGuidAfter(await pear.Content.ReadAsStringAsync(), "\"id\":\"");
 
-        var resolvedResponse = await CallTool(client, accessToken, "resolve_ingredients_batch", new
+        var response = await CallTool(client, accessToken, "get_ingredients", new
         {
-            ingredients = new object[]
-            {
-                new { name = existingName.ToLowerInvariant() },
-                new { name = missingName, expectedUnit = "ml", categoryHint = "Sauce", caloriesPer100BaseUnits = 38 }
-            },
-            createMissing = true
+            names = new[] { $"Aoole {suffix}", pearName }
         });
-        var resolvedBody = await resolvedResponse.Content.ReadAsStringAsync();
-        Assert.Contains("\"existing\"", resolvedBody);
-        Assert.Contains("\"created\"", resolvedBody);
-        // Resolved entries keep the input order: the existing ingredient first, the created one second.
-        var firstIdIndex = resolvedBody.IndexOf("\"ingredientId\":\"", StringComparison.Ordinal);
-        var existingId = ExtractGuidAfter(resolvedBody, "\"ingredientId\":\"");
-        var createdId = ExtractGuidAfter(resolvedBody[(firstIdIndex + 1)..], "\"ingredientId\":\"");
+        var body = await response.Content.ReadAsStringAsync();
 
-        var title = $"Chickpea balls {Guid.NewGuid():N}";
-        var recipe = await CallTool(client, accessToken, "add_recipe", new
-        {
-            request = new
-            {
-                title,
-                servings = 4,
-                descriptionMarkdown = $"Crispy chickpea balls.\n\n1. Blend chickpeas.\n2. Fry and serve with passata.\n\nSource: {sourceUrl}",
-                ingredients = new object[]
-                {
-                    new { ingredientId = existingId, quantity = 400, unit = "g" },
-                    new { ingredientId = createdId, quantity = 250, unit = "ml" }
-                }
-            }
-        });
-        Assert.Contains("\"Success\"", await recipe.Content.ReadAsStringAsync());
-
-        // A second import attempt is now caught by URL and by title.
-        var byUrl = await CallTool(client, accessToken, "check_recipe_exists", new { sourceUrl });
-        var byUrlBody = await byUrl.Content.ReadAsStringAsync();
-        Assert.Contains("\"exists\":true", byUrlBody);
-        Assert.Contains("\"sourceUrl\"", byUrlBody);
-        var byTitle = await CallTool(client, accessToken, "check_recipe_exists", new { title = title.ToUpperInvariant() });
-        var byTitleBody = await byTitle.Content.ReadAsStringAsync();
-        Assert.Contains("\"exists\":true", byTitleBody);
-        Assert.Contains("\"exactTitle\"", byTitleBody);
-
-        // Ambiguous names are reported instead of guessed.
-        var ambiguous = await CallTool(client, accessToken, "resolve_ingredients_batch", new
-        {
-            ingredients = new object[] { new { name = "Tomato passata" } },
-            createMissing = true
-        });
-        var ambiguousBody = await ambiguous.Content.ReadAsStringAsync();
-        // The partial match against the passata ingredient created above is reported, not guessed or re-created.
-        Assert.Contains(missingName, ambiguousBody);
-        Assert.DoesNotContain("\"created\"", ambiguousBody);
-
-        // Both arguments missing is rejected with actionable guidance.
-        var invalid = await CallTool(client, accessToken, "check_recipe_exists", new { });
-        Assert.Contains("at least one of title or sourceUrl", await invalid.Content.ReadAsStringAsync());
+        Assert.True(body.IndexOf(appleId.ToString(), StringComparison.OrdinalIgnoreCase)
+                    < body.IndexOf(pearId.ToString(), StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(appleName, body);
+        Assert.Contains("\"distance\":2", body);
+        Assert.Contains("\"similarity\":", body);
+        Assert.Contains("\"matchedLanguage\":\"en\"", body);
+        Assert.Contains("\"measurementUnit\":\"g\"", body);
+        Assert.Contains("\"exactMatch\":false", body);
+        Assert.Contains($"kotlet://ingredients/{appleId}", body);
     }
 
     [Fact]

@@ -6,7 +6,7 @@ public static class DiExtension
 {
     public static IServiceCollection AddIngredientsApplication(this IServiceCollection services) => services
         .AddScoped<IngredientService>()
-        .AddScoped<IngredientBatchResolutionService>()
+        .AddScoped<IngredientSearchService>()
         .AddScoped<IngredientTranslationService>()
         .AddScoped<IngredientDetailsAutofillService>()
         // The signal bridges request-scoped writes and the singleton worker, so it must be a singleton.
