@@ -4,7 +4,6 @@ using Kotlet.Api.Mcp;
 using Kotlet.Application.Ingredients;
 using Kotlet.Domain.Ingredients;
 using ModelContextProtocol;
-using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using static Kotlet.Api.Mcp.McpHelpers;
 
@@ -15,30 +14,22 @@ namespace Kotlet.Api.Ingredients;
 [McpServerResourceType]
 public sealed class IngredientMcp
 {
-    [McpServerTool(Name = "get_ingredients", ReadOnly = true, OpenWorld = false),
-     Description("Finds ingredients and returns links to their complete MCP resources.")]
-    public static async Task<IReadOnlyList<ResourceLinkBlock>> GetIngredients(
-        IngredientService service,
-        ILanguageContext language,
-        [Description("Optional text to search for in ingredient names.")] string? search = null,
-        CancellationToken cancellationToken = default) =>
-        (await service.GetAllAsync(language.Language, cancellationToken))
-        .Where(ingredient => string.IsNullOrWhiteSpace(search)
-            || ingredient.Name.Contains(search, StringComparison.OrdinalIgnoreCase))
-        .Select(ingredient => Link(
-            $"kotlet://ingredients/{ingredient.Id}", ingredient.Name,
-            $"Ingredient measured in {ingredient.MeasurementUnit}."))
-        .ToList();
-
-    [McpServerTool(Name = "get_ingredient", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Returns one ingredient with complete details: measurement unit, calories, price, category, allergens, attributes, and dietary suitability.")]
-    public static async Task<McpIngredient> GetIngredient(
-        [Description("Ingredient ID from get_ingredients.")] Guid ingredientId,
-        IngredientService service,
-        ILanguageContext language,
-        CancellationToken cancellationToken) =>
-        McpIngredient.From(await service.GetByIdAsync(ingredientId, language.Language, cancellationToken)
-                           ?? throw new McpException("Ingredient not found."));
+    [McpServerTool(Name = "get_ingredients", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Finds the closest catalog ingredient for each supplied name across every supported language. Returns the matched language, measurement unit, resource URI, exact-match status, edit distance, and normalized similarity from 0 to 1.")]
+    public static async Task<IReadOnlyList<McpIngredientSearchResult>> GetIngredients(
+        [Description("Ingredient names to search for, at most 100 per call.")]
+        IReadOnlyList<string> names,
+        IngredientSearchService service,
+        CancellationToken cancellationToken = default)
+    {
+        if (names is not { Count: > 0 })
+            throw new McpException("Provide at least one ingredient name.");
+        if (names.Count > 100)
+            throw new McpException("At most 100 ingredient names are allowed per call.");
+        return (await service.FindClosestAsync(names, cancellationToken))
+            .Select(McpIngredientSearchResult.From)
+            .ToArray();
+    }
 
     [McpServerTool(Name = "create_ingredient", ReadOnly = false, Destructive = false,
         Idempotent = false, OpenWorld = false, UseStructuredContent = true),
@@ -68,52 +59,6 @@ public sealed class IngredientMcp
             Category: category, Allergens: allergens, Attributes: attributes, Suitability: suitability);
         return McpIngredientOperationResult.From(
             await service.CreateAsync(command, language.Language, cancellationToken));
-    }
-
-    [McpServerTool(Name = "resolve_ingredients_batch", ReadOnly = false, Destructive = false,
-        Idempotent = false, OpenWorld = false, UseStructuredContent = true),
-     Description("Looks up many ingredient names against the shared catalog in ONE call and buckets every name into `resolved`, `ambiguous`, or `missing`. This is the tool to use when importing a recipe: pass every ingredient name from the source at once instead of calling get_ingredients per name. `resolved` entries carry the ingredientId and measurementUnit you need for add_recipe. `ambiguous` names matched several ingredients — pick one yourself. `missing` names are not in the catalog yet. Matching is case-insensitive and singular/plural-tolerant. By default (createMissing=false) NOTHING is created: report the `missing` names to the user and let them decide whether to add them. Only set createMissing=true once the user has agreed to add the new ingredients.")]
-    public static async Task<McpIngredientBatchResolutionResult> ResolveIngredientsBatch(
-        [Description("Every ingredient name from the recipe, at most 100 per call. Prefer generic names (\"Soy sauce\", not a brand); the catalog is shared by all households.")]
-        IReadOnlyList<McpIngredientCandidate> ingredients,
-        IngredientBatchResolutionService service,
-        ILanguageContext language,
-        [Description("Leave false to only search (the default): missing names are reported, not created. Set true only after the user has confirmed they want the `missing` ingredients added; they are then created from the optional hints (category defaults to Unknown, calories and price to 0). Ambiguous names are never auto-created.")]
-        bool createMissing = false,
-        CancellationToken cancellationToken = default)
-    {
-        if (ingredients is not { Count: > 0 })
-            throw new McpException("Provide at least one ingredient candidate.");
-        if (ingredients.Count > 100)
-            throw new McpException("At most 100 ingredient candidates are allowed per call.");
-        return McpIngredientBatchResolutionResult.From(await service.ResolveAsync(
-            ingredients
-                .Select(candidate => new IngredientResolutionCandidate(
-                    candidate.Name, candidate.ExpectedUnit, candidate.CategoryHint,
-                    candidate.CaloriesPer100BaseUnits, candidate.MeasurementUnitsPerPiece))
-                .ToList(),
-            createMissing, language.Language, cancellationToken));
-    }
-
-    [McpServerTool(Name = "resolve_ingredients", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Pass ALL recipe ingredients at once. Returns each item as matched, ambiguous, or missing, preserving quantity, unit, and note. Use matched IDs directly for add_recipe, ask the user only about ambiguous items, and create missing ingredients only after checking this result.")]
-    public static async Task<IngredientImportResolutionResult> ResolveIngredients(
-        [Description("All recipe ingredients to resolve together, at most 100 items.")]
-        IReadOnlyList<McpIngredientImportItem> items,
-        IngredientBatchResolutionService service,
-        ILanguageContext language,
-        [Description("Enable typo and partial-name matching. Exact, case-insensitive, diacritics-insensitive, and singular/plural matches are always checked first.")]
-        bool allowFuzzyMatching = true,
-        CancellationToken cancellationToken = default)
-    {
-        if (items is not { Count: > 0 })
-            throw new McpException("Provide at least one ingredient item.");
-        if (items.Count > 100)
-            throw new McpException("At most 100 ingredient items are allowed per call.");
-        return await service.ResolveForImportAsync(
-            items.Select(item => new IngredientImportCandidate(
-                item.SourceName, item.Quantity, item.Unit, item.Note)).ToList(),
-            language.Language, allowFuzzyMatching, cancellationToken);
     }
 
     [McpServerResource(UriTemplate = "kotlet://ingredients/{ingredientId}", Name = "ingredient",

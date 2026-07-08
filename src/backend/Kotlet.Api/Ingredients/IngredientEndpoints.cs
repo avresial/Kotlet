@@ -13,7 +13,6 @@ public static class IngredientEndpoints
         ingredients.MapGet("/{id:guid}", async (Guid id, IngredientService service, ILanguageContext language, CancellationToken ct) =>
             await service.GetByIdAsync(id, language.Language, ct) is { } ingredient ? Results.Ok(ingredient) : Results.NotFound())
             .WithName("GetIngredient");
-        ingredients.MapPost("/resolve", Resolve).WithName("ResolveIngredients");
         ingredients.MapPost("", Create).WithName("CreateIngredient");
         ingredients.MapPost("/autofill", async (AutofillIngredientRequest request, IngredientDetailsAutofillService service, CancellationToken ct) =>
             await service.SuggestAsync(request.Name, ct) is { } suggestion ? Results.Ok(suggestion)
@@ -22,22 +21,6 @@ public static class IngredientEndpoints
         ingredients.MapPut("/{id:guid}", Update).WithName("UpdateIngredient");
         ingredients.MapDelete("/{id:guid}", Delete).WithName("DeleteIngredient");
         return endpoints;
-    }
-
-    private static async Task<IResult> Resolve(
-        ResolveIngredientsRequest request,
-        IngredientBatchResolutionService service,
-        ILanguageContext language,
-        CancellationToken cancellationToken)
-    {
-        if (request.Items is not { Count: > 0 } || request.Items.Count > 100)
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["items"] = ["Provide between 1 and 100 ingredient items."]
-            });
-
-        return Results.Ok(await service.ResolveForImportAsync(
-            request.Items, request.Language ?? language.Language, request.AllowFuzzyMatching, cancellationToken));
     }
 
     private static async Task<IResult> Create(
@@ -82,8 +65,3 @@ public static class IngredientEndpoints
 }
 
 public sealed record AutofillIngredientRequest(string Name);
-
-public sealed record ResolveIngredientsRequest(
-    IReadOnlyList<IngredientImportCandidate> Items,
-    string? Language = null,
-    bool AllowFuzzyMatching = true);
