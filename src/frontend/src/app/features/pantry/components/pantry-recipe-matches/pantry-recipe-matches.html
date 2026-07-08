@@ -10,7 +10,7 @@
     <a class="match-card" [class.full]="match.isFullMatch" [routerLink]="['/recipes', match.recipeId]">
       <div class="match-head"><h3>{{ match.title }}</h3>@if (match.isFullMatch) { <span class="badge">{{ 'pantry.matches.ready' | t }}</span> }</div>
       <p class="counts">{{ match.matchedIngredientCount }} {{ 'common.of' | t }} {{ match.totalIngredientCount }} {{ 'pantry.matches.inPantry' | t }}</p>
-      <div class="meter" aria-hidden="true"><span [style.width.%]="matchPercent(match)"></span></div>
+      <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="matchPercent(match)" [attr.aria-label]="match.matchedIngredientCount + ' ' + ('common.of' | t) + ' ' + match.totalIngredientCount + ' ' + ('pantry.matches.inPantry' | t)"><span [style.width.%]="matchPercent(match)"></span></div>
       @if (match.missingIngredients.length > 0) { <p class="missing"><strong>{{ 'pantry.matches.missing' | t }}:</strong> {{ missingNames(match) }}</p> }
     </a>
   }</div> }
