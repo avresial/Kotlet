@@ -1,4 +1,6 @@
 using Kotlet.Domain.Ingredients;
+using System.Globalization;
+using System.Text;
 
 namespace Kotlet.Application.Ingredients;
 
@@ -11,6 +13,19 @@ public sealed class IngredientBatchResolutionService(IngredientService ingredien
 {
     private const int MaxAmbiguousMatches = 10;
     private const decimal DefaultMeasurementUnitsPerPiece = 100;
+    private const decimal StrongMatch = .9m;
+    private const decimal CandidateMatch = .6m;
+    private const decimal ClearLead = .1m;
+
+    public async Task<IngredientImportResolutionResult> ResolveForImportAsync(
+        IReadOnlyList<IngredientImportCandidate> candidates,
+        string languageCode,
+        bool allowFuzzyMatching,
+        CancellationToken cancellationToken)
+    {
+        var catalog = await ingredientService.GetAllAsync(languageCode, cancellationToken);
+        return new(candidates.Select(candidate => ResolveForImport(candidate, catalog, allowFuzzyMatching)).ToList());
+    }
 
     public async Task<IngredientBatchResolutionResult> ResolveAsync(
         IReadOnlyList<IngredientResolutionCandidate> candidates,
@@ -151,7 +166,105 @@ public sealed class IngredientBatchResolutionService(IngredientService ingredien
         return name.Contains(inputName, StringComparison.OrdinalIgnoreCase)
             || inputName.Contains(name, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static IngredientImportResolutionItem ResolveForImport(
+        IngredientImportCandidate candidate,
+        IReadOnlyCollection<IngredientDto> catalog,
+        bool allowFuzzyMatching)
+    {
+        var sourceName = candidate.SourceName?.Trim() ?? string.Empty;
+        var exact = catalog.Where(ingredient =>
+                NormalizedEquals(ingredient.Name, sourceName) || NormalizedEquals(ingredient.DefaultName, sourceName))
+            .Select(ingredient => ToImportMatch(ingredient, 1m))
+            .ToList();
+
+        if (exact.Count == 1)
+            return Result("matched", exact[0], []);
+        if (exact.Count > 1)
+            return Result("ambiguous", null, exact.Take(MaxAmbiguousMatches).ToList());
+        if (!allowFuzzyMatching || sourceName.Length == 0)
+            return Result("missing", null, []);
+
+        var matches = catalog
+            .Select(ingredient => ToImportMatch(ingredient, Math.Max(
+                Similarity(sourceName, ingredient.Name), Similarity(sourceName, ingredient.DefaultName))))
+            .Where(match => match.Confidence >= CandidateMatch)
+            .OrderByDescending(match => match.Confidence)
+            .ThenBy(match => match.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(MaxAmbiguousMatches)
+            .ToList();
+
+        if (matches.Count == 0)
+            return Result("missing", null, []);
+        if (matches[0].Confidence >= StrongMatch
+            && (matches.Count == 1 || matches[0].Confidence - matches[1].Confidence >= ClearLead))
+            return Result("matched", matches[0], []);
+        return Result("ambiguous", null, matches);
+
+        IngredientImportResolutionItem Result(
+            string status, IngredientImportMatch? matched, IReadOnlyList<IngredientImportMatch> candidateMatches) =>
+            new(sourceName, candidate.Quantity, candidate.Unit, candidate.Note, status, matched, candidateMatches);
+    }
+
+    private static IngredientImportMatch ToImportMatch(IngredientDto ingredient, decimal confidence) =>
+        new(ingredient.Id, ingredient.Name, ingredient.MeasurementUnit, decimal.Round(confidence, 2));
+
+    private static bool NormalizedEquals(string left, string right)
+    {
+        left = Normalize(left);
+        right = Normalize(right);
+        return left == right || left == right + "s" || left == right + "es"
+            || left + "s" == right || left + "es" == right;
+    }
+
+    private static decimal Similarity(string left, string right)
+    {
+        left = Normalize(left);
+        right = Normalize(right);
+        if (left.Length == 0 || right.Length == 0)
+            return 0;
+        if (left.Contains(right, StringComparison.Ordinal) || right.Contains(left, StringComparison.Ordinal))
+            return .8m + .1m * Math.Min(left.Length, right.Length) / Math.Max(left.Length, right.Length);
+
+        var previous = Enumerable.Range(0, right.Length + 1).ToArray();
+        var current = new int[right.Length + 1];
+        for (var i = 1; i <= left.Length; i++)
+        {
+            current[0] = i;
+            for (var j = 1; j <= right.Length; j++)
+                current[j] = Math.Min(Math.Min(current[j - 1] + 1, previous[j] + 1),
+                    previous[j - 1] + (left[i - 1] == right[j - 1] ? 0 : 1));
+            (previous, current) = (current, previous);
+        }
+        return 1m - (decimal)previous[right.Length] / Math.Max(left.Length, right.Length);
+    }
+
+    private static string Normalize(string value)
+    {
+        var decomposed = value.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        return string.Concat(decomposed.Where(character =>
+            CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark))
+            .Normalize(NormalizationForm.FormC)
+            .Replace('ł', 'l');
+    }
 }
+
+public sealed record IngredientImportCandidate(
+    string SourceName, decimal? Quantity = null, string? Unit = null, string? Note = null);
+
+public sealed record IngredientImportMatch(
+    Guid Id, string Name, string MeasurementUnit, decimal Confidence);
+
+public sealed record IngredientImportResolutionItem(
+    string SourceName,
+    decimal? Quantity,
+    string? Unit,
+    string? Note,
+    string Status,
+    IngredientImportMatch? MatchedIngredient,
+    IReadOnlyList<IngredientImportMatch> Candidates);
+
+public sealed record IngredientImportResolutionResult(IReadOnlyList<IngredientImportResolutionItem> Items);
 
 public sealed record IngredientResolutionCandidate(
     string Name,

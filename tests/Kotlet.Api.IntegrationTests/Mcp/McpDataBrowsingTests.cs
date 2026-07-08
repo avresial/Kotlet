@@ -31,7 +31,7 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
                      "get_recipes", "get_recipe", "get_ingredients", "get_ingredient",
                      "get_shopping_list", "get_pantry", "get_meal_plan_overview", "get_meal_plan",
                      "get_meal_plan_members", "add_recipe", "create_ingredient",
-                     "resolve_ingredients_batch", "check_recipe_exists",
+                     "resolve_ingredients", "resolve_ingredients_batch", "check_recipe_exists",
                      "add_pantry_item", "update_pantry_item", "remove_pantry_item",
                      "add_meal_to_plan", "add_meal_participants", "remove_meal_from_plan"
                  })
@@ -108,6 +108,20 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
             request = new { name = existingName, measurementUnit = "g", caloriesPer100BaseUnits = 164 }
         });
         var missingName = $"Tomato passata {Guid.NewGuid():N}";
+        var lookup = await CallTool(client, accessToken, "resolve_ingredients", new
+        {
+            items = new object[]
+            {
+                new { sourceName = existingName.ToLowerInvariant(), quantity = 400, unit = "g" },
+                new { sourceName = missingName, note = "smooth" }
+            }
+        });
+        var lookupBody = await lookup.Content.ReadAsStringAsync();
+        Assert.Contains("\"matched\"", lookupBody);
+        Assert.Contains("\"missing\"", lookupBody);
+        Assert.Contains("\"quantity\":400", lookupBody);
+        Assert.Contains("smooth", lookupBody);
+
         var resolvedResponse = await CallTool(client, accessToken, "resolve_ingredients_batch", new
         {
             ingredients = new object[]

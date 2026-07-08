@@ -78,6 +78,16 @@ public sealed record McpIngredientCandidate(
     [property: Description("Grams or millilitres in one piece. Used only when creating a missing \"pcs\" ingredient; defaults to 100.")]
     decimal? MeasurementUnitsPerPiece = null);
 
+public sealed record McpIngredientImportItem(
+    [property: Description("Ingredient name exactly as it appears in the recipe.")]
+    string SourceName,
+    [property: Description("Optional recipe quantity, echoed unchanged in the result.")]
+    decimal? Quantity = null,
+    [property: Description("Optional recipe unit, echoed unchanged in the result.")]
+    string? Unit = null,
+    [property: Description("Optional recipe note, echoed unchanged in the result.")]
+    string? Note = null);
+
 public sealed record McpResolvedIngredient(
     [property: Description("The name you passed in, echoed back so you can line results up with your input.")]
     string InputName,
