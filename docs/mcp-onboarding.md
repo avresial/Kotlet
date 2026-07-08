@@ -13,7 +13,7 @@ resources (resources are additionally available for clients that do).
 | Area | Browse | Change |
 | --- | --- | --- |
 | Recipes | `get_recipes` (search), `get_recipe` (full detail), `check_recipe_exists` (duplicate check) | `add_recipe` |
-| Ingredients | `get_ingredients` (search), `get_ingredient` (full detail) | `create_ingredient`, `resolve_ingredients_batch` (batch match/create) |
+| Ingredients | `get_ingredients` (closest batch search across all languages, with similarity and measurement metadata) | `create_ingredient` |
 | Shopping list | `get_shopping_list` | `add_shopping_list_item`, `update_shopping_list_item`, `remove_shopping_list_item`, `clear_purchased_shopping_items` |
 | Pantry | `get_pantry` | `add_pantry_item`, `update_pantry_item`, `remove_pantry_item` |
 | Meal planner | `get_meal_plan_overview`, `get_meal_plan` | `add_weekly_meal_plan` |
@@ -21,9 +21,8 @@ resources (resources are additionally available for clients that do).
 A typical flow: ask your agent to find a recipe on the internet (a website or a
 video), review it together, and say "add it to Kotlet". The agent first checks
 for duplicates with `check_recipe_exists` (by source URL and/or title), resolves
-all ingredients against the shared catalog in a single
-`resolve_ingredients_batch` call (creating genuinely missing ones in the same
-call), and saves the recipe once with `add_recipe`, citing the source URL in the
+all ingredients against the shared catalog in a single `get_ingredients` call,
+asks before creating genuinely missing ones, and saves the recipe once with `add_recipe`, citing the source URL in the
 description. The server publishes
 this workflow to agents through its MCP server instructions, the
 `kotlet://recipes/new-recipe-guide` resource, and the `create_recipe_flow`
