@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kotlet Runtime"
+  short_description: "Start and test the Kotlet app locally."
+  default_prompt: "Use the Kotlet runtime skill to start Aspire, log in with the seeded test user, and verify the app."

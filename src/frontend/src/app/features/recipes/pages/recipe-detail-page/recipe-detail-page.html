@@ -44,6 +44,28 @@
           <div><span>{{ 'recipes.totalCalories' | t }}</span><strong>{{ (caloriesPerServing() * r.servings).toFixed(0) }} kcal</strong><small>{{ caloriesPerServing().toFixed(0) }} kcal / {{ 'recipes.serving' | t }}</small></div>
         </section>
 
+        @if (propertyGroups().length) {
+          <section class="properties-section">
+            <h2>{{ 'recipes.ingredientProperties' | t }}</h2>
+            <div class="property-groups">
+              @for (group of propertyGroups(); track group.label) {
+                <div class="property-group">
+                  <h3>{{ group.label | t }}</h3>
+                  <ul class="property-list">
+                    @for (option of group.options; track option.value) {
+                      <li
+                        class="property-chip"
+                        [class.allergen]="group.kind === 'allergen'"
+                        [class.suitability]="group.kind === 'suitability'"
+                      >{{ option.label | t }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+          </section>
+        }
+
         @if (r.ingredients.length > 0) {
           <section class="ingredients-section">
             <h2>{{ 'nav.ingredients' | t }}</h2>
