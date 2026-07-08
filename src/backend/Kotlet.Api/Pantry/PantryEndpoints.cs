@@ -11,6 +11,8 @@ public static class PantryEndpoints
         var pantry = endpoints.MapGroup("/api/pantry").WithTags("Pantry").RequireAuthorization();
         pantry.MapGet("", async (ICurrentUser user, PantryService service, ILanguageContext language, CancellationToken ct) =>
             user.HouseId is { } houseId ? Results.Ok(await service.GetAllAsync(houseId, language.Language, ct)) : Results.Unauthorized()).WithName("GetPantry");
+        pantry.MapGet("/recipe-matches", async (ICurrentUser user, PantryRecipeMatchService service, ILanguageContext language, CancellationToken ct) =>
+            user.HouseId is { } houseId ? Results.Ok(await service.GetSuggestionsAsync(houseId, language.Language, ct)) : Results.Unauthorized()).WithName("GetPantryRecipeMatches");
         pantry.MapPost("", Create).WithName("CreatePantryItem");
         pantry.MapPut("/{id:guid}", Update).WithName("UpdatePantryItem");
         pantry.MapDelete("/{id:guid}", Delete).WithName("DeletePantryItem");

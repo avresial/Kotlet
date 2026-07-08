@@ -13,6 +13,8 @@ public interface IRecipeRepository
     Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken);
     /// <summary>Lightweight recipe list (no ingredients/images) for duplicate detection.</summary>
     Task<IReadOnlyList<Recipe>> GetAllForDuplicateCheckAsync(Guid ownerUserId, CancellationToken cancellationToken);
+    /// <summary>All recipes of the house with their ingredients, newest first, for pantry matching.</summary>
+    Task<IReadOnlyList<Recipe>> GetAllWithIngredientsAsync(Guid houseId, CancellationToken cancellationToken);
     Task<bool> SlugExistsAsync(Guid ownerUserId, string slug, Guid? excludedId, CancellationToken cancellationToken);
     void Add(Recipe recipe);
     void Remove(Recipe recipe);

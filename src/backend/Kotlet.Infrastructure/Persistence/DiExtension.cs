@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Kotlet.Infrastructure.Pantry;
 using Kotlet.Infrastructure.Translations;
 
 namespace Kotlet.Infrastructure.Persistence;
@@ -29,7 +30,9 @@ public static class DiExtension
                             ?? throw new InvalidOperationException("Connection string 'kotletdb' is not configured."),
                         npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", DatabaseSchemas.Kotlet))
                     .UseOpenIddict()
-                    .AddInterceptors(serviceProvider.GetRequiredService<TranslationCacheInterceptor>()));
+                    .AddInterceptors(
+                        serviceProvider.GetRequiredService<TranslationCacheInterceptor>(),
+                        serviceProvider.GetRequiredService<PantryRecipeMatchCacheInterceptor>()));
             return;
         }
 
@@ -42,7 +45,9 @@ public static class DiExtension
             services.AddDbContext<KotletDbContext>((serviceProvider, options) =>
                 options.UseSqlite(connectionString)
                     .UseOpenIddict()
-                    .AddInterceptors(serviceProvider.GetRequiredService<TranslationCacheInterceptor>()));
+                    .AddInterceptors(
+                        serviceProvider.GetRequiredService<TranslationCacheInterceptor>(),
+                        serviceProvider.GetRequiredService<PantryRecipeMatchCacheInterceptor>()));
             return;
         }
 

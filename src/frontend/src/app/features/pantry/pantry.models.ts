@@ -8,6 +8,21 @@ export interface PantryItem {
   storageLocation: 1 | 2 | 3 | null;
 }
 
+export interface PantryRecipeMatchIngredient {
+  ingredientId: string;
+  name: string;
+}
+
+export interface PantryRecipeMatch {
+  recipeId: string;
+  title: string;
+  slug: string;
+  totalIngredientCount: number;
+  matchedIngredientCount: number;
+  isFullMatch: boolean;
+  missingIngredients: PantryRecipeMatchIngredient[];
+}
+
 export const storageLocations = [
   { value: 1, label: 'pantry.location.refrigerator' },
   { value: 2, label: 'pantry.location.freezer' },
