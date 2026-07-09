@@ -14,15 +14,17 @@
           @if (justCreated()) {
             <button type="button" class="add-next-action" (click)="addNext()"><span aria-hidden="true">+</span> {{ 'recipes.addNext' | t }}</button>
           }
-          <a class="edit-action" [routerLink]="['/recipes', r.id, 'edit']"><span aria-hidden="true">✎</span> {{ 'common.edit' | t }}</a>
-          <details class="actions-menu">
-            <summary class="actions-trigger" [attr.aria-label]="'recipes.actions' | t" [title]="'recipes.actions' | t">⋮</summary>
-            <div class="actions-dropdown">
-              <button type="button" class="delete-action" [disabled]="isDeleting()" (click)="delete()">
-                {{ isDeleting() ? 'Deleting…' : 'Delete recipe' }}
-              </button>
-            </div>
-          </details>
+          @if (r.canEdit) {
+            <a class="edit-action" [routerLink]="['/recipes', r.id, 'edit']"><span aria-hidden="true">✎</span> {{ 'common.edit' | t }}</a>
+            <details class="actions-menu">
+              <summary class="actions-trigger" [attr.aria-label]="'recipes.actions' | t" [title]="'recipes.actions' | t">⋮</summary>
+              <div class="actions-dropdown">
+                <button type="button" class="delete-action" [disabled]="isDeleting()" (click)="delete()">
+                  {{ isDeleting() ? 'Deleting…' : 'Delete recipe' }}
+                </button>
+              </div>
+            </details>
+          }
         </div>
         <header class="hero-copy">
           <p class="eyebrow">Recipe · {{ r.servings }} serving{{ r.servings !== 1 ? 's' : '' }}</p>

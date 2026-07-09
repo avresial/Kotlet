@@ -520,6 +520,9 @@ public sealed class RecipeServiceTests
         public Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken) =>
             Task.FromResult(Recipes.SingleOrDefault(r => r.Id == id && r.OwnerUserId == ownerUserId));
 
+        public Task<Recipe?> GetPublicByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            Task.FromResult(Recipes.SingleOrDefault(r => r.Id == id));
+
         public Task<IReadOnlyList<Recipe>> GetAllForDuplicateCheckAsync(Guid ownerUserId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<Recipe>>(Recipes.Where(r => r.OwnerUserId == ownerUserId).ToList());
 

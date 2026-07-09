@@ -59,6 +59,21 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
     }
 
     [Fact]
+    public async Task AnonymousUser_CanViewRecipeImageContentButCannotUpload()
+    {
+        var owner = await AuthenticatedClient();
+        var recipeId = await CreateRecipe(owner);
+        var upload = await Upload(owner, recipeId, "photo.png", "image/png", [1, 2, 3], null);
+        var imageId = (await upload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        var anonymous = factory.CreateClient();
+        var content = await anonymous.GetAsync($"/api/recipes/{recipeId}/images/{imageId}/content");
+        Assert.Equal(HttpStatusCode.OK, content.StatusCode);
+        Assert.Equal([1, 2, 3], await content.Content.ReadAsByteArrayAsync());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Upload(anonymous, recipeId, "nope.png", "image/png", [1], null)).StatusCode);
+    }
+
+    [Fact]
     public async Task DeletingRecipe_CascadesImages()
     {
         var client = await AuthenticatedClient();

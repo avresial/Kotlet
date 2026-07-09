@@ -63,6 +63,7 @@ export interface RecipeDetail {
   mealType: RecipeMealType | null;
   ingredients: RecipeIngredient[];
   images: RecipeImage[];
+  canEdit: boolean;
   createdAtUtc: string;
   updatedAtUtc: string;
 }

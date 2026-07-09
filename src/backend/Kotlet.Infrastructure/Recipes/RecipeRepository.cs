@@ -82,6 +82,12 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
             cancellationToken);
     }
 
+    public Task<Recipe?> GetPublicByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        dbContext.Recipes
+            .AsNoTracking()
+            .Include(r => r.Ingredients).ThenInclude(i => i.Ingredient)
+            .SingleOrDefaultAsync(r => r.Id == id, cancellationToken);
+
     public Task<bool> SlugExistsAsync(Guid houseId, string slug, Guid? excludedId, CancellationToken cancellationToken) =>
         dbContext.Recipes.AnyAsync(
             r => r.HouseId == houseId

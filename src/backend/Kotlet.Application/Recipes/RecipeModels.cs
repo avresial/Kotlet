@@ -53,6 +53,7 @@ public sealed record RecipeDetailResponse(
     string? MealType,
     IReadOnlyList<RecipeIngredientResponse> Ingredients,
     IReadOnlyList<RecipeImageResponse> Images,
+    bool CanEdit,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
 
