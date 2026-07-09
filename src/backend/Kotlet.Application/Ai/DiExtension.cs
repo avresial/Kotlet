@@ -8,5 +8,6 @@ public static class DiExtension
         .AddScoped<UserAiProviderService>()
         .AddScoped<IUserChatClientResolver, UserChatClientResolver>()
         .AddSingleton<IApplicationChatClientResolver, ApplicationChatClientResolver>()
-        .AddScoped<AiTranslationService>();
+        .AddScoped<AiTranslationService>()
+        .AddScoped<AiRecipeExtractionService>();
 }
