@@ -26,6 +26,8 @@
 .eyebrow { margin: 0 0 .65rem; color: #f0d6cb; font-size: .72rem; font-weight: 850; letter-spacing: .18em; text-transform: uppercase; }
 h1 { max-width: 48rem; margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2.5rem, 6vw, 4rem); line-height: .98; letter-spacing: -.02em; text-wrap: balance; }
 .meta { margin: .85rem 0 0; display: flex; align-items: center; flex-wrap: wrap; gap: .7rem; color: #f3ead9; font-size: .84rem; }
+.meta .source-link { color: inherit; text-underline-offset: 2px; }
+.meta .source-link:hover { color: #fff; }
 
 .content-card { position: relative; z-index: 3; margin-top: -.35rem; padding: 2rem 2.25rem 2.75rem; border-radius: 1rem 1rem 0 0; background: #fffaf2; }
 section + section { margin-top: 2.2rem; }

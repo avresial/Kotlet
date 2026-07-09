@@ -14,10 +14,11 @@ import { ImageGallery } from '../../components/image-gallery/image-gallery';
 import { allergenOptions, dietarySuitabilityOptions, foodAttributeOptions, Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { recipeCaloriesPerServing, recipePricePerServing } from '../../../meal-planner/meal-planner-calculations';
+import { AiBadge } from '../../../../shared/ui/ai-badge/ai-badge';
 
 @Component({
   selector: 'app-recipe-detail-page',
-  imports: [RouterLink, DatePipe, ImageGallery, TranslatePipe],
+  imports: [RouterLink, DatePipe, ImageGallery, TranslatePipe, AiBadge],
   templateUrl: './recipe-detail-page.html',
   styleUrl: './recipe-detail-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

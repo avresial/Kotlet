@@ -49,6 +49,7 @@ describe('RecipeListPage pagination', () => {
       servings: 2,
       mealType: null,
       firstImageUrl: null,
+      isAiAssisted: false,
       createdAtUtc: '2026-06-29T00:00:00Z',
       updatedAtUtc: '2026-06-29T00:00:00Z',
     };

@@ -12,10 +12,11 @@ import { IngredientService } from '../../../ingredients/ingredient.service';
 import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
 import { RecipeMealType, RecipeSummary, recipeMealTypes } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
+import { AiBadge } from '../../../../shared/ui/ai-badge/ai-badge';
 
 @Component({
   selector: 'app-recipe-list-page',
-  imports: [RouterLink, FormsModule, DatePipe, TranslatePipe, IngredientPicker],
+  imports: [RouterLink, FormsModule, DatePipe, TranslatePipe, IngredientPicker, AiBadge],
   templateUrl: './recipe-list-page.html',
   styleUrl: './recipe-list-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

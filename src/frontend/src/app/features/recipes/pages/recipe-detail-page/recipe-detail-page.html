@@ -27,11 +27,15 @@
         <header class="hero-copy">
           <p class="eyebrow">Recipe · {{ r.servings }} serving{{ r.servings !== 1 ? 's' : '' }}</p>
           @if (r.mealType) { <p class="eyebrow">{{ ('meal.slot.' + r.mealType) | t }}</p> }
-          <h1>{{ r.title }}</h1>
+          <h1>{{ r.title }} @if (r.isAiAssisted) { <app-ai-badge [tooltip]="'recipes.aiAssisted' | t" /> }</h1>
           <p class="meta">
             <span>♧ {{ r.ingredients.length }} ingredient{{ r.ingredients.length !== 1 ? 's' : '' }}</span>
             <span aria-hidden="true">·</span>
             <span>◷ Updated {{ r.updatedAtUtc | date:'mediumDate' }}</span>
+            @if (r.sourceUrl) {
+              <span aria-hidden="true">·</span>
+              <a class="source-link" [href]="r.sourceUrl" target="_blank" rel="noopener noreferrer">⧉ {{ 'recipes.source' | t }}</a>
+            }
           </p>
         </header>
       </app-image-gallery>
