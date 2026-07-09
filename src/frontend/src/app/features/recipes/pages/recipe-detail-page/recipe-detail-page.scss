@@ -34,6 +34,12 @@ section h2 { margin: 0 0 1rem; color: #786f62; font-size: .72rem; font-weight: 8
 .recipe-totals div { padding: 1rem 1.25rem; border: 1px solid #d8cdbd; border-radius: .9rem; display: grid; gap: .2rem; background: #efe7d8; }
 .recipe-totals span, .recipe-totals small { color: #786f62; font-size: .75rem; }
 .recipe-totals strong { font: 500 1.4rem Georgia, serif; }
+.property-groups { padding: 1rem 1.25rem; border: 1px solid #d8cdbd; border-radius: .9rem; display: grid; gap: 1rem; background: #fffdf9; }
+.property-group h3 { margin: 0 0 .55rem; color: #786f62; font-size: .72rem; font-weight: 750; }
+.property-list { margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .45rem; list-style: none; }
+.property-chip { padding: .35rem .65rem; border: 1px solid #d8cdbd; border-radius: 99rem; background: #f5efe5; color: #514a40; font-size: .75rem; font-weight: 700; }
+.property-chip.allergen { border-color: #d99b8b; background: #fff0ec; color: #9a3022; }
+.property-chip.suitability { border-color: #9fbea1; background: #edf7ed; color: #35633a; }
 .ingredient-list { margin: 0; padding: .5rem 1.35rem; border: 1px solid #d8cdbd; border-radius: .9rem; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.25rem; list-style: none; background: #efe7d8; }
 .ingredient-item { min-width: 0; padding: .72rem 0; border-bottom: 1px solid #e0d4c0; display: flex; align-items: center; justify-content: space-between; gap: .8rem; }
 .ingredient-item:nth-last-child(-n + 2) { border-bottom: 0; }
