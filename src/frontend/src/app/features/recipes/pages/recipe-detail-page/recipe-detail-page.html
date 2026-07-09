@@ -29,11 +29,15 @@
         <header class="hero-copy">
           <p class="eyebrow">Recipe · {{ r.servings }} serving{{ r.servings !== 1 ? 's' : '' }}</p>
           @if (r.mealType) { <p class="eyebrow">{{ ('meal.slot.' + r.mealType) | t }}</p> }
-          <h1>{{ r.title }}</h1>
+          <h1>{{ r.title }} @if (r.isAiAssisted) { <app-ai-badge [tooltip]="'recipes.aiAssisted' | t" /> }</h1>
           <p class="meta">
             <span>♧ {{ r.ingredients.length }} ingredient{{ r.ingredients.length !== 1 ? 's' : '' }}</span>
             <span aria-hidden="true">·</span>
             <span>◷ Updated {{ r.updatedAtUtc | date:'mediumDate' }}</span>
+            @if (r.sourceUrl) {
+              <span aria-hidden="true">·</span>
+              <a class="source-link" [href]="r.sourceUrl" target="_blank" rel="noopener noreferrer">⧉ {{ 'recipes.source' | t }}</a>
+            }
           </p>
         </header>
       </app-image-gallery>
@@ -45,6 +49,28 @@
           <div><span>{{ 'recipes.totalCost' | t }}</span><strong>{{ (pricePerServing() * r.servings).toFixed(2) }} zł</strong><small>{{ pricePerServing().toFixed(2) }} zł / {{ 'recipes.serving' | t }}</small></div>
           <div><span>{{ 'recipes.totalCalories' | t }}</span><strong>{{ (caloriesPerServing() * r.servings).toFixed(0) }} kcal</strong><small>{{ caloriesPerServing().toFixed(0) }} kcal / {{ 'recipes.serving' | t }}</small></div>
         </section>
+
+        @if (propertyGroups().length) {
+          <section class="properties-section">
+            <h2>{{ 'recipes.ingredientProperties' | t }}</h2>
+            <div class="property-groups">
+              @for (group of propertyGroups(); track group.label) {
+                <div class="property-group">
+                  <h3>{{ group.label | t }}</h3>
+                  <ul class="property-list">
+                    @for (option of group.options; track option.value) {
+                      <li
+                        class="property-chip"
+                        [class.allergen]="group.kind === 'allergen'"
+                        [class.suitability]="group.kind === 'suitability'"
+                      >{{ option.label | t }}</li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+          </section>
+        }
 
         @if (r.ingredients.length > 0) {
           <section class="ingredients-section">

@@ -8,6 +8,7 @@ import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { allergenOptions, dietarySuitabilityOptions, foodAttributeOptions, foodCategories, Ingredient, IngredientRequest, measurementUnits } from '../../ingredient.models';
 import { IngredientService } from '../../ingredient.service';
 import { DisplayUnit, displayUnitOptions, fromBasePer100, toBasePer100 } from '../../display-units';
+import { AiBadge } from '../../../../shared/ui/ai-badge/ai-badge';
 
 const DEFAULT_LANGUAGE = 'en';
 
@@ -24,7 +25,7 @@ export function paginate<T>(items: T[], page: number, pageSize: number): T[] {
 
 @Component({
   selector: 'app-ingredients-page',
-  imports: [ReactiveFormsModule, RouterLink, TranslatePipe],
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe, AiBadge],
   templateUrl: './ingredients-page.html',
   styleUrl: './ingredients-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

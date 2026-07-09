@@ -68,7 +68,7 @@ public sealed class RecipeService(
     public async Task<RecipeOperationResult> CreateAsync(
         Guid ownerUserId, Guid houseId, CreateRecipeRequest request, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {
-        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType);
+        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType, request.SourceUrl);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
@@ -95,6 +95,8 @@ public sealed class RecipeService(
             DescriptionMarkdown = request.DescriptionMarkdown?.Trim(),
             Servings = ServingCount.FromInt32(request.Servings),
             MealType = ParseMealType(request.MealType),
+            IsAiAssisted = request.IsAiAssisted,
+            SourceUrl = NormalizeSourceUrl(request.SourceUrl),
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
             Ingredients = mappedIngredients.Items
@@ -109,7 +111,7 @@ public sealed class RecipeService(
     public async Task<RecipeOperationResult> UpdateAsync(
         Guid id, Guid houseId, UpdateRecipeRequest request, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {
-        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType);
+        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType, request.SourceUrl);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
@@ -133,6 +135,7 @@ public sealed class RecipeService(
         recipe.DescriptionMarkdown = request.DescriptionMarkdown?.Trim();
         recipe.Servings = ServingCount.FromInt32(request.Servings);
         recipe.MealType = ParseMealType(request.MealType);
+        recipe.SourceUrl = NormalizeSourceUrl(request.SourceUrl);
         recipe.UpdatedAtUtc = DateTimeOffset.UtcNow;
         recipe.Ingredients.Clear();
         foreach (var ing in mappedIngredients.Items)
@@ -155,9 +158,9 @@ public sealed class RecipeService(
     }
 
     /// <summary>
-    /// Duplicate detection for recipe imports. Recipes have no source-URL column; by
-    /// convention imported recipes cite the URL in the Markdown description, so URL
-    /// matching searches the description text.
+    /// Duplicate detection for recipe imports. URL matching checks the recipe's SourceUrl
+    /// column and, for recipes imported before that column existed, the legacy convention
+    /// of citing the URL in the Markdown description.
     /// </summary>
     public async Task<RecipeExistenceResult> CheckExistsAsync(
         Guid houseId, string? title, string? sourceUrl, CancellationToken cancellationToken)
@@ -171,7 +174,7 @@ public sealed class RecipeService(
         {
             var matchType = Classify(recipe, normalizedUrl, titleTokens);
             if (matchType is not null)
-                matches.Add(new(recipe.Id, recipe.Title, ExtractSourceUrl(recipe.DescriptionMarkdown), matchType.Value));
+                matches.Add(new(recipe.Id, recipe.Title, recipe.SourceUrl ?? ExtractSourceUrl(recipe.DescriptionMarkdown), matchType.Value));
         }
 
         var ordered = matches.OrderBy(m => m.MatchType).ThenBy(m => m.Title, StringComparer.OrdinalIgnoreCase).ToList();
@@ -180,7 +183,9 @@ public sealed class RecipeService(
 
     private static RecipeMatchType? Classify(Recipe recipe, string? normalizedUrl, IReadOnlyList<string> titleTokens)
     {
-        if (normalizedUrl is not null && DescriptionContainsUrl(recipe.DescriptionMarkdown, normalizedUrl))
+        if (normalizedUrl is not null
+            && (string.Equals(NormalizeSourceUrl(recipe.SourceUrl), normalizedUrl, StringComparison.OrdinalIgnoreCase)
+                || DescriptionContainsUrl(recipe.DescriptionMarkdown, normalizedUrl)))
             return RecipeMatchType.SourceUrl;
         if (titleTokens.Count == 0)
             return null;
@@ -341,9 +346,19 @@ public sealed class RecipeService(
     }
 
     private static Dictionary<string, string[]> Validate(
-        string title, string? descriptionMarkdown, IReadOnlyList<RecipeIngredientRequest> ingredients, int servings, string? mealType)
+        string title, string? descriptionMarkdown, IReadOnlyList<RecipeIngredientRequest> ingredients, int servings, string? mealType, string? sourceUrl)
     {
         var errors = new Dictionary<string, string[]>();
+
+        var normalizedSourceUrl = NormalizeSourceUrl(sourceUrl);
+        if (normalizedSourceUrl is not null)
+        {
+            if (normalizedSourceUrl.Length > 2000)
+                errors["sourceUrl"] = ["Source URL cannot exceed 2,000 characters."];
+            else if (!Uri.TryCreate(normalizedSourceUrl, UriKind.Absolute, out var uri)
+                     || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                errors["sourceUrl"] = ["Source URL must be an absolute http(s) URL."];
+        }
 
         if (string.IsNullOrWhiteSpace(title))
             errors["title"] = ["Title is required."];
@@ -402,6 +417,7 @@ public sealed class RecipeService(
             ingredients,
             images ?? [],
             canEdit,
+            recipe.IsAiAssisted, recipe.SourceUrl,
             recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
     }
 
@@ -430,7 +446,7 @@ public sealed class RecipeService(
         if (firstImageIds is not null && firstImageIds.TryGetValue(recipe.Id, out var imageId))
             firstImageUrl = $"/api/recipes/{recipe.Id}/images/{imageId}/content";
         return new(recipe.Id, recipe.Title, recipe.Slug, recipe.OwnerUserId, recipe.Ingredients.Count, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
-            firstImageUrl, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
+            firstImageUrl, recipe.IsAiAssisted, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
     }
 
     private static MealSlot? ParseMealType(string? value) =>

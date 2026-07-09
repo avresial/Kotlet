@@ -11,7 +11,7 @@
       <label>{{ 'ingredients.unit' | t }}<select formControlName="unit">@for (unit of selectedUnits(); track unit) { <option [value]="unit">{{ ('units.' + (unit === 'g' ? 'grams' : unit === 'kg' ? 'kilograms' : unit === 'ml' ? 'millilitres' : unit === 'l' ? 'litres' : 'piece')) | t }}</option> }</select></label>
       <label>{{ 'pantry.expirationDate' | t }}<input type="date" formControlName="expirationDate" /></label>
       <label>{{ 'pantry.location' | t }}<select formControlName="storageLocation">@for (location of locations; track location.value) { <option [ngValue]="location.value">{{ location.label | t }}</option> }</select></label>
-      <button class="primary" type="submit" [disabled]="isSaving() || availableIngredients().length === 0">{{ isSaving() ? 'Adding…' : 'Add to pantry' }}</button>
+      <button class="primary" type="submit" [disabled]="isSaving() || availableIngredients().length === 0">{{ (isSaving() ? 'common.adding' : 'pantry.addToPantry') | t }}</button>
     </form>
   </section>
 

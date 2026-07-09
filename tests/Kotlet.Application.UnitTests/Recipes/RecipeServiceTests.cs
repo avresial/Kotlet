@@ -307,6 +307,70 @@ public sealed class RecipeServiceTests
         Assert.Equal(0, repo.SaveCount);
     }
 
+    // ---- Provenance (AI assistance and source URL) ----
+
+    [Fact]
+    public async Task Create_WithProvenance_PersistsAiFlagAndSourceUrl()
+    {
+        var repo = new FakeRecipeRepository();
+        var service = CreateService(repo);
+
+        var request = ValidCreateRequest() with { SourceUrl = "https://youtube.com/watch?v=abc/", IsAiAssisted = true };
+        var result = await service.CreateAsync(OwnerId, OwnerId, request, CancellationToken.None);
+
+        Assert.Equal(RecipeOperationStatus.Success, result.Status);
+        Assert.True(result.Recipe!.IsAiAssisted);
+        Assert.Equal("https://youtube.com/watch?v=abc", result.Recipe.SourceUrl);
+        var entity = repo.Recipes.Single();
+        Assert.True(entity.IsAiAssisted);
+        Assert.Equal("https://youtube.com/watch?v=abc", entity.SourceUrl);
+    }
+
+    [Theory]
+    [InlineData("not-a-url")]
+    [InlineData("ftp://example.com/recipe")]
+    public async Task Create_WithInvalidSourceUrl_ReturnsValidationFailed(string sourceUrl)
+    {
+        var service = CreateService(new FakeRecipeRepository());
+
+        var request = ValidCreateRequest() with { SourceUrl = sourceUrl };
+        var result = await service.CreateAsync(OwnerId, OwnerId, request, CancellationToken.None);
+
+        Assert.Equal(RecipeOperationStatus.ValidationFailed, result.Status);
+        Assert.Contains("sourceUrl", result.ValidationErrors!.Keys);
+    }
+
+    [Fact]
+    public async Task Update_PreservesAiAssistedFlag_AndUpdatesSourceUrl()
+    {
+        var recipe = MakeRecipe("Imported", "imported", OwnerId);
+        recipe.IsAiAssisted = true;
+        recipe.SourceUrl = "https://example.com/old";
+        var repo = new FakeRecipeRepository();
+        repo.Recipes.Add(recipe);
+        var service = CreateService(repo);
+
+        var request = new UpdateRecipeRequest("Imported", null, [], SourceUrl: "https://example.com/new");
+        var result = await service.UpdateAsync(recipe.Id, OwnerId, request, CancellationToken.None);
+
+        Assert.Equal(RecipeOperationStatus.Success, result.Status);
+        Assert.True(result.Recipe!.IsAiAssisted);
+        Assert.Equal("https://example.com/new", result.Recipe.SourceUrl);
+    }
+
+    [Fact]
+    public async Task List_ExposesAiAssistedFlag()
+    {
+        var recipe = MakeRecipe("Imported", "imported", OwnerId);
+        recipe.IsAiAssisted = true;
+        var repo = new FakeRecipeRepository();
+        repo.Recipes.Add(recipe);
+
+        var result = await CreateService(repo).ListAsync(OwnerId, 1, 20, null, null, null, CancellationToken.None);
+
+        Assert.True(Assert.Single(result.Items).IsAiAssisted);
+    }
+
     // ---- Delete ----
 
     [Fact]
@@ -340,6 +404,23 @@ public sealed class RecipeServiceTests
     }
 
     // ---- CheckExists (duplicate detection) ----
+
+    [Fact]
+    public async Task CheckExists_MatchesBySourceUrlColumn()
+    {
+        var recipe = MakeRecipe("Goulash", "goulash", OwnerId);
+        recipe.SourceUrl = "https://example.com/goulash";
+        var repo = new FakeRecipeRepository();
+        repo.Recipes.Add(recipe);
+
+        var result = await CreateService(repo).CheckExistsAsync(
+            OwnerId, null, "https://example.com/goulash/", CancellationToken.None);
+
+        Assert.True(result.Exists);
+        var match = Assert.Single(result.Matches);
+        Assert.Equal(RecipeMatchType.SourceUrl, match.MatchType);
+        Assert.Equal("https://example.com/goulash", match.SourceUrl);
+    }
 
     [Fact]
     public async Task CheckExists_MatchesBySourceUrlCitedInDescription()

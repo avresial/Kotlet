@@ -9,8 +9,12 @@ header p:last-child, .add-panel p { margin: 0; color: #746d63; }
 .add-panel, .inventory { padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid #dcd2c4; border-radius: 1rem; background: #fffaf2; box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%); }
 .add-panel { display: grid; grid-template-columns: minmax(12rem, 1fr) 2fr; align-items: end; gap: 2rem; }
 h2 { margin: 0 0 .3rem; font: 500 1.5rem Georgia, serif; }
-form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; align-items: end; gap: .8rem; }
-label { display: grid; gap: .4rem; color: #554e45; font-size: .78rem; font-weight: 750; }
+form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .8rem; }
+label { display: grid; gap: .4rem; color: #554e45; font-size: .78rem; font-weight: 750; min-width: 0; flex: 1 1 7rem; }
+form label:first-child { flex: 3 1 13rem; }
+form label:nth-child(2) { flex: 1 1 4.5rem; }
+form label:nth-child(4) { flex: 1 1 9.5rem; }
+form .primary { flex: 0 0 auto; }
 .selected-unit { color: #746d63; font-weight: 500; }
 input, select { width: 100%; min-height: 2.75rem; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #29251f; background: #fff; }
 input:focus, select:focus { outline: 2px solid #b96554; outline-offset: 1px; }
@@ -38,4 +42,4 @@ h3 { margin: 0; overflow: hidden; font: 500 1.05rem Georgia, serif; text-overflo
 .remove { min-height: auto; padding: .25rem; border: 0; color: #9a3024; font-size: .75rem; }
 .empty { margin: 1.5rem 0 0; color: #756d62; }
 @media (max-width: 60rem) { .add-panel { grid-template-columns: 1fr; gap: 1rem; } .item-grid { grid-template-columns: 1fr; } }
-@media (max-width: 38rem) { form { grid-template-columns: 1fr; } .stock-card { grid-template-columns: 1fr auto; } .quantity-control { grid-row: 2; grid-column: 1 / -1; } .remove { grid-row: 1; grid-column: 2; } }
+@media (max-width: 38rem) { form label, form label:first-child, form label:nth-child(2), form label:nth-child(4), form .primary { flex-basis: 100%; } .stock-card { grid-template-columns: 1fr auto; } .quantity-control { grid-row: 2; grid-column: 1 / -1; } .remove { grid-row: 1; grid-column: 2; } }
