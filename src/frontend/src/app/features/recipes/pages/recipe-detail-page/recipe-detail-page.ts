@@ -2,9 +2,10 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } 
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { finalize, forkJoin } from 'rxjs';
+import { finalize, forkJoin, of } from 'rxjs';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
@@ -30,6 +31,7 @@ export class RecipeDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly translations = inject(TranslationService);
+  private readonly auth = inject(AuthService);
 
   readonly recipe = signal<RecipeDetail | null>(null);
   readonly ingredients = signal<Ingredient[]>([]);
@@ -73,7 +75,8 @@ export class RecipeDetailPage implements OnInit {
   }
 
   ngOnInit(): void {
-    forkJoin({ recipe: this.service.get(this.id), ingredients: this.ingredientService.getAll() })
+    const ingredients = this.auth.isAuthenticated() ? this.ingredientService.getAll() : of([]);
+    forkJoin({ recipe: this.service.get(this.id), ingredients })
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: ({ recipe, ingredients }) => { this.recipe.set(recipe); this.ingredients.set(ingredients); },

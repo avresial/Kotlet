@@ -43,7 +43,7 @@ export class RecipeEditPage implements OnInit {
     this.service.get(id)
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
-        next: (recipe) => this.recipe.set(recipe),
+        next: (recipe) => recipe.canEdit ? this.recipe.set(recipe) : this.router.navigate(['/recipes', recipe.id]),
         error: (err) => this.error.set(getApiError(err, this.translations.translate('recipes.loadOneError'))),
       });
   }

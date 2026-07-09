@@ -11,6 +11,7 @@ public interface IRecipeRepository
     Task<IReadOnlyList<Recipe>> GetRecentAsync(
         Guid ownerUserId, int limit, CancellationToken cancellationToken);
     Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken);
+    Task<Recipe?> GetPublicByIdAsync(Guid id, CancellationToken cancellationToken);
     /// <summary>Lightweight recipe list (no ingredients/images) for duplicate detection.</summary>
     Task<IReadOnlyList<Recipe>> GetAllForDuplicateCheckAsync(Guid ownerUserId, CancellationToken cancellationToken);
     /// <summary>All recipes of the house with their ingredients, newest first, for pantry matching.</summary>

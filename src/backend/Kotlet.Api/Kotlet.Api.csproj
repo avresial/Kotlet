@@ -15,6 +15,7 @@
     </PackageReference>
     <PackageReference Include="ModelContextProtocol.AspNetCore" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.OpenApi" />
     <PackageReference Include="OpenIddict.AspNetCore" />
     <PackageReference Include="Scalar.AspNetCore" />
   </ItemGroup>

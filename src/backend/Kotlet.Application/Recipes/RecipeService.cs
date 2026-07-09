@@ -50,7 +50,19 @@ public sealed class RecipeService(
         var images = imageRepository is null
             ? []
             : await imageRepository.ListAsync(id, false, cancellationToken);
-        return await ToDetailResponseAsync(recipe, languageCode, images.Select(ToImageResponse).ToList(), cancellationToken);
+        return await ToDetailResponseAsync(recipe, languageCode, images.Select(ToImageResponse).ToList(), canEdit: true, cancellationToken);
+    }
+
+    public async Task<RecipeDetailResponse?> GetPublicByIdAsync(
+        Guid id, Guid? currentHouseId, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
+    {
+        var recipe = await repository.GetPublicByIdAsync(id, cancellationToken);
+        if (recipe is null) return null;
+        var images = imageRepository is null
+            ? []
+            : await imageRepository.ListAsync(id, false, cancellationToken);
+        return await ToDetailResponseAsync(recipe, languageCode, images.Select(ToImageResponse).ToList(),
+            canEdit: currentHouseId == recipe.HouseId, cancellationToken);
     }
 
     public async Task<RecipeOperationResult> CreateAsync(
@@ -93,7 +105,7 @@ public sealed class RecipeService(
         repository.Add(recipe);
         await repository.SaveChangesAsync(cancellationToken);
         HydrateIngredientNavigation(mappedIngredients);
-        return new(RecipeOperationStatus.Success, await ToDetailResponseAsync(recipe, languageCode, cancellationToken: cancellationToken));
+        return new(RecipeOperationStatus.Success, await ToDetailResponseAsync(recipe, languageCode, canEdit: true, cancellationToken: cancellationToken));
     }
 
     public async Task<RecipeOperationResult> UpdateAsync(
@@ -130,7 +142,7 @@ public sealed class RecipeService(
             recipe.Ingredients.Add(ing);
         await repository.SaveChangesAsync(cancellationToken);
         HydrateIngredientNavigation(mappedIngredients);
-        return new(RecipeOperationStatus.Success, await ToDetailResponseAsync(recipe, languageCode, cancellationToken: cancellationToken));
+        return new(RecipeOperationStatus.Success, await ToDetailResponseAsync(recipe, languageCode, canEdit: true, cancellationToken: cancellationToken));
     }
 
     public async Task<RecipeOperationStatus> DeleteAsync(
@@ -387,7 +399,7 @@ public sealed class RecipeService(
     }
 
     private async Task<RecipeDetailResponse> ToDetailResponseAsync(
-        Recipe recipe, string languageCode, IReadOnlyList<RecipeImageResponse>? images = null, CancellationToken cancellationToken = default)
+        Recipe recipe, string languageCode, IReadOnlyList<RecipeImageResponse>? images = null, bool canEdit = false, CancellationToken cancellationToken = default)
     {
         var dictionary = await LoadTranslationsAsync(languageCode, cancellationToken);
         var ingredients = recipe.Ingredients
@@ -404,6 +416,7 @@ public sealed class RecipeService(
         return new RecipeDetailResponse(recipe.Id, recipe.Title, recipe.Slug, recipe.OwnerUserId, recipe.DescriptionMarkdown, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
             ingredients,
             images ?? [],
+            canEdit,
             recipe.IsAiAssisted, recipe.SourceUrl,
             recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
     }

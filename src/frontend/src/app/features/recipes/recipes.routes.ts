@@ -16,7 +16,6 @@ export const recipeRoutes: Routes = [
   },
   {
     path: 'recipes/:id',
-    canActivate: [homeGuard],
     loadComponent: () =>
       import('./pages/recipe-detail-page/recipe-detail-page').then((m) => m.RecipeDetailPage),
   },

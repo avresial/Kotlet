@@ -58,6 +58,7 @@ public sealed record RecipeDetailResponse(
     string? MealType,
     IReadOnlyList<RecipeIngredientResponse> Ingredients,
     IReadOnlyList<RecipeImageResponse> Images,
+    bool CanEdit,
     bool IsAiAssisted,
     string? SourceUrl,
     DateTimeOffset CreatedAtUtc,

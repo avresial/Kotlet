@@ -149,6 +149,54 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
     }
 
     [Fact]
+    public async Task AnonymousUser_CanViewRecipeButCannotEdit()
+    {
+        var owner = await CreateAuthenticatedClient();
+        var create = await owner.PostAsJsonAsync("/api/recipes", new
+        {
+            title = $"Shared Recipe {Guid.NewGuid():N}",
+            descriptionMarkdown = "Shareable.",
+            ingredients = Array.Empty<object>()
+        });
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        var anonymous = _factory.CreateClient();
+        var detail = await anonymous.GetAsync($"/api/recipes/{id}");
+        Assert.Equal(HttpStatusCode.OK, detail.StatusCode);
+        var body = await detail.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(id, body.GetProperty("id").GetGuid());
+        Assert.False(body.GetProperty("canEdit").GetBoolean());
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.PutAsJsonAsync($"/api/recipes/{id}", new
+        {
+            title = "Nope",
+            descriptionMarkdown = (string?)null,
+            ingredients = Array.Empty<object>()
+        })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.DeleteAsync($"/api/recipes/{id}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task RecipeDetail_ReportsEditAccessOnlyForOwningHouse()
+    {
+        var owner = await CreateAuthenticatedClient();
+        var create = await owner.PostAsJsonAsync("/api/recipes", new
+        {
+            title = $"Editable Recipe {Guid.NewGuid():N}",
+            descriptionMarkdown = (string?)null,
+            ingredients = Array.Empty<object>()
+        });
+        var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        var ownerView = await owner.GetFromJsonAsync<JsonElement>($"/api/recipes/{id}");
+        Assert.True(ownerView.GetProperty("canEdit").GetBoolean());
+
+        var outsider = await CreateAuthenticatedClient();
+        var outsiderView = await outsider.GetFromJsonAsync<JsonElement>($"/api/recipes/{id}");
+        Assert.False(outsiderView.GetProperty("canEdit").GetBoolean());
+    }
+
+    [Fact]
     public async Task Recipe_SurfacesCreatorToHouseMembers()
     {
         var (owner, houseId) = await TestAuth.WithHomeAsync(_factory, "recipe-creator");
