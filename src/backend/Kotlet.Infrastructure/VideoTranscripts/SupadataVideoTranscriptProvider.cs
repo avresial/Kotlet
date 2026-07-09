@@ -2,15 +2,17 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Kotlet.Application.VideoTranscripts;
+using Microsoft.Extensions.Logging;
 
 namespace Kotlet.Infrastructure.VideoTranscripts;
 
 internal sealed class SupadataVideoTranscriptProvider(
     HttpClient httpClient,
-    SupadataOptions options) : IVideoTranscriptProvider
+    SupadataOptions options,
+    ILogger<SupadataVideoTranscriptProvider> logger) : IVideoTranscriptProvider
 {
-    private const int MaxPollAttempts = 10;
-    private static readonly TimeSpan PollDelay = TimeSpan.FromMilliseconds(250);
+    private const int MaxPollAttempts = 60;
+    private static readonly TimeSpan PollDelay = TimeSpan.FromSeconds(1);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<VideoTranscriptResult> GetAsync(Uri url, CancellationToken cancellationToken)
@@ -74,8 +76,9 @@ internal sealed class SupadataVideoTranscriptProvider(
         {
             throw;
         }
-        catch
+        catch (Exception exception)
         {
+            logger.LogError(exception, "Supadata transcript request failed for {VideoUrl}", url);
             return new(VideoTranscriptStatus.Failed, Message: "The video transcript request failed.");
         }
     }
@@ -140,7 +143,8 @@ internal sealed class SupadataVideoTranscriptProvider(
             : null;
         if (status is "queued" or "active")
         {
-            return new();
+            return new(Result: new(VideoTranscriptStatus.Failed,
+                Message: "The video transcript is still processing."));
         }
 
         if (status == "failed")

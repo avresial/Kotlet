@@ -15,9 +15,10 @@ public static class DiExtension
 
         services.AddHttpClient<SupadataVideoTranscriptProvider>(client =>
         {
-            client.BaseAddress = new Uri(string.IsNullOrWhiteSpace(options.BaseUrl)
+            var baseUrl = string.IsNullOrWhiteSpace(options.BaseUrl)
                 ? SupadataOptions.DefaultBaseUrl
-                : options.BaseUrl.TrimEnd('/') + "/");
+                : options.BaseUrl;
+            client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
         });
 
         services.AddScoped<IVideoTranscriptProvider>(sp =>

@@ -22,9 +22,13 @@ public sealed class VideoTranscriptServiceTests
 
     [Theory]
     [InlineData("https://www.youtube.com/watch?v=abc", Platform.YouTube)]
+    [InlineData("https://youtube.com/watch?v=abc", Platform.YouTube)]
+    [InlineData("https://m.youtube.com/watch?v=abc", Platform.YouTube)]
     [InlineData("https://youtu.be/abc", Platform.YouTube)]
     [InlineData("https://www.tiktok.com/@cook/video/123", Platform.TikTok)]
+    [InlineData("https://tiktok.com/@cook/video/123", Platform.TikTok)]
     [InlineData("https://vm.tiktok.com/abc", Platform.TikTok)]
+    [InlineData("https://vt.tiktok.com/abc", Platform.TikTok)]
     public async Task GetAsync_WithSupportedUrl_DelegatesToProvider(string value, Platform platform)
     {
         var content = new VideoContent("transcript", "title", "description", "author", platform);
