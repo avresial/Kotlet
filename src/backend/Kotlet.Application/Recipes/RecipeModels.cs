@@ -11,14 +11,18 @@ public sealed record CreateRecipeRequest(
     string? DescriptionMarkdown,
     IReadOnlyList<RecipeIngredientRequest> Ingredients,
     int Servings = 1,
-    string? MealType = null);
+    string? MealType = null,
+    string? SourceUrl = null,
+    bool IsAiAssisted = false);
 
+// No IsAiAssisted here: the flag records provenance and survives human edits.
 public sealed record UpdateRecipeRequest(
     string Title,
     string? DescriptionMarkdown,
     IReadOnlyList<RecipeIngredientRequest> Ingredients,
     int Servings = 1,
-    string? MealType = null);
+    string? MealType = null,
+    string? SourceUrl = null);
 
 public sealed record RecipeIngredientResponse(
     Guid Id,
@@ -40,6 +44,7 @@ public sealed record RecipeSummaryResponse(
     int Servings,
     string? MealType,
     string? FirstImageUrl,
+    bool IsAiAssisted,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
 
@@ -53,6 +58,8 @@ public sealed record RecipeDetailResponse(
     string? MealType,
     IReadOnlyList<RecipeIngredientResponse> Ingredients,
     IReadOnlyList<RecipeImageResponse> Images,
+    bool IsAiAssisted,
+    string? SourceUrl,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
 

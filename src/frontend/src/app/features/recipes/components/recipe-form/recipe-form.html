@@ -77,6 +77,22 @@
   </div>
 
   <div class="form-field">
+    <label for="recipe-source-url">{{ 'recipes.sourceUrl' | t }}</label>
+    <input
+      id="recipe-source-url"
+      type="url"
+      formControlName="sourceUrl"
+      placeholder="https://…"
+      [class.invalid]="form.get('sourceUrl')?.invalid && form.get('sourceUrl')?.touched"
+      maxlength="2000"
+    />
+    <span class="field-hint">{{ 'recipes.sourceUrlHelp' | t }}</span>
+    @if (form.get('sourceUrl')?.invalid && form.get('sourceUrl')?.touched) {
+      <span class="field-error">{{ 'recipes.sourceUrlError' | t }}</span>
+    }
+  </div>
+
+  <div class="form-field">
     <label id="recipe-ingredients-label">{{ 'nav.ingredients' | t }}</label>
     <app-ingredient-list-editor
       formControlName="ingredients"

@@ -13,6 +13,10 @@ export interface CreateRecipeRequest {
   servings: number;
   mealType?: RecipeMealType | null;
   ingredients: RecipeIngredientRequest[];
+  /** Original source of the recipe (e.g. the video or web page it was imported from). */
+  sourceUrl?: string | null;
+  /** Marks the recipe as created with AI assistance; ignored on update (provenance is kept). */
+  isAiAssisted?: boolean;
 }
 
 export type RecipeMealType = 'breakfast' | 'second-breakfast' | 'dinner' | 'snack' | 'supper';
@@ -48,6 +52,7 @@ export interface RecipeSummary {
   servings: number;
   mealType: RecipeMealType | null;
   firstImageUrl: string | null;
+  isAiAssisted: boolean;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
@@ -63,6 +68,8 @@ export interface RecipeDetail {
   mealType: RecipeMealType | null;
   ingredients: RecipeIngredient[];
   images: RecipeImage[];
+  isAiAssisted: boolean;
+  sourceUrl: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
