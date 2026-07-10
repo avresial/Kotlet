@@ -7,15 +7,16 @@ import {
   output,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CreateRecipeRequest, RecipeDetail, RecipeIngredientRequest, recipeMealTypes } from '../../models/recipe.models';
+import { CreateRecipeRequest, RecipeDetail, RecipeImageCandidate, RecipeIngredientRequest, recipeMealTypes } from '../../models/recipe.models';
 import { IngredientListEditor } from '../ingredient-list-editor/ingredient-list-editor';
 import { MarkdownEditor } from '../markdown-editor/markdown-editor';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
+import { ImageGenerator } from '../image-generator/image-generator';
 
 @Component({
   selector: 'app-recipe-form',
-  imports: [ReactiveFormsModule, IngredientListEditor, MarkdownEditor, TranslatePipe],
+  imports: [ReactiveFormsModule, IngredientListEditor, MarkdownEditor, TranslatePipe, ImageGenerator],
   templateUrl: './recipe-form.html',
   styleUrl: './recipe-form.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,6 +32,7 @@ export class RecipeForm implements OnInit {
   readonly showImagePicker = input(false);
   readonly submitted = output<CreateRecipeRequest>();
   readonly imageSelected = output<File | null>();
+  readonly generatedImageSelected = output<RecipeImageCandidate>();
   readonly cancelled = output<void>();
 
   selectedImage: File | null = null;
@@ -112,5 +114,9 @@ export class RecipeForm implements OnInit {
     this.selectedImage = null;
     this.imageError = null;
     this.imageSelected.emit(null);
+  }
+
+  ingredientNames(): string[] {
+    return this.form.controls.ingredients.getRawValue().map(ingredient => ingredient.name).filter(Boolean);
   }
 }

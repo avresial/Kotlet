@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
-import { CreateRecipeRequest } from '../../models/recipe.models';
+import { CreateRecipeRequest, RecipeImageCandidate } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeForm } from '../../components/recipe-form/recipe-form';
 
@@ -22,6 +22,7 @@ export class RecipeCreatePage {
   readonly isSaving = signal(false);
   readonly error = signal<string | null>(null);
   private selectedImage: File | null = null;
+  readonly selectedGeneratedImage = signal<RecipeImageCandidate | null>(null);
 
   save(request: CreateRecipeRequest): void {
     this.isSaving.set(true);
@@ -47,6 +48,11 @@ export class RecipeCreatePage {
 
   selectImage(file: File | null): void {
     this.selectedImage = file;
+  }
+
+  selectGeneratedImage(candidate: RecipeImageCandidate): void {
+    // #202 will download/process this candidate before the recipe is submitted.
+    this.selectedGeneratedImage.set(candidate);
   }
 
   cancel(): void {

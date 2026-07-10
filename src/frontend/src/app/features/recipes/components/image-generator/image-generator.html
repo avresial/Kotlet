@@ -1,0 +1,35 @@
+<section class="image-generator" [attr.aria-busy]="searching()">
+  <button type="button" class="generate" [disabled]="searching() || isSaving()" (click)="generate()">
+    {{ 'recipes.generateImage' | t }}
+  </button>
+
+  @if (searching()) {
+    <div class="spinner" role="status" [attr.aria-label]="'recipes.imageSearching' | t"></div>
+  }
+
+  @if (error()) {
+    <div class="error" role="alert">{{ error() }}</div>
+  }
+
+  @if (!searching() && hasSearched() && candidates().length === 0 && !error()) {
+    <p class="empty">{{ 'recipes.imageSearchEmpty' | t }}</p>
+  }
+
+  @if (!searching() && activeCandidate(); as candidate) {
+    <div class="carousel" aria-live="polite">
+      <button type="button" class="navigation" [disabled]="candidates().length < 2" [attr.aria-label]="'recipes.imagePrevious' | t" (click)="previous()">‹</button>
+      <div class="candidate">
+        @if (hasPreview(candidate)) {
+          <img [src]="candidate.previewUrl" [alt]="candidate.altText || ('recipes.generatedImage' | t)" (error)="previewFailed(candidate)">
+        } @else {
+          <div class="preview-fallback" role="img" [attr.aria-label]="'recipes.imagePreviewUnavailable' | t">{{ 'recipes.imagePreviewUnavailable' | t }}</div>
+        }
+        @if (candidate.authorName) { <small>{{ candidate.authorName }}</small> }
+        <button type="button" class="select" [class.selected]="selectedId() === candidate.externalImageId" (click)="select(candidate)">
+          {{ selectedId() === candidate.externalImageId ? ('recipes.imageSelected' | t) : ('recipes.selectImage' | t) }}
+        </button>
+      </div>
+      <button type="button" class="navigation" [disabled]="candidates().length < 2" [attr.aria-label]="'recipes.imageNext' | t" (click)="next()">›</button>
+    </div>
+  }
+</section>
