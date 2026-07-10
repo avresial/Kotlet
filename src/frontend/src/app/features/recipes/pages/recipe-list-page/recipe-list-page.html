@@ -54,6 +54,10 @@
           <span class="add-icon" aria-hidden="true">+</span>
           <span>{{ 'recipes.new' | t }}</span>
         </a>
+        <a class="add-card" routerLink="/recipes/import">
+          <span class="add-icon" aria-hidden="true">▶</span>
+          <span>Import from video</span>
+        </a>
       }
       @for (recipe of recipes(); track recipe.id) {
         <article class="recipe-card">

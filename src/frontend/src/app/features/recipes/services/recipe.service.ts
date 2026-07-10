@@ -6,6 +6,8 @@ import {
   PagedResponse,
   RecipeDetail,
   RecipeImage,
+  RecipeImportDraft,
+  RecipeImportJob,
   RecipeSummary,
   UpdateRecipeRequest,
 } from '../models/recipe.models';
@@ -36,6 +38,18 @@ export class RecipeService {
 
   delete(id: string) {
     return this.http.delete<void>(apiUrl(`/api/recipes/${id}`));
+  }
+
+  startImport(url: string) {
+    return this.http.post<{ id: string }>(apiUrl('/api/recipes/import'), { url });
+  }
+
+  getImport(id: string) {
+    return this.http.get<RecipeImportJob>(apiUrl(`/api/recipes/import/${id}`));
+  }
+
+  acceptImport(id: string, draft: RecipeImportDraft) {
+    return this.http.post<{ id: string }>(apiUrl(`/api/recipes/import/${id}/accept`), draft);
   }
 
   listRecent(limit = 4) {

@@ -1,0 +1,57 @@
+<main class="import-page">
+  <a class="back" routerLink="/recipes">← Back to recipes</a>
+  <header>
+    <p class="eyebrow">AI-assisted import</p>
+    <h1>Import from video</h1>
+    <p>Paste a YouTube or TikTok link. You can review everything before it is saved.</p>
+  </header>
+
+  @if (!job()) {
+    <form class="start-card" (ngSubmit)="start()">
+      <label for="video-url">Video URL</label>
+      <div class="url-row">
+        <input id="video-url" type="url" name="url" [ngModel]="url()" (ngModelChange)="url.set($event)"
+          placeholder="https://youtube.com/watch?v=…" autocomplete="url" required />
+        <button type="submit" [disabled]="!isValidUrl() || isStarting()">{{ isStarting() ? 'Starting…' : 'Import' }}</button>
+      </div>
+      @if (url() && !isValidUrl()) { <p class="field-error">Enter a valid YouTube or TikTok URL.</p> }
+    </form>
+  } @else if (hasFailed()) {
+    <section class="progress-card failed" aria-live="polite">
+      <div><strong>{{ statusText() }}</strong><p>Check the message below and try again later.</p></div>
+    </section>
+  } @else if (!draft()) {
+    <section class="progress-card" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <div><strong>{{ statusText() }}</strong><p>This can take a minute or two.</p></div>
+    </section>
+  } @else if (draft(); as value) {
+    <form class="review" (ngSubmit)="save()">
+      <div class="review-heading"><div><p class="eyebrow">Review draft</p><h2>{{ statusText() }}</h2></div><span class="ai-badge">AI-assisted</span></div>
+      @if (value.gaps.length) {
+        <div class="gaps"><strong>Please check:</strong><ul>@for (gap of value.gaps; track gap) { <li>{{ gap }}</li> }</ul></div>
+      }
+      <label>Title <input name="title" [ngModel]="value.title" (ngModelChange)="updateDraft({ title: $event })" required maxlength="160" /></label>
+      <label class="servings">Servings <input type="number" name="servings" [ngModel]="value.servings" (ngModelChange)="updateDraft({ servings: $event })" min="1" max="99" required /></label>
+      <label>Instructions <textarea name="instructions" [ngModel]="value.instructionsMarkdown" (ngModelChange)="updateDraft({ instructionsMarkdown: $event })" rows="10"></textarea></label>
+
+      <fieldset><legend>Ingredients</legend>
+        @for (ingredient of value.ingredients; track $index; let i = $index) {
+          <div class="ingredient" [class.proposed]="ingredient.isProposedNew">
+            <div class="ingredient-name">
+              <input [name]="'name-' + i" [ngModel]="ingredient.name" (ngModelChange)="updateIngredient(i, { name: $event })" required />
+              @if (ingredient.isProposedNew) { <span>New ingredient</span> }
+              @else { <small>Matched to {{ ingredient.matchedName }}</small> }
+            </div>
+            <input type="number" [name]="'quantity-' + i" [ngModel]="ingredient.quantity" (ngModelChange)="updateIngredient(i, { quantity: $event })" min="0.001" step="any" aria-label="Quantity" required />
+            <input [name]="'unit-' + i" [ngModel]="ingredient.unit" (ngModelChange)="updateIngredient(i, { unit: $event })" aria-label="Unit" placeholder="unit" required />
+            <input [name]="'note-' + i" [ngModel]="ingredient.note" (ngModelChange)="updateIngredient(i, { note: $event })" aria-label="Note" placeholder="note" />
+          </div>
+        }
+      </fieldset>
+      <div class="actions"><a routerLink="/recipes">Cancel</a><button type="submit" [disabled]="isSaving() || !isDraftValid(value)">{{ isSaving() ? 'Saving…' : 'Save recipe' }}</button></div>
+    </form>
+  }
+
+  @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
+</main>

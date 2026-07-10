@@ -93,3 +93,37 @@ export interface PagedResponse<T> {
   pageSize: number;
   totalCount: number;
 }
+
+export enum RecipeImportStatus {
+  Pending,
+  FetchingTranscript,
+  Extracting,
+  ResolvingIngredients,
+  ReadyForReview,
+  Failed,
+}
+
+export interface RecipeImportIngredient {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  note: string | null;
+  ingredientId: string | null;
+  matchedName: string | null;
+  isProposedNew: boolean;
+}
+
+export interface RecipeImportDraft {
+  title: string;
+  servings: number;
+  instructionsMarkdown: string;
+  gaps: string[];
+  ingredients: RecipeImportIngredient[];
+}
+
+export interface RecipeImportJob {
+  id: string;
+  status: RecipeImportStatus;
+  draft: RecipeImportDraft | null;
+  errorReason: string | null;
+}
