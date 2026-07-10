@@ -51,6 +51,10 @@ jobs:
         run: >-
           dotnet test tests/Kotlet.Application.UnitTests/Kotlet.Application.UnitTests.csproj
           --configuration Release --no-build --verbosity normal
+      - name: Infrastructure unit tests
+        run: >-
+          dotnet test tests/Kotlet.Infrastructure.UnitTests/Kotlet.Infrastructure.UnitTests.csproj
+          --configuration Release --no-build --verbosity normal
 
       - name: Integration tests
         run: >-

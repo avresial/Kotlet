@@ -90,6 +90,26 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
     }
 
     [Fact]
+    public async Task ImageSearch_ReturnsBadRequestForBlankQuery()
+    {
+        var client = await CreateAuthenticatedClient();
+
+        var response = await client.GetAsync("/api/recipes/images/search?query=");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImageSearch_ReturnsServiceUnavailableWhenProviderIsNotConfigured()
+    {
+        var client = await CreateAuthenticatedClient();
+
+        var response = await client.GetAsync("/api/recipes/images/search?query=pasta");
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Create_RejectsEmptyTitle()
     {
         var client = await CreateAuthenticatedClient();
