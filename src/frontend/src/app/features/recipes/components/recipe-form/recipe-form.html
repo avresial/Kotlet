@@ -65,6 +65,12 @@
         <button type="button" class="text-button remove-image" (click)="removeImage(imageInput)">{{ 'common.remove' | t }}</button>
       }
       @if (imageError) { <span class="field-error" role="alert">{{ imageError }}</span> }
+      <app-image-generator
+        [title]="form.controls.title.value"
+        [ingredients]="ingredientNames()"
+        [isSaving]="isSaving()"
+        (imageSelected)="generatedImageSelected.emit($event)"
+      ></app-image-generator>
     </div>
   }
 

@@ -1,7 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { RecipeForm } from './recipe-form';
 import { IngredientListEditor } from '../ingredient-list-editor/ingredient-list-editor';
 import { TranslationService } from '../../../../core/i18n/translation.service';
+import { RecipeImageSearchService } from '../../services/recipe-image-search.service';
 
 describe('RecipeForm image picker', () => {
   let fixture: ComponentFixture<RecipeForm>;
@@ -12,7 +14,7 @@ describe('RecipeForm image picker', () => {
       providers: [{
         provide: TranslationService,
         useValue: { translate: (key: string) => key === 'recipes.addImage' ? 'Add image' : key },
-      }],
+      }, { provide: RecipeImageSearchService, useValue: { search: () => of([]) } }],
     }).compileComponents();
     fixture = TestBed.createComponent(RecipeForm);
     fixture.componentRef.setInput('showImagePicker', true);

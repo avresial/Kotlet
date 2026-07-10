@@ -89,6 +89,18 @@ export interface RecipeImage {
   source?: ImageSourceAttribution | null;
 }
 
+export interface RecipeImageCandidate {
+  provider: string;
+  externalImageId: string;
+  previewUrl: string;
+  sourcePageUrl: string;
+  authorName: string | null;
+  authorUrl: string | null;
+  altText: string | null;
+  width: number | null;
+  height: number | null;
+}
+
 export interface ImageSourceAttribution {
   provider: string;
   authorName: string | null;
