@@ -1,3 +1,4 @@
+using Kotlet.Application.Images;
 using Kotlet.Application.Recipes;
 using Kotlet.Domain.Recipes;
 using Xunit;
@@ -9,6 +10,10 @@ public sealed class RecipeImageServiceTests
     private static readonly Guid RecipeId = Guid.NewGuid();
     private static readonly Guid OwnerId = Guid.NewGuid();
     private static readonly byte[] SampleContent = [1, 2, 3, 4];
+    private static readonly byte[] ProcessedContent = [9, 8, 7];
+
+    private static RecipeImageService CreateService(FakeRepository repo, FakeImageProcessor? processor = null) =>
+        new(repo, processor ?? new FakeImageProcessor());
 
     // ---- Add ----
 
@@ -16,7 +21,7 @@ public sealed class RecipeImageServiceTests
     public async Task Add_WithValidImage_PersistsAndAssignsSortOrder()
     {
         var repo = new FakeRepository(recipeExists: true);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.AddAsync(RecipeId, OwnerId, "photo.jpg", "image/jpeg", SampleContent, "A dish", CancellationToken.None);
 
@@ -32,7 +37,7 @@ public sealed class RecipeImageServiceTests
     public async Task Add_AssignsIncrementingSortOrder()
     {
         var repo = new FakeRepository(recipeExists: true);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         await service.AddAsync(RecipeId, OwnerId, "a.png", "image/png", SampleContent, null, CancellationToken.None);
         var second = await service.AddAsync(RecipeId, OwnerId, "b.webp", "image/webp", SampleContent, null, CancellationToken.None);
@@ -44,7 +49,7 @@ public sealed class RecipeImageServiceTests
     public async Task Add_ForUnknownRecipe_ReturnsNotFound()
     {
         var repo = new FakeRepository(recipeExists: false);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.AddAsync(RecipeId, OwnerId, "photo.jpg", "image/jpeg", SampleContent, null, CancellationToken.None);
 
@@ -56,7 +61,7 @@ public sealed class RecipeImageServiceTests
     public async Task Add_WithEmptyContent_FailsValidation()
     {
         var repo = new FakeRepository(recipeExists: true);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.AddAsync(RecipeId, OwnerId, "photo.jpg", "image/jpeg", [], null, CancellationToken.None);
 
@@ -68,7 +73,7 @@ public sealed class RecipeImageServiceTests
     public async Task Add_WithOversizedContent_FailsValidation()
     {
         var repo = new FakeRepository(recipeExists: true);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
         var tooBig = new byte[RecipeImageService.MaxFileSizeBytes + 1];
 
         var result = await service.AddAsync(RecipeId, OwnerId, "photo.jpg", "image/jpeg", tooBig, null, CancellationToken.None);
@@ -81,7 +86,7 @@ public sealed class RecipeImageServiceTests
     public async Task Add_WithUnsupportedContentType_FailsValidation()
     {
         var repo = new FakeRepository(recipeExists: true);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.AddAsync(RecipeId, OwnerId, "doc.gif", "image/gif", SampleContent, null, CancellationToken.None);
 
@@ -93,7 +98,7 @@ public sealed class RecipeImageServiceTests
     public async Task Add_WithMismatchedExtension_FailsValidation()
     {
         var repo = new FakeRepository(recipeExists: true);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.AddAsync(RecipeId, OwnerId, "photo.png", "image/jpeg", SampleContent, null, CancellationToken.None);
 
@@ -105,7 +110,7 @@ public sealed class RecipeImageServiceTests
     public async Task Add_WithTooLongAltText_FailsValidation()
     {
         var repo = new FakeRepository(recipeExists: true);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.AddAsync(RecipeId, OwnerId, "photo.jpg", "image/jpeg", SampleContent, new string('x', 301), CancellationToken.None);
 
@@ -119,7 +124,7 @@ public sealed class RecipeImageServiceTests
         var repo = new FakeRepository(recipeExists: true);
         for (var i = 0; i < RecipeImageService.MaxImages; i++)
             repo.SeedImage(RecipeId, i);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.AddAsync(RecipeId, OwnerId, "photo.jpg", "image/jpeg", SampleContent, null, CancellationToken.None);
 
@@ -135,11 +140,45 @@ public sealed class RecipeImageServiceTests
     public async Task Add_AcceptsSupportedTypeAndExtensionPairs(string contentType, string fileName)
     {
         var repo = new FakeRepository(recipeExists: true);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.AddAsync(RecipeId, OwnerId, fileName, contentType, SampleContent, null, CancellationToken.None);
 
         Assert.Equal(RecipeImageOperationStatus.Success, result.Status);
+    }
+
+    [Fact]
+    public async Task Add_StoresProcessedWebpInsteadOfOriginal()
+    {
+        var repo = new FakeRepository(recipeExists: true);
+        var processor = new FakeImageProcessor();
+        var service = CreateService(repo, processor);
+
+        var result = await service.AddAsync(RecipeId, OwnerId, "photo.jpg", "image/jpeg", SampleContent, null, CancellationToken.None);
+
+        Assert.Equal(RecipeImageOperationStatus.Success, result.Status);
+        Assert.Equal(RecipeImageService.ProcessedMaxWidth, processor.LastOptions!.MaxWidth);
+        Assert.Equal(RecipeImageService.ProcessedMaxHeight, processor.LastOptions.MaxHeight);
+        var stored = Assert.Single(repo.Images);
+        Assert.Equal("image/webp", stored.ContentType);
+        Assert.Equal(ProcessedContent, stored.Content);
+        Assert.Equal(ProcessedContent.LongLength, stored.FileSizeBytes);
+        Assert.Equal("photo.webp", stored.FileName);
+        Assert.Equal("image/webp", result.Image!.ContentType);
+        Assert.Equal(ProcessedContent.LongLength, result.Image.FileSizeBytes);
+    }
+
+    [Fact]
+    public async Task Add_WithInvalidImageContent_FailsValidationAndPersistsNothing()
+    {
+        var repo = new FakeRepository(recipeExists: true);
+        var service = CreateService(repo, new FakeImageProcessor(throwInvalidImage: true));
+
+        var result = await service.AddAsync(RecipeId, OwnerId, "photo.jpg", "image/jpeg", SampleContent, null, CancellationToken.None);
+
+        Assert.Equal(RecipeImageOperationStatus.ValidationFailed, result.Status);
+        Assert.True(result.ValidationErrors!.ContainsKey("file"));
+        Assert.Empty(repo.Images);
     }
 
     // ---- List / Content ----
@@ -148,7 +187,7 @@ public sealed class RecipeImageServiceTests
     public async Task List_ForUnknownRecipe_ReturnsNull()
     {
         var repo = new FakeRepository(recipeExists: false);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         Assert.Null(await service.ListAsync(RecipeId, OwnerId, CancellationToken.None));
     }
@@ -159,7 +198,7 @@ public sealed class RecipeImageServiceTests
         var repo = new FakeRepository(recipeExists: true);
         repo.SeedImage(RecipeId, 0);
         repo.SeedImage(RecipeId, 1);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.ListAsync(RecipeId, OwnerId, CancellationToken.None);
 
@@ -172,7 +211,7 @@ public sealed class RecipeImageServiceTests
     {
         var repo = new FakeRepository(recipeExists: true);
         var image = repo.SeedImage(RecipeId, 0);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var content = await service.GetContentAsync(RecipeId, image.Id, OwnerId, CancellationToken.None);
 
@@ -185,7 +224,7 @@ public sealed class RecipeImageServiceTests
     public async Task GetContent_ForUnknownRecipe_ReturnsNull()
     {
         var repo = new FakeRepository(recipeExists: false);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         Assert.Null(await service.GetContentAsync(RecipeId, Guid.NewGuid(), OwnerId, CancellationToken.None));
     }
@@ -197,7 +236,7 @@ public sealed class RecipeImageServiceTests
     {
         var repo = new FakeRepository(recipeExists: true);
         var image = repo.SeedImage(RecipeId, 0);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.UpdateAsync(RecipeId, image.Id, OwnerId, "  New caption  ", CancellationToken.None);
 
@@ -211,7 +250,7 @@ public sealed class RecipeImageServiceTests
         var repo = new FakeRepository(recipeExists: true);
         var image = repo.SeedImage(RecipeId, 0);
         image.AltText = "old";
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.UpdateAsync(RecipeId, image.Id, OwnerId, "   ", CancellationToken.None);
 
@@ -224,7 +263,7 @@ public sealed class RecipeImageServiceTests
     {
         var repo = new FakeRepository(recipeExists: true);
         var image = repo.SeedImage(RecipeId, 0);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.UpdateAsync(RecipeId, image.Id, OwnerId, new string('x', 301), CancellationToken.None);
 
@@ -236,7 +275,7 @@ public sealed class RecipeImageServiceTests
     public async Task Update_ForUnknownImage_ReturnsNotFound()
     {
         var repo = new FakeRepository(recipeExists: true);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var result = await service.UpdateAsync(RecipeId, Guid.NewGuid(), OwnerId, "caption", CancellationToken.None);
 
@@ -251,7 +290,7 @@ public sealed class RecipeImageServiceTests
         var repo = new FakeRepository(recipeExists: true);
         var first = repo.SeedImage(RecipeId, 0);
         var second = repo.SeedImage(RecipeId, 1);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var status = await service.ReorderAsync(RecipeId, OwnerId, [second.Id, first.Id], CancellationToken.None);
 
@@ -266,7 +305,7 @@ public sealed class RecipeImageServiceTests
         var repo = new FakeRepository(recipeExists: true);
         var first = repo.SeedImage(RecipeId, 0);
         repo.SeedImage(RecipeId, 1);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var status = await service.ReorderAsync(RecipeId, OwnerId, [first.Id], CancellationToken.None);
 
@@ -279,7 +318,7 @@ public sealed class RecipeImageServiceTests
         var repo = new FakeRepository(recipeExists: true);
         var first = repo.SeedImage(RecipeId, 0);
         repo.SeedImage(RecipeId, 1);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         // Same count as stored, but one id does not belong to the recipe.
         var status = await service.ReorderAsync(RecipeId, OwnerId, [first.Id, Guid.NewGuid()], CancellationToken.None);
@@ -291,7 +330,7 @@ public sealed class RecipeImageServiceTests
     public async Task Reorder_ForUnknownRecipe_ReturnsNotFound()
     {
         var repo = new FakeRepository(recipeExists: false);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var status = await service.ReorderAsync(RecipeId, OwnerId, [Guid.NewGuid()], CancellationToken.None);
 
@@ -306,7 +345,7 @@ public sealed class RecipeImageServiceTests
         var repo = new FakeRepository(recipeExists: true);
         var first = repo.SeedImage(RecipeId, 0);
         var second = repo.SeedImage(RecipeId, 1);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var status = await service.DeleteAsync(RecipeId, first.Id, OwnerId, CancellationToken.None);
 
@@ -319,7 +358,7 @@ public sealed class RecipeImageServiceTests
     public async Task Delete_ForUnknownImage_ReturnsNotFound()
     {
         var repo = new FakeRepository(recipeExists: true);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var status = await service.DeleteAsync(RecipeId, Guid.NewGuid(), OwnerId, CancellationToken.None);
 
@@ -330,11 +369,23 @@ public sealed class RecipeImageServiceTests
     public async Task Delete_ForUnknownRecipe_ReturnsNotFound()
     {
         var repo = new FakeRepository(recipeExists: false);
-        var service = new RecipeImageService(repo);
+        var service = CreateService(repo);
 
         var status = await service.DeleteAsync(RecipeId, Guid.NewGuid(), OwnerId, CancellationToken.None);
 
         Assert.Equal(RecipeImageOperationStatus.NotFound, status);
+    }
+
+    private sealed class FakeImageProcessor(bool throwInvalidImage = false) : IImageProcessor
+    {
+        public ImageProcessingOptions? LastOptions { get; private set; }
+
+        public Task<ImageProcessingResult> ProcessAsync(Stream image, ImageProcessingOptions options, CancellationToken cancellationToken = default)
+        {
+            LastOptions = options;
+            if (throwInvalidImage) throw new InvalidImageException("Not an image.");
+            return Task.FromResult(new ImageProcessingResult(ProcessedContent, "image/webp", 1200, 900));
+        }
     }
 
     private sealed class FakeRepository(bool recipeExists) : IRecipeImageRepository

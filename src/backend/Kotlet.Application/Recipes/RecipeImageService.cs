@@ -1,11 +1,14 @@
+using Kotlet.Application.Images;
 using Kotlet.Domain.Recipes;
 
 namespace Kotlet.Application.Recipes;
 
-public sealed class RecipeImageService(IRecipeImageRepository repository)
+public sealed class RecipeImageService(IRecipeImageRepository repository, IImageProcessor imageProcessor)
 {
     public const long MaxFileSizeBytes = 5 * 1024 * 1024;
     public const int MaxImages = 10;
+    public const int ProcessedMaxWidth = 1200;
+    public const int ProcessedMaxHeight = 900;
     private static readonly HashSet<string> AllowedTypes = ["image/jpeg", "image/png", "image/webp"];
     private static readonly Dictionary<string, string[]> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -23,14 +26,24 @@ public sealed class RecipeImageService(IRecipeImageRepository repository)
         var count = await repository.CountAsync(recipeId, ct);
         if (count >= MaxImages) return new(RecipeImageOperationStatus.LimitExceeded, ValidationErrors:
             new Dictionary<string, string[]> { ["file"] = [$"A recipe cannot have more than {MaxImages} images."] });
+        ImageProcessingResult processed;
+        try
+        {
+            using var source = new MemoryStream(content, writable: false);
+            processed = await imageProcessor.ProcessAsync(source, new ImageProcessingOptions(ProcessedMaxWidth, ProcessedMaxHeight), ct);
+        }
+        catch (InvalidImageException)
+        {
+            return Validation("file", "The file is not a valid image.");
+        }
         var image = new RecipeImage
         {
             Id = Guid.NewGuid(),
             RecipeId = recipeId,
-            FileName = Path.GetFileName(fileName),
-            ContentType = contentType,
-            FileSizeBytes = content.LongLength,
-            Content = content,
+            FileName = Path.ChangeExtension(Path.GetFileName(fileName), ".webp"),
+            ContentType = processed.ContentType,
+            FileSizeBytes = processed.Content.LongLength,
+            Content = processed.Content,
             AltText = altText?.Trim(),
             SortOrder = count,
             CreatedAtUtc = DateTimeOffset.UtcNow

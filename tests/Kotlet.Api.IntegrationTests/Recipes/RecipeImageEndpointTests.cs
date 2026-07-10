@@ -14,22 +14,25 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
     {
         var client = await AuthenticatedClient();
         var recipeId = await CreateRecipe(client);
-        var first = await Upload(client, recipeId, "first.png", "image/png", [1, 2, 3], "First");
-        var second = await Upload(client, recipeId, "second.webp", "image/webp", [4, 5], null);
+        var first = await Upload(client, recipeId, "first.png", "image/png", TestImages.Png(), "First");
+        var second = await Upload(client, recipeId, "second.webp", "image/webp", TestImages.Webp(), null);
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
         Assert.Equal(HttpStatusCode.Created, second.StatusCode);
         var firstJson = await first.Content.ReadFromJsonAsync<JsonElement>();
         var secondJson = await second.Content.ReadFromJsonAsync<JsonElement>();
         var firstId = firstJson.GetProperty("id").GetGuid();
         var secondId = secondJson.GetProperty("id").GetGuid();
+        Assert.Equal("image/webp", firstJson.GetProperty("contentType").GetString());
+        Assert.Equal("first.webp", firstJson.GetProperty("fileName").GetString());
+        Assert.Equal("image/webp", secondJson.GetProperty("contentType").GetString());
 
         var images = await client.GetFromJsonAsync<JsonElement>($"/api/recipes/{recipeId}/images");
         Assert.Equal(2, images.GetArrayLength());
         Assert.False(images[0].TryGetProperty("content", out _));
 
         var content = await client.GetAsync($"/api/recipes/{recipeId}/images/{firstId}/content");
-        Assert.Equal("image/png", content.Content.Headers.ContentType?.MediaType);
-        Assert.Equal([1, 2, 3], await content.Content.ReadAsByteArrayAsync());
+        Assert.Equal("image/webp", content.Content.Headers.ContentType?.MediaType);
+        Assert.True(TestImages.IsWebp(await content.Content.ReadAsByteArrayAsync()));
 
         var patch = await client.PatchAsJsonAsync($"/api/recipes/{recipeId}/images/{firstId}", new { altText = "Updated" });
         Assert.Equal("Updated", (await patch.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("altText").GetString());
@@ -49,13 +52,15 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
     {
         var (owner, other, _) = await TestAuth.HouseholdAsync(factory, "images");
         var recipeId = await CreateRecipe(owner);
-        var upload = await Upload(owner, recipeId, "photo.png", "image/png", [1], null);
+        var upload = await Upload(owner, recipeId, "photo.png", "image/png", TestImages.Png(), null);
         var imageId = (await upload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
         Assert.Equal(HttpStatusCode.OK, (await other.GetAsync($"/api/recipes/{recipeId}/images")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await other.GetAsync($"/api/recipes/{recipeId}/images/{imageId}/content")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await Upload(owner, recipeId, "bad.gif", "image/gif", [1], null)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Upload(owner, recipeId, "bad.gif", "image/gif", TestImages.Png(), null)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await Upload(owner, recipeId, "empty.png", "image/png", [], null)).StatusCode);
+        // Declared type is fine but the bytes are not an image: rejected by decoding, not by the extension check.
+        Assert.Equal(HttpStatusCode.BadRequest, (await Upload(owner, recipeId, "fake.png", "image/png", [1, 2, 3], null)).StatusCode);
     }
 
     [Fact]
@@ -63,14 +68,14 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
     {
         var owner = await AuthenticatedClient();
         var recipeId = await CreateRecipe(owner);
-        var upload = await Upload(owner, recipeId, "photo.png", "image/png", [1, 2, 3], null);
+        var upload = await Upload(owner, recipeId, "photo.png", "image/png", TestImages.Png(), null);
         var imageId = (await upload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
 
         var anonymous = factory.CreateClient();
         var content = await anonymous.GetAsync($"/api/recipes/{recipeId}/images/{imageId}/content");
         Assert.Equal(HttpStatusCode.OK, content.StatusCode);
-        Assert.Equal([1, 2, 3], await content.Content.ReadAsByteArrayAsync());
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Upload(anonymous, recipeId, "nope.png", "image/png", [1], null)).StatusCode);
+        Assert.True(TestImages.IsWebp(await content.Content.ReadAsByteArrayAsync()));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Upload(anonymous, recipeId, "nope.png", "image/png", TestImages.Png(), null)).StatusCode);
     }
 
     [Fact]
@@ -78,7 +83,7 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
     {
         var client = await AuthenticatedClient();
         var recipeId = await CreateRecipe(client);
-        var upload = await Upload(client, recipeId, "photo.jpg", "image/jpeg", [1, 2], null);
+        var upload = await Upload(client, recipeId, "photo.jpg", "image/jpeg", TestImages.Jpeg(), null);
         var imageId = (await upload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync($"/api/recipes/{recipeId}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/recipes/{recipeId}/images/{imageId}/content")).StatusCode);
