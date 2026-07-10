@@ -6,6 +6,7 @@ using Kotlet.Domain.Pantry;
 using Kotlet.Domain.Houses;
 using Kotlet.Domain.Recipes;
 using Kotlet.Domain.Shopping;
+using Kotlet.Domain.Sources;
 using Kotlet.Domain.Translations;
 using Kotlet.Domain.FoodSettings;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +34,9 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<RecipeImage> RecipeImages => Set<RecipeImage>();
     public DbSet<RecipeImportJob> RecipeImportJobs => Set<RecipeImportJob>();
+    public DbSet<Source> Sources => Set<Source>();
+    public DbSet<RecipeSource> RecipeSources => Set<RecipeSource>();
+    public DbSet<RecipeImageSource> RecipeImageSources => Set<RecipeImageSource>();
     public DbSet<MealPlanItem> MealPlanItems => Set<MealPlanItem>();
     public DbSet<MealPlanItemParticipant> MealPlanItemParticipants => Set<MealPlanItemParticipant>();
     public DbSet<Translation> Translations => Set<Translation>();

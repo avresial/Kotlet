@@ -35,4 +35,5 @@ public sealed class Recipe
     public DateTimeOffset UpdatedAtUtc { get; set; }
     public ICollection<RecipeIngredient> Ingredients { get; set; } = [];
     public ICollection<RecipeImage> Images { get; set; } = [];
+    public ICollection<RecipeSource> Sources { get; set; } = [];
 }
