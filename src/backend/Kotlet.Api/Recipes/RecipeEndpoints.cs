@@ -10,6 +10,7 @@ public static class RecipeEndpoints
     public static IEndpointRouteBuilder MapRecipeEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var recipes = endpoints.MapGroup("/api/recipes").WithTags("Recipes").RequireAuthorization();
+        recipes.MapRecipeImportEndpoints();
         recipes.MapGet("", List).WithName("ListRecipes");
         recipes.MapGet("/recent", ListRecent).WithName("ListRecentRecipes");
         recipes.MapPost("", Create).WithName("CreateRecipe");

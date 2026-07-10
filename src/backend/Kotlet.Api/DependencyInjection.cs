@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddMcpFeature(configuration);
         services.AddLocalizationFeature();
         services.AddIngredientsFeature(configuration);
+        services.AddRecipesFeature();
         services.AddPersistenceFeature();
         services.AddCors(options => options.AddDefaultPolicy(policy => policy
             .SetIsOriginAllowed(_ => true)
