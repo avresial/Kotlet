@@ -337,7 +337,8 @@ public sealed class RecipeService(
 
     private static RecipeImageResponse ToImageResponse(RecipeImage i) => new(i.Id, i.RecipeId, i.FileName,
         i.ContentType, i.FileSizeBytes, i.AltText, i.SortOrder,
-        $"/api/recipes/{i.RecipeId}/images/{i.Id}/content", i.CreatedAtUtc);
+        $"/api/recipes/{i.RecipeId}/images/{i.Id}/content", i.CreatedAtUtc,
+        SourceAttributionResponse.FromPrimarySource(i));
 
     private sealed record MappedIngredients(
         List<RecipeIngredient> Items,

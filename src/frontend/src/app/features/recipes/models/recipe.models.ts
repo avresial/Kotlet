@@ -85,6 +85,15 @@ export interface RecipeImage {
   sortOrder: number;
   contentUrl: `/api/${string}`;
   createdAtUtc: string;
+  /** Attribution for the image's primary source; null when the image has no recorded source. */
+  source?: ImageSourceAttribution | null;
+}
+
+export interface ImageSourceAttribution {
+  provider: string;
+  authorName: string | null;
+  authorUrl: string | null;
+  url: string | null;
 }
 
 export interface PagedResponse<T> {
