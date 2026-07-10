@@ -91,24 +91,108 @@ public sealed class PexelsRecipeImageProviderTests
         Assert.Equal(RecipeImageSearchStatus.RateLimited, result.Status);
     }
 
-    private static PexelsRecipeImageProvider Create(RecordingHandler handler, string? apiKey) =>
+    [Fact]
+    public async Task Search_ReturnsNotConfiguredForAnUnselectedProvider()
+    {
+        var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        var provider = Create(handler, "secret", "Unsplash");
+
+        var result = await provider.SearchAsync(new("pasta"));
+
+        Assert.Equal(RecipeImageSearchStatus.NotConfigured, result.Status);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Search_ReturnsFailedForMalformedResponse()
+    {
+        var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = Json("{ not-json }")
+        });
+
+        var result = await Create(handler, "secret").SearchAsync(new("pasta"));
+
+        Assert.Equal(RecipeImageSearchStatus.Failed, result.Status);
+    }
+
+    [Fact]
+    public async Task Search_PropagatesCallerCancellation()
+    {
+        var handler = new RecordingHandler(async (_, cancellationToken) =>
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        });
+        using var cancellation = new CancellationTokenSource();
+        var task = Create(handler, "secret").SearchAsync(new("pasta"), cancellation.Token);
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
+    }
+
+    [Fact]
+    public async Task Download_RejectsInvalidIdWithoutCallingProvider()
+    {
+        var handler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
+
+        var result = await Create(handler, "secret").DownloadAsync("not-an-id");
+
+        Assert.Equal(RecipeImageDownloadStatus.InvalidId, result.Status);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Download_RejectsOversizedContent()
+    {
+        var handler = new RecordingHandler(request => request.RequestUri!.AbsolutePath.EndsWith("/v1/photos/42")
+            ? new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = Json("""
+                    {
+                      "id": 42,
+                      "url": "https://www.pexels.com/photo/42",
+                      "src": { "original": "https://images.pexels.com/original.jpg" }
+                    }
+                    """)
+            }
+            : new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(new byte[10 * 1024 * 1024 + 1])
+            });
+
+        var result = await Create(handler, "secret").DownloadAsync("42");
+
+        Assert.Equal(RecipeImageDownloadStatus.Failed, result.Status);
+    }
+
+    private static PexelsRecipeImageProvider Create(RecordingHandler handler, string? apiKey, string provider = "Pexels") =>
         new(new HttpClient(handler) { BaseAddress = new Uri("https://api.pexels.com/") },
-            new PexelsOptions { ApiKey = apiKey }, NullLogger<PexelsRecipeImageProvider>.Instance);
+            new PexelsOptions { ApiKey = apiKey }, new RecipeImagesOptions { Provider = provider },
+            NullLogger<PexelsRecipeImageProvider>.Instance);
 
     private static StringContent Json(string content) => new(content, System.Text.Encoding.UTF8, "application/json");
 
-    private sealed class RecordingHandler(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
+    private sealed class RecordingHandler : HttpMessageHandler
     {
+        private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> responder;
+
+        public RecordingHandler(Func<HttpRequestMessage, HttpResponseMessage> responder)
+            : this((request, _) => Task.FromResult(responder(request))) { }
+
+        public RecordingHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> responder) =>
+            this.responder = responder;
+
         public List<HttpRequestMessage> Requests { get; } = [];
         public string? ImageResponseContentType { get; set; }
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Requests.Add(request);
-            var response = responder(request);
+            var response = await responder(request, cancellationToken);
             if (ImageResponseContentType is not null && response.Content is not null)
                 response.Content.Headers.ContentType = new MediaTypeHeaderValue(ImageResponseContentType);
-            return Task.FromResult(response);
+            return response;
         }
     }
 }

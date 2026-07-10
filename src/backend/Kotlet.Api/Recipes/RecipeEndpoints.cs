@@ -47,7 +47,7 @@ public static class RecipeEndpoints
         CancellationToken cancellationToken,
         string? query = null,
         int limit = RecipeImageSearchService.DefaultLimit,
-        string? orientation = null,
+        string? orientation = "landscape",
         string? locale = null)
     {
         if (currentUser.HouseId is null) return Results.Unauthorized();

@@ -9,11 +9,12 @@ namespace Kotlet.Infrastructure.RecipeImageSearch;
 internal sealed class PexelsRecipeImageProvider(
     HttpClient httpClient,
     PexelsOptions options,
+    RecipeImagesOptions recipeImages,
     ILogger<PexelsRecipeImageProvider> logger) : IRecipeImageProvider
 {
     public const string ProviderName = "Pexels";
     private const int MaxDownloadBytes = 10 * 1024 * 1024;
-    private static readonly TimeSpan DownloadTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public string Name => ProviderName;
@@ -22,7 +23,7 @@ internal sealed class PexelsRecipeImageProvider(
         RecipeImageSearchRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (!options.IsConfigured)
+        if (!IsSelectedProvider() || !options.IsConfigured)
         {
             return new(RecipeImageSearchStatus.NotConfigured,
                 Message: "The recipe image provider is not configured.");
@@ -56,9 +57,13 @@ internal sealed class PexelsRecipeImageProvider(
 
             return new(RecipeImageSearchStatus.Success, candidates);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (OperationCanceledException)
+        {
+            return Failed("The recipe image search request timed out.");
         }
         catch (Exception exception)
         {
@@ -71,7 +76,7 @@ internal sealed class PexelsRecipeImageProvider(
         string externalImageId,
         CancellationToken cancellationToken = default)
     {
-        if (!options.IsConfigured)
+        if (!IsSelectedProvider() || !options.IsConfigured)
         {
             return new(RecipeImageDownloadStatus.NotConfigured,
                 Message: "The recipe image provider is not configured.");
@@ -94,7 +99,7 @@ internal sealed class PexelsRecipeImageProvider(
                 return new(RecipeImageDownloadStatus.Failed, Message: "The provider image response was malformed.");
 
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(DownloadTimeout);
+            timeout.CancelAfter(RequestTimeout);
             using var imageRequest = new HttpRequestMessage(HttpMethod.Get, imageUrl);
             using var imageResponse = await httpClient.SendAsync(imageRequest, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             if (!imageResponse.IsSuccessStatusCode)
@@ -132,10 +137,15 @@ internal sealed class PexelsRecipeImageProvider(
 
     private async Task<HttpResponseMessage> SendApiRequestAsync(string path, CancellationToken cancellationToken)
     {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(RequestTimeout);
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.TryAddWithoutValidation("Authorization", options.ApiKey);
-        return await httpClient.SendAsync(request, cancellationToken);
+        return await httpClient.SendAsync(request, timeout.Token);
     }
+
+    private bool IsSelectedProvider() =>
+        string.Equals(recipeImages.Provider, ProviderName, StringComparison.OrdinalIgnoreCase);
 
     private static async Task<byte[]?> ReadContentAsync(HttpContent content, CancellationToken cancellationToken)
     {
