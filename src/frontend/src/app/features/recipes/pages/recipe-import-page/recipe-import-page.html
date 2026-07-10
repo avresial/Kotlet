@@ -31,6 +31,11 @@
       @if (value.gaps.length) {
         <div class="gaps"><strong>Please check:</strong><ul>@for (gap of value.gaps; track gap) { <li>{{ gap }}</li> }</ul></div>
       }
+      @if (value.duplicateMatches.length) {
+        <div class="gaps"><strong>Possible duplicate:</strong><ul>@for (match of value.duplicateMatches; track match.recipeId) {
+          <li><a [routerLink]="['/recipes', match.recipeId]">{{ match.title }}</a></li>
+        }</ul></div>
+      }
       <label>Title <input name="title" [ngModel]="value.title" (ngModelChange)="updateDraft({ title: $event })" required maxlength="160" /></label>
       <label class="servings">Servings <input type="number" name="servings" [ngModel]="value.servings" (ngModelChange)="updateDraft({ servings: $event })" min="1" max="99" required /></label>
       <label>Instructions <textarea name="instructions" [ngModel]="value.instructionsMarkdown" (ngModelChange)="updateDraft({ instructionsMarkdown: $event })" rows="10"></textarea></label>
@@ -39,7 +44,7 @@
         @for (ingredient of value.ingredients; track $index; let i = $index) {
           <div class="ingredient" [class.proposed]="ingredient.isProposedNew">
             <div class="ingredient-name">
-              <input [name]="'name-' + i" [ngModel]="ingredient.name" (ngModelChange)="updateIngredient(i, { name: $event })" required />
+              <input [name]="'name-' + i" [ngModel]="ingredient.name" (ngModelChange)="updateIngredientName(i, $event)" list="ingredient-catalog" required />
               @if (ingredient.isProposedNew) { <span>New ingredient</span> }
               @else { <small>Matched to {{ ingredient.matchedName }}</small> }
             </div>
@@ -49,6 +54,7 @@
           </div>
         }
       </fieldset>
+      <datalist id="ingredient-catalog">@for (item of catalog(); track item.id) { <option [value]="item.name"></option> }</datalist>
       <div class="actions"><a routerLink="/recipes">Cancel</a><button type="submit" [disabled]="isSaving() || !isDraftValid(value)">{{ isSaving() ? 'Saving…' : 'Save recipe' }}</button></div>
     </form>
   }

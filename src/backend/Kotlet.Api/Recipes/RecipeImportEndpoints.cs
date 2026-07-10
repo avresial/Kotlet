@@ -26,8 +26,8 @@ public static class RecipeImportEndpoints
     private static async Task<IResult> Get(Guid id, ICurrentUser currentUser,
         RecipeImportService service, CancellationToken cancellationToken)
     {
-        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
-        var result = await service.GetJobAsync(id, houseId, cancellationToken);
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        var result = await service.GetJobAsync(id, houseId, userId, cancellationToken);
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
 

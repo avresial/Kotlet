@@ -16,7 +16,8 @@ public sealed record RecipeImportDraft(
     int Servings,
     string InstructionsMarkdown,
     IReadOnlyList<string> Gaps,
-    IReadOnlyList<RecipeImportIngredient> Ingredients);
+    IReadOnlyList<RecipeImportIngredient> Ingredients,
+    IReadOnlyList<RecipeExistenceMatch> DuplicateMatches);
 
 public sealed record RecipeImportJobResponse(
     Guid Id,

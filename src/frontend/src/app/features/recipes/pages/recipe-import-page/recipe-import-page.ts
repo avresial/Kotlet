@@ -11,6 +11,8 @@ import {
   RecipeImportStatus,
 } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
+import { Ingredient } from '../../../ingredients/ingredient.models';
+import { IngredientService } from '../../../ingredients/ingredient.service';
 
 @Component({
   selector: 'app-recipe-import-page',
@@ -21,6 +23,7 @@ import { RecipeService } from '../../services/recipe.service';
 })
 export class RecipeImportPage {
   private readonly service = inject(RecipeService);
+  private readonly ingredientService = inject(IngredientService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -29,6 +32,7 @@ export class RecipeImportPage {
   readonly isStarting = signal(false);
   readonly isSaving = signal(false);
   readonly error = signal<string | null>(null);
+  readonly catalog = signal<Ingredient[]>([]);
   readonly draft = computed(() => this.job()?.draft ?? null);
   readonly hasFailed = computed(() => this.job()?.status === RecipeImportStatus.Failed);
   readonly isValidUrl = computed(() => this.isSupportedVideoUrl(this.url()));
@@ -43,6 +47,11 @@ export class RecipeImportPage {
       default: return '';
     }
   });
+
+  constructor() {
+    this.ingredientService.getAll().pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(ingredients => this.catalog.set(ingredients));
+  }
 
   start(): void {
     if (!this.isValidUrl() || this.isStarting()) return;
@@ -81,6 +90,16 @@ export class RecipeImportPage {
     if (!draft) return;
     const ingredients = draft.ingredients.map((ingredient, i) => i === index ? { ...ingredient, ...change } : ingredient);
     this.updateDraft({ ingredients });
+  }
+
+  updateIngredientName(index: number, name: string): void {
+    const match = this.catalog().find(x => x.name.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0);
+    this.updateIngredient(index, {
+      name,
+      ingredientId: match?.id ?? null,
+      matchedName: match?.name ?? null,
+      isProposedNew: !match,
+    });
   }
 
   isDraftValid(draft: RecipeImportDraft): boolean {
