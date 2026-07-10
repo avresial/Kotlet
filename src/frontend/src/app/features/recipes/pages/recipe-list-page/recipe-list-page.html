@@ -50,14 +50,16 @@
   } @else {
     <div class="recipe-grid">
       @if (!hasActiveFilters()) {
-        <a class="add-card" routerLink="/recipes/new">
-          <span class="add-icon" aria-hidden="true">+</span>
-          <span>{{ 'recipes.new' | t }}</span>
-        </a>
-        <a class="add-card" routerLink="/recipes/import">
-          <span class="add-icon" aria-hidden="true">▶</span>
-          <span>Import from video</span>
-        </a>
+        <div class="add-card-stack">
+          <a class="add-card" routerLink="/recipes/new">
+            <span class="add-icon" aria-hidden="true">+</span>
+            <span>{{ 'recipes.new' | t }}</span>
+          </a>
+          <a class="add-card" routerLink="/recipes/import">
+            <span class="add-icon" aria-hidden="true">▶</span>
+            <span>Import from video</span>
+          </a>
+        </div>
       }
       @for (recipe of recipes(); track recipe.id) {
         <article class="recipe-card">
