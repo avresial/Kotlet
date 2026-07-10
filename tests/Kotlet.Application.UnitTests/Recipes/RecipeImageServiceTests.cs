@@ -35,6 +35,26 @@ public sealed class RecipeImageServiceTests
     }
 
     [Fact]
+    public async Task Add_WithSource_PersistsImageAttribution()
+    {
+        var repo = new FakeRepository(recipeExists: true);
+        var service = CreateService(repo);
+        var source = new RecipeImageSourceData(
+            "Pexels", "42", "https://www.pexels.com/photo/42", "Ada", "https://pexels.com/@ada");
+
+        var result = await service.AddAsync(RecipeId, OwnerId, "photo.webp", "image/webp", SampleContent,
+            "Pasta", CancellationToken.None, source);
+
+        Assert.Equal(RecipeImageOperationStatus.Success, result.Status);
+        var persistedSource = Assert.Single(Assert.Single(repo.Images).Sources).Source;
+        Assert.Equal(SourceType.ExternalImage, persistedSource.Type);
+        Assert.Equal("Pexels", persistedSource.Provider);
+        Assert.Equal("42", persistedSource.ExternalId);
+        Assert.Equal("https://www.pexels.com/photo/42", persistedSource.Url);
+        Assert.Equal("Ada", persistedSource.AuthorName);
+    }
+
+    [Fact]
     public async Task Add_AssignsIncrementingSortOrder()
     {
         var repo = new FakeRepository(recipeExists: true);

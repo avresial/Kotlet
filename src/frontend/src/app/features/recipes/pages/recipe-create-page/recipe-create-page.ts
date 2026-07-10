@@ -3,7 +3,12 @@ import { Router, RouterLink } from '@angular/router';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
-import { CreateRecipeRequest, RecipeImageCandidate } from '../../models/recipe.models';
+import {
+  CreateRecipeRequest,
+  RecipeImageCandidate,
+  RecipeImageImportResult,
+  RecipeImageSourceData,
+} from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { RecipeForm } from '../../components/recipe-form/recipe-form';
 
@@ -22,6 +27,8 @@ export class RecipeCreatePage {
   readonly isSaving = signal(false);
   readonly error = signal<string | null>(null);
   private selectedImage: File | null = null;
+  private selectedImageSource: RecipeImageSourceData | null = null;
+  private selectedImageAltText: string | null = null;
   readonly selectedGeneratedImage = signal<RecipeImageCandidate | null>(null);
 
   save(request: CreateRecipeRequest): void {
@@ -34,7 +41,7 @@ export class RecipeCreatePage {
           return;
         }
 
-        this.service.uploadImage(recipe.id, this.selectedImage).subscribe({
+        this.service.uploadImage(recipe.id, this.selectedImage, this.selectedImageAltText ?? undefined, this.selectedImageSource ?? undefined).subscribe({
           next: () => this.router.navigate(['/recipes', recipe.id], { state: { justCreated: true } }),
           error: () => this.router.navigate(['/recipes', recipe.id, 'edit']),
         });
@@ -48,11 +55,24 @@ export class RecipeCreatePage {
 
   selectImage(file: File | null): void {
     this.selectedImage = file;
+    this.selectedImageSource = null;
+    this.selectedImageAltText = null;
   }
 
   selectGeneratedImage(candidate: RecipeImageCandidate): void {
     // #202 will download/process this candidate before the recipe is submitted.
     this.selectedGeneratedImage.set(candidate);
+  }
+
+  selectGeneratedImageImport(result: RecipeImageImportResult): void {
+    this.selectedImageSource = {
+      provider: result.provider,
+      externalId: result.externalImageId,
+      url: result.sourcePageUrl,
+      authorName: result.authorName,
+      authorUrl: result.authorUrl,
+    };
+    this.selectedImageAltText = result.altText;
   }
 
   cancel(): void {

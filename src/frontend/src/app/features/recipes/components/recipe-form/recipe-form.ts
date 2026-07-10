@@ -5,9 +5,17 @@ import {
   input,
   OnInit,
   output,
+  signal,
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CreateRecipeRequest, RecipeDetail, RecipeImageCandidate, RecipeIngredientRequest, recipeMealTypes } from '../../models/recipe.models';
+import {
+  CreateRecipeRequest,
+  RecipeDetail,
+  RecipeImageCandidate,
+  RecipeImageImportResult,
+  RecipeIngredientRequest,
+  recipeMealTypes,
+} from '../../models/recipe.models';
 import { IngredientListEditor } from '../ingredient-list-editor/ingredient-list-editor';
 import { MarkdownEditor } from '../markdown-editor/markdown-editor';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
@@ -33,10 +41,12 @@ export class RecipeForm implements OnInit {
   readonly submitted = output<CreateRecipeRequest>();
   readonly imageSelected = output<File | null>();
   readonly generatedImageSelected = output<RecipeImageCandidate>();
+  readonly generatedImageImported = output<RecipeImageImportResult>();
   readonly cancelled = output<void>();
 
   selectedImage: File | null = null;
   imageError: string | null = null;
+  readonly imageImporting = signal(false);
   readonly mealTypes = recipeMealTypes;
 
   readonly form = this.fb.nonNullable.group({
@@ -69,7 +79,7 @@ export class RecipeForm implements OnInit {
   }
 
   submit(): void {
-    if (this.form.invalid || this.isSaving()) {
+    if (this.form.invalid || this.isSaving() || this.imageImporting()) {
       this.form.markAllAsTouched();
       return;
     }
@@ -107,6 +117,19 @@ export class RecipeForm implements OnInit {
 
     this.selectedImage = file;
     this.imageSelected.emit(file);
+  }
+
+  setImageImporting(value: boolean): void {
+    this.imageImporting.set(value);
+  }
+
+  handleGeneratedImage(result: RecipeImageImportResult): void {
+    const bytes = Uint8Array.from(atob(result.content), character => character.charCodeAt(0));
+    const file = new File([bytes], 'generated-recipe-image.webp', { type: result.contentType });
+    this.selectedImage = file;
+    this.imageError = null;
+    this.imageSelected.emit(file);
+    this.generatedImageImported.emit(result);
   }
 
   removeImage(input: HTMLInputElement): void {

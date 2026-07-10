@@ -101,6 +101,27 @@ export interface RecipeImageCandidate {
   height: number | null;
 }
 
+export interface RecipeImageImportResult {
+  content: string;
+  contentType: 'image/webp';
+  width: number;
+  height: number;
+  provider: string;
+  externalImageId: string;
+  sourcePageUrl: string;
+  authorName: string | null;
+  authorUrl: string | null;
+  altText: string | null;
+}
+
+export interface RecipeImageSourceData {
+  provider: string;
+  externalId: string | null;
+  url: string | null;
+  authorName: string | null;
+  authorUrl: string | null;
+}
+
 export interface ImageSourceAttribution {
   provider: string;
   authorName: string | null;

@@ -6,6 +6,7 @@ import {
   PagedResponse,
   RecipeDetail,
   RecipeImage,
+  RecipeImageSourceData,
   RecipeImportDraft,
   RecipeImportJob,
   RecipeSummary,
@@ -65,22 +66,29 @@ export class RecipeService {
     return this.http.get(apiUrl(contentUrl), { responseType: 'blob' });
   }
 
-  uploadImage(recipeId: string, file: File, altText?: string) {
-    return this.http.post<RecipeImage>(apiUrl(`/api/recipes/${recipeId}/images`), this.imageBody(file, altText));
+  uploadImage(recipeId: string, file: File, altText?: string, source?: RecipeImageSourceData) {
+    return this.http.post<RecipeImage>(apiUrl(`/api/recipes/${recipeId}/images`), this.imageBody(file, altText, source));
   }
 
   /** Same as uploadImage, but emits HttpEvents so callers can track upload progress. */
-  uploadImageWithProgress(recipeId: string, file: File, altText?: string) {
-    return this.http.post<RecipeImage>(apiUrl(`/api/recipes/${recipeId}/images`), this.imageBody(file, altText), {
+  uploadImageWithProgress(recipeId: string, file: File, altText?: string, source?: RecipeImageSourceData) {
+    return this.http.post<RecipeImage>(apiUrl(`/api/recipes/${recipeId}/images`), this.imageBody(file, altText, source), {
       reportProgress: true,
       observe: 'events',
     });
   }
 
-  private imageBody(file: File, altText?: string): FormData {
+  private imageBody(file: File, altText?: string, source?: RecipeImageSourceData): FormData {
     const body = new FormData();
     body.append('file', file);
     if (altText?.trim()) body.append('altText', altText.trim());
+    if (source) {
+      body.append('sourceProvider', source.provider);
+      if (source.externalId) body.append('sourceExternalId', source.externalId);
+      if (source.url) body.append('sourceUrl', source.url);
+      if (source.authorName) body.append('sourceAuthorName', source.authorName);
+      if (source.authorUrl) body.append('sourceAuthorUrl', source.authorUrl);
+    }
     return body;
   }
 

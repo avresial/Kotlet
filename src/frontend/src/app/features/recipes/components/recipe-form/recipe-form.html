@@ -70,6 +70,8 @@
         [ingredients]="ingredientNames()"
         [isSaving]="isSaving()"
         (imageSelected)="generatedImageSelected.emit($event)"
+        (imageImported)="handleGeneratedImage($event)"
+        (importingChange)="setImageImporting($event)"
       ></app-image-generator>
     </div>
   }
@@ -108,7 +110,7 @@
 
   <div class="form-actions">
     <button type="button" class="secondary" (click)="cancel()">{{ 'common.cancel' | t }}</button>
-    <button type="submit" class="primary" [disabled]="isSaving() || form.invalid">
+    <button type="submit" class="primary" [disabled]="isSaving() || imageImporting() || form.invalid">
       {{ isSaving() ? ('common.saving' | t) : submitLabel() || ('recipes.save' | t) }}
     </button>
   </div>

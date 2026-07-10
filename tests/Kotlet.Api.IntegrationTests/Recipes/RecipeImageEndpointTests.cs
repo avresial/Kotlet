@@ -64,6 +64,43 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
     }
 
     [Fact]
+    public async Task Upload_PersistsExternalImageAttribution()
+    {
+        var client = await AuthenticatedClient();
+        var recipeId = await CreateRecipe(client);
+
+        var response = await Upload(client, recipeId, "generated.webp", "image/webp", TestImages.Webp(), "Pasta",
+            "Pexels", "42", "https://www.pexels.com/photo/42", "Ada", "https://pexels.com/@ada");
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var image = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var source = image.GetProperty("source");
+        Assert.Equal("Pexels", source.GetProperty("provider").GetString());
+        Assert.Equal("Ada", source.GetProperty("authorName").GetString());
+        Assert.Equal("https://www.pexels.com/photo/42", source.GetProperty("url").GetString());
+    }
+
+    [Fact]
+    public async Task Import_ReturnsBadRequestForMissingSelection()
+    {
+        var client = await AuthenticatedClient();
+
+        var response = await client.PostAsJsonAsync("/api/recipes/images/import", new { provider = "", externalImageId = "" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Import_ReturnsServiceUnavailableWhenProviderIsNotConfigured()
+    {
+        var client = await AuthenticatedClient();
+
+        var response = await client.PostAsJsonAsync("/api/recipes/images/import", new { provider = "Pexels", externalImageId = "42" });
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
+
+    [Fact]
     public async Task AnonymousUser_CanViewRecipeImageContentButCannotUpload()
     {
         var owner = await AuthenticatedClient();
@@ -89,14 +126,26 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/recipes/{recipeId}/images/{imageId}/content")).StatusCode);
     }
 
-    private static async Task<HttpResponseMessage> Upload(HttpClient client, Guid recipeId, string name, string type, byte[] bytes, string? alt)
+    private static async Task<HttpResponseMessage> Upload(HttpClient client, Guid recipeId, string name, string type, byte[] bytes,
+        string? alt, string? sourceProvider = null, string? sourceExternalId = null, string? sourceUrl = null,
+        string? sourceAuthorName = null, string? sourceAuthorUrl = null)
     {
         using var form = new MultipartFormDataContent();
         var file = new ByteArrayContent(bytes);
         file.Headers.ContentType = new MediaTypeHeaderValue(type);
         form.Add(file, "file", name);
         if (alt is not null) form.Add(new StringContent(alt, Encoding.UTF8), "altText");
+        Add(sourceProvider, "sourceProvider");
+        Add(sourceExternalId, "sourceExternalId");
+        Add(sourceUrl, "sourceUrl");
+        Add(sourceAuthorName, "sourceAuthorName");
+        Add(sourceAuthorUrl, "sourceAuthorUrl");
         return await client.PostAsync($"/api/recipes/{recipeId}/images", form);
+
+        void Add(string? value, string name)
+        {
+            if (value is not null) form.Add(new StringContent(value, Encoding.UTF8), name);
+        }
     }
 
     private static async Task<Guid> CreateRecipe(HttpClient client)

@@ -14,7 +14,7 @@ describe('RecipeForm image picker', () => {
       providers: [{
         provide: TranslationService,
         useValue: { translate: (key: string) => key === 'recipes.addImage' ? 'Add image' : key },
-      }, { provide: RecipeImageSearchService, useValue: { search: () => of([]) } }],
+      }, { provide: RecipeImageSearchService, useValue: { search: () => of([]), import: () => of({}) } }],
     }).compileComponents();
     fixture = TestBed.createComponent(RecipeForm);
     fixture.componentRef.setInput('showImagePicker', true);
