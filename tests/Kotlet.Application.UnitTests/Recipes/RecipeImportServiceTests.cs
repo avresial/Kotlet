@@ -69,6 +69,7 @@ public sealed class RecipeImportServiceTests
         Assert.Equal(SourceType.AiAssisted, association.Source.Type);
         Assert.Equal(RecipeImportService.AiSourceProvider, association.Source.Provider);
         Assert.Equal("https://youtu.be/test", association.Source.Url);
+        Assert.True((DateTimeOffset.UtcNow - association.Source.RetrievedAtUtc).Duration() < TimeSpan.FromMinutes(1));
     }
 
     private static RecipeImportService CreateService(FakeJobs jobs, IRecipeImportSignal signal) =>
