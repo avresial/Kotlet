@@ -80,6 +80,7 @@ describe('ImageGenerator', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.importing()).toBe(false);
+    expect(fixture.componentInstance.selectedId()).toBeNull();
     expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('recipes.imageImportError');
   });
 

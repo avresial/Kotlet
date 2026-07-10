@@ -78,6 +78,12 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
         Assert.Equal("Pexels", source.GetProperty("provider").GetString());
         Assert.Equal("Ada", source.GetProperty("authorName").GetString());
         Assert.Equal("https://www.pexels.com/photo/42", source.GetProperty("url").GetString());
+
+        var persistedImages = await client.GetFromJsonAsync<JsonElement>($"/api/recipes/{recipeId}/images");
+        var persistedSource = persistedImages[0].GetProperty("source");
+        Assert.Equal("Pexels", persistedSource.GetProperty("provider").GetString());
+        Assert.Equal("Ada", persistedSource.GetProperty("authorName").GetString());
+        Assert.Equal("https://www.pexels.com/photo/42", persistedSource.GetProperty("url").GetString());
     }
 
     [Fact]

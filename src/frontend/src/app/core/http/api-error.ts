@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
 interface ProblemDetails {
+  detail?: string;
   message?: string;
   errors?: Record<string, string[]>;
 }
@@ -11,6 +12,7 @@ export function getApiError(error: unknown, fallback: string): string {
 
   const problem = error.error as ProblemDetails | null;
   if (problem?.message) return problem.message;
+  if (problem?.detail) return problem.detail;
   const validationError = problem?.errors
     && Object.values(problem.errors).flat().find((message) => message.trim().length > 0);
   return validationError ?? fallback;

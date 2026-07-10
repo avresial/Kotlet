@@ -67,6 +67,19 @@ public sealed class RecipeImageImportServiceTests
         Assert.Null(result.Image);
     }
 
+    [Fact]
+    public async Task Import_OmitsProviderAltTextThatCannotBeStored()
+    {
+        var downloaded = DownloadedImage with { AltText = new string('x', 301) };
+        var service = new RecipeImageImportService(
+            [new FakeProvider(RecipeImageDownloadStatus.Success, downloaded)], new FakeProcessor());
+
+        var result = await service.ImportAsync(new("Pexels", "42"));
+
+        Assert.Equal(RecipeImageImportStatus.Success, result.Status);
+        Assert.Null(result.Image!.AltText);
+    }
+
     private sealed class FakeProvider(RecipeImageDownloadStatus status, RecipeImageContent? content) : IRecipeImageProvider
     {
         public string Name => "Pexels";

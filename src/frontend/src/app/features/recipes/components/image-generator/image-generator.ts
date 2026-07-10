@@ -104,7 +104,10 @@ export class ImageGenerator {
       }),
     ).subscribe({
       next: imported => this.imageImported.emit(imported),
-      error: err => this.error.set(getApiError(err, this.translations.translate('recipes.imageImportError'))),
+      error: err => {
+        this.selectedId.set(null);
+        this.error.set(getApiError(err, this.translations.translate('recipes.imageImportError')));
+      },
     });
   }
 

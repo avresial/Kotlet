@@ -53,7 +53,13 @@ public sealed class RecipeImageImportService(
             downloaded.Content.SourcePageUrl,
             downloaded.Content.AuthorName,
             downloaded.Content.AuthorUrl,
-            downloaded.Content.AltText));
+            NormalizeAltText(downloaded.Content.AltText)));
+    }
+
+    private static string? NormalizeAltText(string? altText)
+    {
+        var value = altText?.Trim();
+        return value is { Length: > 300 } ? null : value;
     }
 
     private static RecipeImageImportResult MapDownloadResult(RecipeImageDownloadResult result) =>
