@@ -55,6 +55,17 @@ public sealed class RecipeServiceTests
     }
 
     [Fact]
+    public async Task Create_ManualRecipe_HasNoSourceAssociations()
+    {
+        var repo = new FakeRecipeRepository();
+        var service = CreateService(repo);
+
+        await service.CreateAsync(OwnerId, OwnerId, ValidCreateRequest(), CancellationToken.None);
+
+        Assert.Empty(repo.Recipes.Single().Sources);
+    }
+
+    [Fact]
     public async Task Create_SetsOwnerUserId()
     {
         var repo = new FakeRecipeRepository();

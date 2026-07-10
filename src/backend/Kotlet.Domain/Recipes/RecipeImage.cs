@@ -13,4 +13,5 @@ public sealed class RecipeImage
     public int SortOrder { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public ICollection<RecipeImageSource> Sources { get; set; } = [];
 }
