@@ -413,7 +413,7 @@ public sealed class RecipeServiceTests
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(recipe);
 
-        var result = await CreateService(repo).CheckExistsAsync(
+        var result = await CreateDuplicateDetectionService(repo).CheckExistsAsync(
             OwnerId, null, "https://example.com/goulash/", CancellationToken.None);
 
         Assert.True(result.Exists);
@@ -429,7 +429,7 @@ public sealed class RecipeServiceTests
         var recipe = MakeRecipe("Goulash", "goulash", OwnerId);
         recipe.DescriptionMarkdown = "Rich stew.\n\n1. Brown the meat.\n\nSource: https://example.com/goulash";
         repo.Recipes.Add(recipe);
-        var service = CreateService(repo);
+        var service = CreateDuplicateDetectionService(repo);
 
         var result = await service.CheckExistsAsync(OwnerId, null, "https://example.com/goulash/", CancellationToken.None);
 
@@ -447,7 +447,7 @@ public sealed class RecipeServiceTests
         var recipe = MakeRecipe("Goulash deluxe", "goulash-deluxe", OwnerId);
         recipe.DescriptionMarkdown = "Source: https://example.com/goulash-deluxe";
         repo.Recipes.Add(recipe);
-        var service = CreateService(repo);
+        var service = CreateDuplicateDetectionService(repo);
 
         var result = await service.CheckExistsAsync(OwnerId, null, "https://example.com/goulash", CancellationToken.None);
 
@@ -460,7 +460,7 @@ public sealed class RecipeServiceTests
     {
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(MakeRecipe("Chickpea Balls with Tomato Sauce", "chickpea-balls", OwnerId));
-        var service = CreateService(repo);
+        var service = CreateDuplicateDetectionService(repo);
 
         var result = await service.CheckExistsAsync(
             OwnerId, "chickpea balls, with tomato sauce!", null, CancellationToken.None);
@@ -477,7 +477,7 @@ public sealed class RecipeServiceTests
         var unrelated = MakeRecipe("Chocolate cake", "chocolate-cake", OwnerId);
         repo.Recipes.Add(similar);
         repo.Recipes.Add(unrelated);
-        var service = CreateService(repo);
+        var service = CreateDuplicateDetectionService(repo);
 
         var result = await service.CheckExistsAsync(
             OwnerId, "Chickpea balls in tomato sauce", null, CancellationToken.None);
@@ -497,7 +497,7 @@ public sealed class RecipeServiceTests
         byUrl.DescriptionMarkdown = "Source: https://example.com/goulash";
         repo.Recipes.Add(byTitle);
         repo.Recipes.Add(byUrl);
-        var service = CreateService(repo);
+        var service = CreateDuplicateDetectionService(repo);
 
         var result = await service.CheckExistsAsync(
             OwnerId, "Goulash", "https://example.com/goulash", CancellationToken.None);
@@ -514,7 +514,7 @@ public sealed class RecipeServiceTests
     {
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(MakeRecipe("Chocolate cake", "chocolate-cake", OwnerId));
-        var service = CreateService(repo);
+        var service = CreateDuplicateDetectionService(repo);
 
         var result = await service.CheckExistsAsync(
             OwnerId, "Lentil curry", "https://example.com/lentil-curry", CancellationToken.None);
@@ -528,7 +528,7 @@ public sealed class RecipeServiceTests
     {
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(MakeRecipe("Goulash", "goulash", OtherOwnerId));
-        var service = CreateService(repo);
+        var service = CreateDuplicateDetectionService(repo);
 
         var result = await service.CheckExistsAsync(OwnerId, "Goulash", null, CancellationToken.None);
 
@@ -554,6 +554,9 @@ public sealed class RecipeServiceTests
 
     private static RecipeService CreateService(FakeRecipeRepository repository, FakeTranslationRepository? translations = null) =>
         new(repository, new FakeIngredientRepository(Tomatoes, Garlic, Pasta), new MeasurementMappingService(), translations ?? new FakeTranslationRepository());
+
+    private static RecipeDuplicateDetectionService CreateDuplicateDetectionService(FakeRecipeRepository repository) =>
+        new(repository);
 
     private sealed class FakeIngredientRepository(params Ingredient[] ingredients) : IIngredientRepository
     {
