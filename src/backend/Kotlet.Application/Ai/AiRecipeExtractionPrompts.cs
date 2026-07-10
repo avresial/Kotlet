@@ -7,7 +7,8 @@ internal static class AiRecipeExtractionPrompts
     public const string SystemPrompt =
         "You extract recipes from cooking-video content. Reply with valid JSON only, with no markdown " +
         "fences or commentary. Use exactly these fields: isRecipe (boolean), title (string), servings " +
-        "(positive integer or null), ingredients (array of objects with name, quantity, unit, note), " +
+        "(positive integer or null), ingredients (array of objects with name, quantity (number or null), " +
+        "unit (string or null), note), " +
         "steps (array of strings), and gaps (array of strings). Set isRecipe to false when the content " +
         "does not describe a cookable recipe. Never invent quantities: prefer exact quantities in the " +
         "description when the transcript omits them, otherwise use null and explain the gap. Return " +

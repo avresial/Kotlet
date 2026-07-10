@@ -20,18 +20,18 @@ public sealed class AiRecipeExtractionServiceTests
     public async Task ExtractAsync_ParsesDraftAndAppendsSource()
     {
         var client = new FakeClient("""
-            {"isRecipe":true,"title":"Golden cake","servings":4,"ingredients":[{"name":"flour","quantity":2,"unit":"cups"},{"name":"eggs","quantity":3,"unit":""}],"steps":["Mix ingredients.","Bake until golden."],"gaps":[]}
+            {"isRecipe":true,"title":"Golden [cake]","servings":4,"ingredients":[{"name":"flour","quantity":2,"unit":"cups"},{"name":"eggs","quantity":3,"unit":""}],"steps":["Mix ingredients.","Bake until golden."],"gaps":[]}
             """);
 
         var result = await CreateService(client).ExtractAsync(UserId, Content, CancellationToken.None);
 
         Assert.Equal(RecipeExtractionStatus.Extracted, result.Status);
         Assert.NotNull(result.Draft);
-        Assert.Equal("Golden cake", result.Draft.Title);
+        Assert.Equal("Golden [cake]", result.Draft.Title);
         Assert.Equal(4, result.Draft.Servings);
         Assert.Equal(2, result.Draft.Ingredients[0].Quantity);
         Assert.Contains("1. Mix ingredients.", result.Draft.InstructionsMarkdown);
-        Assert.EndsWith("Imported from [Golden cake](https://youtube.com/watch?v=abc)", result.Draft.InstructionsMarkdown);
+        Assert.EndsWith("Imported from [Golden \\[cake\\]](https://youtube.com/watch?v=abc)", result.Draft.InstructionsMarkdown);
     }
 
     [Fact]

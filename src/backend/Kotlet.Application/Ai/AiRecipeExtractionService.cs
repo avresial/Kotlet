@@ -69,7 +69,8 @@ public sealed class AiRecipeExtractionService(IUserChatClientResolver resolver)
             var instructions = string.Join(Environment.NewLine, steps.Select((step, index) => $"{index + 1}. {step}"));
             if (content.SourceUrl is not null)
             {
-                instructions += $"{Environment.NewLine}{Environment.NewLine}Imported from [{title}]({content.SourceUrl})";
+                var citationTitle = title.Replace("[", "\\[").Replace("]", "\\]");
+                instructions += $"{Environment.NewLine}{Environment.NewLine}Imported from [{citationTitle}]({content.SourceUrl})";
             }
 
             var gaps = parsed.Gaps?.Where(gap => !string.IsNullOrWhiteSpace(gap)).Select(gap => gap.Trim()).ToArray() ?? [];
