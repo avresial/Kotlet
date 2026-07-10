@@ -6,6 +6,7 @@ using Kotlet.Application.VideoTranscripts;
 using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.Recipes;
+using Kotlet.Domain.Sources;
 
 namespace Kotlet.Application.Recipes;
 
@@ -20,6 +21,9 @@ public sealed class RecipeImportService(
     AiRecipeExtractionService extraction,
     IRecipeImportSignal signal)
 {
+    /// <summary>Provider recorded on AiAssisted sources; all AI extraction goes through OpenRouter.</summary>
+    public const string AiSourceProvider = "OpenRouter";
+
     private const decimal MatchThreshold = 0.75m;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -151,7 +155,19 @@ public sealed class RecipeImportService(
             Id = recipeId, HouseId = houseId, OwnerUserId = userId, Title = title, Slug = slug,
             DescriptionMarkdown = draft.InstructionsMarkdown.Trim(), Servings = ServingCount.FromInt32(draft.Servings),
             IsAiAssisted = true, SourceUrl = job.Url, CreatedAtUtc = now, UpdatedAtUtc = now,
-            Ingredients = recipeIngredients
+            Ingredients = recipeIngredients,
+            Sources =
+            [
+                new RecipeSource
+                {
+                    RecipeId = recipeId,
+                    Source = new Source
+                    {
+                        Id = Guid.NewGuid(), Type = SourceType.AiAssisted, Provider = AiSourceProvider,
+                        Url = job.Url, RetrievedAtUtc = now
+                    }
+                }
+            ]
         });
         jobs.Remove(job);
         await jobs.SaveChangesAsync(cancellationToken);

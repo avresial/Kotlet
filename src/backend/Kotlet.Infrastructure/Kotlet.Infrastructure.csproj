@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Kotlet.Infrastructure.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Kotlet.Application\Kotlet.Application.csproj" />
     <ProjectReference Include="..\Kotlet.Domain\Kotlet.Domain.csproj" />
   </ItemGroup>
@@ -28,6 +32,7 @@
     <!-- Pin to override vulnerable transitive SQLitePCLRaw 2.1.11 (GHSA-2m69-gcr7-jv3q) -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="SixLabors.ImageSharp" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" />
     <PackageReference Include="System.Security.Cryptography.Xml" />
   </ItemGroup>

@@ -10,6 +10,8 @@
     [showImagePicker]="true"
     [submitLabel]="'recipes.create' | t"
     (imageSelected)="selectImage($event)"
+    (generatedImageSelected)="selectGeneratedImage($event)"
+    (generatedImageImported)="selectGeneratedImageImport($event)"
     (submitted)="save($event)"
     (cancelled)="cancel()"
   ></app-recipe-form>

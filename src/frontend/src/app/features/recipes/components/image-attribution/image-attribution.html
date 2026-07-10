@@ -1,0 +1,17 @@
+@if (href(); as href) {
+  <a
+    class="image-attribution"
+    [href]="href"
+    target="_blank"
+    rel="noopener noreferrer"
+    [attr.aria-label]="'recipes.viewImageSource' | t"
+    aria-describedby="image-attribution-tooltip"
+  >
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5" />
+      <circle cx="12" cy="8" r="1" fill="currentColor" stroke="none" />
+    </svg>
+    <span class="attribution-tooltip" id="image-attribution-tooltip" role="tooltip">{{ tooltip() }}</span>
+  </a>
+}

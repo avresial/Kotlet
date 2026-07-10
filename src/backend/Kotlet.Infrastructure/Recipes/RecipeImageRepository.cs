@@ -16,7 +16,9 @@ internal sealed class RecipeImageRepository(KotletDbContext dbContext) : IRecipe
     public async Task<IReadOnlyList<RecipeImage>> ListAsync(Guid recipeId, bool tracked, CancellationToken ct)
     {
         if (tracked)
-            return await dbContext.RecipeImages.Where(i => i.RecipeId == recipeId).OrderBy(i => i.SortOrder).ToListAsync(ct);
+            return await dbContext.RecipeImages.Where(i => i.RecipeId == recipeId)
+                .Include(i => i.Sources).ThenInclude(s => s.Source)
+                .OrderBy(i => i.SortOrder).ToListAsync(ct);
         return await dbContext.RecipeImages.AsNoTracking().Where(i => i.RecipeId == recipeId).OrderBy(i => i.SortOrder)
             .Select(i => new RecipeImage
             {
@@ -29,7 +31,13 @@ internal sealed class RecipeImageRepository(KotletDbContext dbContext) : IRecipe
                 AltText = i.AltText,
                 SortOrder = i.SortOrder,
                 CreatedAtUtc = i.CreatedAtUtc,
-                UpdatedAtUtc = i.UpdatedAtUtc
+                UpdatedAtUtc = i.UpdatedAtUtc,
+                Sources = i.Sources.Select(s => new RecipeImageSource
+                {
+                    RecipeImageId = s.RecipeImageId,
+                    SourceId = s.SourceId,
+                    Source = s.Source
+                }).ToList()
             }).ToListAsync(ct);
     }
     public Task<RecipeImage?> GetAsync(Guid recipeId, Guid imageId, bool includeContent, CancellationToken ct)
@@ -48,7 +56,13 @@ internal sealed class RecipeImageRepository(KotletDbContext dbContext) : IRecipe
                 AltText = i.AltText,
                 SortOrder = i.SortOrder,
                 CreatedAtUtc = i.CreatedAtUtc,
-                UpdatedAtUtc = i.UpdatedAtUtc
+                UpdatedAtUtc = i.UpdatedAtUtc,
+                Sources = i.Sources.Select(s => new RecipeImageSource
+                {
+                    RecipeImageId = s.RecipeImageId,
+                    SourceId = s.SourceId,
+                    Source = s.Source
+                }).ToList()
             }).SingleOrDefaultAsync(ct);
     }
     public async Task<IReadOnlyDictionary<Guid, Guid>> GetFirstImageIdsAsync(IReadOnlyList<Guid> recipeIds, CancellationToken ct)

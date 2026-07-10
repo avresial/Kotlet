@@ -85,6 +85,48 @@ export interface RecipeImage {
   sortOrder: number;
   contentUrl: `/api/${string}`;
   createdAtUtc: string;
+  /** Attribution for the image's primary source; null when the image has no recorded source. */
+  source?: ImageSourceAttribution | null;
+}
+
+export interface RecipeImageCandidate {
+  provider: string;
+  externalImageId: string;
+  previewUrl: string;
+  sourcePageUrl: string;
+  authorName: string | null;
+  authorUrl: string | null;
+  altText: string | null;
+  width: number | null;
+  height: number | null;
+}
+
+export interface RecipeImageImportResult {
+  content: string;
+  contentType: 'image/webp';
+  width: number;
+  height: number;
+  provider: string;
+  externalImageId: string;
+  sourcePageUrl: string;
+  authorName: string | null;
+  authorUrl: string | null;
+  altText: string | null;
+}
+
+export interface RecipeImageSourceData {
+  provider: string;
+  externalId: string | null;
+  url: string | null;
+  authorName: string | null;
+  authorUrl: string | null;
+}
+
+export interface ImageSourceAttribution {
+  provider: string;
+  authorName: string | null;
+  authorUrl: string | null;
+  url: string | null;
 }
 
 export interface PagedResponse<T> {

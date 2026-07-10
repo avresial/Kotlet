@@ -1,7 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { RecipeForm } from './recipe-form';
 import { IngredientListEditor } from '../ingredient-list-editor/ingredient-list-editor';
 import { TranslationService } from '../../../../core/i18n/translation.service';
+import { RecipeImageSearchService } from '../../services/recipe-image-search.service';
+import { RecipeImageImportResult } from '../../models/recipe.models';
 
 describe('RecipeForm image picker', () => {
   let fixture: ComponentFixture<RecipeForm>;
@@ -12,7 +15,7 @@ describe('RecipeForm image picker', () => {
       providers: [{
         provide: TranslationService,
         useValue: { translate: (key: string) => key === 'recipes.addImage' ? 'Add image' : key },
-      }],
+      }, { provide: RecipeImageSearchService, useValue: { search: () => of([]), import: () => of({}) } }],
     }).compileComponents();
     fixture = TestBed.createComponent(RecipeForm);
     fixture.componentRef.setInput('showImagePicker', true);
@@ -70,5 +73,46 @@ describe('RecipeForm image picker', () => {
     }]);
 
     expect(editor.validate(fixture.componentInstance.form.controls.ingredients)).toBeNull();
+  });
+
+  it('converts an imported result into a selected file and forwards its metadata', () => {
+    const result: RecipeImageImportResult = {
+      content: 'd2VicA==',
+      contentType: 'image/webp',
+      width: 1200,
+      height: 800,
+      provider: 'Pexels',
+      externalImageId: '42',
+      sourcePageUrl: 'https://www.pexels.com/photo/42',
+      authorName: 'Ada',
+      authorUrl: 'https://pexels.com/@ada',
+      altText: 'Pasta',
+    };
+    const selected: Array<File | null> = [];
+    const imported: RecipeImageImportResult[] = [];
+    fixture.componentInstance.imageSelected.subscribe(value => selected.push(value));
+    fixture.componentInstance.generatedImageImported.subscribe(value => imported.push(value));
+
+    fixture.componentInstance.handleGeneratedImage(result);
+
+    expect(fixture.componentInstance.selectedImage?.name).toBe('generated-recipe-image.webp');
+    expect(fixture.componentInstance.selectedImage?.type).toBe('image/webp');
+    expect(fixture.componentInstance.selectedImage?.size).toBe(4);
+    expect(selected[0]).toBe(fixture.componentInstance.selectedImage);
+    expect(imported).toEqual([result]);
+  });
+
+  it('blocks save while an image import is active and restores it afterward', () => {
+    fixture.componentInstance.form.controls.title.setValue('Pasta');
+    const submitted: unknown[] = [];
+    fixture.componentInstance.submitted.subscribe(value => submitted.push(value));
+
+    fixture.componentInstance.setImageImporting(true);
+    fixture.componentInstance.submit();
+    expect(submitted).toHaveLength(0);
+
+    fixture.componentInstance.setImageImporting(false);
+    fixture.componentInstance.submit();
+    expect(submitted).toHaveLength(1);
   });
 });

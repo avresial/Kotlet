@@ -8,6 +8,7 @@ using Kotlet.Application.MealPlanner;
 using Kotlet.Application.Measurements;
 using Kotlet.Application.Pantry;
 using Kotlet.Application.Recipes;
+using Kotlet.Application.RecipeImageSearch;
 using Kotlet.Application.Shopping;
 using Kotlet.Application.VideoTranscripts;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,6 +30,7 @@ public static class DependencyInjection
             .AddMeasurementsApplication()
             .AddPantryApplication()
             .AddRecipesApplication()
+            .AddRecipeImageSearchApplication()
             .AddShoppingApplication()
             .AddVideoTranscriptsApplication();
     }

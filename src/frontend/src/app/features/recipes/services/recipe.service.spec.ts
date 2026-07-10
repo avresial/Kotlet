@@ -33,6 +33,24 @@ describe('RecipeService image gallery', () => {
     request.flush({});
   });
 
+  it('uploads generated image attribution with the multipart image', () => {
+    const file = new File(['image'], 'generated.webp', { type: 'image/webp' });
+    service.uploadImage('recipe-1', file, 'Pasta', {
+      provider: 'Pexels',
+      externalId: '42',
+      url: 'https://www.pexels.com/photo/42',
+      authorName: 'Ada',
+      authorUrl: 'https://pexels.com/@ada',
+    }).subscribe();
+    const request = http.expectOne('/api/recipes/recipe-1/images');
+    expect(request.request.body.get('sourceProvider')).toBe('Pexels');
+    expect(request.request.body.get('sourceExternalId')).toBe('42');
+    expect(request.request.body.get('sourceUrl')).toBe('https://www.pexels.com/photo/42');
+    expect(request.request.body.get('sourceAuthorName')).toBe('Ada');
+    expect(request.request.body.get('sourceAuthorUrl')).toBe('https://pexels.com/@ada');
+    request.flush({});
+  });
+
   it('updates, reorders, and deletes images through the gallery endpoints', () => {
     service.updateImage('recipe-1', 'image-1', 'New alt').subscribe();
     let request = http.expectOne('/api/recipes/recipe-1/images/image-1');

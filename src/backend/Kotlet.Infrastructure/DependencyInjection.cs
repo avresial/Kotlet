@@ -3,12 +3,15 @@ using Kotlet.Infrastructure.Ai;
 using Kotlet.Infrastructure.FoodSettings;
 using Kotlet.Application.FoodSettings;
 using Kotlet.Infrastructure.Auth;
+using Kotlet.Application.Images;
 using Kotlet.Infrastructure.Houses;
+using Kotlet.Infrastructure.Images;
 using Kotlet.Infrastructure.Ingredients;
 using Kotlet.Infrastructure.MealPlanner;
 using Kotlet.Infrastructure.Pantry;
 using Kotlet.Infrastructure.Persistence;
 using Kotlet.Infrastructure.Recipes;
+using Kotlet.Infrastructure.RecipeImageSearch;
 using Kotlet.Infrastructure.Shopping;
 using Kotlet.Infrastructure.Translations;
 using Kotlet.Infrastructure.VideoTranscripts;
@@ -26,10 +29,12 @@ public static class DependencyInjection
         .AddScoped<IUserFoodSettingsRepository, UserFoodSettingsRepository>()
         .AddAuthInfrastructure()
         .AddHousesInfrastructure()
+        .AddSingleton<IImageProcessor, ImageSharpImageProcessor>()
         .AddIngredientsInfrastructure()
         .AddMealPlannerInfrastructure()
         .AddPantryInfrastructure()
         .AddRecipesInfrastructure()
+        .AddRecipeImageSearchInfrastructure(configuration)
         .AddShoppingInfrastructure()
         .AddTranslationsInfrastructure()
         .AddVideoTranscriptsInfrastructure(configuration)

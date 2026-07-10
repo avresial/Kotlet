@@ -65,6 +65,14 @@
         <button type="button" class="text-button remove-image" (click)="removeImage(imageInput)">{{ 'common.remove' | t }}</button>
       }
       @if (imageError) { <span class="field-error" role="alert">{{ imageError }}</span> }
+      <app-image-generator
+        [title]="form.controls.title.value"
+        [ingredients]="ingredientNames()"
+        [isSaving]="isSaving()"
+        (imageSelected)="generatedImageSelected.emit($event)"
+        (imageImported)="handleGeneratedImage($event)"
+        (importingChange)="setImageImporting($event)"
+      ></app-image-generator>
     </div>
   }
 
@@ -102,7 +110,7 @@
 
   <div class="form-actions">
     <button type="button" class="secondary" (click)="cancel()">{{ 'common.cancel' | t }}</button>
-    <button type="submit" class="primary" [disabled]="isSaving() || form.invalid">
+    <button type="submit" class="primary" [disabled]="isSaving() || imageImporting() || form.invalid">
       {{ isSaving() ? ('common.saving' | t) : submitLabel() || ('recipes.save' | t) }}
     </button>
   </div>

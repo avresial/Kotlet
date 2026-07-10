@@ -1,0 +1,56 @@
+:host { display: contents; }
+
+.image-attribution {
+  position: absolute;
+  right: .75rem;
+  bottom: .75rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  // Semi-transparent dark disc with a light ring keeps the icon readable over light and dark photos.
+  background: rgb(23 20 16 / 55%);
+  color: #fff;
+  border: 1px solid rgb(255 255 255 / 40%);
+  backdrop-filter: blur(2px);
+  text-decoration: none;
+}
+
+.image-attribution:hover,
+.image-attribution:focus-visible { background: rgb(23 20 16 / 78%); }
+.image-attribution:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.attribution-tooltip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + .5rem);
+  width: max-content;
+  max-width: 16rem;
+  padding: .35rem .6rem;
+  border-radius: .5rem;
+  background: rgb(23 20 16 / 90%);
+  color: #fff;
+  font-size: .78rem;
+  line-height: 1.35;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .12s ease;
+}
+
+.image-attribution:hover .attribution-tooltip,
+.image-attribution:focus .attribution-tooltip,
+.image-attribution:focus-visible .attribution-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.attribution-tooltip:empty { display: none; }
+
+// Inside the immersive hero the bottom strip belongs to the hero copy (z-index 2),
+// so lift the icon above it and align it with the copy's corner.
+:host-context(.immersive-gallery) .image-attribution { z-index: 3; right: 1.5rem; bottom: 1.7rem; }
+

@@ -715,6 +715,24 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.ToTable("recipe_images", "kotlet");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImageSource", b =>
+                {
+                    b.Property<Guid>("RecipeImageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipe_image_id");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.HasKey("RecipeImageId", "SourceId");
+
+                    b.HasIndex("SourceId")
+                        .HasDatabaseName("ix_recipe_image_sources_source_id");
+
+                    b.ToTable("recipe_image_sources", "kotlet");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImportJob", b =>
                 {
                     b.Property<Guid>("Id")
@@ -819,6 +837,24 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.ToTable("recipe_ingredients", "kotlet");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeSource", b =>
+                {
+                    b.Property<Guid>("RecipeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipe_id");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.HasKey("RecipeId", "SourceId");
+
+                    b.HasIndex("SourceId")
+                        .HasDatabaseName("ix_recipe_sources_source_id");
+
+                    b.ToTable("recipe_sources", "kotlet");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.Shopping.ShoppingListItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -852,6 +888,57 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ux_shopping_list_items_house_ingredient");
 
                     b.ToTable("shopping_list_items", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Sources.Source", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AuthorName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("author_name");
+
+                    b.Property<string>("AuthorUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("author_url");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("external_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTimeOffset>("RetrievedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("retrieved_at_utc");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("title");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("url");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("sources", "kotlet");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Translations.Translation", b =>
@@ -1278,6 +1365,25 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("Recipe");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImageSource", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Recipes.RecipeImage", "RecipeImage")
+                        .WithMany("Sources")
+                        .HasForeignKey("RecipeImageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.Sources.Source", "Source")
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("RecipeImage");
+
+                    b.Navigation("Source");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImportJob", b =>
                 {
                     b.HasOne("Kotlet.Domain.Houses.House", null)
@@ -1304,6 +1410,25 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("Ingredient");
 
                     b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeSource", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Recipes.Recipe", "Recipe")
+                        .WithMany("Sources")
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.Sources.Source", "Source")
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Recipe");
+
+                    b.Navigation("Source");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Shopping.ShoppingListItem", b =>
@@ -1401,6 +1526,13 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("Images");
 
                     b.Navigation("Ingredients");
+
+                    b.Navigation("Sources");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImage", b =>
+                {
+                    b.Navigation("Sources");
                 });
 
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreApplication", b =>

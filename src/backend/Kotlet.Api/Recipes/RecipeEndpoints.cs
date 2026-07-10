@@ -1,7 +1,9 @@
 using Kotlet.Api.Auth;
 using Kotlet.Api.Localization;
 using Kotlet.Application.Recipes;
+using Kotlet.Application.RecipeImageSearch;
 using Kotlet.Domain.MealPlanner;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Kotlet.Api.Recipes;
 
@@ -11,6 +13,8 @@ public static class RecipeEndpoints
     {
         var recipes = endpoints.MapGroup("/api/recipes").WithTags("Recipes").RequireAuthorization();
         recipes.MapRecipeImportEndpoints();
+        recipes.MapGet("/images/search", SearchImages).WithName("SearchRecipeImages");
+        recipes.MapPost("/images/import", ImportImage).WithName("ImportRecipeImage");
         recipes.MapGet("", List).WithName("ListRecipes");
         recipes.MapGet("/recent", ListRecent).WithName("ListRecentRecipes");
         recipes.MapPost("", Create).WithName("CreateRecipe");
@@ -26,7 +30,9 @@ public static class RecipeEndpoints
         return endpoints;
     }
 
-    private static async Task<IResult> UploadImage(Guid recipeId, IFormFile file, string? altText,
+    private static async Task<IResult> UploadImage(Guid recipeId, IFormFile file, [FromForm] string? altText,
+        [FromForm] string? sourceProvider, [FromForm] string? sourceExternalId, [FromForm] string? sourceUrl,
+        [FromForm] string? sourceAuthorName, [FromForm] string? sourceAuthorUrl,
         ICurrentUser currentUser, RecipeImageService service, CancellationToken ct)
     {
         if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
@@ -35,8 +41,64 @@ public static class RecipeEndpoints
         await using var stream = file.OpenReadStream();
         using var memory = new MemoryStream();
         await stream.CopyToAsync(memory, ct);
+        RecipeImageSourceData? source = null;
+        if (new[] { sourceProvider, sourceExternalId, sourceUrl, sourceAuthorName, sourceAuthorUrl }
+            .Any(value => !string.IsNullOrWhiteSpace(value)))
+        {
+            source = new RecipeImageSourceData(sourceProvider ?? string.Empty, sourceExternalId, sourceUrl,
+                sourceAuthorName, sourceAuthorUrl);
+        }
         return ToImageHttpResult(await service.AddAsync(recipeId, houseId, file.FileName, file.ContentType,
-            memory.ToArray(), altText, ct), true);
+            memory.ToArray(), altText, ct, source), true);
+    }
+
+    private static async Task<IResult> SearchImages(
+        ICurrentUser currentUser,
+        RecipeImageSearchService service,
+        CancellationToken cancellationToken,
+        string? query = null,
+        int limit = RecipeImageSearchService.DefaultLimit,
+        string? orientation = "landscape",
+        string? locale = null)
+    {
+        if (currentUser.HouseId is null) return Results.Unauthorized();
+
+        var result = await service.SearchAsync(
+            new RecipeImageSearchRequest(query ?? string.Empty, limit, orientation, locale), cancellationToken);
+        return result.Status switch
+        {
+            RecipeImageSearchStatus.Success => Results.Ok(result.Candidates),
+            RecipeImageSearchStatus.InvalidQuery => Results.ValidationProblem(
+                new Dictionary<string, string[]> { ["query"] = [result.Message ?? "A query is required."] }),
+            RecipeImageSearchStatus.NotConfigured => Results.Problem(
+                result.Message, statusCode: StatusCodes.Status503ServiceUnavailable),
+            RecipeImageSearchStatus.RateLimited => Results.Problem(
+                result.Message, statusCode: StatusCodes.Status429TooManyRequests),
+            _ => Results.Problem(result.Message, statusCode: StatusCodes.Status502BadGateway)
+        };
+    }
+
+    private static async Task<IResult> ImportImage(
+        RecipeImageImportRequest request,
+        ICurrentUser currentUser,
+        RecipeImageImportService service,
+        CancellationToken cancellationToken)
+    {
+        if (currentUser.HouseId is null) return Results.Unauthorized();
+
+        var result = await service.ImportAsync(request, cancellationToken);
+        return result.Status switch
+        {
+            RecipeImageImportStatus.Success => Results.Ok(result.Image),
+            RecipeImageImportStatus.InvalidRequest => Results.ValidationProblem(
+                new Dictionary<string, string[]> { ["request"] = [result.Message ?? "The image import request is invalid."] }),
+            RecipeImageImportStatus.NotConfigured => Results.Problem(
+                result.Message, statusCode: StatusCodes.Status503ServiceUnavailable),
+            RecipeImageImportStatus.NotFound => Results.NotFound(),
+            RecipeImageImportStatus.RateLimited => Results.Problem(
+                result.Message, statusCode: StatusCodes.Status429TooManyRequests),
+            _ => Results.Problem(result.Message, statusCode: StatusCodes.Status502BadGateway)
+        };
     }
 
     private static async Task<IResult> ListImages(Guid recipeId, ICurrentUser currentUser, RecipeImageService service, CancellationToken ct)
