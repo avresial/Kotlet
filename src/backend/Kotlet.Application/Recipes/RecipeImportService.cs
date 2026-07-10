@@ -12,7 +12,7 @@ namespace Kotlet.Application.Recipes;
 public sealed class RecipeImportService(
     IRecipeImportJobRepository jobs,
     IRecipeRepository recipes,
-    RecipeService recipeService,
+    RecipeDuplicateDetectionService duplicateDetection,
     IIngredientRepository ingredients,
     IngredientSearchService ingredientSearch,
     MeasurementMappingService measurements,
@@ -162,7 +162,7 @@ public sealed class RecipeImportService(
         Guid houseId, string sourceUrl, RecipeDraft draft, CancellationToken cancellationToken)
     {
         var matches = await ingredientSearch.FindClosestAsync(draft.Ingredients.Select(x => x.Name).ToArray(), cancellationToken);
-        var duplicates = await recipeService.CheckExistsAsync(houseId, draft.Title, sourceUrl, cancellationToken);
+        var duplicates = await duplicateDetection.CheckExistsAsync(houseId, draft.Title, sourceUrl, cancellationToken);
         return new(draft.Title, draft.Servings, draft.InstructionsMarkdown, draft.Gaps,
             draft.Ingredients.Zip(matches, (line, match) => new RecipeImportIngredient(
                 line.Name, line.Quantity, line.Unit, line.Note,
