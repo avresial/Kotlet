@@ -13,5 +13,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/Kotlet.Application.UnitTests/Kotlet.Application.UnitTests.csproj" />
     <Project Path="tests/Kotlet.Api.IntegrationTests/Kotlet.Api.IntegrationTests.csproj" />
+    <Project Path="tests/Kotlet.Infrastructure.UnitTests/Kotlet.Infrastructure.UnitTests.csproj" />
   </Folder>
 </Solution>

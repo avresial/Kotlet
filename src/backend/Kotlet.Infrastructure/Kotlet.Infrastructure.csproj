@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Kotlet.Infrastructure.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Kotlet.Application\Kotlet.Application.csproj" />
     <ProjectReference Include="..\Kotlet.Domain\Kotlet.Domain.csproj" />
   </ItemGroup>

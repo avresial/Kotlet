@@ -1,6 +1,7 @@
 using Kotlet.Api.Auth;
 using Kotlet.Api.Localization;
 using Kotlet.Application.Recipes;
+using Kotlet.Application.RecipeImageSearch;
 using Kotlet.Domain.MealPlanner;
 
 namespace Kotlet.Api.Recipes;
@@ -11,6 +12,7 @@ public static class RecipeEndpoints
     {
         var recipes = endpoints.MapGroup("/api/recipes").WithTags("Recipes").RequireAuthorization();
         recipes.MapRecipeImportEndpoints();
+        recipes.MapGet("/images/search", SearchImages).WithName("SearchRecipeImages");
         recipes.MapGet("", List).WithName("ListRecipes");
         recipes.MapGet("/recent", ListRecent).WithName("ListRecentRecipes");
         recipes.MapPost("", Create).WithName("CreateRecipe");
@@ -37,6 +39,32 @@ public static class RecipeEndpoints
         await stream.CopyToAsync(memory, ct);
         return ToImageHttpResult(await service.AddAsync(recipeId, houseId, file.FileName, file.ContentType,
             memory.ToArray(), altText, ct), true);
+    }
+
+    private static async Task<IResult> SearchImages(
+        ICurrentUser currentUser,
+        RecipeImageSearchService service,
+        CancellationToken cancellationToken,
+        string? query = null,
+        int limit = RecipeImageSearchService.DefaultLimit,
+        string? orientation = null,
+        string? locale = null)
+    {
+        if (currentUser.HouseId is null) return Results.Unauthorized();
+
+        var result = await service.SearchAsync(
+            new RecipeImageSearchRequest(query ?? string.Empty, limit, orientation, locale), cancellationToken);
+        return result.Status switch
+        {
+            RecipeImageSearchStatus.Success => Results.Ok(result.Candidates),
+            RecipeImageSearchStatus.InvalidQuery => Results.ValidationProblem(
+                new Dictionary<string, string[]> { ["query"] = [result.Message ?? "A query is required."] }),
+            RecipeImageSearchStatus.NotConfigured => Results.Problem(
+                result.Message, statusCode: StatusCodes.Status503ServiceUnavailable),
+            RecipeImageSearchStatus.RateLimited => Results.Problem(
+                result.Message, statusCode: StatusCodes.Status429TooManyRequests),
+            _ => Results.Problem(result.Message, statusCode: StatusCodes.Status502BadGateway)
+        };
     }
 
     private static async Task<IResult> ListImages(Guid recipeId, ICurrentUser currentUser, RecipeImageService service, CancellationToken ct)

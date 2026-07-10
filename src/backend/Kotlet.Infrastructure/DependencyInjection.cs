@@ -11,6 +11,7 @@ using Kotlet.Infrastructure.MealPlanner;
 using Kotlet.Infrastructure.Pantry;
 using Kotlet.Infrastructure.Persistence;
 using Kotlet.Infrastructure.Recipes;
+using Kotlet.Infrastructure.RecipeImageSearch;
 using Kotlet.Infrastructure.Shopping;
 using Kotlet.Infrastructure.Translations;
 using Kotlet.Infrastructure.VideoTranscripts;
@@ -33,6 +34,7 @@ public static class DependencyInjection
         .AddMealPlannerInfrastructure()
         .AddPantryInfrastructure()
         .AddRecipesInfrastructure()
+        .AddRecipeImageSearchInfrastructure(configuration)
         .AddShoppingInfrastructure()
         .AddTranslationsInfrastructure()
         .AddVideoTranscriptsInfrastructure(configuration)
