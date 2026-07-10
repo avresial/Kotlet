@@ -50,7 +50,7 @@ export class RecipeImportPage {
 
   constructor() {
     this.ingredientService.getAll().pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(ingredients => this.catalog.set(ingredients));
+      .subscribe({ next: ingredients => this.catalog.set(ingredients), error: () => this.catalog.set([]) });
   }
 
   start(): void {
