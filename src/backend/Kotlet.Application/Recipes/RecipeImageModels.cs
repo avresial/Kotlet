@@ -20,6 +20,12 @@ public sealed record SourceAttributionResponse(
 }
 
 public sealed record RecipeImageContent(string FileName, string ContentType, byte[] Content);
+public sealed record RecipeImageSourceData(
+    string Provider,
+    string? ExternalId,
+    string? Url,
+    string? AuthorName,
+    string? AuthorUrl);
 public sealed record UpdateRecipeImageRequest(string? AltText);
 public sealed record ReorderRecipeImagesRequest(IReadOnlyList<Guid> ImageIds);
 

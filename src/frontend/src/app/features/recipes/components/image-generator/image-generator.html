@@ -1,17 +1,17 @@
-<section class="image-generator" [attr.aria-busy]="searching()">
-  <button type="button" class="generate" [disabled]="searching() || isSaving()" (click)="generate()">
+<section class="image-generator" [attr.aria-busy]="busy()">
+  <button type="button" class="generate" [disabled]="busy() || isSaving()" (click)="generate()">
     {{ 'recipes.generateImage' | t }}
   </button>
 
-  @if (searching()) {
-    <div class="spinner" role="status" [attr.aria-label]="'recipes.imageSearching' | t"></div>
+  @if (searching() || importing()) {
+    <div class="spinner" role="status" [attr.aria-label]="(importing() ? 'recipes.imageImporting' : 'recipes.imageSearching') | t"></div>
   }
 
   @if (error()) {
     <div class="error" role="alert">{{ error() }}</div>
   }
 
-  @if (!searching() && hasSearched() && candidates().length === 0 && !error()) {
+  @if (!busy() && hasSearched() && candidates().length === 0 && !error()) {
     <p class="empty">{{ 'recipes.imageSearchEmpty' | t }}</p>
   }
 
@@ -25,8 +25,8 @@
           <div class="preview-fallback" role="img" [attr.aria-label]="'recipes.imagePreviewUnavailable' | t">{{ 'recipes.imagePreviewUnavailable' | t }}</div>
         }
         @if (candidate.authorName) { <small>{{ candidate.authorName }}</small> }
-        <button type="button" class="select" [class.selected]="selectedId() === candidate.externalImageId" (click)="select(candidate)">
-          {{ selectedId() === candidate.externalImageId ? ('recipes.imageSelected' | t) : ('recipes.selectImage' | t) }}
+        <button type="button" class="select" [disabled]="importing()" [class.selected]="selectedId() === candidate.externalImageId" (click)="select(candidate)">
+          {{ importing() ? ('recipes.imageImporting' | t) : (selectedId() === candidate.externalImageId ? ('recipes.imageSelected' | t) : ('recipes.selectImage' | t)) }}
         </button>
       </div>
       <button type="button" class="navigation" [disabled]="candidates().length < 2" [attr.aria-label]="'recipes.imageNext' | t" (click)="next()">›</button>

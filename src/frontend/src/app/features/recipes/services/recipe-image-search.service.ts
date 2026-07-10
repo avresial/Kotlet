@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { apiUrl } from '../../../core/http/api-url';
-import { RecipeImageCandidate } from '../models/recipe.models';
+import { RecipeImageCandidate, RecipeImageImportResult } from '../models/recipe.models';
 
 const genericIngredients = new Set(['salt', 'water', 'oil', 'pepper', 'black pepper', 'olive oil']);
 
@@ -24,5 +24,12 @@ export class RecipeImageSearchService {
       .set('limit', limit)
       .set('orientation', 'landscape');
     return this.http.get<RecipeImageCandidate[]>(apiUrl('/api/recipes/images/search'), { params });
+  }
+
+  import(candidate: RecipeImageCandidate) {
+    return this.http.post<RecipeImageImportResult>(apiUrl('/api/recipes/images/import'), {
+      provider: candidate.provider,
+      externalImageId: candidate.externalImageId,
+    });
   }
 }

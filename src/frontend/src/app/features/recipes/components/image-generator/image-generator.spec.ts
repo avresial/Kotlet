@@ -1,13 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { TranslationService } from '../../../../core/i18n/translation.service';
-import { RecipeImageCandidate } from '../../models/recipe.models';
+import { RecipeImageCandidate, RecipeImageImportResult } from '../../models/recipe.models';
 import { RecipeImageSearchService } from '../../services/recipe-image-search.service';
 import { ImageGenerator } from './image-generator';
 
 describe('ImageGenerator', () => {
   let fixture: ComponentFixture<ImageGenerator>;
-  let search: { search: (query: string) => Observable<RecipeImageCandidate[]> };
+  let search: {
+    search: (query: string) => Observable<RecipeImageCandidate[]>;
+    import: (candidate: RecipeImageCandidate) => Observable<RecipeImageImportResult>;
+  };
   const candidate: RecipeImageCandidate = {
     provider: 'Pexels',
     externalImageId: '42',
@@ -19,9 +22,21 @@ describe('ImageGenerator', () => {
     width: 1200,
     height: 800,
   };
+  const imported: RecipeImageImportResult = {
+    content: 'd2VicA==',
+    contentType: 'image/webp',
+    width: 1200,
+    height: 800,
+    provider: 'Pexels',
+    externalImageId: '42',
+    sourcePageUrl: 'https://www.pexels.com/photo/42',
+    authorName: 'Ada',
+    authorUrl: 'https://pexels.com/@ada',
+    altText: 'Pasta',
+  };
 
   beforeEach(async () => {
-    search = { search: () => of([candidate]) };
+    search = { search: () => of([candidate]), import: () => of(imported) };
     await TestBed.configureTestingModule({
       imports: [ImageGenerator],
       providers: [
@@ -37,7 +52,9 @@ describe('ImageGenerator', () => {
 
   it('shows results and emits the single selected candidate', () => {
     const emitted: RecipeImageCandidate[] = [];
+    const importedValues: RecipeImageImportResult[] = [];
     fixture.componentInstance.imageSelected.subscribe(value => emitted.push(value));
+    fixture.componentInstance.imageImported.subscribe(value => importedValues.push(value));
 
     fixture.componentInstance.generate();
     fixture.detectChanges();
@@ -45,7 +62,26 @@ describe('ImageGenerator', () => {
 
     expect(fixture.nativeElement.querySelector('img')).not.toBeNull();
     expect(emitted).toEqual([candidate]);
+    expect(importedValues).toEqual([imported]);
     expect(fixture.componentInstance.selectedId()).toBe('42');
+  });
+
+  it('locks selection while importing and reports import failures', () => {
+    const pending = new Subject<RecipeImageImportResult>();
+    search.import = () => pending.asObservable();
+
+    fixture.componentInstance.generate();
+    fixture.componentInstance.select(candidate);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.importing()).toBe(true);
+    expect(fixture.nativeElement.querySelector('.select').disabled).toBe(true);
+    pending.error(new Error('failed'));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.importing()).toBe(false);
+    expect(fixture.componentInstance.selectedId()).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('recipes.imageImportError');
   });
 
   it('shows a spinner and prevents a second request while searching', () => {
