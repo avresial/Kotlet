@@ -53,6 +53,12 @@ public sealed class RecipeImageService(IRecipeImageRepository repository)
         return image is null ? null : new(image.FileName, image.ContentType, image.Content);
     }
 
+    public async Task<RecipeImageContent?> GetPublicContentAsync(Guid recipeId, Guid imageId, CancellationToken ct)
+    {
+        var image = await repository.GetAsync(recipeId, imageId, true, ct);
+        return image is null ? null : new(image.FileName, image.ContentType, image.Content);
+    }
+
     public async Task<RecipeImageOperationResult> UpdateAsync(Guid recipeId, Guid imageId, Guid ownerUserId, string? altText, CancellationToken ct)
     {
         if (!await repository.RecipeExistsAsync(recipeId, ownerUserId, ct)) return new(RecipeImageOperationStatus.NotFound);

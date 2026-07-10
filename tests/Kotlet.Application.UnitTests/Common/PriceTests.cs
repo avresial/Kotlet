@@ -35,7 +35,7 @@ public sealed class PriceTests
         var higher = Price.FromAmount(2m);
         Assert.True(lower < higher);
         Assert.True(higher > lower);
-        Assert.True(lower <= lower);
-        Assert.True(higher >= higher);
+        Assert.True(lower <= higher);
+        Assert.True(higher >= lower);
     }
 }

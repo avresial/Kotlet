@@ -1,5 +1,10 @@
 <main class="auth-page">
   <section class="auth-card" aria-labelledby="login-title">
+    @if (isOAuthRedirect()) {
+      <p class="eyebrow">{{ 'auth.login.oauthSuccessEyebrow' | t }}</p>
+      <h1 id="login-title">{{ 'auth.login.oauthSuccessTitle' | t }}</h1>
+      <p class="intro" role="status">{{ 'auth.login.oauthSuccessIntro' | t }}</p>
+    } @else {
     <p class="eyebrow">{{ 'auth.login.eyebrow' | t }}</p>
     <h1 id="login-title">{{ 'auth.login.title' | t }}</h1>
     <p class="intro">{{ 'auth.login.intro' | t }}</p>
@@ -21,5 +26,6 @@
     </form>
 
     <p class="switch">{{ 'auth.login.newUser' | t }} <a routerLink="/register">{{ 'auth.login.createAccount' | t }}</a></p>
+    }
   </section>
 </main>

@@ -13,6 +13,10 @@ export interface CreateRecipeRequest {
   servings: number;
   mealType?: RecipeMealType | null;
   ingredients: RecipeIngredientRequest[];
+  /** Original source of the recipe (e.g. the video or web page it was imported from). */
+  sourceUrl?: string | null;
+  /** Marks the recipe as created with AI assistance; ignored on update (provenance is kept). */
+  isAiAssisted?: boolean;
 }
 
 export type RecipeMealType = 'breakfast' | 'second-breakfast' | 'dinner' | 'snack' | 'supper';
@@ -48,6 +52,7 @@ export interface RecipeSummary {
   servings: number;
   mealType: RecipeMealType | null;
   firstImageUrl: string | null;
+  isAiAssisted: boolean;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
@@ -63,6 +68,9 @@ export interface RecipeDetail {
   mealType: RecipeMealType | null;
   ingredients: RecipeIngredient[];
   images: RecipeImage[];
+  canEdit: boolean;
+  isAiAssisted: boolean;
+  sourceUrl: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
 }
@@ -84,4 +92,46 @@ export interface PagedResponse<T> {
   page: number;
   pageSize: number;
   totalCount: number;
+}
+
+export enum RecipeImportStatus {
+  Pending,
+  FetchingTranscript,
+  Extracting,
+  ResolvingIngredients,
+  ReadyForReview,
+  Failed,
+}
+
+export interface RecipeImportIngredient {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  note: string | null;
+  ingredientId: string | null;
+  matchedName: string | null;
+  isProposedNew: boolean;
+}
+
+export interface RecipeImportDraft {
+  title: string;
+  servings: number;
+  instructionsMarkdown: string;
+  gaps: string[];
+  ingredients: RecipeImportIngredient[];
+  duplicateMatches: RecipeExistenceMatch[];
+}
+
+export interface RecipeExistenceMatch {
+  recipeId: string;
+  title: string;
+  sourceUrl: string | null;
+  matchType: number;
+}
+
+export interface RecipeImportJob {
+  id: string;
+  status: RecipeImportStatus;
+  draft: RecipeImportDraft | null;
+  errorReason: string | null;
 }

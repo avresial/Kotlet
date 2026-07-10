@@ -10,15 +10,16 @@ public static class RecipeEndpoints
     public static IEndpointRouteBuilder MapRecipeEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var recipes = endpoints.MapGroup("/api/recipes").WithTags("Recipes").RequireAuthorization();
+        recipes.MapRecipeImportEndpoints();
         recipes.MapGet("", List).WithName("ListRecipes");
         recipes.MapGet("/recent", ListRecent).WithName("ListRecentRecipes");
         recipes.MapPost("", Create).WithName("CreateRecipe");
-        recipes.MapGet("/{id:guid}", GetById).WithName("GetRecipe");
+        recipes.MapGet("/{id:guid}", GetById).AllowAnonymous().WithName("GetRecipe");
         recipes.MapPut("/{id:guid}", Update).WithName("UpdateRecipe");
         recipes.MapDelete("/{id:guid}", Delete).WithName("DeleteRecipe");
         recipes.MapPost("/{recipeId:guid}/images", UploadImage).DisableAntiforgery().WithName("UploadRecipeImage");
         recipes.MapGet("/{recipeId:guid}/images", ListImages).WithName("ListRecipeImages");
-        recipes.MapGet("/{recipeId:guid}/images/{imageId:guid}/content", GetImageContent).WithName("GetRecipeImageContent");
+        recipes.MapGet("/{recipeId:guid}/images/{imageId:guid}/content", GetImageContent).AllowAnonymous().WithName("GetRecipeImageContent");
         recipes.MapPut("/{recipeId:guid}/images/order", ReorderImages).WithName("ReorderRecipeImages");
         recipes.MapPatch("/{recipeId:guid}/images/{imageId:guid}", UpdateImage).WithName("UpdateRecipeImage");
         recipes.MapDelete("/{recipeId:guid}/images/{imageId:guid}", DeleteImage).WithName("DeleteRecipeImage");
@@ -45,13 +46,12 @@ public static class RecipeEndpoints
         return images is null ? Results.NotFound() : Results.Ok(images);
     }
 
-    private static async Task<IResult> GetImageContent(Guid recipeId, Guid imageId, ICurrentUser currentUser,
+    private static async Task<IResult> GetImageContent(Guid recipeId, Guid imageId,
         RecipeImageService service, HttpContext context, CancellationToken ct)
     {
-        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
-        var image = await service.GetContentAsync(recipeId, imageId, houseId, ct);
+        var image = await service.GetPublicContentAsync(recipeId, imageId, ct);
         if (image is null) return Results.NotFound();
-        context.Response.Headers.CacheControl = "private,max-age=86400";
+        context.Response.Headers.CacheControl = "public,max-age=86400";
         return Results.File(image.Content, image.ContentType, image.FileName, enableRangeProcessing: true);
     }
 
@@ -131,8 +131,7 @@ public static class RecipeEndpoints
         ILanguageContext language,
         CancellationToken cancellationToken)
     {
-        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
-        var recipe = await service.GetByIdAsync(id, houseId, cancellationToken, language.Language);
+        var recipe = await service.GetPublicByIdAsync(id, currentUser.HouseId, cancellationToken, language.Language);
         return recipe is null ? Results.NotFound() : Results.Ok(recipe);
     }
 

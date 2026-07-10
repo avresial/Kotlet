@@ -47,4 +47,24 @@ describe('RecipeService image gallery', () => {
     request = http.expectOne('/api/recipes/recipe-1/images/image-1');
     expect(request.request.method).toBe('DELETE'); request.flush(null);
   });
+
+  it('starts, polls, and accepts a recipe import', () => {
+    service.startImport('https://youtu.be/test').subscribe();
+    let request = http.expectOne('/api/recipes/import');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ url: 'https://youtu.be/test' });
+    request.flush({ id: 'job-1' });
+
+    service.getImport('job-1').subscribe();
+    request = http.expectOne('/api/recipes/import/job-1');
+    expect(request.request.method).toBe('GET');
+    request.flush({ id: 'job-1', status: 0, draft: null, errorReason: null });
+
+    const draft = { title: 'Soup', servings: 2, instructionsMarkdown: 'Cook.', gaps: [], ingredients: [], duplicateMatches: [] };
+    service.acceptImport('job-1', draft).subscribe();
+    request = http.expectOne('/api/recipes/import/job-1/accept');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toBe(draft);
+    request.flush({ id: 'recipe-1' });
+  });
 });

@@ -287,6 +287,8 @@ public sealed class PantryRecipeMatchServiceTests
             throw new NotSupportedException();
         public Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
+        public Task<Recipe?> GetPublicByIdAsync(Guid id, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
         public Task<IReadOnlyList<Recipe>> GetAllForDuplicateCheckAsync(Guid ownerUserId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();
         public Task<bool> SlugExistsAsync(Guid ownerUserId, string slug, Guid? excludedId, CancellationToken cancellationToken) =>

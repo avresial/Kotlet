@@ -1,0 +1,5 @@
+# EF Core migration scaffolding is auto-generated: GitHub collapses these files in
+# PR diffs and excludes them from diff stats, so reviews show only hand-written code.
+# The hand-written migration itself (<timestamp>_<Name>.cs) stays fully visible.
+**/Persistence/Migrations/*.Designer.cs linguist-generated=true
+**/Persistence/Migrations/*ModelSnapshot.cs linguist-generated=true

@@ -32,7 +32,9 @@
           </article>
         }
       </div>
-      <nav class="pagination" [attr.aria-label]="'admin.pagination' | t"><p-button [label]="'admin.previous' | t" severity="secondary" [disabled]="page() <= 1" (onClick)="previousPage()" /><span>{{ 'admin.page' | t }} {{ page() }}</span><p-button [label]="'admin.next' | t" severity="secondary" [disabled]="!hasNextPage" (onClick)="nextPage()" /></nav>
+      @if (totalCount() > pageSize) {
+        <nav class="pagination" [attr.aria-label]="'admin.pagination' | t"><p-button [label]="'admin.previous' | t" severity="secondary" [disabled]="page() <= 1" (onClick)="previousPage()" /><span>{{ 'admin.page' | t }} {{ page() }}</span><p-button [label]="'admin.next' | t" severity="secondary" [disabled]="!hasNextPage" (onClick)="nextPage()" /></nav>
+      }
     }
   </section>
 </main>

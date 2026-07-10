@@ -48,6 +48,9 @@ const recipe: RecipeDetail = {
     note: null,
   }],
   images: [],
+  canEdit: true,
+  isAiAssisted: false,
+  sourceUrl: null,
   createdAtUtc: '2026-06-28T00:00:00Z',
   updatedAtUtc: '2026-06-28T00:00:00Z',
 };

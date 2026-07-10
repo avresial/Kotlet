@@ -31,7 +31,7 @@ public sealed class QuantityTests
         var higher = Quantity.FromAmount(20m);
         Assert.True(lower < higher);
         Assert.True(higher > lower);
-        Assert.True(lower <= lower);
-        Assert.True(higher >= higher);
+        Assert.True(lower <= higher);
+        Assert.True(higher >= lower);
     }
 }

@@ -47,7 +47,7 @@ public sealed class CaloriesTests
         var higher = Calories.FromKilocalories(100m);
         Assert.True(lower < higher);
         Assert.True(higher > lower);
-        Assert.True(lower <= lower);
-        Assert.True(higher >= higher);
+        Assert.True(lower <= higher);
+        Assert.True(higher >= lower);
     }
 }

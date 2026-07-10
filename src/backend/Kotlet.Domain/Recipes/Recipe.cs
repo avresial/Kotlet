@@ -21,6 +21,16 @@ public sealed class Recipe
     public ServingCount Servings { get; set; } = ServingCount.One;
     public MealSlot? MealType { get; set; }
 
+    /// <summary>
+    /// True when the recipe content was produced with AI assistance (e.g. imported from
+    /// a video or website through an AI agent). Unlike <c>Ingredient.IsAiModified</c>,
+    /// this records provenance and is not cleared by later human edits.
+    /// </summary>
+    public bool IsAiAssisted { get; set; }
+
+    /// <summary>Original source of the recipe (e.g. the video or web page it was imported from).</summary>
+    public string? SourceUrl { get; set; }
+
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
     public ICollection<RecipeIngredient> Ingredients { get; set; } = [];

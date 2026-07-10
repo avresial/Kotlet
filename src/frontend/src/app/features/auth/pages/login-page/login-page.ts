@@ -26,6 +26,7 @@ export class LoginPage {
   private readonly translations = inject(TranslationService);
 
   readonly isLoading = signal(false);
+  readonly isOAuthRedirect = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly form = new FormGroup({
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
@@ -48,6 +49,7 @@ export class LoginPage {
       next: () => {
         const returnUrl = this.safeReturnUrl();
         if (returnUrl.startsWith('http')) {
+          this.isOAuthRedirect.set(true);
           window.location.assign(returnUrl);
           return;
         }

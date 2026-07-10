@@ -595,6 +595,12 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("house_id");
 
+                    b.Property<bool>("IsAiAssisted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_ai_assisted");
+
                     b.Property<int?>("MealType")
                         .HasColumnType("integer")
                         .HasColumnName("meal_type");
@@ -614,6 +620,11 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("slug");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("source_url");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -702,6 +713,60 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ux_recipe_images_recipe_id_sort_order");
 
                     b.ToTable("recipe_images", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImportJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("DraftJson")
+                        .HasColumnType("text")
+                        .HasColumnName("draft_json");
+
+                    b.Property<string>("ErrorReason")
+                        .HasColumnType("text")
+                        .HasColumnName("error_reason");
+
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("url");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseId")
+                        .HasDatabaseName("ix_recipe_import_jobs_house_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_recipe_import_jobs_user_id");
+
+                    b.ToTable("recipe_import_jobs", "kotlet");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeIngredient", b =>
@@ -1211,6 +1276,15 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImportJob", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Houses.House", null)
+                        .WithMany()
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeIngredient", b =>

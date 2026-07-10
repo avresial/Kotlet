@@ -15,7 +15,7 @@ form { margin-top: 1.25rem; display: grid; gap: 1.5rem; }
 .translation-input { display: flex; align-items: stretch; gap: .5rem; }
 .translation-input input { flex: 1; }
 .lang-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; padding: 0 .6rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #554e45; font-size: .8rem; font-weight: 800; letter-spacing: .04em; background: #f4ece0; }
-.ai-badge { display: inline-block; margin-left: .5rem; padding: .1rem .4rem; border-radius: .4rem; background: #eee7ff; color: #5b3ca0; font-size: .7rem; font-weight: 700; }
+app-ai-badge { margin-left: .5rem; }
 label { display: grid; gap: .4rem; color: #554e45; font-size: .78rem; font-weight: 750; }
 .checkbox-field { grid-template-columns: auto 1fr; align-items: center; }
 .checkbox-field input { width: auto; min-height: auto; }

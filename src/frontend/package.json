@@ -14,14 +14,14 @@
     "node": "^24.15.0"
   },
   "dependencies": {
-    "@angular/animations": "^22.0.4",
-    "@angular/cdk": "^22.0.2",
-    "@angular/common": "^22.0.4",
-    "@angular/compiler": "^22.0.4",
-    "@angular/core": "^22.0.4",
-    "@angular/forms": "^22.0.4",
-    "@angular/platform-browser": "^22.0.4",
-    "@angular/router": "^22.0.4",
+    "@angular/animations": "22.0.6",
+    "@angular/cdk": "22.0.4",
+    "@angular/common": "22.0.6",
+    "@angular/compiler": "22.0.6",
+    "@angular/core": "22.0.6",
+    "@angular/forms": "22.0.6",
+    "@angular/platform-browser": "22.0.6",
+    "@angular/router": "22.0.6",
     "@primeuix/themes": "^2.0.3",
     "dompurify": "^3.2.6",
     "marked": "^18.0.5",
@@ -30,12 +30,16 @@
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@angular/build": "^22.0.4",
-    "@angular/cli": "^22.0.4",
-    "@angular/compiler-cli": "^22.0.4",
+    "@angular/build": "22.0.6",
+    "@angular/cli": "22.0.6",
+    "@angular/compiler-cli": "22.0.6",
     "jsdom": "^29.1.1",
-    "prettier": "^3.9.1",
+    "prettier": "3.9.5",
     "typescript": "~6.0.0",
-    "vitest": "^4.0.8"
+    "vitest": "4.1.10"
+  },
+  "overrides": {
+    "@babel/core": "7.29.7",
+    "esbuild": "0.28.1"
   }
 }

@@ -1,0 +1,13 @@
+:host { display: inline-flex; vertical-align: middle; }
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: .45rem;
+  background: #eee7ff;
+  color: #5b3ca0;
+  cursor: help;
+}
+.ai-badge svg { display: block; }

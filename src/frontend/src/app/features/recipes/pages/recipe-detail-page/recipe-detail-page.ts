@@ -2,22 +2,24 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } 
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { finalize, forkJoin } from 'rxjs';
+import { finalize, forkJoin, of } from 'rxjs';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { RecipeDetail, RecipeIngredient } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { ImageGallery } from '../../components/image-gallery/image-gallery';
-import { Ingredient } from '../../../ingredients/ingredient.models';
+import { allergenOptions, dietarySuitabilityOptions, foodAttributeOptions, Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { recipeCaloriesPerServing, recipePricePerServing } from '../../../meal-planner/meal-planner-calculations';
+import { AiBadge } from '../../../../shared/ui/ai-badge/ai-badge';
 
 @Component({
   selector: 'app-recipe-detail-page',
-  imports: [RouterLink, DatePipe, ImageGallery, TranslatePipe],
+  imports: [RouterLink, DatePipe, ImageGallery, TranslatePipe, AiBadge],
   templateUrl: './recipe-detail-page.html',
   styleUrl: './recipe-detail-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -29,6 +31,7 @@ export class RecipeDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly translations = inject(TranslationService);
+  private readonly auth = inject(AuthService);
 
   readonly recipe = signal<RecipeDetail | null>(null);
   readonly ingredients = signal<Ingredient[]>([]);
@@ -38,6 +41,16 @@ export class RecipeDetailPage implements OnInit {
   readonly justCreated = signal(!!this.router.getCurrentNavigation()?.extras.state?.['justCreated']);
   readonly pricePerServing = computed(() => this.recipe() ? recipePricePerServing(this.recipe()!, this.ingredients()) : 0);
   readonly caloriesPerServing = computed(() => this.recipe() ? recipeCaloriesPerServing(this.recipe()!, this.ingredients()) : 0);
+  readonly propertyGroups = computed(() => {
+    const recipe = this.recipe();
+    if (!recipe) return [];
+    const flags = aggregateIngredientProperties(recipe.ingredients.map(({ ingredientId }) => ingredientId), this.ingredients());
+    return [
+      { label: 'ingredients.allergens', kind: 'allergen', options: allergenOptions.filter(({ value }) => flags.allergens & value) },
+      { label: 'ingredients.attributes', kind: 'attribute', options: foodAttributeOptions.filter(({ value }) => flags.attributes & value) },
+      { label: 'ingredients.suitability', kind: 'suitability', options: dietarySuitabilityOptions.filter(({ value }) => flags.suitability & value) },
+    ].filter(({ options }) => options.length);
+  });
 
   readonly descriptionHtml = computed<SafeHtml>(() => {
     const md = this.recipe()?.descriptionMarkdown;
@@ -62,7 +75,8 @@ export class RecipeDetailPage implements OnInit {
   }
 
   ngOnInit(): void {
-    forkJoin({ recipe: this.service.get(this.id), ingredients: this.ingredientService.getAll() })
+    const ingredients = this.auth.isAuthenticated() ? this.ingredientService.getAll() : of([]);
+    forkJoin({ recipe: this.service.get(this.id), ingredients })
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: ({ recipe, ingredients }) => { this.recipe.set(recipe); this.ingredients.set(ingredients); },
@@ -85,4 +99,14 @@ export class RecipeDetailPage implements OnInit {
       },
     });
   }
+}
+
+export function aggregateIngredientProperties(ingredientIds: readonly string[], ingredients: readonly Ingredient[]) {
+  const ids = new Set(ingredientIds);
+  const matches = ingredients.filter(({ id }) => ids.has(id));
+  return {
+    allergens: matches.reduce((flags, ingredient) => flags | ingredient.allergens, 0),
+    attributes: matches.reduce((flags, ingredient) => flags | ingredient.attributes, 0),
+    suitability: matches.reduce((flags, ingredient) => flags & ingredient.suitability, matches[0]?.suitability ?? 0),
+  };
 }
