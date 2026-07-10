@@ -46,7 +46,7 @@ public sealed class RecipeMcp
     [McpServerTool(Name = "check_recipe_exists", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
      Description("Checks whether a household recipe already exists before adding it, so imports do not create duplicates. Provide the source URL and/or the title; the strongest signal is a matching recipe source URL, then an exact title match, then similar titles. Call this before add_recipe when importing a recipe.")]
     public static async Task<McpRecipeExistenceResult> CheckRecipeExists(
-        RecipeService service,
+        RecipeDuplicateDetectionService service,
         ICurrentUser currentUser,
         [Description("Recipe title to check. Matching is case-insensitive and tolerant of punctuation.")]
         string? title = null,
