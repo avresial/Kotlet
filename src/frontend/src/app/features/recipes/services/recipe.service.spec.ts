@@ -60,7 +60,7 @@ describe('RecipeService image gallery', () => {
     expect(request.request.method).toBe('GET');
     request.flush({ id: 'job-1', status: 0, draft: null, errorReason: null });
 
-    const draft = { title: 'Soup', servings: 2, instructionsMarkdown: 'Cook.', gaps: [], ingredients: [] };
+    const draft = { title: 'Soup', servings: 2, instructionsMarkdown: 'Cook.', gaps: [], ingredients: [], duplicateMatches: [] };
     service.acceptImport('job-1', draft).subscribe();
     request = http.expectOne('/api/recipes/import/job-1/accept');
     expect(request.request.method).toBe('POST');

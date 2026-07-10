@@ -119,6 +119,14 @@ export interface RecipeImportDraft {
   instructionsMarkdown: string;
   gaps: string[];
   ingredients: RecipeImportIngredient[];
+  duplicateMatches: RecipeExistenceMatch[];
+}
+
+export interface RecipeExistenceMatch {
+  recipeId: string;
+  title: string;
+  sourceUrl: string | null;
+  matchType: number;
 }
 
 export interface RecipeImportJob {

@@ -12,6 +12,7 @@ namespace Kotlet.Application.Recipes;
 public sealed class RecipeImportService(
     IRecipeImportJobRepository jobs,
     IRecipeRepository recipes,
+    RecipeService recipeService,
     IIngredientRepository ingredients,
     IngredientSearchService ingredientSearch,
     MeasurementMappingService measurements,
@@ -44,10 +45,10 @@ public sealed class RecipeImportService(
     }
 
     public async Task<RecipeImportJobResponse?> GetJobAsync(
-        Guid id, Guid houseId, CancellationToken cancellationToken)
+        Guid id, Guid houseId, Guid userId, CancellationToken cancellationToken)
     {
         var job = await jobs.GetAsync(id, houseId, false, cancellationToken);
-        if (job is null) return null;
+        if (job is null || job.UserId != userId) return null;
         var draft = job.DraftJson is null ? null : JsonSerializer.Deserialize<RecipeImportDraft>(job.DraftJson, JsonOptions);
         return new(job.Id, job.Status, draft, job.ErrorReason);
     }
@@ -74,7 +75,7 @@ public sealed class RecipeImportService(
         }
 
         await SetStatusAsync(job, RecipeImportJobStatus.ResolvingIngredients, cancellationToken);
-        var draft = await ResolveAsync(extracted.Draft, cancellationToken);
+        var draft = await ResolveAsync(job.HouseId, job.Url, extracted.Draft, cancellationToken);
         job.DraftJson = JsonSerializer.Serialize(draft, JsonOptions);
         job.Status = RecipeImportJobStatus.ReadyForReview;
         job.UpdatedAtUtc = DateTimeOffset.UtcNow;
@@ -92,10 +93,12 @@ public sealed class RecipeImportService(
     {
         var job = await jobs.GetAsync(id, houseId, true, cancellationToken);
         if (job is null) return new(RecipeImportOperationStatus.NotFound);
+        if (job.UserId != userId) return new(RecipeImportOperationStatus.NotFound);
         if (job.Status != RecipeImportJobStatus.ReadyForReview)
             return new(RecipeImportOperationStatus.InvalidState);
         if (string.IsNullOrWhiteSpace(draft.Title) || draft.Servings is < 1 or > 99 || draft.Ingredients.Count == 0 ||
-            draft.Ingredients.Any(x => x.Quantity is null or <= 0 || string.IsNullOrWhiteSpace(x.Unit)))
+            draft.Ingredients.Any(x => string.IsNullOrWhiteSpace(x.Name) || x.Quantity is null or <= 0 ||
+                string.IsNullOrWhiteSpace(x.Unit) || (!x.IsProposedNew && x.IngredientId is null)))
             return Validation("draft", "Title, servings, and positive ingredient quantities with units are required.");
 
         var existingIds = draft.Ingredients.Where(x => !x.IsProposedNew && x.IngredientId.HasValue)
@@ -155,15 +158,17 @@ public sealed class RecipeImportService(
         return new(RecipeImportOperationStatus.Success, recipeId);
     }
 
-    private async Task<RecipeImportDraft> ResolveAsync(RecipeDraft draft, CancellationToken cancellationToken)
+    private async Task<RecipeImportDraft> ResolveAsync(
+        Guid houseId, string sourceUrl, RecipeDraft draft, CancellationToken cancellationToken)
     {
         var matches = await ingredientSearch.FindClosestAsync(draft.Ingredients.Select(x => x.Name).ToArray(), cancellationToken);
+        var duplicates = await recipeService.CheckExistsAsync(houseId, draft.Title, sourceUrl, cancellationToken);
         return new(draft.Title, draft.Servings, draft.InstructionsMarkdown, draft.Gaps,
             draft.Ingredients.Zip(matches, (line, match) => new RecipeImportIngredient(
                 line.Name, line.Quantity, line.Unit, line.Note,
                 match.Similarity >= MatchThreshold ? match.IngredientId : null,
                 match.Similarity >= MatchThreshold ? match.MatchedName : null,
-                match.Similarity < MatchThreshold)).ToArray());
+                match.Similarity < MatchThreshold)).ToArray(), duplicates.Matches);
     }
 
     private async Task<string> UniqueSlugAsync(Guid houseId, string baseSlug, CancellationToken cancellationToken)

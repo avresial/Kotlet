@@ -29,13 +29,24 @@ public sealed class RecipeImportServiceTests
         var jobs = new FakeJobs { Job = NewJob(RecipeImportJobStatus.Extracting) };
         var result = await CreateService(jobs, new FakeSignal()).AcceptAsync(
             jobs.Job.Id, jobs.Job.HouseId, jobs.Job.UserId,
-            new RecipeImportDraft("Soup", 1, "Cook.", [], []), default);
+            new RecipeImportDraft("Soup", 1, "Cook.", [], [], []), default);
 
         Assert.Equal(RecipeImportOperationStatus.InvalidState, result.Status);
     }
 
+    [Fact]
+    public async Task AcceptAsync_HidesAnotherUsersJob()
+    {
+        var jobs = new FakeJobs { Job = NewJob(RecipeImportJobStatus.ReadyForReview) };
+        var result = await CreateService(jobs, new FakeSignal()).AcceptAsync(
+            jobs.Job.Id, jobs.Job.HouseId, Guid.NewGuid(),
+            new RecipeImportDraft("Soup", 1, "Cook.", [], [], []), default);
+
+        Assert.Equal(RecipeImportOperationStatus.NotFound, result.Status);
+    }
+
     private static RecipeImportService CreateService(FakeJobs jobs, IRecipeImportSignal signal) =>
-        new(jobs, null!, null!, null!, null!, null!, null!, signal);
+        new(jobs, null!, null!, null!, null!, null!, null!, null!, signal);
 
     private static RecipeImportJob NewJob(RecipeImportJobStatus status) => new()
     {
