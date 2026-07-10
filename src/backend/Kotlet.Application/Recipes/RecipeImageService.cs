@@ -120,5 +120,6 @@ public sealed class RecipeImageService(IRecipeImageRepository repository, IImage
     private static RecipeImageOperationResult Validation(string key, string message) =>
         new(RecipeImageOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]> { [key] = [message] });
     private static RecipeImageResponse ToResponse(RecipeImage i) => new(i.Id, i.RecipeId, i.FileName, i.ContentType,
-        i.FileSizeBytes, i.AltText, i.SortOrder, $"/api/recipes/{i.RecipeId}/images/{i.Id}/content", i.CreatedAtUtc);
+        i.FileSizeBytes, i.AltText, i.SortOrder, $"/api/recipes/{i.RecipeId}/images/{i.Id}/content", i.CreatedAtUtc,
+        SourceAttributionResponse.FromPrimarySource(i));
 }

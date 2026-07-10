@@ -1,6 +1,7 @@
 using Kotlet.Application.Images;
 using Kotlet.Application.Recipes;
 using Kotlet.Domain.Recipes;
+using Kotlet.Domain.Sources;
 using Xunit;
 
 namespace Kotlet.Application.UnitTests.Recipes;
@@ -204,6 +205,52 @@ public sealed class RecipeImageServiceTests
 
         Assert.NotNull(result);
         Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public async Task List_MapsPrimarySourceAttribution()
+    {
+        var repo = new FakeRepository(recipeExists: true);
+        var image = repo.SeedImage(RecipeId, 0);
+        image.Sources.Add(new RecipeImageSource
+        {
+            RecipeImageId = image.Id,
+            SourceId = Guid.NewGuid(),
+            Source = new Source
+            {
+                Id = Guid.NewGuid(),
+                Type = SourceType.AiAssisted,
+                Provider = "Pexels",
+                Url = "https://www.pexels.com/photo/1/",
+                AuthorName = "Jane Doe",
+                AuthorUrl = "https://www.pexels.com/@jane/",
+                ExternalId = "1",
+                Title = "A dish",
+                RetrievedAtUtc = DateTimeOffset.UtcNow
+            }
+        });
+        var service = CreateService(repo);
+
+        var result = await service.ListAsync(RecipeId, OwnerId, CancellationToken.None);
+
+        var source = Assert.Single(result!).Source;
+        Assert.NotNull(source);
+        Assert.Equal("Pexels", source.Provider);
+        Assert.Equal("Jane Doe", source.AuthorName);
+        Assert.Equal("https://www.pexels.com/@jane/", source.AuthorUrl);
+        Assert.Equal("https://www.pexels.com/photo/1/", source.Url);
+    }
+
+    [Fact]
+    public async Task List_WithoutSources_ReturnsNullAttribution()
+    {
+        var repo = new FakeRepository(recipeExists: true);
+        repo.SeedImage(RecipeId, 0);
+        var service = CreateService(repo);
+
+        var result = await service.ListAsync(RecipeId, OwnerId, CancellationToken.None);
+
+        Assert.Null(Assert.Single(result!).Source);
     }
 
     [Fact]

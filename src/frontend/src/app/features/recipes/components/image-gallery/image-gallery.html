@@ -5,6 +5,9 @@
     } @else {
       <div class="immersive-empty" aria-hidden="true"><span>♨</span></div>
     }
+    @if (images().length > 0) {
+      <app-image-attribution [source]="images()[0].source ?? null" />
+    }
     <ng-content></ng-content>
   </section>
 } @else if (images().length === 0) {
@@ -15,6 +18,7 @@
       @if (urls()[images()[0].id]; as url) {
         <img [src]="url" [alt]="images()[0].altText || images()[0].fileName">
       }
+      <app-image-attribution [source]="images()[0].source ?? null" />
     </div>
     @if (images().length > 1) {
       <div class="thumbnails">

@@ -3,10 +3,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RecipeImage } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { ImageAttribution } from '../image-attribution/image-attribution';
 
 @Component({
   selector: 'app-image-gallery',
-  imports: [TranslatePipe],
+  imports: [TranslatePipe, ImageAttribution],
   templateUrl: './image-gallery.html',
   styleUrl: './image-gallery.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
