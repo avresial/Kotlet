@@ -7,7 +7,7 @@
 .nav-item { width: 100%; min-height: 2.8rem; box-sizing: border-box; padding: .65rem .75rem; border: 0; border-radius: .65rem; display: flex; align-items: center; gap: .75rem; color: #625b51; background: transparent; font: inherit; font-size: .9rem; font-weight: 650; text-align: left; text-decoration: none; cursor: pointer; }
 .nav-item:hover:not(:disabled), .nav-item.active { color: #9a3a2a; background: #f6e3d8; }
 .nav-item:disabled { opacity: .58; cursor: default; }
-.icon { width: 1.2rem; height: 1.2rem; flex: 0 0 1.2rem; color: currentColor; }
+.icon { width: 1.2rem; height: 1.2rem; flex: 0 0 1.2rem; color: currentcolor; }
 .nav-item .icon { opacity: .85; }
 .nav-item:hover .icon, .nav-item.active .icon { opacity: 1; }
 footer { position: relative; margin-top: auto; padding: 1rem .25rem .25rem; border-top: 1px solid #e3dbcf; }
@@ -22,7 +22,7 @@ footer { position: relative; margin-top: auto; padding: 1rem .25rem .25rem; bord
 .account-menu a:hover, .account-menu button:hover { background: #f1ebe2; }
 .account-menu button:disabled { opacity: .55; cursor: default; }
 .menu-icon { width: 1rem; height: 1rem; flex: 0 0 1rem; color: #8b8175; }
-.account-menu a:hover .menu-icon, .account-menu button:hover .menu-icon { color: currentColor; }
+.account-menu a:hover .menu-icon, .account-menu button:hover .menu-icon { color: currentcolor; }
 .logout-error { margin-top: .5rem; display: block; color: #912018; font-size: .72rem; }
 .homes-section { padding: .15rem .15rem .35rem; border-bottom: 1px solid #ece3d6; margin-bottom: .15rem; }
 .homes-label { margin: .35rem .5rem .25rem; color: #8b8175; font-size: .66rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
