@@ -60,6 +60,10 @@ export class RecipeEditPage implements OnInit {
     });
   }
 
+  ingredientNames(): string[] {
+    return this.recipe()?.ingredients.map((i) => i.name).filter(Boolean) ?? [];
+  }
+
   cancel(): void {
     this.router.navigate(['/recipes', this.id]);
   }
