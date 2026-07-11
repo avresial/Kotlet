@@ -3,8 +3,21 @@
   <header><p class="eyebrow">{{ 'admin.eyebrow' | t }}</p><h1>{{ 'nav.admin' | t }}</h1><p>{{ 'admin.intro' | t }}</p></header>
 
   <section class="card" aria-labelledby="api-keys-title">
-    <div class="section-heading"><div><h2 id="api-keys-title">{{ 'admin.apiKeys' | t }}</h2><p>{{ 'admin.apiKeysHelp' | t }}</p></div><span class="badge">{{ 'admin.comingSoon' | t }}</span></div>
-    <div class="service"><div><strong>{{ 'admin.youtubeApi' | t }}</strong><span>{{ 'admin.notConfigured' | t }}</span></div><p-button [label]="'admin.configure' | t" [disabled]="true" severity="secondary" /></div>
+    <div class="section-heading"><div><h2 id="api-keys-title">{{ 'admin.apiKeys' | t }}</h2><p>{{ 'admin.apiKeysHelp' | t }}</p></div><span class="badge">{{ transcriptConfigured() ? ('admin.configured' | t) : ('admin.notConfigured' | t) }}</span></div>
+    <div class="service"><div><strong>{{ 'admin.youtubeApi' | t }}</strong><span>{{ transcriptConfigured() ? ('admin.configured' | t) : ('admin.notConfigured' | t) }}</span></div><p-button [label]="'admin.configure' | t" severity="secondary" (onClick)="configureTranscript()" /></div>
+    @if (transcriptEditing()) {
+      <form class="service-form" [formGroup]="transcriptForm" (ngSubmit)="saveTranscriptConfiguration()" novalidate>
+        <label>
+          {{ 'admin.apiKey' | t }}
+          <p-password formControlName="apiKey" autocomplete="new-password" [feedback]="false" [toggleMask]="true" [fluid]="true" [invalid]="transcriptForm.controls.apiKey.invalid && transcriptForm.controls.apiKey.touched" />
+          <small>{{ transcriptConfigured() ? ('admin.apiKeyKeepHelp' | t) : ('admin.apiKeyHelp' | t) }}</small>
+          @if (transcriptForm.controls.apiKey.touched && transcriptForm.controls.apiKey.hasError('maxlength')) { <p-message severity="error" size="small" variant="simple">{{ 'admin.apiKeyLength' | t }}</p-message> }
+        </label>
+        @if (transcriptError()) { <p-message severity="error" role="alert">{{ transcriptError() }}</p-message> }
+        <div class="actions"><p-button type="submit" [label]="'admin.save' | t" [loading]="transcriptSaving()" /><p-button type="button" severity="secondary" [label]="'admin.cancel' | t" (onClick)="cancelTranscriptConfiguration()" /></div>
+      </form>
+    }
+    @if (transcriptSaved()) { <p-message severity="success" role="status">{{ 'admin.apiKeySaved' | t }}</p-message> }
   </section>
 
   <section class="card" aria-labelledby="users-title">

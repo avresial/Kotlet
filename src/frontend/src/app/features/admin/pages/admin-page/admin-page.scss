@@ -19,6 +19,7 @@ header p:last-child, .section-heading p { margin: 0; color: #746d63; }
 .pagination { margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 1rem; }
 .actions { display: flex; gap: .5rem; flex-wrap: wrap; }
 form { width: 100%; display: grid; grid-template-columns: 1.2fr 1fr .7fr .8fr auto; gap: .75rem; align-items: end; }
+.service-form { grid-template-columns: 1fr; align-items: start; margin-top: 1rem; }
 label { display: grid; gap: .4rem; color: #554e45; font-size: .78rem; font-weight: 750; }
 fieldset { min-width: 0; margin: 0; padding: 0; border: 0; display: flex; gap: .65rem; }
 fieldset legend { margin-bottom: .4rem; color: #554e45; font-size: .78rem; font-weight: 750; }
