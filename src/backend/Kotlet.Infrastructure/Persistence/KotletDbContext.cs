@@ -9,6 +9,7 @@ using Kotlet.Domain.Shopping;
 using Kotlet.Domain.Sources;
 using Kotlet.Domain.Translations;
 using Kotlet.Domain.FoodSettings;
+using Kotlet.Domain.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -40,6 +41,7 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<MealPlanItem> MealPlanItems => Set<MealPlanItem>();
     public DbSet<MealPlanItemParticipant> MealPlanItemParticipants => Set<MealPlanItemParticipant>();
     public DbSet<Translation> Translations => Set<Translation>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

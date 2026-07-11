@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
+import { PasswordModule } from 'primeng/password';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { getApiError } from '../../../../core/http/api-error';
@@ -15,7 +16,7 @@ import { AdminService } from '../../admin.service';
 
 @Component({
   selector: 'app-admin-page',
-  imports: [ButtonModule, DatePipe, InputTextModule, MessageModule, ReactiveFormsModule, RouterLink, TranslatePipe],
+  imports: [ButtonModule, DatePipe, InputTextModule, MessageModule, PasswordModule, ReactiveFormsModule, RouterLink, TranslatePipe],
   templateUrl: './admin-page.html',
   styleUrl: './admin-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,6 +36,11 @@ export class AdminPage {
   readonly editingId = signal<string | null>(null);
   readonly saving = signal(false);
   readonly deletingId = signal<string | null>(null);
+  readonly transcriptConfigured = signal(false);
+  readonly transcriptEditing = signal(false);
+  readonly transcriptSaving = signal(false);
+  readonly transcriptSaved = signal(false);
+  readonly transcriptError = signal<string | null>(null);
   readonly form = new FormGroup({
     email: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.email] }),
     displayName: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(100)] }),
@@ -42,8 +48,49 @@ export class AdminPage {
     userRole: new FormControl(false, { nonNullable: true }),
     adminRole: new FormControl(false, { nonNullable: true }),
   });
+  readonly transcriptForm = new FormGroup({
+    apiKey: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(4096)] }),
+  });
 
-  constructor() { this.loadUsers(); }
+  constructor() {
+    this.loadUsers();
+    this.loadTranscriptSettings();
+  }
+
+  configureTranscript(): void {
+    this.transcriptEditing.set(true);
+    this.transcriptSaved.set(false);
+    this.transcriptError.set(null);
+    this.transcriptForm.reset();
+  }
+
+  cancelTranscriptConfiguration(): void {
+    this.transcriptEditing.set(false);
+    this.transcriptError.set(null);
+    this.transcriptForm.reset();
+  }
+
+  saveTranscriptConfiguration(): void {
+    if (this.transcriptForm.invalid || (!this.transcriptConfigured() && !this.transcriptForm.controls.apiKey.value.trim())) {
+      this.transcriptForm.markAllAsTouched();
+      return;
+    }
+
+    this.transcriptSaving.set(true);
+    this.transcriptSaved.set(false);
+    this.transcriptError.set(null);
+    this.admin.saveYoutubeTranscriptionSettings(this.transcriptForm.controls.apiKey.value.trim() || null)
+      .pipe(finalize(() => this.transcriptSaving.set(false)))
+      .subscribe({
+        next: (settings) => {
+          this.transcriptConfigured.set(settings.hasApiKey);
+          this.transcriptEditing.set(false);
+          this.transcriptSaved.set(true);
+          this.transcriptForm.reset();
+        },
+        error: (error) => this.transcriptError.set(getApiError(error, this.translations.translate('admin.apiKeySaveError'))),
+      });
+  }
 
   edit(user: AdminUser): void {
     this.editingId.set(user.id);
@@ -100,6 +147,13 @@ export class AdminPage {
     this.admin.getUsers(this.page(), this.search().trim() || undefined).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (response) => { this.users.set(response.items); this.totalCount.set(response.totalCount); },
       error: (error) => this.error.set(getApiError(error, this.translations.translate('admin.loadError'))),
+    });
+  }
+
+  private loadTranscriptSettings(): void {
+    this.admin.getYoutubeTranscriptionSettings().subscribe({
+      next: (settings) => this.transcriptConfigured.set(settings.hasApiKey),
+      error: (error) => this.transcriptError.set(getApiError(error, this.translations.translate('admin.apiKeyLoadError'))),
     });
   }
 }

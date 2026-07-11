@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Kotlet.Application.Settings;
 using Kotlet.Application.VideoTranscripts;
 using Microsoft.Extensions.Logging;
 
@@ -9,6 +10,7 @@ namespace Kotlet.Infrastructure.VideoTranscripts;
 internal sealed class SupadataVideoTranscriptProvider(
     HttpClient httpClient,
     SupadataOptions options,
+    ISystemSettingsStore settings,
     ILogger<SupadataVideoTranscriptProvider> logger) : IVideoTranscriptProvider
 {
     private const int MaxPollAttempts = 60;
@@ -17,7 +19,8 @@ internal sealed class SupadataVideoTranscriptProvider(
 
     public async Task<VideoTranscriptResult> GetAsync(Uri url, CancellationToken cancellationToken)
     {
-        if (!options.IsConfigured)
+        var apiKey = await settings.GetAsync(SystemSettingKeys.SupadataApiKey, cancellationToken) ?? options.ApiKey;
+        if (string.IsNullOrWhiteSpace(apiKey))
         {
             return new(VideoTranscriptStatus.NotConfigured,
                 Message: "The video transcript provider is not configured.");
@@ -25,7 +28,7 @@ internal sealed class SupadataVideoTranscriptProvider(
 
         try
         {
-            using var transcriptRequest = CreateRequest("transcript", url, "text=true");
+            using var transcriptRequest = CreateRequest("transcript", url, apiKey, "text=true");
             using var transcriptResponse = await httpClient.SendAsync(transcriptRequest, cancellationToken);
             var transcriptOutcome = await ReadTranscriptResponseAsync(transcriptResponse, cancellationToken);
             if (transcriptOutcome.Result is not null)
@@ -35,7 +38,7 @@ internal sealed class SupadataVideoTranscriptProvider(
 
             if (transcriptOutcome.JobId is not null)
             {
-                transcriptOutcome = await PollTranscriptAsync(transcriptOutcome.JobId, cancellationToken);
+                transcriptOutcome = await PollTranscriptAsync(transcriptOutcome.JobId, apiKey, cancellationToken);
                 if (transcriptOutcome.Result is not null)
                 {
                     return transcriptOutcome.Result;
@@ -49,7 +52,7 @@ internal sealed class SupadataVideoTranscriptProvider(
                     Message: "No transcript was found for this video.");
             }
 
-            using var metadataRequest = CreateRequest("metadata", url);
+            using var metadataRequest = CreateRequest("metadata", url, apiKey);
             using var metadataResponse = await httpClient.SendAsync(metadataRequest, cancellationToken);
             if (!metadataResponse.IsSuccessStatusCode)
             {
@@ -83,16 +86,16 @@ internal sealed class SupadataVideoTranscriptProvider(
         }
     }
 
-    private HttpRequestMessage CreateRequest(string endpoint, Uri url, string? query = null)
+    private HttpRequestMessage CreateRequest(string endpoint, Uri url, string apiKey, string? query = null)
     {
         var encodedUrl = Uri.EscapeDataString(url.ToString());
         var request = new HttpRequestMessage(HttpMethod.Get, $"{endpoint}?url={encodedUrl}{(query is null ? "" : $"&{query}")}");
-        request.Headers.TryAddWithoutValidation("x-api-key", options.ApiKey);
+        request.Headers.TryAddWithoutValidation("x-api-key", apiKey);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         return request;
     }
 
-    private async Task<TranscriptOutcome> PollTranscriptAsync(string jobId, CancellationToken cancellationToken)
+    private async Task<TranscriptOutcome> PollTranscriptAsync(string jobId, string apiKey, CancellationToken cancellationToken)
     {
         for (var attempt = 0; attempt < MaxPollAttempts; attempt++)
         {
@@ -102,7 +105,7 @@ internal sealed class SupadataVideoTranscriptProvider(
             }
 
             using var request = new HttpRequestMessage(HttpMethod.Get, $"transcript/{Uri.EscapeDataString(jobId)}");
-            request.Headers.TryAddWithoutValidation("x-api-key", options.ApiKey);
+            request.Headers.TryAddWithoutValidation("x-api-key", apiKey);
             using var response = await httpClient.SendAsync(request, cancellationToken);
             var outcome = await ReadTranscriptResponseAsync(response, cancellationToken);
             if (outcome.Result is not null || outcome.Content is not null)

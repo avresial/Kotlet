@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Kotlet.Infrastructure.Pantry;
 using Kotlet.Infrastructure.Translations;
+using Kotlet.Application.Settings;
 
 namespace Kotlet.Infrastructure.Persistence;
 
@@ -15,6 +16,7 @@ public static class DiExtension
         AddDatabase(services, configuration);
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<IngredientCsvSeeder>();
+        services.AddScoped<ISystemSettingsStore, SystemSettingsStore>();
         return services;
     }
 

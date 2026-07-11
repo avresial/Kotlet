@@ -31,6 +31,7 @@ describe('AdminPage pagination', () => {
 
     fixture.detectChanges();
     http.expectOne(request => request.url === '/api/admin/users').flush({ items, page: 1, pageSize, totalCount });
+    http.expectOne(request => request.url === '/api/admin/settings/youtube-transcription').flush({ hasApiKey: false });
     fixture.detectChanges();
     http.verify();
     return fixture;
