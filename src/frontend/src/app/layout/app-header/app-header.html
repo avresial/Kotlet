@@ -14,21 +14,35 @@
 
     <nav [attr.aria-label]="'nav.mainAria' | t">
       <a class="nav-item" routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeDrawer()">
-        <span class="icon" aria-hidden="true">⌂</span><span>{{ activeHomeName() || ('nav.dashboard' | t) }}</span>
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span>{{ activeHomeName() || ('nav.dashboard' | t) }}</span>
       </a>
-      <a class="nav-item" routerLink="/recipes" routerLinkActive="active" (click)="closeDrawer()"><span class="icon" aria-hidden="true">▤</span><span>{{ 'nav.recipes' | t }}</span></a>
-      <a class="nav-item" routerLink="/meal-planner" routerLinkActive="active" (click)="closeDrawer()"><span class="icon" aria-hidden="true">▦</span><span>{{ 'nav.mealPlanner' | t }}</span></a>
-      <a class="nav-item" routerLink="/shopping-list" routerLinkActive="active" (click)="closeDrawer()"><span class="icon" aria-hidden="true">✓</span><span>{{ 'nav.shoppingList' | t }}</span></a>
-      <a class="nav-item" routerLink="/pantry" routerLinkActive="active" (click)="closeDrawer()"><span class="icon" aria-hidden="true">□</span><span>{{ 'nav.pantry' | t }}</span></a>
+      <a class="nav-item" routerLink="/recipes" routerLinkActive="active" (click)="closeDrawer()">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+        <span>{{ 'nav.recipes' | t }}</span>
+      </a>
+      <a class="nav-item" routerLink="/meal-planner" routerLinkActive="active" (click)="closeDrawer()">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg>
+        <span>{{ 'nav.mealPlanner' | t }}</span>
+      </a>
+      <a class="nav-item" routerLink="/shopping-list" routerLinkActive="active" (click)="closeDrawer()">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+        <span>{{ 'nav.shoppingList' | t }}</span>
+      </a>
+      <a class="nav-item" routerLink="/pantry" routerLinkActive="active" (click)="closeDrawer()">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+        <span>{{ 'nav.pantry' | t }}</span>
+      </a>
       <a class="nav-item" routerLink="/ingredients" routerLinkActive="active" (click)="closeDrawer()">
-        <span class="icon" aria-hidden="true">◉</span><span>{{ 'nav.ingredients' | t }}</span>
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7z"/><path d="m8.64 14-2.05-2.04"/><path d="m15.34 15-2.46-2.46"/><path d="M22 9s-1.33-2-3.5-2C16.86 7 15 9 15 9s1.33 2 3.5 2S22 9 22 9z"/><path d="M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.84 2-3.5C17 3.33 15 2 15 2z"/></svg>
+        <span>{{ 'nav.ingredients' | t }}</span>
       </a>
     </nav>
 
     <footer>
       <button class="account-trigger" type="button" (click)="toggleAccountMenu($event)" [attr.aria-expanded]="isAccountMenuOpen()" aria-haspopup="menu">
         <span>{{ 'nav.hello' | t }} <strong>{{ user.displayName || user.email.split('@')[0] }}</strong></span>
-        <span class="chevron" aria-hidden="true">⌃</span>
+        <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
       </button>
       @if (isAccountMenuOpen()) {
         <div class="account-menu" role="menu" (click)="$event.stopPropagation()">
@@ -50,17 +64,20 @@
           <app-language-switcher />
           @if (invitations().length) {
             <button role="menuitem" type="button" (click)="openInviteInbox()">
-              <span aria-hidden="true">✉</span>{{ 'home.invite.inboxTitle' | t }}
+              <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>{{ 'home.invite.inboxTitle' | t }}
               <span class="invite-badge">{{ invitations().length }}</span>
             </button>
           }
-          <a role="menuitem" routerLink="/home" (click)="closeDrawer()"><span aria-hidden="true">⌂</span>{{ 'nav.home' | t }}</a>
-          <a role="menuitem" routerLink="/settings" (click)="closeDrawer()"><span aria-hidden="true">⚙</span>{{ 'nav.settings' | t }}</a>
+          <a role="menuitem" routerLink="/home" (click)="closeDrawer()">
+            <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>{{ 'nav.home' | t }}</a>
+          <a role="menuitem" routerLink="/settings" (click)="closeDrawer()">
+            <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>{{ 'nav.settings' | t }}</a>
           @if (user.roles.includes('Admin')) {
-            <a role="menuitem" routerLink="/admin" (click)="closeDrawer()"><span aria-hidden="true">♜</span>{{ 'nav.admin' | t }}</a>
+            <a role="menuitem" routerLink="/admin" (click)="closeDrawer()">
+              <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>{{ 'nav.admin' | t }}</a>
           }
           <button role="menuitem" type="button" (click)="logout()" [disabled]="isLoggingOut()">
-            <span aria-hidden="true">↪</span>{{ (isLoggingOut() ? 'auth.logout.loading' : 'auth.logout.submit') | t }}
+            <svg class="menu-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>{{ (isLoggingOut() ? 'auth.logout.loading' : 'auth.logout.submit') | t }}
           </button>
         </div>
       }

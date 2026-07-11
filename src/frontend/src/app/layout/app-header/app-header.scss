@@ -7,18 +7,22 @@
 .nav-item { width: 100%; min-height: 2.8rem; box-sizing: border-box; padding: .65rem .75rem; border: 0; border-radius: .65rem; display: flex; align-items: center; gap: .75rem; color: #625b51; background: transparent; font: inherit; font-size: .9rem; font-weight: 650; text-align: left; text-decoration: none; cursor: pointer; }
 .nav-item:hover:not(:disabled), .nav-item.active { color: #9a3a2a; background: #f6e3d8; }
 .nav-item:disabled { opacity: .58; cursor: default; }
-.icon { width: 1.3rem; flex: 0 0 1.3rem; color: currentColor; font-size: 1.15rem; text-align: center; }
+.icon { width: 1.2rem; height: 1.2rem; flex: 0 0 1.2rem; color: currentcolor; }
+.nav-item .icon { opacity: .85; }
+.nav-item:hover .icon, .nav-item.active .icon { opacity: 1; }
 footer { position: relative; margin-top: auto; padding: 1rem .25rem .25rem; border-top: 1px solid #e3dbcf; }
 .account-trigger { width: 100%; min-width: 0; padding: .45rem .55rem; border: 0; border-radius: .55rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; color: #766e63; background: transparent; font: inherit; font-size: .75rem; line-height: 1.35; text-align: left; cursor: pointer; }
 .account-trigger:hover, .account-trigger[aria-expanded="true"] { background: #f1ebe2; }
 .account-trigger > span:first-child { min-width: 0; }
 .account-trigger strong { display: block; overflow: hidden; color: #302b25; font-size: .85rem; text-overflow: ellipsis; white-space: nowrap; }
-.chevron { color: #8b8175; font-size: .8rem; transition: transform .15s ease; }
+.chevron { width: .9rem; height: .9rem; flex: 0 0 auto; color: #8b8175; transition: transform .15s ease; }
 .account-trigger[aria-expanded="true"] .chevron { transform: rotate(180deg); }
 .account-menu { position: absolute; z-index: 20; right: .25rem; bottom: calc(100% - .6rem); left: .25rem; padding: .35rem; border: 1px solid #d8cdbf; border-radius: .65rem; display: grid; gap: .15rem; background: #fffdf9; box-shadow: 0 .6rem 1.5rem rgb(65 49 35 / 14%); }
 .account-menu a, .account-menu button { min-height: 2.35rem; padding: .5rem .65rem; border: 0; border-radius: .45rem; display: flex; align-items: center; gap: .65rem; color: #514a42; background: transparent; font: inherit; font-size: .82rem; font-weight: 700; text-decoration: none; cursor: pointer; }
 .account-menu a:hover, .account-menu button:hover { background: #f1ebe2; }
 .account-menu button:disabled { opacity: .55; cursor: default; }
+.menu-icon { width: 1rem; height: 1rem; flex: 0 0 1rem; color: #8b8175; }
+.account-menu a:hover .menu-icon, .account-menu button:hover .menu-icon { color: currentcolor; }
 .logout-error { margin-top: .5rem; display: block; color: #912018; font-size: .72rem; }
 .homes-section { padding: .15rem .15rem .35rem; border-bottom: 1px solid #ece3d6; margin-bottom: .15rem; }
 .homes-label { margin: .35rem .5rem .25rem; color: #8b8175; font-size: .66rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
