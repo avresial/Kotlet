@@ -2,8 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  --recipe-border: #cfc3b4;
-  --recipe-surface: #fffdf9;
+  --recipe-border: var(--app-border-strong);
+  --recipe-surface: var(--app-surface-raised);
   --recipe-accent: #963827;
 
   .empty {
@@ -49,7 +49,7 @@
         padding: 8px 10px;
         border: 1px solid var(--recipe-border);
         border-radius: 8px;
-        color: #29251f;
+        color: var(--app-text);
         background: var(--recipe-surface);
         font-size: 0.9rem;
         width: 100%;
@@ -79,7 +79,7 @@
         border: 1px solid var(--recipe-border);
         border-radius: 8px;
         color: #5d554c;
-        background: #fffaf2;
+        background: var(--app-surface);
         cursor: pointer;
         font-size: 0.8rem;
         line-height: 1;
@@ -98,7 +98,7 @@
     padding: 8px 14px;
     border: 1px solid #bdaea0;
     border-radius: 8px;
-    background: #fffaf2;
+    background: var(--app-surface);
     cursor: pointer;
     font-size: 0.9rem;
     color: #7d3428;

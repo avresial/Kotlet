@@ -13,12 +13,9 @@ public sealed class RecipeService(
     IRecipeRepository repository,
     IIngredientRepository ingredientRepository,
     MeasurementMappingService measurementMappingService,
-    ITranslationRepository translations,
+    RecipeResponseMapper responseMapper,
     IRecipeImageRepository? imageRepository = null)
 {
-    private const int MaxIngredients = 100;
-    private const int MaxServings = 99;
-
     public async Task<PagedResponse<RecipeSummaryResponse>> ListAsync(
         Guid houseId, int page, int pageSize, string? search, string? mealType,
         IReadOnlyCollection<Guid>? ingredientIds, CancellationToken cancellationToken)
@@ -29,7 +26,7 @@ public sealed class RecipeService(
             houseId, page, pageSize, search, ParseMealType(mealType), ingredientIds, cancellationToken);
         var firstImageIds = await GetFirstImageIdsAsync(items.Select(r => r.Id).ToList(), cancellationToken);
         return new PagedResponse<RecipeSummaryResponse>(
-            items.Select(r => ToSummaryResponse(r, firstImageIds)).ToList(),
+            items.Select(r => responseMapper.ToSummaryResponse(r, firstImageIds)).ToList(),
             page, pageSize, total);
     }
 
@@ -39,7 +36,7 @@ public sealed class RecipeService(
         limit = Math.Clamp(limit, 1, 20);
         var recipes = await repository.GetRecentAsync(houseId, limit, cancellationToken);
         var firstImageIds = await GetFirstImageIdsAsync(recipes.Select(r => r.Id).ToList(), cancellationToken);
-        return recipes.Select(r => ToSummaryResponse(r, firstImageIds)).ToList();
+        return recipes.Select(r => responseMapper.ToSummaryResponse(r, firstImageIds)).ToList();
     }
 
     public async Task<RecipeDetailResponse?> GetByIdAsync(
@@ -50,7 +47,7 @@ public sealed class RecipeService(
         var images = imageRepository is null
             ? []
             : await imageRepository.ListAsync(id, false, cancellationToken);
-        return await ToDetailResponseAsync(recipe, languageCode, images.Select(ToImageResponse).ToList(), canEdit: true, cancellationToken);
+        return await responseMapper.ToDetailResponseAsync(recipe, languageCode, images.Select(RecipeResponseMapper.ToImageResponse).ToList(), canEdit: true, cancellationToken);
     }
 
     public async Task<RecipeDetailResponse?> GetPublicByIdAsync(
@@ -61,14 +58,14 @@ public sealed class RecipeService(
         var images = imageRepository is null
             ? []
             : await imageRepository.ListAsync(id, false, cancellationToken);
-        return await ToDetailResponseAsync(recipe, languageCode, images.Select(ToImageResponse).ToList(),
+        return await responseMapper.ToDetailResponseAsync(recipe, languageCode, images.Select(RecipeResponseMapper.ToImageResponse).ToList(),
             canEdit: currentHouseId == recipe.HouseId, cancellationToken);
     }
 
     public async Task<RecipeOperationResult> CreateAsync(
         Guid ownerUserId, Guid houseId, CreateRecipeRequest request, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {
-        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType, request.SourceUrl);
+        var errors = RecipeValidator.Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType, request.SourceUrl);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
@@ -105,13 +102,13 @@ public sealed class RecipeService(
         repository.Add(recipe);
         await repository.SaveChangesAsync(cancellationToken);
         HydrateIngredientNavigation(mappedIngredients);
-        return new(RecipeOperationStatus.Success, await ToDetailResponseAsync(recipe, languageCode, canEdit: true, cancellationToken: cancellationToken));
+        return new(RecipeOperationStatus.Success, await responseMapper.ToDetailResponseAsync(recipe, languageCode, canEdit: true, cancellationToken: cancellationToken));
     }
 
     public async Task<RecipeOperationResult> UpdateAsync(
         Guid id, Guid houseId, UpdateRecipeRequest request, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {
-        var errors = Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType, request.SourceUrl);
+        var errors = RecipeValidator.Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType, request.SourceUrl);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
@@ -142,7 +139,7 @@ public sealed class RecipeService(
             recipe.Ingredients.Add(ing);
         await repository.SaveChangesAsync(cancellationToken);
         HydrateIngredientNavigation(mappedIngredients);
-        return new(RecipeOperationStatus.Success, await ToDetailResponseAsync(recipe, languageCode, canEdit: true, cancellationToken: cancellationToken));
+        return new(RecipeOperationStatus.Success, await responseMapper.ToDetailResponseAsync(recipe, languageCode, canEdit: true, cancellationToken: cancellationToken));
     }
 
     public async Task<RecipeOperationStatus> DeleteAsync(
@@ -228,92 +225,6 @@ public sealed class RecipeService(
         return slug.Length > 200 ? slug[..200] : slug;
     }
 
-    private static Dictionary<string, string[]> Validate(
-        string title, string? descriptionMarkdown, IReadOnlyList<RecipeIngredientRequest> ingredients, int servings, string? mealType, string? sourceUrl)
-    {
-        var errors = new Dictionary<string, string[]>();
-
-        var normalizedSourceUrl = RecipeSourceUrl.Normalize(sourceUrl);
-        if (normalizedSourceUrl is not null)
-        {
-            if (normalizedSourceUrl.Length > 2000)
-                errors["sourceUrl"] = ["Source URL cannot exceed 2,000 characters."];
-            else if (!Uri.TryCreate(normalizedSourceUrl, UriKind.Absolute, out var uri)
-                     || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-                errors["sourceUrl"] = ["Source URL must be an absolute http(s) URL."];
-        }
-
-        if (string.IsNullOrWhiteSpace(title))
-            errors["title"] = ["Title is required."];
-        else if (title.Trim().Length > 160)
-            errors["title"] = ["Title cannot exceed 160 characters."];
-
-        if (servings is < 1 or > MaxServings)
-            errors["servings"] = [$"Servings must be between 1 and {MaxServings}."];
-        if (!string.IsNullOrWhiteSpace(mealType) && !MealSlotValues.TryParse(mealType, out _))
-            errors["mealType"] = ["Meal type is invalid."];
-
-        if (descriptionMarkdown is not null && descriptionMarkdown.Length > 20_000)
-            errors["descriptionMarkdown"] = ["Description cannot exceed 20,000 characters."];
-
-        if (ingredients.Count > MaxIngredients)
-            errors["ingredients"] = [$"A recipe cannot have more than {MaxIngredients} ingredients."];
-
-        var ingredientErrors = new List<string>();
-        for (var i = 0; i < ingredients.Count; i++)
-        {
-            var ing = ingredients[i];
-            if (ing.IngredientId == Guid.Empty)
-                ingredientErrors.Add($"Ingredient at position {i + 1}: ingredient is required.");
-
-            if (ing.Quantity <= 0)
-                ingredientErrors.Add($"Ingredient at position {i + 1}: quantity must be positive.");
-
-            if (string.IsNullOrWhiteSpace(ing.Unit) || ing.Unit.Trim().Length > 40)
-                ingredientErrors.Add($"Ingredient at position {i + 1}: unit is required and cannot exceed 40 characters.");
-
-            if (ing.Note is not null && ing.Note.Trim().Length > 300)
-                ingredientErrors.Add($"Ingredient at position {i + 1}: note cannot exceed 300 characters.");
-        }
-        if (ingredientErrors.Count > 0)
-            errors["ingredients"] = ingredientErrors.ToArray();
-
-        return errors;
-    }
-
-    private async Task<RecipeDetailResponse> ToDetailResponseAsync(
-        Recipe recipe, string languageCode, IReadOnlyList<RecipeImageResponse>? images = null, bool canEdit = false, CancellationToken cancellationToken = default)
-    {
-        var dictionary = await LoadTranslationsAsync(languageCode, cancellationToken);
-        var ingredients = recipe.Ingredients
-            .OrderBy(i => i.SortOrder)
-            .Select(i =>
-            {
-                var display = measurementMappingService.ToDisplay(i.NormalizedQuantity.Amount, i.NormalizedUnit, i.Ingredient);
-                var resolvedName = ResolveName(i.IngredientId, i.Ingredient.Name, languageCode, dictionary);
-                return new RecipeIngredientResponse(i.Id, i.SortOrder, i.IngredientId, resolvedName,
-                    display.Quantity, display.Unit, i.NormalizedQuantity.Amount, i.NormalizedUnit, i.Note);
-            })
-            .ToList();
-
-        return new RecipeDetailResponse(recipe.Id, recipe.Title, recipe.Slug, recipe.OwnerUserId, recipe.DescriptionMarkdown, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
-            ingredients,
-            images ?? [],
-            canEdit,
-            recipe.IsAiAssisted, recipe.SourceUrl,
-            recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
-    }
-
-    private Task<IReadOnlyDictionary<string, string>> LoadTranslationsAsync(string languageCode, CancellationToken cancellationToken) =>
-        TranslationKeys.IsDefaultLanguage(languageCode)
-            ? Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>())
-            : translations.GetAllAsync(cancellationToken);
-
-    private static string ResolveName(Guid ingredientId, string fallback, string languageCode, IReadOnlyDictionary<string, string> dictionary) =>
-        !TranslationKeys.IsDefaultLanguage(languageCode)
-        && dictionary.TryGetValue(TranslationKeys.Ingredient(ingredientId, languageCode), out var translated)
-        && !string.IsNullOrWhiteSpace(translated) ? translated : fallback;
-
     private async Task<IReadOnlyDictionary<Guid, Guid>> GetFirstImageIdsAsync(
         IReadOnlyList<Guid> recipeIds, CancellationToken cancellationToken)
     {
@@ -322,23 +233,8 @@ public sealed class RecipeService(
         return await imageRepository.GetFirstImageIdsAsync(recipeIds, cancellationToken);
     }
 
-    private static RecipeSummaryResponse ToSummaryResponse(
-        Recipe recipe, IReadOnlyDictionary<Guid, Guid>? firstImageIds = null)
-    {
-        string? firstImageUrl = null;
-        if (firstImageIds is not null && firstImageIds.TryGetValue(recipe.Id, out var imageId))
-            firstImageUrl = $"/api/recipes/{recipe.Id}/images/{imageId}/content";
-        return new(recipe.Id, recipe.Title, recipe.Slug, recipe.OwnerUserId, recipe.Ingredients.Count, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
-            firstImageUrl, recipe.IsAiAssisted, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
-    }
-
     private static MealSlot? ParseMealType(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : MealSlotValues.TryParse(value, out var slot) ? slot : null;
-
-    private static RecipeImageResponse ToImageResponse(RecipeImage i) => new(i.Id, i.RecipeId, i.FileName,
-        i.ContentType, i.FileSizeBytes, i.AltText, i.SortOrder,
-        $"/api/recipes/{i.RecipeId}/images/{i.Id}/content", i.CreatedAtUtc,
-        SourceAttributionResponse.FromPrimarySource(i));
 
     private sealed record MappedIngredients(
         List<RecipeIngredient> Items,

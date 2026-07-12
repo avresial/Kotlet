@@ -2,7 +2,7 @@ import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, CdkDropListGroup } fr
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { catchError, finalize, forkJoin, Observable, of, switchMap, tap } from 'rxjs';
+import { catchError, finalize, Observable, of, switchMap } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
@@ -12,22 +12,17 @@ import { IngredientPicker } from '../../../ingredients/components/ingredient-pic
 import { RecipeDetail, RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { RecipePicker } from '../../../recipes/components/recipe-picker/recipe-picker';
-import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
 import { DailyMealPlan, HouseMember, MealPlanItem, MealPlanItemType, MealPlanOverviewDay, MealSlot } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
+import { ShoppingListIntegrationService } from '../../services/shopping-list-integration.service';
 import {
+  allocateCaloriesByPerson,
   directIngredientCaloriesPerServing,
   directIngredientQuantity,
   recipeCaloriesPerServing,
   recipePricePerServing,
   scaleRecipeQuantity,
 } from '../../meal-planner-calculations';
-
-interface PersonCalories {
-  id: string;
-  name: string;
-  calories: number;
-}
 
 export function weekStart(date: string): string {
   const value = new Date(`${date}T00:00:00`);
@@ -47,7 +42,7 @@ export class MealPlannerPage implements OnInit {
   private readonly service = inject(MealPlannerService);
   private readonly recipeService = inject(RecipeService);
   private readonly ingredientService = inject(IngredientService);
-  private readonly shoppingListService = inject(ShoppingListService);
+  private readonly shoppingListIntegration = inject(ShoppingListIntegrationService);
   private readonly translations = inject(TranslationService);
 
   readonly slots: MealSlot[] = ['breakfast', 'second-breakfast', 'dinner', 'snack', 'supper'];
@@ -97,37 +92,15 @@ export class MealPlannerPage implements OnInit {
     (total, item) => total + (this.caloriesPerServing(item) ?? 0) * item.servings,
     0,
   ));
-  readonly caloriesByPerson = computed<PersonCalories[]>(() => {
-    const totals = new Map<string, PersonCalories>();
-    let guestCalories = 0;
-    let unassignedCalories = 0;
-
-    for (const item of this.allItems()) {
-      const caloriesPerServing = this.caloriesPerServing(item);
-      if (caloriesPerServing === null || item.servings === 0) continue;
-      const headcount = item.participants.length + item.guests;
-      if (headcount === 0) {
-        unassignedCalories += caloriesPerServing * item.servings;
-        continue;
-      }
-
-      const caloriesPerPerson = caloriesPerServing * item.servings / headcount;
-      for (const participant of item.participants) {
-        const existing = totals.get(participant.userId);
-        totals.set(participant.userId, {
-          id: participant.userId,
-          name: participant.displayName,
-          calories: (existing?.calories ?? 0) + caloriesPerPerson,
-        });
-      }
-      guestCalories += caloriesPerPerson * item.guests;
-    }
-
-    const result = [...totals.values()].sort((a, b) => b.calories - a.calories || a.name.localeCompare(b.name));
-    if (guestCalories > 0) result.push({ id: 'guests', name: this.translations.translate('meal.guests'), calories: guestCalories });
-    if (unassignedCalories > 0) result.push({ id: 'unassigned', name: this.translations.translate('meal.unassignedServings'), calories: unassignedCalories });
-    return result;
-  });
+  readonly caloriesByPerson = computed(() =>
+    allocateCaloriesByPerson(
+      this.allItems(),
+      this.recipeDetails(),
+      this.ingredients(),
+      this.translations.translate('meal.guests'),
+      this.translations.translate('meal.unassignedServings'),
+    )
+  );
 
   ngOnInit(): void {
     this.loadOptions();
@@ -465,21 +438,20 @@ export class MealPlannerPage implements OnInit {
     this.shoppingItemState.update((state) => ({ ...state, [item.id]: 'adding' }));
     this.planError.set(null);
 
-    const ready: Observable<RecipeDetail | null> = item.type === 'recipe' && item.recipeId && !this.recipeDetails()[item.recipeId]
-      ? this.recipeService.get(item.recipeId).pipe(tap((detail) => this.cacheRecipeDetail(detail)))
+    const needsRecipe = item.type === 'recipe' && item.recipeId && !this.recipeDetails()[item.recipeId];
+
+    const ready: Observable<RecipeDetail | null> = needsRecipe
+      ? this.recipeService.get(item.recipeId!)
       : of(null);
 
     ready.pipe(
-      switchMap(() => {
-        const quantities = this.shoppingQuantities(item);
-        if (!quantities.length) throw new Error(this.translations.translate('meal.noCatalogueIngredients'));
-        return this.shoppingListService.getAll().pipe(
-          switchMap((current) => forkJoin(quantities.map(({ ingredient, quantity }) => {
-            const existing = current.find((entry) => entry.ingredientId === ingredient.id);
-            return existing
-              ? this.shoppingListService.update(existing, { quantity: existing.quantity + quantity, isPurchased: false })
-              : this.shoppingListService.create(ingredient.id, quantity);
-          })))
+      switchMap((detail) => {
+        if (detail) this.cacheRecipeDetail(detail);
+        return this.shoppingListIntegration.addToShoppingList(
+          item,
+          this.recipeDetails(),
+          this.ingredients(),
+          this.translations.translate('meal.noCatalogueIngredients')
         );
       }),
       finalize(() => {
@@ -493,33 +465,10 @@ export class MealPlannerPage implements OnInit {
       })
     ).subscribe({
       next: () => this.shoppingItemState.update((state) => ({ ...state, [item.id]: 'added' })),
-      error: (error: unknown) => this.planError.set(getApiError(error, error instanceof Error ? error.message : this.translations.translate('meal.shoppingError'))),
+      error: (error: unknown) => this.planError.set(getApiError(error, this.translations.translate('meal.shoppingError'))),
     });
   }
 
-  private shoppingQuantities(item: MealPlanItem): { ingredient: Ingredient; quantity: number }[] {
-    if (item.type === 'ingredient') {
-      const ingredient = this.ingredients().find((candidate) => candidate.id === item.ingredientId);
-      if (!ingredient) return [];
-      const quantity = directIngredientQuantity(ingredient, item.servings);
-      return quantity > 0 ? [{ ingredient, quantity }] : [];
-    }
-
-    const detail = item.recipeId ? this.recipeDetails()[item.recipeId] : undefined;
-    const totals = new Map<string, { ingredient: Ingredient; quantity: number }>();
-    for (const recipeIngredient of detail?.ingredients ?? []) {
-      const ingredient = this.ingredients().find((candidate) => candidate.id === recipeIngredient.ingredientId);
-      if (!ingredient) continue;
-      const existing = totals.get(ingredient.id);
-      const quantity = scaleRecipeQuantity(
-        recipeIngredient.normalizedQuantity,
-        detail!.servings,
-        item.servings,
-      );
-      totals.set(ingredient.id, { ingredient, quantity: (existing?.quantity ?? 0) + quantity });
-    }
-    return [...totals.values()];
-  }
 
   private allItems(): MealPlanItem[] {
     return this.slots.flatMap((slot) => this.itemsForSlot(slot));

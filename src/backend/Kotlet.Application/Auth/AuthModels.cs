@@ -4,7 +4,7 @@ namespace Kotlet.Application.Auth;
 
 public sealed record RegisterRequest(string Email, string Password, string ConfirmPassword, string? DisplayName = null);
 public sealed record LoginRequest(string Email, string Password);
-public sealed record UpdateProfileRequest(string? DisplayName, string? PreferredLanguage, Guid? DefaultHouseId = null);
+public sealed record UpdateProfileRequest(string? DisplayName, string? PreferredLanguage, Guid? DefaultHouseId = null, string Theme = "auto");
 public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmPassword);
 public sealed record RefreshSession(Guid UserId, Guid? HouseId, string Email, string? DisplayName, string[] Roles);
 

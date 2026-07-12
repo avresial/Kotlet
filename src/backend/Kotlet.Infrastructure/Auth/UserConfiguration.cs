@@ -17,6 +17,7 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.PasswordHash).HasColumnName("password_hash").IsRequired();
         builder.Property(user => user.DisplayName).HasColumnName("display_name").HasMaxLength(100);
         builder.Property(user => user.PreferredLanguage).HasColumnName("preferred_language").HasMaxLength(2);
+        builder.Property(user => user.Theme).HasColumnName("theme").HasMaxLength(4).HasDefaultValue("auto");
         builder.Property(user => user.CreatedAtUtc).HasColumnName("created_at_utc").HasColumnType("timestamp with time zone");
         builder.Property(user => user.UpdatedAtUtc).HasColumnName("updated_at_utc").HasColumnType("timestamp with time zone");
         builder.Property(user => user.LastLoginAtUtc).HasColumnName("last_login_at_utc").HasColumnType("timestamp with time zone");

@@ -32,6 +32,14 @@
             <option value="pl">{{ 'settings.languagePolish' | t }}</option>
           </select>
         </label>
+        <label>
+          {{ 'settings.theme' | t }}
+          <select formControlName="theme">
+            <option value="auto">{{ 'settings.themeAuto' | t }}</option>
+            <option value="light">{{ 'settings.themeLight' | t }}</option>
+            <option value="dark">{{ 'settings.themeDark' | t }}</option>
+          </select>
+        </label>
         @if (homes().length) {
           <label>
             {{ 'settings.defaultHome' | t }}

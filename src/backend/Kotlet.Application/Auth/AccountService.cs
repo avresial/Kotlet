@@ -59,6 +59,8 @@ public sealed class AccountService(IAuthRepository repository, IUserPasswordServ
         if (request.DisplayName?.Trim().Length > 100) errors["displayName"] = ["Display name cannot exceed 100 characters."];
         var language = request.PreferredLanguage?.Trim().ToLowerInvariant();
         if (language is not null and not ("en" or "pl")) errors["preferredLanguage"] = ["Preferred language must be 'en' or 'pl'."];
+        var theme = request.Theme.Trim().ToLowerInvariant();
+        if (theme is not ("light" or "dark" or "auto")) errors["theme"] = ["Theme must be 'light', 'dark', or 'auto'."];
         if (request.DefaultHouseId is { } defaultHouseId &&
             !await repository.IsMemberAsync(userId, defaultHouseId, cancellationToken))
             errors["defaultHouseId"] = ["You are not a member of this home."];
@@ -68,6 +70,7 @@ public sealed class AccountService(IAuthRepository repository, IUserPasswordServ
         if (user is null) return new(AccountOperationStatus.Unauthorized);
         user.DisplayName = ResolveDisplayName(request.DisplayName, user.Email);
         user.PreferredLanguage = language;
+        user.Theme = theme;
         if (request.DefaultHouseId.HasValue) user.DefaultHouseId = request.DefaultHouseId;
         user.UpdatedAtUtc = DateTime.UtcNow;
         await repository.SaveChangesAsync(cancellationToken);
