@@ -2,6 +2,8 @@
 
 **A calmer way to run your kitchen.**
 
+[Open the live app →](https://avresial.github.io/Kotlet)
+
 Kotlet keeps your recipes, pantry, meal plans, and shopping list in one thoughtful
 place — so you can spend less time organizing and more time cooking. It's built for
 real home kitchens, where the small daily question *"what should we eat?"* turns into
@@ -19,51 +21,75 @@ last-minute surprise.
 
 ### A dashboard for your day
 
-Open Kotlet and see what's cooking today — the planned menu, your shopping progress,
-the newest recipes, and what's running low in the pantry, all at a glance.
+Open Kotlet and see what's cooking today — quick stats, the planned menu and its
+ingredients, household participants, shopping progress, newest recipes, recent
+ingredients, and what's running low in the pantry, all at a glance.
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
 ### Your recipes, beautifully kept
 
-Save family favorites and new discoveries with ingredients, step-by-step instructions
-(written in Markdown), and photos — all in one easy-to-find collection.
+Create and edit family favorites and new discoveries with ingredients, servings,
+meal types, step-by-step instructions (written in Markdown), nutrition, costs, and
+up to ten photos. Upload images, reorder the gallery, set alt text, and search for
+recipe images from Pexels with source attribution. Recipe lists can be searched and
+filtered by meal type or multiple ingredients, and recipe pages can be shared publicly.
 
 ![Recipe list](docs/screenshots/recipes.png)
 ![Recipe detail](docs/screenshots/recipe-detail.png)
 
-### Plan meals for the week ahead
+### Import recipes with AI assistance
 
-Lay out breakfast, lunch, and dinner across the next two weeks. Add recipes or single
-ingredients to any day, set how many people you're serving, and Kotlet works out the
-cost per meal and a daily "receipt" so there are no surprises.
+Paste a YouTube or TikTok link and Kotlet extracts a recipe draft from the video.
+Review the title, instructions, servings, and matched ingredients before saving;
+missing details, proposed new ingredients, and possible duplicates are called out for
+you. AI-assisted recipes retain their source URL and provenance.
+
+### Plan meals for the weeks ahead
+
+Lay out five meal slots across a 28-day overview. Add recipes or single ingredients,
+drag meals between slots and days, copy a day or week, and set the household members
+and guests who are eating. Kotlet works out servings, calories, cost per meal, and a
+daily receipt, with a one-click path from planned meals to the shopping list.
 
 ![Meal planner](docs/screenshots/meal-planner.png)
 
 ### A shopping list that makes sense
 
-Keep one clear list with quantities and prices pulled straight from your ingredient
-catalogue. Check items off as you shop and watch the expected total stay under control.
+Generate a list for a date range from your meal plan, or add items directly. Quantities,
+units, categories, and prices come from the ingredient catalogue; items are grouped for
+shopping, can be checked off, cleared when purchased, and printed as a receipt.
 
 ![Shopping list](docs/screenshots/shopping-list.png)
 
 ### Know what you already have
 
-Keep your pantry stock current so you always know what's on hand and what needs
-restocking — one tap moves a low item onto your shopping list.
+Track quantities, units, expiration dates, and storage locations such as the refrigerator,
+freezer, and cabinet. Search and filter your stock, see recipes you can make from what
+you have, and move low or empty items onto the shopping list.
 
 ![Pantry](docs/screenshots/pantry.png)
 
 ### A shared ingredient catalogue
 
-Recipes, planning, and shopping all draw on a single catalogue of ingredients with
-their units, calories, and prices — so calorie and cost estimates stay consistent
-everywhere.
+Recipes, planning, pantry, and shopping all draw on one catalogue. Ingredients support
+categories, measurement and piece units, calories, prices, translations, allergens,
+attributes, and dietary suitability. Optional AI autofill can populate ingredient
+details, which you can review and edit.
 
 ![Ingredients](docs/screenshots/ingredients.png)
 
-Kotlet also supports **multiple accounts in one household**, **English and Polish**,
-and an **admin area** for managing users.
+### Homes, preferences, and connections
+
+Share a home with other accounts, invite or remove members, switch between multiple
+homes, and add guests to individual meals. Personal settings include profile and
+password management, English and Polish, dietary preferences, allergens, intolerances,
+and excluded ingredients. You can also configure a personal AI provider and connect
+assistants such as Claude or ChatGPT through Kotlet's OAuth-protected MCP integration
+for recipes, meal planning, shopping, and household data.
+
+Administrators get a role-protected area for searching and managing users and configuring
+video-transcription settings.
 
 ---
 
