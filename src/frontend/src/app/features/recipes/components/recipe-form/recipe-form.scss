@@ -25,10 +25,10 @@
     input[type='number'],
     select {
       padding: 10px 12px;
-      border: 1px solid #cfc3b4;
+      border: 1px solid var(--app-border-strong);
       border-radius: 8px;
-      color: #29251f;
-      background: #fffdf9;
+      color: var(--app-text);
+      background: var(--app-surface-raised);
       font-size: 1rem;
       width: 100%;
       box-sizing: border-box;
@@ -85,8 +85,8 @@
       }
 
       &.secondary {
-        background: #fffaf2;
-        border-color: #cfc3b4;
+        background: var(--app-surface);
+        border-color: var(--app-border-strong);
         color: #5d554c;
       }
 

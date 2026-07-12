@@ -4,7 +4,7 @@
   width: min(72rem, calc(100% - 2.5rem));
   margin: 0 auto;
   padding: 2.5rem 0 4rem;
-  color: #29251f;
+  color: var(--app-text);
 }
 
 .back { color: #7d3428; font-size: .9rem; font-weight: 700; text-decoration: none; }
@@ -16,9 +16,9 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
 .meal-overview {
   margin-bottom: 1.5rem;
   padding: 1.25rem;
-  border: 1px solid #dcd2c4;
+  border: 1px solid var(--app-border);
   border-radius: 1rem;
-  background: #fffaf2;
+  background: var(--app-surface);
   box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%);
 }
 .overview-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
@@ -58,7 +58,7 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
   &.is-planned { border-color: #8d392b; background: #9a3a2a; }
   &:hover { outline: 2px solid #c48273; outline-offset: 1px; }
   &.is-selected { box-shadow: inset 0 0 0 2px #c48273; }
-  &.is-planned.is-selected { box-shadow: inset 0 0 0 2px #fffaf2; }
+  &.is-planned.is-selected { box-shadow: inset 0 0 0 2px var(--app-surface); }
 }
 
 .date-picker {
@@ -68,8 +68,8 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
   gap: .75rem 1.25rem;
   margin-bottom: 1.75rem;
 
-  label { color: #554e45; font-size: .78rem; font-weight: 750; }
-  input, button { padding: .6rem .75rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #29251f; background: #fffdf9; }
+  label { color: var(--app-text-soft); font-size: .78rem; font-weight: 750; }
+  input, button { padding: .6rem .75rem; border: 1px solid var(--app-border-strong); border-radius: .55rem; color: var(--app-text); background: var(--app-surface-raised); }
 }
 .picker-group { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
 
@@ -85,9 +85,9 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 
 .slot-section, .day-receipt, .calorie-overview {
   padding: clamp(1.2rem, 3vw, 1.75rem);
-  border: 1px solid #dcd2c4;
+  border: 1px solid var(--app-border);
   border-radius: 1rem;
-  background: #fffaf2;
+  background: var(--app-surface);
   box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%);
 }
 
@@ -110,7 +110,7 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 .item-type { flex: 0 0 auto; color: #8e392b; }
 .item-title { display: grid; flex: 1; min-width: 0; }
 .item-title strong { overflow: hidden; font-family: Georgia, serif; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-.item-title span { color: #746d63; font-size: .78rem; font-style: italic; }
+.item-title span { color: var(--app-text-muted); font-size: .78rem; font-style: italic; }
 .shopping-button { border-color: #d6b7a7; color: #843426; }
 .shopping-button.is-added { border-color: #afc1a9; color: #567451; }
 
@@ -137,7 +137,7 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   padding: .55rem .8rem;
   border: 0;
   border-radius: .6rem;
-  background: #fffaf2;
+  background: var(--app-surface);
   box-shadow: 0 12px 30px rgba(64, 40, 20, .22);
 
   .meal-item-details { display: none; }
@@ -229,13 +229,13 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   padding: 1rem 0 0;
   border-top: 1px solid #e1d7c9;
 }
-.composer select { width: 100%; min-height: 2.75rem; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid #cfc3b4; border-radius: .55rem; color: #29251f; background: #fff; }
+.composer select { width: 100%; min-height: 2.75rem; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid var(--app-border-strong); border-radius: .55rem; color: var(--app-text); background: #fff; }
 .empty-slot { padding: 1.25rem 0 .5rem; border-top: 1px solid #e1d7c9; color: #92897d; font-size: .82rem; }
 
 .day-receipt { margin-top: 0; }
 .receipt-heading { align-items: end; }
 .receipt-heading h2 { margin-top: .3rem; }
-.receipt-heading > span { color: #746d63; font-size: .8rem; }
+.receipt-heading > span { color: var(--app-text-muted); font-size: .8rem; }
 .receipt-lines { margin-top: 1rem; border-top: 1px solid #e1d7c9; }
 .receipt-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .25rem 1rem; padding: .7rem 0; border-bottom: 1px solid #e1d7c9; font-size: .82rem; }
 .receipt-line > span:first-child { grid-column: 1; color: #847b70; }

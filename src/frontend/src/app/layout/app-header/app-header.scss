@@ -1,7 +1,7 @@
 :host { display: block; }
 .drawer-trigger, .drawer-backdrop { display: none; }
-.app-sidebar { position: sticky; top: 0; height: 100vh; box-sizing: border-box; padding: 1rem 1rem; border-right: 1px solid #ded5c8; display: flex; flex-direction: column; background: #fffaf2; }
-.brand { padding: 0 .65rem; display: flex; align-items: center; justify-content: center; gap: .65rem; color: #29251f; font-size: 1.25rem; font-weight: 850; letter-spacing: -.02em; text-decoration: none; }
+.app-sidebar { position: sticky; top: 0; height: 100vh; box-sizing: border-box; padding: 1rem 1rem; border-right: 1px solid #ded5c8; display: flex; flex-direction: column; background: var(--app-surface); }
+.brand { padding: 0 .65rem; display: flex; align-items: center; justify-content: center; gap: .65rem; color: var(--app-text); font-size: 1.25rem; font-weight: 850; letter-spacing: -.02em; text-decoration: none; }
 .brand-mark { width: 8.5rem; height: auto; object-fit: contain; display: block; }
 .app-sidebar nav { margin-top: 1rem; display: grid; gap: .3rem; }
 .nav-item { width: 100%; min-height: 2.8rem; box-sizing: border-box; padding: .65rem .75rem; border: 0; border-radius: .65rem; display: flex; align-items: center; gap: .75rem; color: #625b51; background: transparent; font: inherit; font-size: .9rem; font-weight: 650; text-align: left; text-decoration: none; cursor: pointer; }
@@ -17,7 +17,7 @@ footer { position: relative; margin-top: auto; padding: 1rem .25rem .25rem; bord
 .account-trigger strong { display: block; overflow: hidden; color: #302b25; font-size: .85rem; text-overflow: ellipsis; white-space: nowrap; }
 .chevron { width: .9rem; height: .9rem; flex: 0 0 auto; color: #8b8175; transition: transform .15s ease; }
 .account-trigger[aria-expanded="true"] .chevron { transform: rotate(180deg); }
-.account-menu { position: absolute; z-index: 20; right: .25rem; bottom: calc(100% - .6rem); left: .25rem; padding: .35rem; border: 1px solid #d8cdbf; border-radius: .65rem; display: grid; gap: .15rem; background: #fffdf9; box-shadow: 0 .6rem 1.5rem rgb(65 49 35 / 14%); }
+.account-menu { position: absolute; z-index: 20; right: .25rem; bottom: calc(100% - .6rem); left: .25rem; padding: .35rem; border: 1px solid #d8cdbf; border-radius: .65rem; display: grid; gap: .15rem; background: var(--app-surface-raised); box-shadow: 0 .6rem 1.5rem rgb(65 49 35 / 14%); }
 .account-menu a, .account-menu button { min-height: 2.35rem; padding: .5rem .65rem; border: 0; border-radius: .45rem; display: flex; align-items: center; gap: .65rem; color: #514a42; background: transparent; font: inherit; font-size: .82rem; font-weight: 700; text-decoration: none; cursor: pointer; }
 .account-menu a:hover, .account-menu button:hover { background: #f1ebe2; }
 .account-menu button:disabled { opacity: .55; cursor: default; }
@@ -45,7 +45,7 @@ footer { position: relative; margin-top: auto; padding: 1rem .25rem .25rem; bord
 .create-link { color: #fff; background: #b9533f; }
 .create-link:hover { background: #a94735; }
 @media (max-width: 48rem) {
-  .drawer-trigger { position: fixed; z-index: 50; top: .75rem; left: .75rem; width: 2.75rem; height: 2.75rem; padding: 0; border: 1px solid #d8cdbf; border-radius: .65rem; display: grid; place-items: center; color: #514a42; background: #fffaf2; box-shadow: 0 .25rem .8rem rgb(65 49 35 / 12%); font-size: 1.45rem; line-height: 1; cursor: pointer; }
+  .drawer-trigger { position: fixed; z-index: 50; top: .75rem; left: .75rem; width: 2.75rem; height: 2.75rem; padding: 0; border: 1px solid #d8cdbf; border-radius: .65rem; display: grid; place-items: center; color: #514a42; background: var(--app-surface); box-shadow: 0 .25rem .8rem rgb(65 49 35 / 12%); font-size: 1.45rem; line-height: 1; cursor: pointer; }
   .drawer-trigger[aria-expanded="true"] { left: min(calc(100vw - 3.5rem), 18.5rem); color: #9a3a2a; box-shadow: none; }
   .drawer-backdrop { position: fixed; z-index: 30; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; display: block; background: rgb(41 37 31 / 46%); }
   .app-sidebar { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(20rem, calc(100vw - .75rem)); height: 100dvh; padding: 1rem; visibility: hidden; transform: translateX(-105%); transition: visibility 0s .2s, transform .2s ease; box-shadow: .75rem 0 2rem rgb(41 37 31 / 18%); }

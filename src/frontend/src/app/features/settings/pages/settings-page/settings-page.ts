@@ -16,6 +16,7 @@ import { Language } from '../../../../core/i18n/language';
 import { HomeService } from '../../../home/home.service';
 import { HomeSummary } from '../../../home/home.models';
 import { AiProviderService } from '../../ai-provider.service';
+import { Theme } from '../../../../core/theme.service';
 
 function passwordsMatch(control: AbstractControl): ValidationErrors | null {
   return control.get('newPassword')?.value === control.get('confirmPassword')?.value ? null : { passwordMismatch: true };
@@ -61,6 +62,7 @@ export class SettingsPage implements OnInit {
   readonly profileForm = new FormGroup({
     displayName: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(100)] }),
     preferredLanguage: new FormControl<Language>('en', { nonNullable: true }),
+    theme: new FormControl<Theme>('auto', { nonNullable: true }),
     defaultHouseId: new FormControl<string>('', { nonNullable: true }),
   });
 
@@ -87,6 +89,7 @@ export class SettingsPage implements OnInit {
       if (user) {
         this.profileForm.controls.displayName.setValue(user.displayName ?? '', { emitEvent: false });
         this.profileForm.controls.preferredLanguage.setValue(user.preferredLanguage ?? this.translations.language(), { emitEvent: false });
+        this.profileForm.controls.theme.setValue(user.theme, { emitEvent: false });
         this.profileForm.controls.defaultHouseId.setValue(user.defaultHouseId ?? '', { emitEvent: false });
       }
     });
@@ -126,8 +129,9 @@ export class SettingsPage implements OnInit {
     this.profileSaved.set(false);
     const displayName = this.profileForm.controls.displayName.value.trim();
     const preferredLanguage = this.profileForm.controls.preferredLanguage.value;
+    const theme = this.profileForm.controls.theme.value;
     const defaultHouseId = this.profileForm.controls.defaultHouseId.value || null;
-    this.auth.updateProfile({ displayName: displayName.length > 0 ? displayName : null, preferredLanguage, defaultHouseId })
+    this.auth.updateProfile({ displayName: displayName.length > 0 ? displayName : null, preferredLanguage, defaultHouseId, theme })
       .pipe(finalize(() => this.profileSaving.set(false)))
       .subscribe({
         next: () => {
