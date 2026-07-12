@@ -10,4 +10,5 @@ namespace Kotlet.Application.Ai;
 public interface IUserChatClientResolver
 {
     Task<IChatClient?> ResolveAsync(Guid userId, CancellationToken cancellationToken);
+    Task<IChatClient?> ResolveAsync(Guid userId, string model, CancellationToken cancellationToken) => ResolveAsync(userId, cancellationToken);
 }

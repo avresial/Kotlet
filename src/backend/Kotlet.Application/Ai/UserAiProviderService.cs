@@ -3,11 +3,11 @@ using Kotlet.Domain.Ai;
 namespace Kotlet.Application.Ai;
 
 public sealed record AiProviderConfigurationDto(
-    string ProviderName, string BaseUrl, string? DefaultModel, bool IsEnabled, bool HasApiKey,
+    string ProviderName, string BaseUrl, string? DefaultModel, IReadOnlyList<string> Models, bool IsEnabled, bool HasApiKey,
     DateTime CreatedAtUtc, DateTime UpdatedAtUtc);
 
 public sealed record SaveAiProviderConfigurationCommand(
-    string? ProviderName, string? BaseUrl, string? DefaultModel, bool IsEnabled, string? ApiKey);
+    string? ProviderName, string? BaseUrl, string? DefaultModel, bool IsEnabled, string? ApiKey, IReadOnlyList<string>? Models = null);
 
 public sealed record AiProviderOperationResult(
     AiProviderConfigurationDto? Configuration = null, Dictionary<string, string[]>? ValidationErrors = null);
@@ -37,6 +37,7 @@ public sealed class UserAiProviderService(IUserAiProviderRepository repository)
                 BaseUrl = command.BaseUrl?.Trim() ?? "",
                 ApiKey = NormalizeKey(command.ApiKey),
                 DefaultModel = NullIfWhiteSpace(command.DefaultModel),
+                Models = NormalizeModels(command),
                 IsEnabled = command.IsEnabled,
                 CreatedAtUtc = now,
                 UpdatedAtUtc = now
@@ -48,6 +49,7 @@ public sealed class UserAiProviderService(IUserAiProviderRepository repository)
             existing.ProviderName = command.ProviderName!.Trim();
             existing.BaseUrl = command.BaseUrl?.Trim() ?? "";
             existing.DefaultModel = NullIfWhiteSpace(command.DefaultModel);
+            existing.Models = NormalizeModels(command);
             existing.IsEnabled = command.IsEnabled;
             existing.UpdatedAtUtc = now;
             if (!string.IsNullOrWhiteSpace(command.ApiKey))
@@ -87,6 +89,12 @@ public sealed class UserAiProviderService(IUserAiProviderRepository repository)
 
         if (command.DefaultModel?.Trim().Length > 200)
             errors["defaultModel"] = ["Default model cannot exceed 200 characters."];
+        if (command.Models?.Any(x => x.Trim().Length > 200) == true)
+            errors["models"] = ["Model names cannot exceed 200 characters."];
+        if (command.Models?.Select(x => x.Trim()).Where(x => x.Length > 0).Distinct(StringComparer.Ordinal).Count() > 20)
+            errors["models"] = ["At most 20 models are allowed."];
+        if (NormalizeModels(command)?.Length > 2000)
+            errors["models"] = ["Models cannot exceed 2000 characters in total."];
         if (command.ApiKey?.Length > 4096)
             errors["apiKey"] = ["API key cannot exceed 4096 characters."];
         else if (command.IsEnabled && string.IsNullOrWhiteSpace(command.ApiKey) && string.IsNullOrWhiteSpace(existingKey))
@@ -95,9 +103,13 @@ public sealed class UserAiProviderService(IUserAiProviderRepository repository)
     }
 
     private static AiProviderConfigurationDto? ToDto(UserAiProviderConfiguration? configuration) => configuration is null ? null : new(
-        configuration.ProviderName, configuration.BaseUrl, configuration.DefaultModel, configuration.IsEnabled,
+        configuration.ProviderName, configuration.BaseUrl, configuration.DefaultModel, ParseModels(configuration), configuration.IsEnabled,
         !string.IsNullOrEmpty(configuration.ApiKey), configuration.CreatedAtUtc, configuration.UpdatedAtUtc);
 
     private static string? NullIfWhiteSpace(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static string? NormalizeKey(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+    private static string? NormalizeModels(SaveAiProviderConfigurationCommand command) => string.Join('\n',
+        (command.Models ?? []).Append(command.DefaultModel ?? "").Select(x => x.Trim()).Where(x => x.Length > 0).Distinct(StringComparer.Ordinal));
+    public static IReadOnlyList<string> ParseModels(UserAiProviderConfiguration configuration) =>
+        (configuration.Models ?? configuration.DefaultModel ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }

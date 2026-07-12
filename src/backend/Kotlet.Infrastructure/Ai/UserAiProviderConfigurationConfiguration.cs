@@ -16,6 +16,7 @@ internal sealed class UserAiProviderConfigurationConfiguration : IEntityTypeConf
         builder.Property(x => x.BaseUrl).HasColumnName("base_url").HasMaxLength(2048).IsRequired();
         builder.Property(x => x.ApiKey).HasColumnName("api_key").HasMaxLength(4096);
         builder.Property(x => x.DefaultModel).HasColumnName("default_model").HasMaxLength(200);
+        builder.Property(x => x.Models).HasColumnName("models").HasMaxLength(2000);
         builder.Property(x => x.IsEnabled).HasColumnName("is_enabled").HasDefaultValue(false);
         builder.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc").HasColumnType("timestamp with time zone");
         builder.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at_utc").HasColumnType("timestamp with time zone");

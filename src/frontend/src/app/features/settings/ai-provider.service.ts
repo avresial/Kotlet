@@ -7,6 +7,7 @@ export interface AiProviderConfiguration {
   providerName: string;
   baseUrl: string;
   defaultModel: string | null;
+  models: string[];
   isEnabled: boolean;
   hasApiKey: boolean;
   createdAtUtc: string;
@@ -17,6 +18,7 @@ export interface SaveAiProviderConfiguration {
   providerName: string;
   baseUrl: string;
   defaultModel: string | null;
+  models: string[];
   isEnabled: boolean;
   apiKey?: string;
 }

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -9,6 +9,7 @@ import { TranslationService } from '../../core/i18n/translation.service';
 import { HomeService } from '../../features/home/home.service';
 import { HomeSummary, IncomingInvitation } from '../../features/home/home.models';
 import { InvitationInbox } from '../../features/home/components/invitation-inbox/invitation-inbox';
+import { AiProviderService } from '../../features/settings/ai-provider.service';
 
 @Component({
   selector: 'app-header',
@@ -22,6 +23,8 @@ export class AppHeader {
   readonly auth = inject(AuthService);
   private readonly translations = inject(TranslationService);
   private readonly homeService = inject(HomeService);
+  private readonly aiProviderService = inject(AiProviderService);
+  readonly agentAvailable = signal(false);
   readonly isLoggingOut = signal(false);
   readonly logoutError = signal<string | null>(null);
   readonly isAccountMenuOpen = signal(false);
@@ -39,6 +42,13 @@ export class AppHeader {
 
   constructor() {
     this.loadHomeSummaries();
+    effect(() => {
+      if (!this.auth.currentUser()) return this.agentAvailable.set(false);
+      this.aiProviderService.get().subscribe({
+        next: config => this.agentAvailable.set(config.isEnabled && config.hasApiKey && config.models.length > 0),
+        error: () => this.agentAvailable.set(false),
+      });
+    });
   }
 
   toggleAccountMenu(event: MouseEvent): void {
