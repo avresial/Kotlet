@@ -87,7 +87,7 @@
       &.secondary {
         background: var(--app-surface);
         border-color: var(--app-border-strong);
-        color: #5d554c;
+        color: var(--app-text-soft);
       }
 
       &:hover:not(:disabled) { filter: brightness(.96); }

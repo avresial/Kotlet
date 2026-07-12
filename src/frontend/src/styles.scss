@@ -3,12 +3,26 @@
   --app-bg: #f6f1e8; --app-surface: #fffaf2; --app-surface-raised: #fffdf9; --app-surface-bright: #fff;
   --app-text: #29251f; --app-text-soft: #554e45; --app-text-muted: #746d63;
   --app-border: #dcd2c4; --app-border-strong: #cfc3b4;
+  --app-input: #fff; --app-inset: #f4ead9; --app-inset-strong: #f2dfd7;
+  --app-accent: #8e392b; --app-accent-bg: #f8e8e2;
+  --app-success: #35633a; --app-success-bg: #edf7ed; --app-success-border: #9fbea1;
+  --app-danger: #9a3022; --app-danger-bg: #fff0ec; --app-danger-border: #d99b8b;
+  --app-ai: #5b3ca0; --app-ai-bg: #eee7ff;
+  --text-secondary: var(--app-text-muted);
+  --danger: var(--app-danger); --danger-bg: var(--app-danger-bg); --danger-border: var(--app-danger-border);
+  --border-color: var(--app-border); --primary: var(--app-accent);
+  --surface-primary: var(--app-input); --surface-secondary: var(--app-surface-raised); --surface-disabled: var(--app-inset);
   color: var(--app-text); background: var(--app-bg); font-family: system-ui, sans-serif;
 }
 .app-dark {
   --app-bg: #171512; --app-surface: #211e1a; --app-surface-raised: #29251f; --app-surface-bright: #302b25;
   --app-text: #f4eee5; --app-text-soft: #ded5c9; --app-text-muted: #b8aea1;
   --app-border: #49423a; --app-border-strong: #5a5147;
+  --app-input: #29251f; --app-inset: #2c2823; --app-inset-strong: #38312a;
+  --app-accent: #d98a6f; --app-accent-bg: #3a2620;
+  --app-success: #8fb890; --app-success-bg: #232c21; --app-success-border: #46603f;
+  --app-danger: #e2917f; --app-danger-bg: #33211d; --app-danger-border: #6d3d33;
+  --app-ai: #c6b3f0; --app-ai-bg: #2c2440;
 }
 html { min-width: 20rem; min-height: 100%; overflow-x: hidden; }
 body { min-height: 100vh; margin: 0; color: var(--app-text); background: var(--app-bg); }

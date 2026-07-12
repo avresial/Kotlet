@@ -11,7 +11,7 @@ header p:last-child { margin: 0; color: var(--app-text-muted); }
 .server-url { margin-top: 1.25rem; display: grid; gap: .45rem; }
 .server-url label { color: var(--app-text-soft); font-size: .82rem; font-weight: 750; }
 .copy-row { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
-.copy-row code { flex: 1 1 16rem; padding: .55rem .75rem; border: 1px solid var(--app-border); border-radius: .4rem; background: #fff; overflow-wrap: anywhere; }
+.copy-row code { flex: 1 1 16rem; padding: .55rem .75rem; border: 1px solid var(--app-border); border-radius: .4rem; background: var(--app-input); overflow-wrap: anywhere; }
 .client { margin-top: 1.5rem; }
 .client h3 { margin: 0 0 .5rem; font: 500 1.15rem Georgia, serif; }
 .client ol { margin: .5rem 0 0; padding-left: 1.2rem; color: var(--app-text); display: grid; gap: .4rem; }

@@ -1,19 +1,19 @@
-.upload { display: grid; gap: 1rem; padding: 1.25rem; border: 1px solid #ded3c5; border-radius: .75rem; background: var(--app-surface); }
+.upload { display: grid; gap: 1rem; padding: 1.25rem; border: 1px solid var(--app-border); border-radius: .75rem; background: var(--app-surface); }
 .file-picker { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
-.file-button { padding: .65rem 1rem; border: 1px solid var(--app-border-strong); border-radius: .5rem; color: #5d554c; background: var(--app-surface-raised); font-weight: 600; cursor: pointer; }
+.file-button { padding: .65rem 1rem; border: 1px solid var(--app-border-strong); border-radius: .5rem; color: var(--app-text-soft); background: var(--app-surface-raised); font-weight: 600; cursor: pointer; }
 .file-button:hover { background: var(--app-bg); }
 .file-button:focus-within { outline: 2px solid #b96554; outline-offset: 2px; }
 .file-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.file-name { color: #6b6358; font-size: .875rem; }
+.file-name { color: var(--app-text-muted); font-size: .875rem; }
 .field { display: grid; gap: .4rem; font-weight: 500; }
-.field small { margin-left: .25rem; color: #6b6358; font-weight: 400; }
+.field small { margin-left: .25rem; color: var(--app-text-muted); font-weight: 400; }
 .field input { box-sizing: border-box; width: 100%; padding: .7rem .75rem; border: 1px solid var(--app-border-strong); border-radius: .5rem; color: var(--app-text); background: var(--app-surface-raised); }
 .field input:focus { outline: 2px solid #b96554; outline-offset: 1px; }
-.error { margin: 0; color: #b91c1c; font-size: .875rem; }
+.error { margin: 0; color: var(--app-danger); font-size: .875rem; }
 .upload-progress { display: grid; gap: .35rem; }
-.progress-track { height: .5rem; border-radius: 999px; background: #ece3d6; overflow: hidden; }
+.progress-track { height: .5rem; border-radius: 999px; background: var(--app-inset); overflow: hidden; }
 .progress-fill { height: 100%; border-radius: inherit; background: #963827; transition: width .2s ease; }
-.progress-label { color: #6b6358; font-size: .8rem; }
+.progress-label { color: var(--app-text-muted); font-size: .8rem; }
 button { justify-self: start; padding: .7rem 1.25rem; border: 1px solid #963827; border-radius: .5rem; color: #fff; background: #963827; font-weight: 600; cursor: pointer; }
 button:hover:not(:disabled) { filter: brightness(.96); }
 button:disabled { opacity: .45; cursor: not-allowed; }

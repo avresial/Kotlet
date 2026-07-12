@@ -93,10 +93,10 @@
       font-size: .8rem;
       line-height: 1;
 
-      &:hover:not(:disabled) { border-color: #aa9180; background: #f4ece1; }
+      &:hover:not(:disabled) { border-color: #aa9180; background: var(--app-inset); }
       &:disabled { opacity: .28; cursor: not-allowed; }
       &.delete { color: #963827; font-size: 1rem; }
-      &.delete:hover:not(:disabled) { border-color: #c98e83; background: #fff0ec; }
+      &.delete:hover:not(:disabled) { border-color: #c98e83; background: var(--app-danger-bg); }
     }
   }
 }

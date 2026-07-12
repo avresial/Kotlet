@@ -27,7 +27,7 @@
       min-width: 24px;
       padding-top: 10px;
       font-size: 0.8rem;
-      color: #756d62;
+      color: var(--app-text-muted);
       text-align: center;
     }
 
@@ -59,7 +59,7 @@
         &.invalid { border-color: #a93827; }
       }
 
-      input[readonly] { color: #6f675d; background: #f3ede4; }
+      input[readonly] { color: var(--app-text-muted); background: var(--app-inset); }
 
       .field-error {
         font-size: 0.75rem;
@@ -78,16 +78,16 @@
         padding: 0;
         border: 1px solid var(--recipe-border);
         border-radius: 8px;
-        color: #5d554c;
+        color: var(--app-text-soft);
         background: var(--app-surface);
         cursor: pointer;
         font-size: 0.8rem;
         line-height: 1;
 
-        &:hover:not(:disabled) { border-color: #aa9180; background: #f4ece1; }
+        &:hover:not(:disabled) { border-color: #aa9180; background: var(--app-inset); }
         &:disabled { opacity: 0.28; cursor: not-allowed; }
         &.delete { color: #963827; }
-        &.delete:hover:not(:disabled) { border-color: #c98e83; background: #fff0ec; }
+        &.delete:hover:not(:disabled) { border-color: #c98e83; background: var(--app-danger-bg); }
       }
     }
   }
@@ -96,19 +96,19 @@
     align-self: flex-start;
     min-height: 2.6rem;
     padding: 8px 14px;
-    border: 1px solid #bdaea0;
+    border: 1px solid var(--app-border-strong);
     border-radius: 8px;
     background: var(--app-surface);
     cursor: pointer;
     font-size: 0.9rem;
-    color: #7d3428;
+    color: var(--app-accent);
     font-weight: 700;
 
-    &:hover:not(:disabled) { border-color: #963827; background: #f6e9e2; }
+    &:hover:not(:disabled) { border-color: #963827; background: var(--app-inset); }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
 
-  .catalogue-error { margin: 2px 0; color: #852b20; font-size: .82rem; }
+  .catalogue-error { margin: 2px 0; color: var(--app-danger); font-size: .82rem; }
 
   @media (min-width: 641px) and (max-width: 860px) {
     .ingredient-row { flex-wrap: wrap; }

@@ -55,8 +55,8 @@
       gap: .3rem;
       padding: .25rem .45rem;
       border-radius: 999px;
-      background: #f2e4d8;
-      color: #63352d;
+      background: var(--app-inset-strong);
+      color: var(--app-text-soft);
       font-size: .85rem;
 
       button {
@@ -72,14 +72,14 @@
 
   .error {
     padding: 12px 16px;
-    background: #fff0ec;
-    color: #852b20;
-    border: 1px solid #dca99f;
+    background: var(--app-danger-bg);
+    color: var(--app-danger);
+    border: 1px solid var(--app-danger-border);
     border-radius: .6rem;
     margin-bottom: 16px;
   }
 
-  .empty { margin: 2rem 0; color: #756d62; text-align: center; }
+  .empty { margin: 2rem 0; color: var(--app-text-muted); text-align: center; }
   .empty a { color: #7d3428; font-weight: 700; }
 
   .recipe-grid {
@@ -132,7 +132,7 @@
       height: 11rem;
       object-fit: cover;
       border-radius: calc(1rem - 1px) calc(1rem - 1px) 0 0;
-      background: #f4ead9;
+      background: var(--app-inset);
     }
 
     .card-body {
@@ -144,7 +144,7 @@
 
       h2 { margin: 0 0 6px; font: 500 1.2rem Georgia, serif; }
       .meta { margin: 0 0 4px; font-size: 0.85rem; color: var(--app-text-muted); }
-      .updated { margin: 0; font-size: 0.8rem; color: #92897d; }
+      .updated { margin: 0; font-size: 0.8rem; color: var(--app-text-muted); }
     }
 
     .card-menu {
@@ -161,10 +161,10 @@
       height: 2.25rem;
       display: grid;
       place-items: center;
-      border: 1px solid #d8cfc3;
+      border: 1px solid var(--app-border);
       border-radius: .55rem;
-      background: rgb(255 253 249 / 92%);
-      color: #382f28;
+      background: var(--app-surface-bright);
+      color: var(--app-text);
       box-shadow: 0 .2rem .8rem rgb(70 52 31 / 12%);
       cursor: pointer;
       font-size: 1.35rem;
@@ -182,7 +182,7 @@
       right: 0;
       min-width: 8.5rem;
       padding: .35rem;
-      border: 1px solid #d8cfc3;
+      border: 1px solid var(--app-border);
       border-radius: .55rem;
       background: var(--app-surface-raised);
       box-shadow: 0 .7rem 1.8rem rgb(70 52 31 / 18%);
@@ -194,13 +194,13 @@
         border: 0;
         border-radius: .35rem;
         background: transparent;
-        color: #382f28;
+        color: var(--app-text);
         cursor: pointer;
         font: inherit;
         text-align: left;
         text-decoration: none;
 
-        &:hover { background: #f7eee3; }
+        &:hover { background: var(--app-inset); }
         &:focus-visible { outline: 2px solid #9a3a2a; outline-offset: -2px; }
       }
 
@@ -240,7 +240,7 @@
 
     &.primary { background: #963827; color: #fff; }
     &.primary:hover { background: #842f20; }
-    &.secondary { background: transparent; border-color: var(--app-border-strong); color: #5d554c; }
+    &.secondary { background: transparent; border-color: var(--app-border-strong); color: var(--app-text-soft); }
     &.danger { background: transparent; border-color: #c76e60; color: #9a3024; &:disabled { opacity: 0.5; cursor: not-allowed; } }
     &.small { padding: 6px 12px; font-size: 0.85rem; }
   }

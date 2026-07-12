@@ -17,16 +17,16 @@ header p:last-child { margin: 0; color: var(--app-text-muted); }
 form { margin-top: 1.25rem; display: grid; gap: 1.1rem; justify-items: start; }
 label { display: grid; gap: .45rem; width: 100%; color: var(--app-text-soft); font-size: .82rem; font-weight: 750; }
 input[pInputText] { width: 100%; }
-textarea { width: 100%; box-sizing: border-box; padding: .7rem; border: 1px solid #c8c1b7; border-radius: .4rem; resize: vertical; font: inherit; }
+textarea { width: 100%; box-sizing: border-box; padding: .7rem; border: 1px solid var(--app-border-strong); border-radius: .4rem; resize: vertical; font: inherit; color: var(--app-text); background: var(--app-input); }
 .toggle { display: flex; align-items: center; gap: .65rem; }
 .toggle input { width: 1.1rem; height: 1.1rem; }
 small { color: var(--app-text-muted); font-weight: 500; }
 .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
 section[aria-labelledby="mcp-title"] > .actions { margin-top: 1rem; }
-select { width: 100%; min-height: 2.65rem; padding: .55rem .75rem; border: 1px solid #c8c1b7; border-radius: .4rem; color: var(--app-text); background: #fff; font: inherit; }
+select { width: 100%; min-height: 2.65rem; padding: .55rem .75rem; border: 1px solid var(--app-border-strong); border-radius: .4rem; color: var(--app-text); background: var(--app-input); font: inherit; }
 @media (max-width: 38rem) {
   .account dl > div { grid-template-columns: 1fr; gap: .2rem; }
 }
 
-.mcp-connect-link { display: inline-flex; align-items: center; gap: .4rem; padding: .6rem 1.1rem; border-radius: .5rem; background: #7d3428; color: var(--app-surface); font-weight: 700; text-decoration: none; }
+.mcp-connect-link { display: inline-flex; align-items: center; gap: .4rem; padding: .6rem 1.1rem; border-radius: .5rem; background: #7d3428; color: #f7f1e7; font-weight: 700; text-decoration: none; }
 .mcp-connect-link:hover { background: #6a2c22; }
