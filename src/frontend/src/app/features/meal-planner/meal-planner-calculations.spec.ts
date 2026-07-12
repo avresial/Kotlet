@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { Ingredient } from '../ingredients/ingredient.models';
 import { RecipeDetail } from '../recipes/models/recipe.models';
+import { MealPlanItem } from './models/meal-planner.models';
 import {
+  allocateCaloriesByPerson,
   directIngredientCaloriesPerServing,
   directIngredientQuantity,
   recipeCaloriesPerServing,
@@ -74,5 +76,74 @@ describe('meal planner calculations', () => {
 
   it('scales a recipe ingredient from its batch yield to the people served', () => {
     expect(scaleRecipeQuantity(400, 4, 3)).toBe(300);
+  });
+
+  it('allocates calories by person, guests, and unassigned servings', () => {
+    const alice = { userId: 'alice', displayName: 'Alice', isCurrentUser: false };
+    const bob = { userId: 'bob', displayName: 'Bob', isCurrentUser: false };
+
+    const items: MealPlanItem[] = [
+      {
+        id: '1',
+        slot: 'breakfast',
+        type: 'recipe',
+        recipeId: recipe.id,
+        displayName: 'Breakfast',
+        sortOrder: 0,
+        participants: [alice, bob],
+        guests: 1,
+        servings: 4,
+        servingsOverridden: false,
+      },
+      {
+        id: '2',
+        slot: 'dinner',
+        type: 'ingredient',
+        ingredientId: ingredient.id,
+        displayName: 'Side',
+        sortOrder: 0,
+        participants: [alice],
+        guests: 0,
+        servings: 2,
+        servingsOverridden: false,
+      },
+      {
+        id: '3',
+        slot: 'snack',
+        type: 'ingredient',
+        ingredientId: ingredient.id,
+        displayName: 'Unassigned snack',
+        sortOrder: 0,
+        participants: [],
+        guests: 0,
+        servings: 3,
+        servingsOverridden: false,
+      },
+    ];
+
+    const recipeWithHighCalories = {
+      ...recipe,
+      ingredients: [{ ...recipe.ingredients[0], normalizedQuantity: 400 }],
+    };
+
+    const calorieIngredient = { ...ingredient, caloriesPer100BaseUnits: 100 };
+
+    const result = allocateCaloriesByPerson(
+      items,
+      { [recipe.id]: recipeWithHighCalories },
+      [calorieIngredient],
+      'Guests',
+      'Unassigned',
+    );
+
+    expect(result).toHaveLength(4);
+    expect(result[0].id).toBe('alice');
+    expect(result[0].calories).toBeCloseTo(135.3333333333, 1);
+    expect(result[1].id).toBe('bob');
+    expect(result[1].calories).toBeCloseTo(133.3333333333, 1);
+    expect(result[2].id).toBe('guests');
+    expect(result[2].calories).toBeCloseTo(133.3333333333, 1);
+    expect(result[3].id).toBe('unassigned');
+    expect(result[3].calories).toBeCloseTo(3, 1);
   });
 });

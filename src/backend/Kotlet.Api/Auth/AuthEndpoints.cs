@@ -148,7 +148,7 @@ public static class AuthEndpoints
     }
 
     private static CurrentUserResponse ToResponse(User user, Guid? activeHouseId, bool hasHome) => new(
-        user.Id, user.Email, ResolveDisplayName(user.DisplayName, user.Email), user.PreferredLanguage,
+        user.Id, user.Email, ResolveDisplayName(user.DisplayName, user.Email), user.PreferredLanguage, user.Theme,
         user.CreatedAtUtc, user.LastLoginAtUtc, user.DefaultHouseId, activeHouseId, hasHome,
         user.Roles.Select(role => role.Name).ToArray());
 

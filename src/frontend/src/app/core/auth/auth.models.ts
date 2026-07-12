@@ -3,6 +3,7 @@ export interface CurrentUser {
   email: string;
   displayName: string | null;
   preferredLanguage: 'en' | 'pl' | null;
+  theme: 'light' | 'dark' | 'auto';
   createdAtUtc: string;
   lastLoginAtUtc: string | null;
   defaultHouseId: string | null;
@@ -30,6 +31,7 @@ export interface RegisterRequest extends LoginRequest {
 export interface UpdateProfileRequest {
   displayName: string | null;
   preferredLanguage: 'en' | 'pl' | null;
+  theme: 'light' | 'dark' | 'auto';
   defaultHouseId?: string | null;
 }
 

@@ -10,15 +10,17 @@ import { routes } from './app.routes';
 import { KotletPreset } from './theme/kotlet-preset';
 import { TranslationService } from './core/i18n/translation.service';
 import { languageInterceptor } from './core/i18n/language.interceptor';
+import { ThemeService } from './core/theme.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideAnimationsAsync(),
-    providePrimeNG({ theme: { preset: KotletPreset, options: { darkModeSelector: false } }, ripple: true }),
+    providePrimeNG({ theme: { preset: KotletPreset, options: { darkModeSelector: '.app-dark' } }, ripple: true }),
     provideHttpClient(withInterceptors([authInterceptor, languageInterceptor])),
     provideRouter(routes),
     provideAppInitializer(() => inject(TranslationService).initialize()),
     provideAppInitializer(() => inject(AuthService).restoreSession()),
+    provideAppInitializer(() => { inject(ThemeService); }),
   ]
 };

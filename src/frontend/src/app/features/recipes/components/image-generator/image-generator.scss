@@ -1,5 +1,5 @@
 .image-generator { display: flex; flex-direction: column; gap: .5rem; min-width: min(100%, 20rem); }
-.generate, .select { border: 1px solid #963827; border-radius: .5rem; padding: .45rem .75rem; background: #fffaf2; color: #963827; cursor: pointer; }
+.generate, .select { border: 1px solid #963827; border-radius: .5rem; padding: .45rem .75rem; background: var(--app-surface); color: #963827; cursor: pointer; }
 .generate:disabled, .select:disabled, .navigation:disabled { opacity: .55; cursor: not-allowed; }
 .select.selected { background: #963827; color: #fff; }
 .spinner { width: 1.25rem; height: 1.25rem; border: 2px solid #decfc0; border-top-color: #963827; border-radius: 50%; animation: spin .7s linear infinite; }

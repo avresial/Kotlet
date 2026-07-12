@@ -1,5 +1,5 @@
 .auth-page { min-height: calc(100vh - var(--app-header-height)); display: grid; place-items: center; padding: 2rem 1rem; }
-.auth-card { width: min(100%, 28rem); padding: clamp(1.5rem, 5vw, 2.5rem); border: 1px solid #d8cdbd; border-radius: 1.25rem; background: #fffaf2; box-shadow: 0 1rem 3rem rgb(65 49 31 / 8%); }
+.auth-card { width: min(100%, 28rem); padding: clamp(1.5rem, 5vw, 2.5rem); border: 1px solid #d8cdbd; border-radius: 1.25rem; background: var(--app-surface); box-shadow: 0 1rem 3rem rgb(65 49 31 / 8%); }
 .eyebrow { margin: 0 0 .75rem; color: #a23b28; font-size: .75rem; font-weight: 800; letter-spacing: .16em; }
 h1 { margin: 0; font-family: Georgia, serif; font-size: 2.3rem; }
 .intro { margin: .75rem 0 2rem; color: #625b51; line-height: 1.55; }

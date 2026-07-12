@@ -1,13 +1,13 @@
-.upload { display: grid; gap: 1rem; padding: 1.25rem; border: 1px solid #ded3c5; border-radius: .75rem; background: #fffaf2; }
+.upload { display: grid; gap: 1rem; padding: 1.25rem; border: 1px solid #ded3c5; border-radius: .75rem; background: var(--app-surface); }
 .file-picker { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
-.file-button { padding: .65rem 1rem; border: 1px solid #cfc3b4; border-radius: .5rem; color: #5d554c; background: #fffdf9; font-weight: 600; cursor: pointer; }
-.file-button:hover { background: #f6f1e8; }
+.file-button { padding: .65rem 1rem; border: 1px solid var(--app-border-strong); border-radius: .5rem; color: #5d554c; background: var(--app-surface-raised); font-weight: 600; cursor: pointer; }
+.file-button:hover { background: var(--app-bg); }
 .file-button:focus-within { outline: 2px solid #b96554; outline-offset: 2px; }
 .file-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .file-name { color: #6b6358; font-size: .875rem; }
 .field { display: grid; gap: .4rem; font-weight: 500; }
 .field small { margin-left: .25rem; color: #6b6358; font-weight: 400; }
-.field input { box-sizing: border-box; width: 100%; padding: .7rem .75rem; border: 1px solid #cfc3b4; border-radius: .5rem; color: #29251f; background: #fffdf9; }
+.field input { box-sizing: border-box; width: 100%; padding: .7rem .75rem; border: 1px solid var(--app-border-strong); border-radius: .5rem; color: var(--app-text); background: var(--app-surface-raised); }
 .field input:focus { outline: 2px solid #b96554; outline-offset: 1px; }
 .error { margin: 0; color: #b91c1c; font-size: .875rem; }
 .upload-progress { display: grid; gap: .35rem; }
