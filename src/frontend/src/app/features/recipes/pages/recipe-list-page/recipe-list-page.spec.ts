@@ -17,6 +17,7 @@ describe('RecipeListPage ingredient filters', () => {
     const ingredient = { id: 'ingredient-1', name: 'Tomato' } as Ingredient;
 
     fixture.detectChanges();
+    http.expectOne('/api/ai-provider').flush({}, { status: 404, statusText: 'Not Found' });
     http.expectOne(request => request.url === '/api/recipes').flush({ items: [], page: 1, pageSize: 20, totalCount: 0 });
     http.expectOne('/api/ingredients').flush([ingredient]);
 
@@ -66,6 +67,7 @@ describe('RecipeListPage pagination', () => {
     const items = Array.from({ length: Math.min(totalCount, pageSize) }, (_, i) => makeRecipe(i + 1));
 
     fixture.detectChanges();
+    http.expectOne('/api/ai-provider').flush({}, { status: 404, statusText: 'Not Found' });
     http.expectOne(request => request.url === '/api/recipes').flush({ items, page: 1, pageSize, totalCount });
     http.expectOne('/api/ingredients').flush([]);
     fixture.detectChanges();

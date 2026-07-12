@@ -13,6 +13,7 @@ import { IngredientPicker } from '../../../ingredients/components/ingredient-pic
 import { RecipeMealType, RecipeSummary, recipeMealTypes } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { AiBadge } from '../../../../shared/ui/ai-badge/ai-badge';
+import { AiProviderService } from '../../../settings/ai-provider.service';
 
 @Component({
   selector: 'app-recipe-list-page',
@@ -27,6 +28,7 @@ export class RecipeListPage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly translations = inject(TranslationService);
   private readonly ingredientService = inject(IngredientService);
+  private readonly aiProvider = inject(AiProviderService);
 
   readonly recipes = signal<RecipeSummary[]>([]);
   readonly isLoading = signal(true);
@@ -44,6 +46,7 @@ export class RecipeListPage implements OnInit {
     .filter(ingredient => !this.selectedIngredientIds().includes(ingredient.id)));
   readonly hasActiveFilters = computed(() => !!(this.search() || this.mealType() || this.selectedIngredientIds().length));
   readonly mealTypes = recipeMealTypes;
+  readonly aiAvailable = this.aiProvider.isAvailable;
   readonly page = signal(1);
   readonly totalCount = signal(0);
   readonly imageUrls = signal<Record<string, string>>({});
@@ -56,6 +59,7 @@ export class RecipeListPage implements OnInit {
   }
 
   ngOnInit(): void {
+    this.aiProvider.loadAvailability().subscribe();
     this.load();
     this.ingredientService.getAll().subscribe({
       next: ingredients => this.ingredients.set(ingredients),
