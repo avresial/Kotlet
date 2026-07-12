@@ -98,6 +98,11 @@
           {{ 'settings.aiProviderModel' | t }}
           <input pInputText type="text" formControlName="defaultModel" [placeholder]="'settings.aiProviderModelPlaceholder' | t" />
         </label>
+        <label>
+          {{ 'settings.aiProviderModels' | t }}
+          <textarea formControlName="models" rows="4" [placeholder]="'settings.aiProviderModelsPlaceholder' | t"></textarea>
+          <small>{{ 'settings.aiProviderModelsHelp' | t }}</small>
+        </label>
         <label class="toggle"><input type="checkbox" formControlName="isEnabled" /> {{ 'settings.aiProviderEnabled' | t }}</label>
         @if (providerError()) { <p-message severity="error" role="alert">{{ providerError() }}</p-message> }
         @if (providerSaved()) { <p-message severity="success" role="status">{{ 'settings.aiProviderSaved' | t }}</p-message> }

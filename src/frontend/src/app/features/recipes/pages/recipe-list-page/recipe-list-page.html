@@ -55,10 +55,12 @@
             <span class="add-icon" aria-hidden="true">+</span>
             <span>{{ 'recipes.new' | t }}</span>
           </a>
-          <a class="add-card" routerLink="/recipes/import">
-            <span class="add-icon" aria-hidden="true">▶</span>
-            <span>{{ 'recipes.importFromVideo' | t }}</span>
-          </a>
+          @if (aiAvailable()) {
+            <a class="add-card" routerLink="/recipes/import">
+              <span class="add-icon" aria-hidden="true">▶</span>
+              <span>{{ 'recipes.importFromVideo' | t }}</span>
+            </a>
+          }
         </div>
       }
       @for (recipe of recipes(); track recipe.id) {

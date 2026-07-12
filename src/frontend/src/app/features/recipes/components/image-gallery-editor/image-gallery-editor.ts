@@ -2,16 +2,17 @@ import { ChangeDetectionStrategy, Component, inject, input, OnInit, signal, view
 import { HttpEventType } from '@angular/common/http';
 import { finalize, Observable } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
-import { RecipeImage } from '../../models/recipe.models';
+import { RecipeImage, RecipeImageImportResult } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { ImageGallery } from '../image-gallery/image-gallery';
+import { ImageGenerator } from '../image-generator/image-generator';
 import { ImageUpload } from '../image-upload/image-upload';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-image-gallery-editor',
-  imports: [ImageGallery, ImageUpload, TranslatePipe],
+  imports: [ImageGallery, ImageGenerator, ImageUpload, TranslatePipe],
   templateUrl: './image-gallery-editor.html',
   styleUrl: './image-gallery-editor.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,6 +22,8 @@ export class ImageGalleryEditor implements OnInit {
   private readonly translations = inject(TranslationService);
   private readonly uploader = viewChild(ImageUpload);
   readonly recipeId = input.required<string>();
+  readonly title = input('');
+  readonly ingredients = input<readonly string[]>([]);
   readonly images = signal<RecipeImage[]>([]);
   readonly busy = signal(false);
   readonly uploadProgress = signal<number | null>(null);
@@ -49,6 +52,18 @@ export class ImageGalleryEditor implements OnInit {
         },
         error: (err: unknown) => this.error.set(getApiError(err, this.translations.translate('recipes.imageOperationError'))),
       });
+  }
+  uploadGenerated(result: RecipeImageImportResult): void {
+    const bytes = Uint8Array.from(atob(result.content), character => character.charCodeAt(0));
+    const file = new File([bytes], 'generated-recipe-image.webp', { type: result.contentType });
+    const source = {
+      provider: result.provider,
+      externalId: result.externalImageId,
+      url: result.sourcePageUrl,
+      authorName: result.authorName,
+      authorUrl: result.authorUrl,
+    };
+    this.run(this.service.uploadImage(this.recipeId(), file, result.altText ?? undefined, source), () => this.reload());
   }
   saveAlt(image: RecipeImage, event: Event): void {
     const altText = (event.target as HTMLInputElement).value;

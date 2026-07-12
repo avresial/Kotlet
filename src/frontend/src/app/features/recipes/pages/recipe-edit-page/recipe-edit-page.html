@@ -18,6 +18,10 @@
       (submitted)="save($event)"
       (cancelled)="cancel()"
     ></app-recipe-form>
-    <app-image-gallery-editor [recipeId]="id"></app-image-gallery-editor>
+    <app-image-gallery-editor
+      [recipeId]="id"
+      [title]="recipe()!.title"
+      [ingredients]="ingredientNames()"
+    ></app-image-gallery-editor>
   }
 </main>

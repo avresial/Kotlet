@@ -100,6 +100,19 @@ public sealed class UserAiProviderServiceTests
     }
 
     [Fact]
+    public async Task Save_StoresMultipleDistinctModelsIncludingDefault()
+    {
+        var repo = new FakeRepository();
+        var service = new UserAiProviderService(repo);
+
+        var result = await service.SaveAsync(UserId,
+            ValidCommand(defaultModel: "gpt-4.1") with { Models = ["gpt-4.1-mini", "gpt-4.1", "gpt-4.1-mini"] },
+            CancellationToken.None);
+
+        Assert.Equal(["gpt-4.1-mini", "gpt-4.1"], result.Configuration!.Models);
+    }
+
+    [Fact]
     public async Task Save_DisabledProviderWithoutApiKeyOrBaseUrl_Succeeds()
     {
         var repo = new FakeRepository();

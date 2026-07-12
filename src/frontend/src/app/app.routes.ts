@@ -54,6 +54,11 @@ export const routes: Routes = [
       import('./features/ingredients/pages/ingredients-page/ingredients-page').then((m) => m.IngredientsPage),
   },
   {
+    path: 'agent',
+    canActivate: [homeGuard],
+    loadComponent: () => import('./features/agent/agent-page').then((m) => m.AgentPage),
+  },
+  {
     path: 'settings/food', canActivate: [authGuard],
     loadComponent: () => import('./features/settings/pages/food-settings-page/food-settings-page').then((m) => m.FoodSettingsPage),
   },
