@@ -39,7 +39,7 @@ jobs:
 
       - name: Build
         working-directory: src/frontend
-        run: npm run build -- --base-href "/${{ github.event.repository.name }}/"
+        run: npm run build
 
       - name: Add SPA fallback and disable Jekyll
         working-directory: src/frontend/dist/kotlet-web/browser
