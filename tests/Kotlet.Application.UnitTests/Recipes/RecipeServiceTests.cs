@@ -563,8 +563,12 @@ public sealed class RecipeServiceTests
         MeasurementUnit = "g"
     };
 
-    private static RecipeService CreateService(FakeRecipeRepository repository, FakeTranslationRepository? translations = null) =>
-        new(repository, new FakeIngredientRepository(Tomatoes, Garlic, Pasta), new MeasurementMappingService(), translations ?? new FakeTranslationRepository());
+    private static RecipeService CreateService(FakeRecipeRepository repository, FakeTranslationRepository? translations = null)
+    {
+        var trans = translations ?? new FakeTranslationRepository();
+        var mapper = new RecipeResponseMapper(new MeasurementMappingService(), trans);
+        return new(repository, new FakeIngredientRepository(Tomatoes, Garlic, Pasta), new MeasurementMappingService(), mapper);
+    }
 
     private static RecipeDuplicateDetectionService CreateDuplicateDetectionService(FakeRecipeRepository repository) =>
         new(repository);
