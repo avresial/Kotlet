@@ -6,6 +6,7 @@ public static class DiExtension
     {
         endpoints.MapAiProviderEndpoints();
         endpoints.MapAiTranslationEndpoints();
+        endpoints.MapAgentEndpoints();
         return endpoints;
     }
 }

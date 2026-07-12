@@ -10,6 +10,7 @@ public sealed class UserAiProviderConfiguration
     public required string BaseUrl { get; set; }
     public string? ApiKey { get; set; }
     public string? DefaultModel { get; set; }
+    public string? Models { get; set; }
     public bool IsEnabled { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }

@@ -78,6 +78,7 @@ export class SettingsPage implements OnInit {
     baseUrl: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(2048), absoluteHttpUrl] }),
     apiKey: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(4096)] }),
     defaultModel: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(200)] }),
+    models: new FormControl('', { nonNullable: true }),
     isEnabled: new FormControl(false, { nonNullable: true }),
   });
 
@@ -104,6 +105,7 @@ export class SettingsPage implements OnInit {
           providerName: configuration.providerName,
           baseUrl: configuration.baseUrl,
           defaultModel: configuration.defaultModel ?? '',
+          models: configuration.models.join('\n'),
           isEnabled: configuration.isEnabled,
           apiKey: '',
         });
@@ -177,6 +179,7 @@ export class SettingsPage implements OnInit {
       providerName: value.providerName.trim(),
       baseUrl: value.baseUrl.trim(),
       defaultModel: value.defaultModel.trim() || null,
+      models: value.models.split(/[,\n]/).map(x => x.trim()).filter(Boolean),
       isEnabled: value.isEnabled,
       ...(value.apiKey ? { apiKey: value.apiKey } : {}),
     }).pipe(finalize(() => this.providerSaving.set(false))).subscribe({

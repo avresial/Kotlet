@@ -1,0 +1,16 @@
+<main class="agent-page">
+  <header>
+    <div><p class="eyebrow">{{ 'agent.experimental' | t }}</p><h1>{{ 'agent.title' | t }}</h1></div>
+    <label>{{ 'agent.model' | t }}<select [(ngModel)]="model" aria-label="Model">@for (item of models(); track item) { <option [value]="item">{{ item }}</option> }</select></label>
+  </header>
+  <section class="conversation" aria-live="polite">
+    @if (!messages().length) { <div class="empty"><strong>{{ 'agent.welcome' | t }}</strong><span>{{ 'agent.hint' | t }}</span></div> }
+    @for (message of messages(); track $index) { <article [class.user]="message.role === 'user'"><span>{{ message.role === 'user' ? ('agent.you' | t) : ('agent.title' | t) }}</span><p>{{ message.content }}</p></article> }
+    @if (sending()) { <article><span>{{ 'agent.title' | t }}</span><p>{{ 'agent.thinking' | t }}</p></article> }
+  </section>
+  <footer>
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    <div class="composer"><textarea #promptInput [(ngModel)]="prompt" (keydown)="keydown($event)" rows="2" [placeholder]="'agent.placeholder' | t" [disabled]="sending() || !models().length"></textarea><button type="button" (click)="send()" [disabled]="sending() || !prompt.trim()">{{ 'agent.send' | t }}</button></div>
+    <small>{{ 'agent.disclaimer' | t }}</small>
+  </footer>
+</main>

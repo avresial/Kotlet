@@ -10,13 +10,18 @@ namespace Kotlet.Application.Ai;
 internal sealed class UserChatClientResolver(
     IUserAiProviderRepository repository, IChatClientFactory factory) : IUserChatClientResolver
 {
-    public async Task<IChatClient?> ResolveAsync(Guid userId, CancellationToken cancellationToken)
+    public Task<IChatClient?> ResolveAsync(Guid userId, CancellationToken cancellationToken) =>
+        ResolveAsync(userId, "", cancellationToken);
+
+    public async Task<IChatClient?> ResolveAsync(Guid userId, string model, CancellationToken cancellationToken)
     {
         var configuration = await repository.GetAsync(userId, tracked: false, cancellationToken);
         if (configuration is null || !configuration.IsEnabled || string.IsNullOrWhiteSpace(configuration.ApiKey))
             return null;
 
+        var models = UserAiProviderService.ParseModels(configuration);
+        if (model.Length > 0 && !models.Contains(model, StringComparer.Ordinal)) return null;
         return factory.Create(new AiChatClientOptions(
-            configuration.BaseUrl, configuration.ApiKey, configuration.DefaultModel));
+            configuration.BaseUrl, configuration.ApiKey, model.Length > 0 ? model : configuration.DefaultModel ?? models.FirstOrDefault()));
     }
 }
