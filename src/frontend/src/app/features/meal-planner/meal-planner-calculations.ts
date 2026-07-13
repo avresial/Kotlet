@@ -9,6 +9,20 @@ export interface PersonCalories {
   total: number;
 }
 
+/** A participant may eat between half and one-and-a-half of a standard serving. */
+export const MIN_PORTION_PERCENT = 50;
+export const MAX_PORTION_PERCENT = 150;
+
+/** Rounds a portion percentage to a whole number and clamps it into the allowed [50, 150] range. */
+export function normalizePortionPercent(value: number): number {
+  return Math.min(MAX_PORTION_PERCENT, Math.max(MIN_PORTION_PERCENT, Math.round(value)));
+}
+
+/** True when a portion percentage falls within the allowed [50, 150] range. */
+export function isPortionPercentInRange(value: number): boolean {
+  return Number.isFinite(value) && value >= MIN_PORTION_PERCENT && value <= MAX_PORTION_PERCENT;
+}
+
 export function allocateCaloriesByPerson(
   items: MealPlanItem[],
   recipeDetails: Record<string, RecipeDetail>,

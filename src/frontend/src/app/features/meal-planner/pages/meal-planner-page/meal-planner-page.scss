@@ -185,8 +185,11 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 .portion-table tbody th { font-weight: 650; }
 .portion-table tbody th.is-me { color: #c47256; }
 .portion-table input { width: 4.25rem; box-sizing: border-box; padding: .3rem .35rem; border: 1px solid var(--app-border-strong); border-radius: .35rem; color: var(--app-text); background: var(--app-input); font: inherit; font-variant-numeric: tabular-nums; }
+.portion-table input.is-invalid { border-color: var(--app-danger-border); box-shadow: 0 0 0 1px var(--app-danger-border); }
 .portion-table td span { margin-left: .2rem; color: var(--app-text-muted); }
 .portion-table td:last-child { width: 1%; }
+.portion-errors { margin: .4rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .2rem; }
+.portion-errors li { color: var(--app-danger); font-size: .72rem; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .people-row { display: flex; min-height: 2rem; align-items: center; gap: .4rem; }
 .row-label { margin-right: .25rem; color: var(--app-text-muted); font-size: .7rem; font-weight: 750; text-transform: uppercase; }
