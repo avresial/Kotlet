@@ -8,7 +8,7 @@ header p:last-child, .add-panel p { margin: 0; color: var(--app-text-muted); }
 .summary { display: grid; text-align: right; }
 .summary strong { font: 500 1.6rem Georgia, serif; }
 .summary span { color: var(--app-text-muted); font-size: .8rem; }
-.error { margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid #dca99f; border-radius: .6rem; color: #852b20; background: #fff0ec; }
+.error { margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid var(--app-danger-border); border-radius: .6rem; color: var(--app-danger); background: var(--app-danger-bg); }
 .add-panel, .generate-panel, .receipt { padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--app-border); border-radius: 1rem; background: var(--app-surface); box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%); }
 .generate-panel { margin-bottom: 1.25rem; display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
 .generate-panel p { margin: 0; color: var(--app-text-muted); }

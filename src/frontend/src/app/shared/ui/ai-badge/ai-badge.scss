@@ -6,8 +6,8 @@
   width: 1.45rem;
   height: 1.45rem;
   border-radius: .45rem;
-  background: #eee7ff;
-  color: #5b3ca0;
+  background: var(--app-ai-bg);
+  color: var(--app-ai);
   cursor: help;
 }
 .ai-badge svg { display: block; }

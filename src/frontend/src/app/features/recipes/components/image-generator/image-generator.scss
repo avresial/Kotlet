@@ -2,12 +2,12 @@
 .generate, .select { border: 1px solid #963827; border-radius: .5rem; padding: .45rem .75rem; background: var(--app-surface); color: #963827; cursor: pointer; }
 .generate:disabled, .select:disabled, .navigation:disabled { opacity: .55; cursor: not-allowed; }
 .select.selected { background: #963827; color: #fff; }
-.spinner { width: 1.25rem; height: 1.25rem; border: 2px solid #decfc0; border-top-color: #963827; border-radius: 50%; animation: spin .7s linear infinite; }
+.spinner { width: 1.25rem; height: 1.25rem; border: 2px solid var(--app-border); border-top-color: #963827; border-radius: 50%; animation: spin .7s linear infinite; }
 .error { color: var(--danger, #e53e3e); font-size: .85rem; }
 .empty { margin: 0; color: var(--text-secondary, #666); font-size: .9rem; }
 .carousel { display: flex; align-items: center; gap: .5rem; }
 .candidate { display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: center; gap: .35rem; }
-.candidate img, .preview-fallback { width: min(100%, 18rem); aspect-ratio: 16 / 10; object-fit: cover; border-radius: .5rem; background: #f3eee8; }
-.preview-fallback { display: grid; place-items: center; padding: 1rem; box-sizing: border-box; color: #6b6358; text-align: center; }
+.candidate img, .preview-fallback { width: min(100%, 18rem); aspect-ratio: 16 / 10; object-fit: cover; border-radius: .5rem; background: var(--app-inset); }
+.preview-fallback { display: grid; place-items: center; padding: 1rem; box-sizing: border-box; color: var(--app-text-muted); text-align: center; }
 .navigation { border: 0; background: transparent; color: #963827; font-size: 2rem; line-height: 1; cursor: pointer; }
 @keyframes spin { to { transform: rotate(360deg); } }
