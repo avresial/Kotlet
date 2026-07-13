@@ -1,5 +1,5 @@
 {
-  "agent.experimental": "Experimental", "agent.title": "Agent", "agent.model": "Model", "agent.welcome": "What can I help with?", "agent.hint": "Ask about your ingredients, recipes, pantry, shopping list, or meal plan.", "agent.you": "You", "agent.thinking": "Thinking…", "agent.placeholder": "Message Agent…", "agent.send": "Send", "agent.disclaimer": "Experimental agent responses may be inaccurate.",
+  "agent.experimental": "Experimental", "agent.title": "Agent", "agent.model": "Model", "agent.welcome": "What can I help with?", "agent.hint": "Ask about your ingredients, recipes, pantry, shopping list, or meal plan.", "agent.you": "You", "agent.thinking": "Thinking…", "agent.placeholder": "Message Agent…", "agent.send": "Send", "agent.error": "The agent could not answer. Check your provider and model settings, then try again.", "agent.disclaimer": "Experimental agent responses may be inaccurate.",
   "settings.aiProviderModels": "Available models", "settings.aiProviderModelsPlaceholder": "gpt-4.1-mini\ngpt-4.1", "settings.aiProviderModelsHelp": "One model per line. The Agent can switch only between these models.",
   "ingredients.aiModified": "AI modified",
   "ingredients.autofill": "Autofill details with AI", "ingredients.autofilling": "Autofilling…", "ingredients.autofillError": "Unable to autofill ingredient details.",

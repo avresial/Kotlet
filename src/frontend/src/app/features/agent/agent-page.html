@@ -5,12 +5,21 @@
   </header>
   <section class="conversation" aria-live="polite">
     @if (!messages().length) { <div class="empty"><strong>{{ 'agent.welcome' | t }}</strong><span>{{ 'agent.hint' | t }}</span></div> }
-    @for (message of messages(); track $index) { <article [class.user]="message.role === 'user'"><span>{{ message.role === 'user' ? ('agent.you' | t) : ('agent.title' | t) }}</span><p>{{ message.content }}</p></article> }
-    @if (sending()) { <article><span>{{ 'agent.title' | t }}</span><p>{{ 'agent.thinking' | t }}</p></article> }
+    @for (message of messages(); track $index) {
+      <article [class.user]="message.role === 'user'" [class.error]="message.error">
+        <span>{{ message.role === 'user' ? ('agent.you' | t) : ('agent.title' | t) }}</span>
+        <p [attr.role]="message.error ? 'alert' : null">{{ message.error ? ('agent.error' | t) : message.content }}</p>
+      </article>
+    }
+    @if (sending()) { <article class="thinking"><span>{{ 'agent.title' | t }}</span><p><i></i><i></i><i></i></p></article> }
   </section>
   <footer>
-    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
-    <div class="composer"><textarea #promptInput [(ngModel)]="prompt" (keydown)="keydown($event)" rows="2" [placeholder]="'agent.placeholder' | t" [disabled]="sending() || !models().length"></textarea><button type="button" (click)="send()" [disabled]="sending() || !prompt.trim()">{{ 'agent.send' | t }}</button></div>
+    <div class="composer">
+      <textarea #promptInput [(ngModel)]="prompt" (keydown)="keydown($event)" (input)="autogrow()" rows="1" [placeholder]="'agent.placeholder' | t" [disabled]="sending() || !models().length"></textarea>
+      <button type="button" (click)="send()" [disabled]="sending() || !prompt.trim()" [attr.aria-label]="'agent.send' | t" [title]="'agent.send' | t">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20V6M6 12l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
     <small>{{ 'agent.disclaimer' | t }}</small>
   </footer>
 </main>
