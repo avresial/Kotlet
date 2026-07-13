@@ -19,10 +19,17 @@ import {
   allocateCaloriesByPerson,
   directIngredientCaloriesPerServing,
   directIngredientQuantity,
+  isPortionPercentInRange,
+  MAX_PORTION_PERCENT,
+  MIN_PORTION_PERCENT,
+  normalizePortionPercent,
   recipeCaloriesPerServing,
   recipePricePerServing,
   scaleRecipeQuantity,
 } from '../../meal-planner-calculations';
+
+/** The three editable numeric columns of the portion table, all of which drive a participant's portion percentage. */
+type ParticipantField = 'calories' | 'quantity' | 'portion';
 
 export function weekStart(date: string): string {
   const value = new Date(`${date}T00:00:00`);
@@ -85,6 +92,8 @@ export class MealPlannerPage implements OnInit {
   readonly movingId = signal<string | null>(null);
   readonly composer = signal<Record<MealSlot, MealPlanItemType | null>>({ breakfast: null, 'second-breakfast': null, dinner: null, snack: null, supper: null });
   readonly shoppingItemState = signal<Record<string, 'adding' | 'added'>>({});
+  /** Inline validation messages for out-of-range portion inputs, keyed by item/participant/field. */
+  readonly fieldErrors = signal<Record<string, string>>({});
 
   readonly dayTotal = computed(() => this.allItems().reduce((total, item) => total + (this.itemCost(item) ?? 0), 0));
   readonly dayServings = computed(() => this.allItems().reduce((total, item) => total + item.servings, 0));
@@ -362,9 +371,58 @@ export class MealPlannerPage implements OnInit {
     });
   }
 
-  setParticipantPortion(item: MealPlanItem, participant: MealParticipant, value: number): void {
-    const portionPercent = Math.round(Number(value));
-    if (this.busyItemId() || portionPercent < 50 || portionPercent > 150) return;
+  /**
+   * Validates a portion input as the user types, surfacing an inline message the moment the value
+   * falls outside the allowed range. Persisting is left to the commit handler on blur/change.
+   */
+  validateParticipantField(item: MealPlanItem, participant: MealParticipant, field: ParticipantField, rawValue: string): void {
+    const key = this.participantFieldKey(item, participant.userId, field);
+    if (rawValue.trim() === '') { this.clearFieldError(key); return; }
+
+    const range = this.participantFieldRange(item, field);
+    const percent = this.participantFieldToPercent(item, field, Number(rawValue));
+    if (percent !== null && isPortionPercentInRange(percent)) {
+      this.clearFieldError(key);
+    } else {
+      this.fieldErrors.update((errors) => ({ ...errors, [key]: this.rangeMessage(item, field, range) }));
+    }
+  }
+
+  /**
+   * Commits a portion input on blur/change: the value is clamped into the allowed range, the field is
+   * reset to the clamped display value so the view can never show an out-of-range number, and the
+   * result is persisted. This is the single source of truth for the three interlinked columns.
+   */
+  commitParticipantField(item: MealPlanItem, participant: MealParticipant, field: ParticipantField, input: HTMLInputElement): void {
+    this.clearFieldError(this.participantFieldKey(item, participant.userId, field));
+
+    const percent = this.participantFieldToPercent(item, field, Number(input.value));
+    if (input.value.trim() === '' || percent === null || Number.isNaN(percent)) {
+      // Empty or unusable input: revert the field to the participant's current portion.
+      input.value = this.participantFieldDisplay(item, field, participant.portionPercent);
+      return;
+    }
+
+    const portionPercent = normalizePortionPercent(percent);
+    input.value = this.participantFieldDisplay(item, field, portionPercent);
+    this.saveParticipantPortion(item, participant, portionPercent);
+  }
+
+  fieldError(item: MealPlanItem, participant: MealParticipant, field: ParticipantField): string | null {
+    return this.fieldErrors()[this.participantFieldKey(item, participant.userId, field)] ?? null;
+  }
+
+  /** Distinct validation messages currently active for a meal, rendered together beneath its portion table. */
+  itemFieldErrors(item: MealPlanItem): string[] {
+    const prefix = `${item.id}:`;
+    const messages = Object.entries(this.fieldErrors())
+      .filter(([key]) => key.startsWith(prefix))
+      .map(([, message]) => message);
+    return [...new Set(messages)];
+  }
+
+  private saveParticipantPortion(item: MealPlanItem, participant: MealParticipant, portionPercent: number): void {
+    if (this.busyItemId() || portionPercent === participant.portionPercent) return;
     this.busyItemId.set(item.id);
     this.service.setParticipantPortion(item.id, participant.userId, portionPercent).pipe(
       finalize(() => this.busyItemId.set(null))
@@ -374,17 +432,78 @@ export class MealPlannerPage implements OnInit {
     });
   }
 
-  setParticipantCalories(item: MealPlanItem, participant: MealParticipant, value: number): void {
-    const caloriesPerServing = this.caloriesPerServing(item);
-    if (!caloriesPerServing) return;
-    this.setParticipantPortion(item, participant, Number(value) / caloriesPerServing * 100);
+  /** Converts a field's entered value into the portion percentage it represents, or null when it can't be resolved. */
+  private participantFieldToPercent(item: MealPlanItem, field: ParticipantField, value: number): number | null {
+    if (Number.isNaN(value)) return null;
+    switch (field) {
+      case 'portion':
+        return value;
+      case 'calories': {
+        const caloriesPerServing = this.caloriesPerServing(item);
+        return caloriesPerServing ? value / caloriesPerServing * 100 : null;
+      }
+      case 'quantity': {
+        const ingredient = this.ingredientFor(item);
+        if (!ingredient) return null;
+        const regularQuantity = ingredient.isCountable ? 1 : directIngredientQuantity(ingredient, 1);
+        return regularQuantity ? value / regularQuantity * 100 : null;
+      }
+    }
   }
 
-  setParticipantQuantity(item: MealPlanItem, participant: MealParticipant, value: number): void {
-    const ingredient = this.ingredientFor(item);
-    if (!ingredient) return;
-    const regularQuantity = ingredient.isCountable ? 1 : directIngredientQuantity(ingredient, 1);
-    this.setParticipantPortion(item, participant, Number(value) / regularQuantity * 100);
+  /** Renders the display value a field should show for a given portion percentage. */
+  private participantFieldDisplay(item: MealPlanItem, field: ParticipantField, portionPercent: number): string {
+    switch (field) {
+      case 'portion':
+        return String(portionPercent);
+      case 'calories':
+        return ((this.caloriesPerServing(item) ?? 0) * portionPercent / 100).toFixed(0);
+      case 'quantity':
+        return String(this.participantQuantityForPercent(item, portionPercent));
+    }
+  }
+
+  /** The valid input range for a field, expressed in that field's own units. */
+  private participantFieldRange(item: MealPlanItem, field: ParticipantField): { min: number; max: number } {
+    switch (field) {
+      case 'portion':
+        return { min: MIN_PORTION_PERCENT, max: MAX_PORTION_PERCENT };
+      case 'calories': {
+        const caloriesPerServing = this.caloriesPerServing(item) ?? 0;
+        return { min: caloriesPerServing * MIN_PORTION_PERCENT / 100, max: caloriesPerServing * MAX_PORTION_PERCENT / 100 };
+      }
+      case 'quantity':
+        return {
+          min: this.participantQuantityForPercent(item, MIN_PORTION_PERCENT),
+          max: this.participantQuantityForPercent(item, MAX_PORTION_PERCENT),
+        };
+    }
+  }
+
+  private rangeMessage(item: MealPlanItem, field: ParticipantField, range: { min: number; max: number }): string {
+    const unit = field === 'calories' ? 'kcal'
+      : field === 'portion' ? '%' : this.participantQuantityUnit(item);
+    return this.translations.translate('meal.rangeError')
+      .replace('{min}', this.formatRangeBound(field, range.min))
+      .replace('{max}', this.formatRangeBound(field, range.max))
+      .replace('{unit}', unit);
+  }
+
+  private formatRangeBound(field: ParticipantField, value: number): string {
+    return field === 'quantity' ? String(Math.round(value * 100) / 100) : String(Math.round(value));
+  }
+
+  private participantFieldKey(item: MealPlanItem, userId: string, field: ParticipantField): string {
+    return `${item.id}:${userId}:${field}`;
+  }
+
+  private clearFieldError(key: string): void {
+    if (!(key in this.fieldErrors())) return;
+    this.fieldErrors.update((errors) => {
+      const next = { ...errors };
+      delete next[key];
+      return next;
+    });
   }
 
   participantCalories(item: MealPlanItem, participant: MealParticipant): number {

@@ -6,6 +6,8 @@ import {
   allocateCaloriesByPerson,
   directIngredientCaloriesPerServing,
   directIngredientQuantity,
+  isPortionPercentInRange,
+  normalizePortionPercent,
   recipeCaloriesPerServing,
   recipePricePerServing,
   scaleRecipeQuantity,
@@ -80,6 +82,24 @@ describe('meal planner calculations', () => {
 
   it('scales a recipe ingredient from its batch yield to the people served', () => {
     expect(scaleRecipeQuantity(400, 4, 3)).toBe(300);
+  });
+
+  it('rounds and clamps a portion percentage into the allowed [50, 150] range', () => {
+    expect(normalizePortionPercent(500)).toBe(150);
+    expect(normalizePortionPercent(10)).toBe(50);
+    expect(normalizePortionPercent(100.4)).toBe(100);
+    expect(normalizePortionPercent(149.6)).toBe(150);
+    expect(normalizePortionPercent(50)).toBe(50);
+    expect(normalizePortionPercent(150)).toBe(150);
+  });
+
+  it('recognises whether a portion percentage is within range', () => {
+    expect(isPortionPercentInRange(50)).toBe(true);
+    expect(isPortionPercentInRange(150)).toBe(true);
+    expect(isPortionPercentInRange(100)).toBe(true);
+    expect(isPortionPercentInRange(49)).toBe(false);
+    expect(isPortionPercentInRange(151)).toBe(false);
+    expect(isPortionPercentInRange(Number.NaN)).toBe(false);
   });
 
   it('allocates calories by person, guests, and unassigned servings', () => {
