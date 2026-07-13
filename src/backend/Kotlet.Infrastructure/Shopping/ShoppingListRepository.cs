@@ -27,7 +27,9 @@ internal sealed class ShoppingListRepository(KotletDbContext dbContext) : IShopp
                 {
                     recipeIngredient.IngredientId,
                     Quantity = recipeIngredient.NormalizedQuantity.Amount
-                        * (meal.Servings ?? meal.Participants.Count + meal.Guests)
+                        * (meal.Participants.Any()
+                            ? meal.Participants.Sum(participant => participant.PortionPercent) / 100m + meal.Guests
+                            : meal.Servings ?? meal.Guests)
                         / recipeIngredient.Recipe.Servings.Value
                 }))
             .GroupBy(item => item.IngredientId)

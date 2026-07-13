@@ -28,6 +28,7 @@ internal sealed class MealPlanRepository(KotletDbContext dbContext) : IMealPlanR
         Guid houseId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
         await dbContext.MealPlanItems
             .AsNoTracking()
+            .Include(m => m.Participants)
             .Where(m => m.Date >= from && m.Date <= to &&
                 m.HouseId == houseId)
             .OrderBy(m => m.Date)

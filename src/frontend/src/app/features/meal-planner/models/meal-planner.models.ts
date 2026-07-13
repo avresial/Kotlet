@@ -5,6 +5,7 @@ export interface MealParticipant {
   userId: string;
   displayName: string;
   isCurrentUser: boolean;
+  portionPercent: number;
 }
 
 export interface MealPlanItem {

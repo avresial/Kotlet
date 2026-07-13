@@ -17,6 +17,8 @@ public static class MealPlannerEndpoints
         group.MapPut("/items/{id:guid}/move", MoveItem).WithName("MoveMealPlanItem");
         group.MapDelete("/items/{id:guid}", RemoveItem).WithName("RemoveMealPlanItem");
         group.MapPut("/items/{id:guid}/participants", SetParticipants).WithName("SetMealPlanItemParticipants");
+        group.MapPut("/items/{id:guid}/participants/{participantUserId:guid}/portion", SetParticipantPortion)
+            .WithName("SetMealPlanItemParticipantPortion");
         group.MapPut("/items/{id:guid}/servings", SetServings).WithName("SetMealPlanItemServings");
         group.MapPut("/items/{id:guid}/guests", SetGuests).WithName("SetMealPlanItemGuests");
         return endpoints;
@@ -150,6 +152,19 @@ public static class MealPlannerEndpoints
             MealPlannerOperationStatus.ValidationFailed => Results.ValidationProblem(result.ValidationErrors!),
             _ => throw new InvalidOperationException($"Unsupported status: {result.Status}")
         };
+    }
+
+    private static async Task<IResult> SetParticipantPortion(
+        Guid id,
+        Guid participantUserId,
+        SetParticipantPortionRequest request,
+        ICurrentUser currentUser,
+        MealPlannerService service,
+        CancellationToken cancellationToken)
+    {
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        return ToResult(await service.SetParticipantPortionAsync(
+            userId, houseId, id, participantUserId, request.PortionPercent, cancellationToken));
     }
 
     private static async Task<IResult> SetServings(

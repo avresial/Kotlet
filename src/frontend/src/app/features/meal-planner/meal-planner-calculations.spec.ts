@@ -62,8 +62,12 @@ describe('meal planner calculations', () => {
     const countable = { ...ingredient, isCountable: true, measurementUnitsPerPiece: 150, caloriesPer100BaseUnits: 52 };
 
     expect(directIngredientQuantity(countable, 3)).toBe(450);
-    expect(directIngredientQuantity(countable, 0)).toBe(150);
+    expect(directIngredientQuantity(countable, 0)).toBe(0);
     expect(directIngredientCaloriesPerServing(countable)).toBe(78);
+  });
+
+  it('uses 100 base units per serving for a direct measured ingredient', () => {
+    expect(directIngredientQuantity(ingredient, 1.5)).toBe(150);
   });
 
   it('calculates recipe price for one serving from the recipe yield', () => {
@@ -79,8 +83,8 @@ describe('meal planner calculations', () => {
   });
 
   it('allocates calories by person, guests, and unassigned servings', () => {
-    const alice = { userId: 'alice', displayName: 'Alice', isCurrentUser: false };
-    const bob = { userId: 'bob', displayName: 'Bob', isCurrentUser: false };
+    const alice = { userId: 'alice', displayName: 'Alice', isCurrentUser: false, portionPercent: 150 };
+    const bob = { userId: 'bob', displayName: 'Bob', isCurrentUser: false, portionPercent: 50 };
 
     const items: MealPlanItem[] = [
       {
@@ -137,13 +141,10 @@ describe('meal planner calculations', () => {
     );
 
     expect(result).toHaveLength(4);
-    expect(result[0].id).toBe('alice');
-    expect(result[0].calories).toBeCloseTo(135.3333333333, 1);
-    expect(result[1].id).toBe('bob');
-    expect(result[1].calories).toBeCloseTo(133.3333333333, 1);
-    expect(result[2].id).toBe('guests');
-    expect(result[2].calories).toBeCloseTo(133.3333333333, 1);
-    expect(result[3].id).toBe('unassigned');
-    expect(result[3].calories).toBeCloseTo(3, 1);
+    expect(result.find((person) => person.id === 'alice')!.total).toBe(300);
+    expect(result.find((person) => person.id === 'alice')!.meals.breakfast).toBe(150);
+    expect(result.find((person) => person.id === 'bob')!.total).toBe(50);
+    expect(result.find((person) => person.id === 'guests')!.total).toBe(100);
+    expect(result.find((person) => person.id === 'unassigned')!.total).toBe(300);
   });
 });

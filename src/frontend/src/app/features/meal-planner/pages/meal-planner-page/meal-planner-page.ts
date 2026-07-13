@@ -12,7 +12,7 @@ import { IngredientPicker } from '../../../ingredients/components/ingredient-pic
 import { RecipeDetail, RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { RecipePicker } from '../../../recipes/components/recipe-picker/recipe-picker';
-import { DailyMealPlan, HouseMember, MealPlanItem, MealPlanItemType, MealPlanOverviewDay, MealSlot } from '../../models/meal-planner.models';
+import { DailyMealPlan, HouseMember, MealParticipant, MealPlanItem, MealPlanItemType, MealPlanOverviewDay, MealSlot } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
 import { ShoppingListIntegrationService } from '../../services/shopping-list-integration.service';
 import {
@@ -360,6 +360,56 @@ export class MealPlannerPage implements OnInit {
       next: (updated) => this.plan.update((p) => p ? this.replaceItem(p, updated) : p),
       error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.peopleError'))),
     });
+  }
+
+  setParticipantPortion(item: MealPlanItem, participant: MealParticipant, value: number): void {
+    const portionPercent = Math.round(Number(value));
+    if (this.busyItemId() || portionPercent < 50 || portionPercent > 150) return;
+    this.busyItemId.set(item.id);
+    this.service.setParticipantPortion(item.id, participant.userId, portionPercent).pipe(
+      finalize(() => this.busyItemId.set(null))
+    ).subscribe({
+      next: (updated) => this.plan.update((p) => p ? this.replaceItem(p, updated) : p),
+      error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.portionError'))),
+    });
+  }
+
+  setParticipantCalories(item: MealPlanItem, participant: MealParticipant, value: number): void {
+    const caloriesPerServing = this.caloriesPerServing(item);
+    if (!caloriesPerServing) return;
+    this.setParticipantPortion(item, participant, Number(value) / caloriesPerServing * 100);
+  }
+
+  setParticipantQuantity(item: MealPlanItem, participant: MealParticipant, value: number): void {
+    const ingredient = this.ingredientFor(item);
+    if (!ingredient) return;
+    const regularQuantity = ingredient.isCountable ? 1 : directIngredientQuantity(ingredient, 1);
+    this.setParticipantPortion(item, participant, Number(value) / regularQuantity * 100);
+  }
+
+  participantCalories(item: MealPlanItem, participant: MealParticipant): number {
+    return (this.caloriesPerServing(item) ?? 0) * participant.portionPercent / 100;
+  }
+
+  participantQuantity(item: MealPlanItem, participant: MealParticipant): number {
+    return this.participantQuantityForPercent(item, participant.portionPercent);
+  }
+
+  participantQuantityForPercent(item: MealPlanItem, portionPercent: number): number {
+    const ingredient = this.ingredientFor(item);
+    if (!ingredient) return 0;
+    return ingredient.isCountable
+      ? portionPercent / 100
+      : directIngredientQuantity(ingredient, portionPercent / 100);
+  }
+
+  participantQuantityUnit(item: MealPlanItem): string {
+    const ingredient = this.ingredientFor(item);
+    return ingredient?.isCountable ? this.translations.translate('units.piece') : ingredient?.measurementUnit ?? '';
+  }
+
+  private ingredientFor(item: MealPlanItem): Ingredient | undefined {
+    return this.ingredients().find((candidate) => candidate.id === item.ingredientId);
   }
 
   /** Builds an index array used to render one chip per guest. */
