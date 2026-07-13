@@ -191,7 +191,7 @@ public sealed class MealPlannerService(
                 CreatedAt = now,
                 UpdatedAt = now,
                 Participants = original.Participants.Select(participant => new MealPlanItemParticipant
-                { UserId = participant.UserId }).ToList()
+                { UserId = participant.UserId, PortionPercent = participant.PortionPercent }).ToList()
             };
             repository.Add(copy);
         }
@@ -236,7 +236,7 @@ public sealed class MealPlannerService(
                 CreatedAt = now,
                 UpdatedAt = now,
                 Participants = original.Participants.Select(participant => new MealPlanItemParticipant
-                { UserId = participant.UserId }).ToList()
+                { UserId = participant.UserId, PortionPercent = participant.PortionPercent }).ToList()
             });
         }
 
@@ -353,6 +353,31 @@ public sealed class MealPlannerService(
         return new(MealPlannerOperationStatus.Success, response);
     }
 
+    public async Task<MealPlannerOperationResult> SetParticipantPortionAsync(
+        Guid userId, Guid houseId, Guid itemId, Guid participantUserId, int portionPercent,
+        CancellationToken cancellationToken)
+    {
+        if (portionPercent is < MealPlanItemParticipant.MinPortionPercent or > MealPlanItemParticipant.MaxPortionPercent)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
+            {
+                ["portionPercent"] = ["Portion percent must be between 50 and 150."]
+            });
+
+        var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
+        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+
+        var participant = item.Participants.SingleOrDefault(value => value.UserId == participantUserId);
+        if (participant is null) return new(MealPlannerOperationStatus.NotFound);
+
+        participant.PortionPercent = portionPercent;
+        item.UpdatedAt = DateTimeOffset.UtcNow;
+        await repository.SaveChangesAsync(cancellationToken);
+
+        var members = await GetMemberNamesAsync(houseId, cancellationToken);
+        return new(MealPlannerOperationStatus.Success,
+            await ToResponseAsync(item, userId, houseId, members, cancellationToken));
+    }
+
     /// <summary>
     /// Sets an explicit serving count for a meal, or clears it (null) so the count is
     /// derived from the number of assigned participants.
@@ -461,7 +486,8 @@ public sealed class MealPlannerService(
             .Select(p => new MealParticipantResponse(
                 p.UserId,
                 memberNames.TryGetValue(p.UserId, out var name) ? name : "Unknown",
-                p.UserId == userId))
+                p.UserId == userId,
+                p.PortionPercent))
             .OrderByDescending(p => p.IsCurrentUser)
             .ThenBy(p => p.DisplayName)
             .ToList();

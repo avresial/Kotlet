@@ -140,22 +140,67 @@
                 </div>
 
                 <div class="meal-item-details">
+                  @if (item.participants.length) {
+                    <div class="portion-table-wrap">
+                      <table class="portion-table">
+                        <thead>
+                          <tr>
+                            <th scope="col">{{ 'meal.user' | t }}</th>
+                            <th scope="col">{{ 'meal.calories' | t }}</th>
+                            @if (item.type === 'ingredient') { <th scope="col">{{ 'meal.quantity' | t }}</th> }
+                            <th scope="col">{{ 'meal.servingPercent' | t }}</th>
+                            <th scope="col"><span class="visually-hidden">{{ 'common.remove' | t }}</span></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (person of item.participants; track person.userId) {
+                            <tr>
+                              <th scope="row" [class.is-me]="person.isCurrentUser">{{ person.displayName }}</th>
+                              <td>
+                                <input type="number" step="1"
+                                  [min]="(caloriesPerServing(item) ?? 0) * .5"
+                                  [max]="(caloriesPerServing(item) ?? 0) * 1.5"
+                                  [value]="participantCalories(item, person).toFixed(0)"
+                                  [disabled]="busyItemId() === item.id || !caloriesPerServing(item)"
+                                  (change)="setParticipantCalories(item, person, $any($event.target).value)"
+                                  [attr.aria-label]="person.displayName + ' ' + ('meal.calories' | t)" />
+                                <span>kcal</span>
+                              </td>
+                              @if (item.type === 'ingredient') {
+                                <td>
+                                  <input type="number" [step]="participantQuantityUnit(item) === ('units.piece' | t) ? .01 : 1"
+                                    [min]="participantQuantityForPercent(item, 50)"
+                                    [max]="participantQuantityForPercent(item, 150)"
+                                    [value]="participantQuantity(item, person)"
+                                    [disabled]="busyItemId() === item.id"
+                                    (change)="setParticipantQuantity(item, person, $any($event.target).value)"
+                                    [attr.aria-label]="person.displayName + ' ' + ('meal.quantity' | t)" />
+                                  <span>{{ participantQuantityUnit(item) }}</span>
+                                </td>
+                              }
+                              <td>
+                                <input type="number" min="50" max="150" step="1"
+                                  [value]="person.portionPercent"
+                                  [disabled]="busyItemId() === item.id"
+                                  (change)="setParticipantPortion(item, person, $any($event.target).value)"
+                                  [attr.aria-label]="person.displayName + ' ' + ('meal.servingPercent' | t)" />
+                                <span>%</span>
+                              </td>
+                              <td>
+                                <button type="button" class="chip-remove"
+                                  [attr.aria-label]="('common.remove' | t) + ' ' + person.displayName"
+                                  [disabled]="busyItemId() === item.id"
+                                  (click)="removeParticipant(item, person.userId)">×</button>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
                   <div class="people-row">
                     <span class="row-label">{{ 'meal.people' | t }}</span>
                     <ul class="chips" [attr.aria-label]="('home.dashboard.peopleEating' | t) + ' ' + item.displayName">
-                      @for (person of item.participants; track person.userId) {
-                        <li class="chip" [class.is-me]="person.isCurrentUser">
-                          <span>{{ person.displayName }}</span>
-                          <button
-                            type="button"
-                            class="chip-remove"
-                            [attr.aria-label]="('common.remove' | t) + ' ' + person.displayName"
-                            [disabled]="busyItemId() === item.id"
-                            (click)="removeParticipant(item, person.userId)"
-                          >×</button>
-                        </li>
-                      }
-
                       @for (seat of guestSeats(item); track seat) {
                         <li class="chip is-guest">
                           <span>{{ 'meal.guest' | t }}</span>
@@ -315,8 +360,17 @@
         <ul class="calorie-lines">
           @for (person of caloriesByPerson(); track person.id) {
             <li>
-              <span>{{ person.name }}</span>
-              <strong>{{ person.calories.toFixed(0) }} kcal</strong>
+              <div class="calorie-person-total">
+                <span>{{ person.name }}</span>
+                <strong>{{ person.total.toFixed(0) }} kcal</strong>
+              </div>
+              <dl>
+                @for (slot of slots; track slot) {
+                  @if (person.meals[slot] > 0) {
+                    <div><dt>{{ slotLabels()[slot] }}</dt><dd>{{ person.meals[slot].toFixed(0) }}</dd></div>
+                  }
+                }
+              </dl>
             </li>
           }
         </ul>

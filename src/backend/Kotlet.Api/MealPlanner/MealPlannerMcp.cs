@@ -69,7 +69,7 @@ public sealed class MealPlannerMcp
 
     [McpServerTool(Name = "add_weekly_meal_plan", ReadOnly = false, Destructive = false,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Adds up to 21 meals within one seven-day period. Existing identical meals are skipped; existing meals are never replaced.")]
+     Description("Adds up to 35 meals within one seven-day period. Existing identical meals are skipped; existing meals are never replaced.")]
     public static Task<WeeklyMealPlannerOperationResult> AddWeeklyMealPlan(
         [Description("The week start and meals to add. Every meal date must fall within the seven-day period.")]
         AddWeeklyMealPlanRequest request,
@@ -113,6 +113,87 @@ public sealed class MealPlannerMcp
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.AddParticipantsAsync(RequireUser(currentUser), RequireHouse(currentUser), mealId, userIds, cancellationToken);
+
+    [McpServerTool(Name = "set_meal_participants", ReadOnly = false, Destructive = false,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Replaces all household members assigned to a planned meal. Pass an empty userIds list to remove " +
+                "every participant. Obtain mealId from get_meal_plan and userIds from get_meal_plan_members.")]
+    public static Task<MealPlannerOperationResult> SetMealParticipants(
+        [Description("Meal-plan item id from get_meal_plan.")] Guid mealId,
+        [Description("Complete replacement list of household member ids, or an empty list.")] IReadOnlyList<Guid> userIds,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.SetParticipantsAsync(RequireUser(currentUser), RequireHouse(currentUser), mealId, userIds, cancellationToken);
+
+    [McpServerTool(Name = "set_meal_participant_portion", ReadOnly = false, Destructive = false,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Sets one assigned household member's portion for a planned meal. Calories, quantities, cost, " +
+                "shopping needs, and daily totals are recalculated from this percentage.")]
+    public static Task<MealPlannerOperationResult> SetMealParticipantPortion(
+        [Description("Meal-plan item id from get_meal_plan.")] Guid mealId,
+        [Description("Assigned household member id from the meal's participants.")] Guid userId,
+        [Description("Percentage of one regular serving, from 50 to 150.")] int portionPercent,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.SetParticipantPortionAsync(
+            RequireUser(currentUser), RequireHouse(currentUser), mealId, userId, portionPercent, cancellationToken);
+
+    [McpServerTool(Name = "set_meal_guests", ReadOnly = false, Destructive = false,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Sets the number of unregistered guests eating a planned meal. Each guest receives one regular serving.")]
+    public static Task<MealPlannerOperationResult> SetMealGuests(
+        [Description("Meal-plan item id from get_meal_plan.")] Guid mealId,
+        [Description("Guest count, from 0 to 99.")] int guests,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.SetGuestsAsync(RequireUser(currentUser), RequireHouse(currentUser), mealId, guests, cancellationToken);
+
+    [McpServerTool(Name = "set_meal_servings", ReadOnly = false, Destructive = false,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Sets the legacy total serving override for an unassigned planned meal, or clears it with null. " +
+                "For meals with household participants, use set_meal_participant_portion instead.")]
+    public static Task<MealPlannerOperationResult> SetMealServings(
+        [Description("Meal-plan item id from get_meal_plan.")] Guid mealId,
+        [Description("Total servings from 0 to 99, or null to derive servings from people and guests.")] int? servings,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.SetServingsAsync(RequireUser(currentUser), RequireHouse(currentUser), mealId, servings, cancellationToken);
+
+    [McpServerTool(Name = "move_meal_in_plan", ReadOnly = false, Destructive = false,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Moves one planned meal to another date and/or meal slot while preserving participants, portions, guests, and notes.")]
+    public static Task<MealPlannerOperationResult> MoveMealInPlan(
+        [Description("Meal-plan item id from get_meal_plan.")] Guid mealId,
+        [Description("New yyyy-MM-dd date and slot: breakfast, second-breakfast, dinner, snack, or supper.")]
+        MoveMealPlanItemRequest request,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.MoveItemAsync(RequireUser(currentUser), RequireHouse(currentUser), mealId, request, cancellationToken);
+
+    [McpServerTool(Name = "copy_meal_plan_day", ReadOnly = false, Destructive = false,
+        Idempotent = false, OpenWorld = false, UseStructuredContent = true),
+     Description("Copies every meal, participant portion, guest, and note from one day to an empty target day.")]
+    public static Task<CopyMealPlanDayResult> CopyMealPlanDay(
+        [Description("Source and target dates in yyyy-MM-dd format.")] CopyMealPlanDayRequest request,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.CopyDayAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
+
+    [McpServerTool(Name = "copy_meal_plan_week", ReadOnly = false, Destructive = false,
+        Idempotent = false, OpenWorld = false, UseStructuredContent = true),
+     Description("Copies a complete Monday-to-Sunday meal plan to an empty target week, including participant portions, guests, and notes.")]
+    public static Task<CopyMealPlanWeekResult> CopyMealPlanWeek(
+        [Description("Source and target Monday dates in yyyy-MM-dd format.")] CopyMealPlanWeekRequest request,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.CopyWeekAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
 
     [McpServerTool(Name = "remove_meal_from_plan", ReadOnly = false, Destructive = true,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),

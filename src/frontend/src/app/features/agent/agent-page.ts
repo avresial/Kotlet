@@ -17,7 +17,6 @@ export class AgentPage {
   readonly models = signal<string[]>([]);
   readonly messages = signal<AgentMessage[]>([]);
   readonly sending = signal(false);
-  readonly error = signal<string | null>(null);
   model = '';
   prompt = '';
   @ViewChild('promptInput') promptInput?: ElementRef<HTMLTextAreaElement>;
@@ -36,15 +35,34 @@ export class AgentPage {
   send(): void {
     const content = this.prompt.trim();
     if (!content || !this.model || this.sending()) return;
-    const history = [...this.messages(), { role: 'user' as const, content }];
-    this.messages.set(history); this.prompt = ''; this.error.set(null); this.sending.set(true);
+    const userMessage: AgentMessage = { role: 'user', content };
+    const history = [...this.messages().filter(x => !x.error), userMessage];
+    this.messages.update(x => [...x, userMessage]);
+    this.prompt = ''; this.resetInput(); this.sending.set(true);
     this.agent.chat(this.model, history).pipe(finalize(() => this.sending.set(false))).subscribe({
-      next: response => { this.messages.update(x => [...x, { role: 'assistant', content: response.content }]); setTimeout(() => this.promptInput?.nativeElement.focus()); },
-      error: () => this.error.set('The agent could not answer. Check your provider and model settings.'),
+      next: response => { this.append({ role: 'assistant', content: response.content }); },
+      error: () => { this.append({ role: 'assistant', content: '', error: true }); },
     });
   }
 
   keydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.send(); }
+  }
+
+  autogrow(): void {
+    const input = this.promptInput?.nativeElement;
+    if (!input) return;
+    input.style.height = 'auto';
+    input.style.height = `${Math.min(input.scrollHeight, 200)}px`;
+  }
+
+  private append(message: AgentMessage): void {
+    this.messages.update(x => [...x, message]);
+    setTimeout(() => this.promptInput?.nativeElement.focus());
+  }
+
+  private resetInput(): void {
+    const input = this.promptInput?.nativeElement;
+    if (input) input.style.height = 'auto';
   }
 }
