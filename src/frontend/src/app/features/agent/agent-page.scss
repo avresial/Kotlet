@@ -12,6 +12,17 @@ article p { margin: 0; padding: .8rem 1rem; border-radius: 1rem 1rem 1rem .25rem
 article.user p { border-radius: 1rem 1rem .25rem 1rem; color: #fff; background: #9a3a2a; }
 article.error > span { color: var(--app-danger); }
 article.error p { color: var(--app-danger); background: color-mix(in srgb, var(--app-danger) 12%, transparent); border: 1px solid color-mix(in srgb, var(--app-danger) 35%, transparent); }
+.markdown { margin: 0; padding: .8rem 1rem; border-radius: 1rem 1rem 1rem .25rem; background: var(--app-surface-raised); line-height: 1.55; }
+.markdown > :first-child { margin-top: 0; }
+.markdown > :last-child { margin-bottom: 0; }
+.markdown p { margin: .75rem 0; }
+.markdown ul, .markdown ol { margin: .75rem 0; padding-left: 2rem; }
+.markdown li { margin: .25rem 0; }
+.markdown code { background: var(--app-input); padding: .2rem .4rem; border-radius: .3rem; font-size: .9em; font-family: monospace; }
+.markdown pre { background: var(--app-input); padding: .8rem; border-radius: .5rem; overflow-x: auto; margin: .75rem 0; }
+.markdown pre code { background: none; padding: 0; }
+.metadata { margin: .3rem 0 0; display: flex; gap: .5rem; font-size: .65rem; color: var(--app-text-muted); text-transform: uppercase; font-weight: 700; }
+.metadata span { display: inline-block; }
 .empty { margin: auto; display: grid; gap: .5rem; color: var(--app-text-muted); text-align: center; }.empty strong { color: var(--app-text); font: 500 1.5rem Georgia, serif; }
 .thinking p { display: inline-flex; gap: .3rem; align-items: center; }
 .thinking i { width: .45rem; height: .45rem; border-radius: 50%; background: var(--app-text-muted); animation: agent-blink 1.2s infinite ease-in-out both; }
