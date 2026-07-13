@@ -162,7 +162,10 @@
                                   [max]="(caloriesPerServing(item) ?? 0) * 1.5"
                                   [value]="participantCalories(item, person).toFixed(0)"
                                   [disabled]="busyItemId() === item.id || !caloriesPerServing(item)"
-                                  (change)="setParticipantCalories(item, person, $any($event.target).value)"
+                                  [class.is-invalid]="fieldError(item, person, 'calories')"
+                                  [attr.aria-invalid]="!!fieldError(item, person, 'calories')"
+                                  (input)="validateParticipantField(item, person, 'calories', $any($event.target).value)"
+                                  (change)="commitParticipantField(item, person, 'calories', $any($event.target))"
                                   [attr.aria-label]="person.displayName + ' ' + ('meal.calories' | t)" />
                                 <span>kcal</span>
                               </td>
@@ -173,7 +176,10 @@
                                     [max]="participantQuantityForPercent(item, 150)"
                                     [value]="participantQuantity(item, person)"
                                     [disabled]="busyItemId() === item.id"
-                                    (change)="setParticipantQuantity(item, person, $any($event.target).value)"
+                                    [class.is-invalid]="fieldError(item, person, 'quantity')"
+                                    [attr.aria-invalid]="!!fieldError(item, person, 'quantity')"
+                                    (input)="validateParticipantField(item, person, 'quantity', $any($event.target).value)"
+                                    (change)="commitParticipantField(item, person, 'quantity', $any($event.target))"
                                     [attr.aria-label]="person.displayName + ' ' + ('meal.quantity' | t)" />
                                   <span>{{ participantQuantityUnit(item) }}</span>
                                 </td>
@@ -182,7 +188,10 @@
                                 <input type="number" min="50" max="150" step="1"
                                   [value]="person.portionPercent"
                                   [disabled]="busyItemId() === item.id"
-                                  (change)="setParticipantPortion(item, person, $any($event.target).value)"
+                                  [class.is-invalid]="fieldError(item, person, 'portion')"
+                                  [attr.aria-invalid]="!!fieldError(item, person, 'portion')"
+                                  (input)="validateParticipantField(item, person, 'portion', $any($event.target).value)"
+                                  (change)="commitParticipantField(item, person, 'portion', $any($event.target))"
                                   [attr.aria-label]="person.displayName + ' ' + ('meal.servingPercent' | t)" />
                                 <span>%</span>
                               </td>
@@ -197,6 +206,13 @@
                         </tbody>
                       </table>
                     </div>
+                    @if (itemFieldErrors(item).length) {
+                      <ul class="portion-errors" role="alert">
+                        @for (message of itemFieldErrors(item); track $index) {
+                          <li>{{ message }}</li>
+                        }
+                      </ul>
+                    }
                   }
                   <div class="people-row">
                     <span class="row-label">{{ 'meal.people' | t }}</span>
