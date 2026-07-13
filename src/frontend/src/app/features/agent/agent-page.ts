@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, inject, sign
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
+import { getApiError } from '../../core/http/api-error';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { AiProviderService } from '../settings/ai-provider.service';
 import { AgentMessage, AgentService } from './agent.service';
@@ -41,7 +42,7 @@ export class AgentPage {
     this.prompt = ''; this.resetInput(); this.sending.set(true);
     this.agent.chat(this.model, history).pipe(finalize(() => this.sending.set(false))).subscribe({
       next: response => { this.append({ role: 'assistant', content: response.content }); },
-      error: () => { this.append({ role: 'assistant', content: '', error: true }); },
+      error: error => { this.append({ role: 'assistant', content: getApiError(error, 'The agent could not answer. Check your provider and model settings.'), error: true }); },
     });
   }
 
