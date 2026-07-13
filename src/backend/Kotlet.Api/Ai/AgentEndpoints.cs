@@ -2,6 +2,7 @@ using Kotlet.Api.Auth;
 using Kotlet.Application.Ai;
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Server;
+using System.ClientModel;
 using System.ComponentModel;
 using System.Reflection;
 
@@ -22,7 +23,7 @@ public static class AgentEndpoints
     }
 
     private static async Task<IResult> Chat(AgentChatRequest request, ICurrentUser user,
-        IUserChatClientResolver resolver, IServiceProvider services, CancellationToken ct)
+        IUserChatClientResolver resolver, IServiceProvider services, ILoggerFactory loggerFactory, CancellationToken ct)
     {
         if (user.UserId is not { } userId) return Results.Unauthorized();
         if (string.IsNullOrWhiteSpace(request.Model) || request.Messages is not { Count: > 0 } or { Count: > 50 })
@@ -39,8 +40,17 @@ public static class AgentEndpoints
             var response = await client.GetResponseAsync(messages, new ChatOptions { Tools = CreateTools(services) }, ct);
             return Results.Ok(new AgentChatResponse(response.Text ?? ""));
         }
+        catch (ClientResultException exception)
+        {
+            loggerFactory.CreateLogger(typeof(AgentEndpoints)).LogError(exception, "Agent provider request failed");
+            var providerMessage = exception.Message.Trim();
+            if (providerMessage.Length > 1_000) providerMessage = providerMessage[..1_000];
+            return Results.Problem($"The AI provider rejected model '{request.Model}': {providerMessage}",
+                statusCode: StatusCodes.Status502BadGateway);
+        }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
+            loggerFactory.CreateLogger(typeof(AgentEndpoints)).LogError(exception, "Agent provider request failed");
             return Results.Problem("The AI provider request failed.", statusCode: StatusCodes.Status502BadGateway);
         }
     }
