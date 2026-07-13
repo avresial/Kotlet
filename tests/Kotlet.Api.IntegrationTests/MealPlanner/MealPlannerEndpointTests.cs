@@ -78,6 +78,28 @@ public sealed class MealPlannerEndpointTests(TestWebApplicationFactory factory) 
     }
 
     [Fact]
+    public async Task ParticipantPortion_ControlsFractionalServingsWithinLimits()
+    {
+        var client = await CreateAuthenticatedClient("mp-portions");
+        var item = await AddIngredientMeal(client, await CreateIngredient(client));
+        var itemId = item.GetProperty("id").GetGuid();
+        var memberId = (await client.GetFromJsonAsync<JsonElement[]>("/api/meal-planner/members"))![0]
+            .GetProperty("userId").GetGuid();
+        await client.PutAsJsonAsync($"/api/meal-planner/items/{itemId}/participants", new { userIds = new[] { memberId } });
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/meal-planner/items/{itemId}/participants/{memberId}/portion", new { portionPercent = 150 });
+        var updated = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(150, updated.GetProperty("participants")[0].GetProperty("portionPercent").GetInt32());
+        Assert.Equal(1.5m, updated.GetProperty("servings").GetDecimal());
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.PutAsJsonAsync(
+                $"/api/meal-planner/items/{itemId}/participants/{memberId}/portion", new { portionPercent = 49 })).StatusCode);
+    }
+
+    [Fact]
     public async Task ExplicitServings_OverrideHeadcount_AndCanBeReset()
     {
         var client = await CreateAuthenticatedClient("mp-servings");

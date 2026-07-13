@@ -33,5 +33,7 @@ public sealed class MealPlanItem
     /// Effective serving count: the explicit override when set, otherwise the
     /// number of assigned participants plus guests.
     /// </summary>
-    public int EffectiveServings => Servings ?? Participants.Count + Guests;
+    public decimal EffectiveServings => Participants.Count > 0
+        ? Participants.Sum(participant => participant.PortionPercent) / 100m + Guests
+        : Servings ?? Guests;
 }

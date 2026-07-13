@@ -33,7 +33,10 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
                      "get_meal_plan_members", "add_recipe", "create_ingredient",
                      "check_recipe_exists",
                      "add_pantry_item", "update_pantry_item", "remove_pantry_item",
-                     "add_meal_to_plan", "add_meal_participants", "remove_meal_from_plan"
+                     "add_meal_to_plan", "add_meal_participants", "set_meal_participants",
+                     "set_meal_participant_portion", "set_meal_guests", "set_meal_servings",
+                     "move_meal_in_plan", "copy_meal_plan_day", "copy_meal_plan_week",
+                     "remove_meal_from_plan"
                  })
             Assert.Contains($"\"{tool}\"", body);
     }
@@ -257,6 +260,16 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         var assignedBody = await assigned.Content.ReadAsStringAsync();
         Assert.Contains("\"Success\"", assignedBody);
         Assert.Contains(memberId.ToString(), assignedBody);
+
+        var portion = await CallTool(client, accessToken, "set_meal_participant_portion", new
+        {
+            mealId,
+            userId = memberId,
+            portionPercent = 150
+        });
+        var portionBody = await portion.Content.ReadAsStringAsync();
+        Assert.Contains("\"portionPercent\":150", portionBody);
+        Assert.Contains("\"servings\":1.5", portionBody);
 
         // The meal now shows up in the day's plan.
         var plan = await CallTool(client, accessToken, "get_meal_plan", new { from = "2026-07-10", days = 1 });

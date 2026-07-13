@@ -52,6 +52,13 @@ export class MealPlannerService {
     return this.http.put<MealPlanItem>(apiUrl(`/api/meal-planner/items/${id}/participants`), { userIds });
   }
 
+  setParticipantPortion(id: string, userId: string, portionPercent: number) {
+    return this.http.put<MealPlanItem>(
+      apiUrl(`/api/meal-planner/items/${id}/participants/${userId}/portion`),
+      { portionPercent },
+    );
+  }
+
   setServings(id: string, servings: number | null) {
     return this.http.put<MealPlanItem>(apiUrl(`/api/meal-planner/items/${id}/servings`), { servings });
   }

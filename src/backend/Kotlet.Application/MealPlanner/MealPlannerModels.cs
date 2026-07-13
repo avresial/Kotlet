@@ -22,6 +22,8 @@ public sealed record MoveMealPlanItemRequest(DateOnly Date, string Slot);
 
 public sealed record SetParticipantsRequest(IReadOnlyList<Guid> UserIds);
 
+public sealed record SetParticipantPortionRequest(int PortionPercent);
+
 public sealed record SetServingsRequest(int? Servings);
 
 public sealed record SetGuestsRequest(int Guests);
@@ -29,7 +31,8 @@ public sealed record SetGuestsRequest(int Guests);
 public sealed record MealParticipantResponse(
     Guid UserId,
     string DisplayName,
-    bool IsCurrentUser);
+    bool IsCurrentUser,
+    int PortionPercent);
 
 public sealed record MealPlanItemResponse(
     Guid Id,
@@ -42,7 +45,7 @@ public sealed record MealPlanItemResponse(
     int SortOrder,
     IReadOnlyList<MealParticipantResponse> Participants,
     int Guests,
-    int Servings,
+    decimal Servings,
     bool ServingsOverridden);
 
 public sealed record DailyMealPlanResponse(
