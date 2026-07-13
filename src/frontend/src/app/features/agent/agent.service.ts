@@ -2,7 +2,13 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { apiUrl } from '../../core/http/api-url';
 
-export interface AgentMessage { role: 'user' | 'assistant'; content: string; error?: boolean; }
+export interface AgentMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  model?: string;
+  responseTimeMs?: number;
+  error?: boolean;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AgentService {
