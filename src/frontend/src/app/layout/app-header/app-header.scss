@@ -38,10 +38,10 @@ footer { position: relative; margin-top: auto; padding: 1rem .25rem .25rem; bord
 .public-header { max-width: 72rem; min-height: var(--app-header-height); margin: 0 auto; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .public-header nav { display: flex; align-items: center; gap: .75rem; }
 .public-header .brand-mark { width: 7rem; }
-.account-link { min-height: 2.6rem; padding: .6rem 1rem; border: 1px solid transparent; border-radius: .5rem; display: inline-flex; align-items: center; justify-content: center; color: #20362d; font-size: .82rem; font-weight: 750; text-decoration: none; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+.account-link { min-height: 2.6rem; padding: .6rem 1rem; border: 1px solid transparent; border-radius: .5rem; display: inline-flex; align-items: center; justify-content: center; color: var(--app-text); font-size: .82rem; font-weight: 750; text-decoration: none; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
 .account-link:hover { transform: translateY(-1px); }
-.login-link { border-color: #ccd5ce; background: rgb(255 255 255 / 35%); }
-.login-link:hover { background: #fffdf8; }
+.login-link { border-color: var(--app-border-strong); color: var(--app-text); background: var(--app-surface-bright); }
+.login-link:hover { background: var(--app-surface); }
 .create-link { color: #fff; background: #b9533f; }
 .create-link:hover { background: #a94735; }
 @media (max-width: 48rem) {
