@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -11,6 +11,9 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { AiProviderService } from '../settings/ai-provider.service';
 import { AgentMessage, AgentService } from './agent.service';
 
+const storageKey = 'kotlet.agent.messages';
+const maxAgeMs = 24 * 60 * 60 * 1000;
+
 @Component({
   selector: 'app-agent-page', imports: [FormsModule, CommonModule, TranslatePipe],
   templateUrl: './agent-page.html', styleUrl: './agent-page.scss', changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,8 +23,9 @@ export class AgentPage {
   private readonly agent = inject(AgentService);
   private readonly router = inject(Router);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly document = inject(DOCUMENT);
   readonly models = signal<string[]>([]);
-  readonly messages = signal<AgentMessage[]>([]);
+  readonly messages = signal<AgentMessage[]>(this.loadStored());
   readonly sending = signal(false);
   model = '';
   prompt = '';
@@ -58,9 +62,10 @@ export class AgentPage {
     const content = this.prompt.trim();
     if (!content || !this.model || this.sending()) return;
     const selectedModel = this.model;
-    const userMessage: AgentMessage = { role: 'user', content };
+    const userMessage: AgentMessage = { role: 'user', content, timestamp: Date.now() };
     const history = [...this.messages().filter(x => !x.error).map(({ role, content }) => ({ role, content })), { role: 'user' as const, content }];
     this.messages.update(x => [...x, userMessage]);
+    this.persist(this.messages());
     this.prompt = ''; this.resetInput(); this.sending.set(true);
     this.scrollToBottom();
     const startTime = Date.now();
@@ -82,9 +87,37 @@ export class AgentPage {
   }
 
   private append(message: AgentMessage): void {
-    this.messages.update(x => [...x, message]);
+    this.messages.update(x => [...x, { ...message, timestamp: message.timestamp ?? Date.now() }]);
+    this.persist(this.messages());
     this.scrollToBottom();
     setTimeout(() => this.promptInput?.nativeElement.focus());
+  }
+
+  private loadStored(): AgentMessage[] {
+    const storage = this.document.defaultView?.localStorage;
+    if (!storage) return [];
+    try {
+      const raw = storage.getItem(storageKey);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+      if (!Array.isArray(parsed)) return [];
+      const cutoff = Date.now() - maxAgeMs;
+      return parsed.filter((m): m is AgentMessage => !!m && typeof m.timestamp === 'number' && m.timestamp >= cutoff);
+    } catch {
+      return [];
+    }
+  }
+
+  private persist(messages: AgentMessage[]): void {
+    const storage = this.document.defaultView?.localStorage;
+    if (!storage) return;
+    try {
+      const cutoff = Date.now() - maxAgeMs;
+      const recent = messages.filter(m => (m.timestamp ?? 0) >= cutoff);
+      if (recent.length) storage.setItem(storageKey, JSON.stringify(recent));
+      else storage.removeItem(storageKey);
+    } catch {
+      // Ignore storage quota or serialization failures — persistence is best-effort.
+    }
   }
 
   private resetInput(): void {
