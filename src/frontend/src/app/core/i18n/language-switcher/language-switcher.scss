@@ -1,3 +1,4 @@
-.language-switcher { display: inline-flex; padding: .15rem; border: 1px solid #d2c7b8; border-radius: .45rem; background: rgb(255 255 255 / 35%); }
-button { min-width: 2rem; min-height: 2rem; padding: .25rem .38rem; border: 0; border-radius: .3rem; color: #766e63; background: transparent; font: inherit; font-size: .68rem; font-weight: 800; cursor: pointer; }
+.language-switcher { display: inline-flex; padding: .15rem; border: 1px solid var(--app-border-strong); border-radius: .45rem; background: var(--app-inset); }
+button { min-width: 2rem; min-height: 2rem; padding: .25rem .38rem; border: 0; border-radius: .3rem; color: var(--app-text-muted); background: transparent; font: inherit; font-size: .68rem; font-weight: 800; cursor: pointer; }
+button:not(.active):hover { color: var(--app-text); }
 button.active { color: #fff; background: #9a3a2a; }
