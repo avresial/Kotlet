@@ -101,7 +101,8 @@ export class AgentPage {
       const parsed = raw ? (JSON.parse(raw) as unknown) : null;
       if (!Array.isArray(parsed)) return [];
       const cutoff = Date.now() - maxAgeMs;
-      return parsed.filter((m): m is AgentMessage => !!m && typeof m.timestamp === 'number' && m.timestamp >= cutoff);
+      return parsed.filter((m): m is AgentMessage =>
+        !!m && typeof m.role === 'string' && typeof m.content === 'string' && typeof m.timestamp === 'number' && m.timestamp >= cutoff);
     } catch {
       return [];
     }

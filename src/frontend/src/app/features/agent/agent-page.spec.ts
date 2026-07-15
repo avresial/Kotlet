@@ -140,4 +140,21 @@ describe('AgentPage', () => {
     expect(messages).toHaveLength(1);
     expect(messages[0].content).toBe('recent');
   });
+
+  it('should discard corrupted stored entries that are missing required fields', () => {
+    localStorage.setItem(
+      'kotlet.agent.messages',
+      JSON.stringify([
+        { role: 'user', timestamp: Date.now() }, // missing content
+        { content: 'no role', timestamp: Date.now() }, // missing role
+        { role: 'user', content: 123, timestamp: Date.now() }, // non-string content
+        { role: 'user', content: 'valid', timestamp: Date.now() },
+      ])
+    );
+
+    const restored = TestBed.createComponent(AgentPage).componentInstance;
+    const messages = restored.messages();
+    expect(messages).toHaveLength(1);
+    expect(messages[0].content).toBe('valid');
+  });
 });
