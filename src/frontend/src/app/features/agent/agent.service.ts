@@ -8,6 +8,7 @@ export interface AgentMessage {
   model?: string;
   responseTimeMs?: number;
   error?: boolean;
+  timestamp?: number;
 }
 
 @Injectable({ providedIn: 'root' })
