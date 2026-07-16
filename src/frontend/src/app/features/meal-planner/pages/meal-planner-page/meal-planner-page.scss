@@ -272,6 +272,8 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 .calorie-lines dd { font-variant-numeric: tabular-nums; }
 .calorie-empty { margin: 1rem 0 0; color: var(--app-text-muted); font-size: .82rem; line-height: 1.5; }
 
+.mobile-day-nav { display: none; }
+
 @media (max-width: 60rem) {
   .planner-body { grid-template-columns: 1fr; }
   .receipt-rail { position: static; }
@@ -318,4 +320,14 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   .receipt-line, .calorie-lines li { padding: .45rem 0; }
   .calorie-lines { margin-top: .6rem; }
   .receipt-total { margin-top: .7rem; padding-top: .6rem; }
+
+  .mobile-day-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-bottom: 1rem;
+
+    button { padding: .45rem .6rem; border: 1px solid var(--app-border-strong); border-radius: .45rem; color: var(--app-text); background: var(--app-surface-raised); }
+    span { align-self: center; color: var(--app-text-muted); font-size: .78rem; }
+  }
 }

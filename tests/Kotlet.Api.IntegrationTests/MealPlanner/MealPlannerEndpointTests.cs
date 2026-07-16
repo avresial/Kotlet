@@ -232,6 +232,45 @@ public sealed class MealPlannerEndpointTests(TestWebApplicationFactory factory) 
         return body.GetProperty("id").GetGuid();
     }
 
+    [Fact]
+    public async Task CopyWeek_PreservesParticipantsAndGuests()
+    {
+        var client = await CreateAuthenticatedClient("mp-copyweek");
+        var members = await client.GetFromJsonAsync<JsonElement[]>("/api/meal-planner/members");
+        var memberId = members![0].GetProperty("userId").GetGuid();
+        var ingredientId = await CreateIngredient(client);
+
+        var response = await client.PostAsJsonAsync("/api/meal-planner/items",
+            new { date = "2026-07-06", slot = "dinner", ingredientId });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var originalMeal = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var itemId = originalMeal.GetProperty("id").GetGuid();
+
+        var guestResponse = await client.PutAsJsonAsync($"/api/meal-planner/items/{itemId}/guests", new { guests = 2 });
+        Assert.Equal(HttpStatusCode.OK, guestResponse.StatusCode);
+
+        var participantResponse = await client.PutAsJsonAsync($"/api/meal-planner/items/{itemId}/participants",
+            new { userIds = new[] { memberId } });
+        Assert.Equal(HttpStatusCode.OK, participantResponse.StatusCode);
+
+        var copyResponse = await client.PostAsJsonAsync("/api/meal-planner/copy-week", new
+        {
+            sourceWeekStart = "2026-07-06",
+            targetWeekStart = "2026-07-13"
+        });
+        Assert.Equal(HttpStatusCode.OK, copyResponse.StatusCode);
+        var copyResult = await copyResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(1, copyResult.GetProperty("copied").GetInt32());
+
+        var targetPlan = await client.GetFromJsonAsync<JsonElement>($"/api/meal-planner?date=2026-07-13");
+        var targetDinner = targetPlan.GetProperty("meals").GetProperty("dinner").EnumerateArray().Single();
+        Assert.Equal(2, targetDinner.GetProperty("guests").GetInt32());
+        var participants = targetDinner.GetProperty("participants").EnumerateArray().ToList();
+        var copiedParticipant = Assert.Single(participants);
+        Assert.Equal(memberId, copiedParticipant.GetProperty("userId").GetGuid());
+        Assert.Equal(3, targetDinner.GetProperty("servings").GetInt32());
+    }
+
     private async Task<HttpClient> CreateAuthenticatedClient(string prefix)
     {
         var client = factory.CreateClient();
