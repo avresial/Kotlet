@@ -34,7 +34,7 @@
               <strong>{{ dayNumber(day.date) }}</strong>
             </button>
           }
-          @for (slot of slots.slice().reverse(); track slot) {
+          @for (slot of slots; track slot) {
             <div class="overview-row-label">{{ slotLabels()[slot] }}</div>
             @for (day of overview(); track day.date) {
               <button
@@ -51,6 +51,13 @@
       </div>
     </section>
   }
+
+  <nav class="mobile-day-nav" [attr.aria-label]="'meal.dayNavigation' | t">
+    <button type="button" (click)="goToPreviousDay()">{{ 'meal.previousDay' | t }}</button>
+    <button type="button" (click)="goToToday()">{{ 'meal.today' | t }}</button>
+    <button type="button" (click)="goToNextDay()">{{ 'meal.nextDay' | t }}</button>
+    @if (selectedDayHasMeals()) { <span>{{ 'meal.plannedToday' | t }}</span> }
+  </nav>
 
   <div class="date-picker">
     <div class="picker-group">
@@ -120,8 +127,8 @@
                     [class.is-added]="shoppingItemState()[item.id] === 'added'"
                     [disabled]="shoppingItemState()[item.id] === 'adding'"
                     (click)="addToShoppingList(item)"
-                    [attr.aria-label]="(shoppingItemState()[item.id] === 'added' ? 'meal.addedToShopping' : 'meal.addToShopping') | t"
-                    [title]="(shoppingItemState()[item.id] === 'adding' ? 'common.adding' : shoppingItemState()[item.id] === 'added' ? 'meal.addedToShopping' : 'meal.addToShopping') | t"
+                    [attr.aria-label]="(shoppingItemState()[item.id] === 'added' ? 'meal.addAgain' : 'meal.addToShopping') | t"
+                    [title]="(shoppingItemState()[item.id] === 'adding' ? 'common.adding' : shoppingItemState()[item.id] === 'added' ? 'meal.addAgain' : 'meal.addToShopping') | t"
                   >
                     @if (shoppingItemState()[item.id] === 'added') {
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
