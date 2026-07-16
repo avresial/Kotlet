@@ -46,17 +46,42 @@ export class LoginPage {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.auth.login(this.form.getRawValue()).pipe(finalize(() => this.isLoading.set(false))).subscribe({
-      next: () => {
+      next: (response) => {
         const returnUrl = this.safeReturnUrl();
         if (returnUrl.startsWith('http')) {
           this.isOAuthRedirect.set(true);
-          window.location.assign(returnUrl);
+          this.completeOAuthLogin(response.accessToken, returnUrl);
           return;
         }
         void this.router.navigateByUrl(returnUrl);
       },
       error: (error) => this.errorMessage.set(getApiError(error, this.translations.translate('auth.login.error'))),
     });
+  }
+
+  /**
+   * Hands the OAuth authorization session to the API origin as a first-party cookie. The login
+   * fetch above runs cross-site (this SPA and the API are on different sites), so the refresh
+   * cookie it sets is a third-party cookie that mobile browsers drop — leaving
+   * <c>/connect/authorize</c> with no session and no way back to the calling app. Submitting a
+   * top-level POST to the bridge makes the navigation first-party to the API, so the cookie it
+   * sets sticks; the bridge then redirects on to the original authorize URL.
+   */
+  private completeOAuthLogin(accessToken: string, returnUrl: string): void {
+    const bridgeUrl = `${new URL(returnUrl).origin}/api/auth/oauth-bridge`;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = bridgeUrl;
+    form.hidden = true;
+    for (const [name, value] of [['token', accessToken], ['returnUrl', returnUrl]]) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    }
+    document.body.appendChild(form);
+    form.submit();
   }
 
   private safeReturnUrl(): string {
