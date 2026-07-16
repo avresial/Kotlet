@@ -46,6 +46,35 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions, IOptions<AuthO
         });
     }
 
+    /// <summary>
+    /// Validates a Kotlet access token and returns its principal, or <c>null</c> when the
+    /// token is missing, malformed, expired or fails signature/issuer/audience checks. Used by
+    /// the OAuth session bridge, which cannot supply the token through the Authorization header
+    /// because it is reached by a top-level browser navigation.
+    /// </summary>
+    public ClaimsPrincipal? ValidateAccessToken(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+        try
+        {
+            return new JwtSecurityTokenHandler().ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = _jwt.Issuer,
+                ValidateAudience = true,
+                ValidAudience = _jwt.Audience,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.SigningKey)),
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromSeconds(30)
+            }, out _);
+        }
+        catch (Exception exception) when (exception is SecurityTokenException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
     public string Hash(string rawToken) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
 
     public void SetRefreshCookie(HttpResponse response, string rawToken, DateTime expiresAtUtc, bool secure) =>
