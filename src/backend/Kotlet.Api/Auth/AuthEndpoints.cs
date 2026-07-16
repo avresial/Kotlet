@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using Kotlet.Application.Auth;
 using Kotlet.Domain.Auth;
+using Microsoft.Extensions.Options;
 
 namespace Kotlet.Api.Auth;
 
@@ -10,6 +12,7 @@ public static class AuthEndpoints
         var auth = endpoints.MapGroup("/api/auth").WithTags("Auth");
         auth.MapPost("/register", Register);
         auth.MapPost("/login", Login);
+        auth.MapPost("/oauth-bridge", OAuthBridge).DisableAntiforgery();
         auth.MapPost("/refresh", Refresh);
         auth.MapPost("/logout", Logout);
         auth.MapGet("/me", Me).RequireAuthorization();
@@ -38,6 +41,38 @@ public static class AuthEndpoints
         if (result.Status == AccountOperationStatus.Unauthorized) return Results.Unauthorized();
         await IssueTokens(result.User!, result.ActiveHouseId, sessions, tokens, context, environment, cancellationToken);
         return Results.Ok(Response(result.User!, result.ActiveHouseId, result.HasHouse, tokens));
+    }
+
+    /// <summary>
+    /// Establishes the OAuth authorization session as a first-party cookie on the API origin.
+    /// The SPA login page lives on a different site (GitHub Pages) than the authorization
+    /// endpoint (the API), so the refresh cookie set by the cross-site <c>login</c> fetch is a
+    /// third-party cookie that mobile browsers block. After a successful login the SPA performs a
+    /// top-level POST here with the freshly issued access token; because that navigation is
+    /// first-party to the API origin, the cookie set below is stored even on mobile. The endpoint
+    /// then redirects back to <c>/connect/authorize</c>, which now finds the session.
+    /// </summary>
+    private static async Task<IResult> OAuthBridge(HttpRequest request, IAuthSessionRepository sessions,
+        TokenService tokens, IOptions<OAuthOptions> oauthOptions, HttpContext context,
+        IWebHostEnvironment environment, CancellationToken cancellationToken)
+    {
+        var form = await request.ReadFormAsync(cancellationToken);
+        var returnUrl = form["returnUrl"].ToString();
+        if (!IsValidAuthorizeReturnUrl(returnUrl, oauthOptions.Value))
+            return Results.BadRequest(new { message = "The return URL is invalid." });
+
+        var principal = tokens.ValidateAccessToken(form["token"].ToString());
+        if (principal is null || !Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return Results.Unauthorized();
+
+        var user = await sessions.GetUserAsync(userId, cancellationToken);
+        if (user is null) return Results.Unauthorized();
+
+        var activeHouseId = Guid.TryParse(principal.FindFirstValue(KotletClaimTypes.HouseId), out var houseId)
+            ? houseId
+            : (Guid?)null;
+        await IssueTokens(user, activeHouseId, sessions, tokens, context, environment, cancellationToken);
+        return Results.Redirect(returnUrl);
     }
 
     private static async Task<IResult> Refresh(IAuthSessionRepository sessions, TokenService tokens, HttpContext context,
@@ -137,6 +172,16 @@ public static class AuthEndpoints
         var accessToken = tokens.CreateAccessToken(user, activeHouseId);
         return new(ToResponse(user, activeHouseId, hasHome), accessToken.Token, accessToken.ExpiresAtUtc);
     }
+
+    // The bridge only ever hands control back to the authorization endpoint on the API's own
+    // origin; anything else (a foreign host or a different path) is rejected so the endpoint can
+    // never be turned into an open redirect.
+    private static bool IsValidAuthorizeReturnUrl(string returnUrl, OAuthOptions oauth) =>
+        Uri.TryCreate(returnUrl, UriKind.Absolute, out var target) &&
+        Uri.TryCreate(oauth.Issuer, UriKind.Absolute, out var issuer) &&
+        string.Equals(target.GetLeftPart(UriPartial.Authority),
+            issuer.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(target.AbsolutePath, "/connect/authorize", StringComparison.Ordinal);
 
     private static bool IsSecure(IWebHostEnvironment environment) =>
         !environment.IsDevelopment() && !environment.IsEnvironment("Test");

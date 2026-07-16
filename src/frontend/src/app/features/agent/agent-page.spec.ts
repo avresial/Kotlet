@@ -15,6 +15,7 @@ describe('AgentPage', () => {
   let providerService: AiProviderService;
 
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({
       imports: [AgentPage],
       providers: [
@@ -104,5 +105,56 @@ describe('AgentPage', () => {
     const [, sentHistory] = vi.mocked(agentService.chat).mock.calls[1];
     expect(sentHistory.some((msg: any) => msg.error)).toBe(false);
     expect(sentHistory.some((msg: any) => msg.content === 'Upstream unavailable')).toBe(false);
+  });
+
+  it('should persist messages to local storage and restore them on init', () => {
+    vi.mocked(agentService.chat).mockReturnValue(of({ content: 'Answer' }));
+    component.model = 'test-model';
+    component.prompt = 'Hello';
+    component.send();
+
+    const stored = JSON.parse(localStorage.getItem('kotlet.agent.messages') ?? '[]');
+    expect(stored).toHaveLength(2);
+    expect(stored[0]).toMatchObject({ role: 'user', content: 'Hello' });
+    expect(typeof stored[0].timestamp).toBe('number');
+
+    // A freshly created component instance should restore the persisted conversation.
+    const restored = TestBed.createComponent(AgentPage).componentInstance;
+    expect(restored.messages()).toHaveLength(2);
+    expect(restored.messages()[1].content).toBe('Answer');
+  });
+
+  it('should drop messages older than 24 hours when loading from local storage', () => {
+    const stale = Date.now() - 25 * 60 * 60 * 1000;
+    const fresh = Date.now() - 60 * 1000;
+    localStorage.setItem(
+      'kotlet.agent.messages',
+      JSON.stringify([
+        { role: 'user', content: 'old', timestamp: stale },
+        { role: 'user', content: 'recent', timestamp: fresh },
+      ])
+    );
+
+    const restored = TestBed.createComponent(AgentPage).componentInstance;
+    const messages = restored.messages();
+    expect(messages).toHaveLength(1);
+    expect(messages[0].content).toBe('recent');
+  });
+
+  it('should discard corrupted stored entries that are missing required fields', () => {
+    localStorage.setItem(
+      'kotlet.agent.messages',
+      JSON.stringify([
+        { role: 'user', timestamp: Date.now() }, // missing content
+        { content: 'no role', timestamp: Date.now() }, // missing role
+        { role: 'user', content: 123, timestamp: Date.now() }, // non-string content
+        { role: 'user', content: 'valid', timestamp: Date.now() },
+      ])
+    );
+
+    const restored = TestBed.createComponent(AgentPage).componentInstance;
+    const messages = restored.messages();
+    expect(messages).toHaveLength(1);
+    expect(messages[0].content).toBe('valid');
   });
 });

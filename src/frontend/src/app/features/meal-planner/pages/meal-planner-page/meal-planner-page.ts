@@ -1,7 +1,7 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, finalize, Observable, of, switchMap } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
@@ -37,6 +37,13 @@ export function weekStart(date: string): string {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
 }
 
+export function isValidDateString(value: string | null): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+}
+
 @Component({
   selector: 'app-meal-planner-page',
   imports: [FormsModule, RouterLink, IngredientPicker, RecipePicker, TranslatePipe, CdkDropListGroup, CdkDropList, CdkDrag, CdkDragHandle],
@@ -51,6 +58,12 @@ export class MealPlannerPage implements OnInit {
   private readonly ingredientService = inject(IngredientService);
   private readonly shoppingListIntegration = inject(ShoppingListIntegrationService);
   private readonly translations = inject(TranslationService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly initialDate = isValidDateString(this.route.snapshot.queryParamMap.get('date'))
+    ? this.route.snapshot.queryParamMap.get('date')!
+    : this.todayString();
+  private lastValidDate = this.initialDate;
 
   readonly slots: MealSlot[] = ['breakfast', 'second-breakfast', 'dinner', 'snack', 'supper'];
   readonly slotLabels = computed<Record<MealSlot, string>>(() => ({
@@ -62,9 +75,12 @@ export class MealPlannerPage implements OnInit {
   }));
 
   private readonly overviewDays = 7;
-  readonly selectedDate = signal(this.todayString());
-  readonly overviewFrom = signal(weekStart(this.todayString()));
+  readonly selectedDate = signal(this.initialDate);
+  readonly overviewFrom = signal(weekStart(this.initialDate));
   readonly overview = signal<MealPlanOverviewDay[]>([]);
+  readonly selectedDayHasMeals = computed(() =>
+    !!this.overview().find((day) => day.date === this.selectedDate())?.plannedSlots.length
+  );
   readonly overviewLabel = computed(() => {
     const from = this.overviewFrom();
     const to = this.addDays(from, this.overviewDays - 1);
@@ -73,9 +89,9 @@ export class MealPlannerPage implements OnInit {
   readonly plan = signal<DailyMealPlan | null>(null);
   readonly isLoadingPlan = signal(false);
   readonly planError = signal<string | null>(null);
-  readonly copyTargetDate = signal(this.addDays(this.todayString(), 1));
+  readonly copyTargetDate = signal(this.addDays(this.initialDate, 1));
   readonly isCopying = signal(false);
-  readonly copyWeekTargetDate = signal(this.addDays(weekStart(this.todayString()), 7));
+  readonly copyWeekTargetDate = signal(this.addDays(weekStart(this.initialDate), 7));
 
   readonly recipes = signal<RecipeSummary[]>([]);
   readonly recipeDetails = signal<Record<string, RecipeDetail>>({});
@@ -114,8 +130,16 @@ export class MealPlannerPage implements OnInit {
   ngOnInit(): void {
     this.loadOptions();
     this.loadMembers();
+
+    this.route.queryParamMap.subscribe((params) => {
+      const dateParam = params.get('date');
+      if (!isValidDateString(dateParam)) {
+        this.navigateToDate(this.selectedDate(), true);
+        return;
+      }
+      this.applyDate(dateParam);
+    });
     this.loadOverview();
-    this.loadPlan();
   }
 
   loadOverview(): void {
@@ -134,8 +158,7 @@ export class MealPlannerPage implements OnInit {
   }
 
   selectOverviewDay(date: string): void {
-    this.selectedDate.set(date);
-    this.loadPlan();
+    this.navigateToDate(date);
   }
 
   isPlanned(day: MealPlanOverviewDay, slot: MealSlot): boolean {
@@ -193,8 +216,9 @@ export class MealPlannerPage implements OnInit {
   }
 
   onDateChange(): void {
-    this.centerOverviewOnSelected();
-    this.loadPlan();
+    const date = this.selectedDate();
+    if (isValidDateString(date)) this.navigateToDate(date);
+    else this.selectedDate.set(this.lastValidDate);
   }
 
   copyDay(): void {
@@ -202,8 +226,8 @@ export class MealPlannerPage implements OnInit {
     if (!target || target === this.selectedDate() || this.isCopying()) return;
     this.isCopying.set(true); this.planError.set(null);
     this.service.copyDay(this.selectedDate(), target).pipe(finalize(() => this.isCopying.set(false))).subscribe({
-      next: (plan) => {
-        this.selectedDate.set(target); this.plan.set(plan); this.loadRecipeDetails(plan);
+      next: () => {
+        this.navigateToDate(target);
         this.overviewFrom.set(weekStart(target)); this.loadOverview();
       },
       error: (error) => this.planError.set(getApiError(error, this.translations.translate('meal.copyDayError'))),
@@ -217,10 +241,47 @@ export class MealPlannerPage implements OnInit {
     this.isCopying.set(true); this.planError.set(null);
     this.service.copyWeek(source, target).pipe(finalize(() => this.isCopying.set(false))).subscribe({
       next: () => {
-        this.selectedDate.set(target); this.overviewFrom.set(target); this.loadOverview(); this.loadPlan();
+        this.navigateToDate(target);
+        this.overviewFrom.set(target); this.loadOverview();
       },
       error: (error) => this.planError.set(getApiError(error, this.translations.translate('meal.copyWeekError'))),
     });
+  }
+
+  navigateToDate(date: string, replaceUrl = false): void {
+    if (!isValidDateString(date)) return;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { date },
+      queryParamsHandling: 'merge',
+      replaceUrl,
+    });
+  }
+
+  private applyDate(date: string): void {
+    this.selectedDate.set(date);
+    this.lastValidDate = date;
+    this.updateCopyTargets();
+    this.centerOverviewOnSelected();
+    this.loadPlan();
+  }
+
+  private updateCopyTargets(): void {
+    const selected = this.selectedDate();
+    this.copyTargetDate.set(this.addDays(selected, 1));
+    this.copyWeekTargetDate.set(this.addDays(weekStart(selected), 7));
+  }
+
+  goToPreviousDay(): void {
+    this.navigateToDate(this.addDays(this.selectedDate(), -1));
+  }
+
+  goToNextDay(): void {
+    this.navigateToDate(this.addDays(this.selectedDate(), 1));
+  }
+
+  goToToday(): void {
+    this.navigateToDate(this.todayString());
   }
 
   itemsForSlot(slot: MealSlot): MealPlanItem[] {

@@ -9,7 +9,7 @@ import { TranslationService } from '../../../../core/i18n/translation.service';
 import { DailyMealPlan, MealParticipant, MealPlanItem } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
 import { ShoppingListIntegrationService } from '../../services/shopping-list-integration.service';
-import { MealPlannerPage, weekStart } from './meal-planner-page';
+import { isValidDateString, MealPlannerPage, weekStart } from './meal-planner-page';
 
 describe('weekStart', () => {
   it.each([
@@ -143,4 +143,10 @@ describe('MealPlannerPage portion validation', () => {
     expect(called).toBe(false);
     expect(input.value).toBe('100');
   });
+});
+
+describe('isValidDateString', () => {
+  it.each(['2026-07-16', '2028-02-29'])('accepts %s', (date) => expect(isValidDateString(date)).toBe(true));
+  it.each([null, '', '16-07-2026', '2026-13-01', '2026-02-30'])('rejects %s', (date) =>
+    expect(isValidDateString(date)).toBe(false));
 });
