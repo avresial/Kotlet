@@ -8,7 +8,7 @@
 }
 
 .back {
-  color: var(--text-muted, #6b7280);
+  color: var(--app-text-muted);
   text-decoration: none;
   font-size: 0.9rem;
 }
@@ -17,7 +17,7 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.75rem;
-  color: var(--text-muted, #6b7280);
+  color: var(--app-text-muted);
   margin: 0 0 0.25rem;
 }
 
@@ -34,14 +34,16 @@
   input {
     flex: 1;
     padding: 0.55rem 0.75rem;
-    border: 1px solid var(--border, #d1d5db);
+    border: 1px solid var(--app-border-strong);
     border-radius: 8px;
+    background: var(--app-input);
+    color: var(--app-text);
   }
 }
 
 .card {
-  background: var(--surface, #fff);
-  border: 1px solid var(--border, #e5e7eb);
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
   border-radius: 12px;
   padding: 1.5rem;
 
@@ -69,12 +71,12 @@
     align-items: center;
     gap: 1rem;
     padding: 0.65rem 0.75rem;
-    border: 1px solid var(--border, #eee);
+    border: 1px solid var(--app-border);
     border-radius: 8px;
 
     span {
       display: block;
-      color: var(--text-muted, #6b7280);
+      color: var(--app-text-muted);
       font-size: 0.85rem;
     }
   }
@@ -87,8 +89,10 @@
   input {
     flex: 1;
     padding: 0.55rem 0.75rem;
-    border: 1px solid var(--border, #d1d5db);
+    border: 1px solid var(--app-border-strong);
     border-radius: 8px;
+    background: var(--app-input);
+    color: var(--app-text);
   }
 }
 
@@ -99,14 +103,14 @@ button {
   cursor: pointer;
 
   &.primary {
-    background: var(--accent, #16a34a);
+    background: #963827;
     color: #fff;
   }
 
   &.ghost {
     background: transparent;
-    border-color: var(--border, #d1d5db);
-    color: var(--text, #111827);
+    border-color: var(--app-border-strong);
+    color: var(--app-text);
   }
 
   &.ghost.danger {
@@ -130,7 +134,7 @@ button {
 }
 
 .muted {
-  color: var(--text-muted, #6b7280);
+  color: var(--app-text-muted);
   margin: 0 0 0.5rem;
 }
 
