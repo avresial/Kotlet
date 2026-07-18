@@ -8,7 +8,7 @@
 .back, .hero-actions, .hero-copy { position: absolute; z-index: 2; }
 .back { top: 1.4rem; left: 1.5rem; padding: .5rem .85rem; border-radius: 99rem; display: inline-flex; align-items: center; gap: .3rem; color: #f7f1e7; background: rgb(41 37 31 / 38%); backdrop-filter: blur(.25rem); font-size: .85rem; font-weight: 750; text-decoration: none; }
 .hero-actions { top: 1.4rem; right: 1.5rem; display: flex; align-items: flex-start; gap: .5rem; }
-.edit-action, .actions-trigger { border: 0; background: rgb(255 250 242 / 94%); color: var(--app-text); box-shadow: 0 .15rem .5rem rgb(41 37 31 / 10%); }
+.edit-action, .actions-trigger { border: 0; background: rgb(255 250 242 / 94%); color: #29251f; box-shadow: 0 .15rem .5rem rgb(41 37 31 / 10%); }
 .edit-action { min-height: 2.4rem; box-sizing: border-box; padding: .55rem .95rem; border-radius: 99rem; display: inline-flex; align-items: center; gap: .45rem; font-size: .82rem; font-weight: 700; text-decoration: none; }
 .add-next-action { min-height: 2.4rem; box-sizing: border-box; padding: .55rem .95rem; border: 0; border-radius: 99rem; display: inline-flex; align-items: center; gap: .45rem; font-size: .82rem; font-weight: 700; cursor: pointer; color: #f7f1e7; background: #c2603f; box-shadow: 0 .15rem .5rem rgb(41 37 31 / 18%); }
 .add-next-action:hover { background: #ab4f31; }
