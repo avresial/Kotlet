@@ -17,6 +17,7 @@ public static class RecipeEndpoints
         recipes.MapPost("/images/import", ImportImage).WithName("ImportRecipeImage");
         recipes.MapGet("", List).WithName("ListRecipes");
         recipes.MapGet("/recent", ListRecent).WithName("ListRecentRecipes");
+        recipes.MapGet("/audit", ListAudit).WithName("ListRecipeAudit");
         recipes.MapPost("", Create).WithName("CreateRecipe");
         recipes.MapGet("/{id:guid}", GetById).AllowAnonymous().WithName("GetRecipe");
         recipes.MapPut("/{id:guid}", Update).WithName("UpdateRecipe");
@@ -172,6 +173,16 @@ public static class RecipeEndpoints
     {
         if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
         return Results.Ok(await service.ListRecentAsync(houseId, limit, cancellationToken));
+    }
+
+    private static async Task<IResult> ListAudit(
+        ICurrentUser currentUser,
+        RecipeAuditService service,
+        int limit = RecipeAuditService.DefaultLimit,
+        CancellationToken cancellationToken = default)
+    {
+        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        return Results.Ok(await service.ListRecipesRequiringFixAsync(houseId, limit, cancellationToken));
     }
 
     private static async Task<IResult> Create(

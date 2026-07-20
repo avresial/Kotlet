@@ -96,6 +96,38 @@
         </ul> }
       </article>
 
+      <!-- Recipe audit -->
+      <article class="card" aria-labelledby="audit-title">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">{{ 'home.dashboard.audit.label' | t }}</p>
+            <h2 id="audit-title">{{ 'home.dashboard.audit.title' | t }}</h2>
+          </div>
+          <a class="card-link" routerLink="/recipes">{{ 'home.dashboard.viewAll' | t }} →</a>
+        </div>
+        @if (auditLoading()) { <p class="recipe-state">{{ 'home.dashboard.audit.loading' | t }}</p> }
+        @else if (auditError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.audit.error' | t }}</p> }
+        @else if (auditItems().length === 0) { <p class="recipe-state">{{ 'home.dashboard.audit.empty' | t }}</p> }
+        @else { <ul class="audit-list">
+          @for (item of auditItems(); track item.id) {
+            <li class="audit-item">
+              <span class="audit-badge" [class.is-important]="item.importance === 'important'">
+                {{ (item.importance === 'important' ? 'home.dashboard.audit.important' : 'home.dashboard.audit.minor') | t }}
+              </span>
+              <div class="audit-text">
+                <strong>{{ item.title }}</strong>
+                <ul class="audit-missing" [attr.aria-label]="'home.dashboard.audit.missing' | t">
+                  @for (element of item.missingElements; track element) {
+                    <li>{{ ('home.dashboard.audit.missing.' + element) | t }}</li>
+                  }
+                </ul>
+              </div>
+              <a class="audit-visit" [routerLink]="['/recipes', item.id]">{{ 'home.dashboard.audit.visit' | t }} →</a>
+            </li>
+          }
+        </ul> }
+      </article>
+
       <!-- Shopping list overview -->
       <article class="card" aria-labelledby="shopping-title">
         <div class="card-heading">
