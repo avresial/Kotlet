@@ -15,7 +15,7 @@ import { ShoppingListService } from '../../../shopping-list/shopping-list.servic
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
-import { RecipeDetail, RecipeSummary } from '../../../recipes/models/recipe.models';
+import { RecipeAuditItem, RecipeDetail, RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { DailyMealPlan, MealParticipant, MealSlot } from '../../../meal-planner/models/meal-planner.models';
 import { MealPlannerService } from '../../../meal-planner/services/meal-planner.service';
@@ -67,6 +67,9 @@ export class HomePage implements OnInit {
   readonly shoppingSaving = signal(false);
   readonly shoppingError = signal<string | null>(null);
   readonly newestRecipes = signal<RecipeSummary[]>([]);
+  readonly auditItems = signal<RecipeAuditItem[]>([]);
+  readonly auditLoading = signal(true);
+  readonly auditError = signal(false);
   readonly recipeAvatarUrls = signal<Record<string, string>>({});
   readonly recipesLoading = signal(true);
   readonly recipesError = signal(false);
@@ -127,6 +130,10 @@ export class HomePage implements OnInit {
         this.loadAvatars(recipes);
       },
       error: () => this.recipesError.set(true),
+    });
+    this.recipeService.listAudit(5).pipe(finalize(() => this.auditLoading.set(false))).subscribe({
+      next: items => this.auditItems.set(items),
+      error: () => this.auditError.set(true),
     });
     this.homeService.getDashboardStats().pipe(finalize(() => this.statsLoading.set(false))).subscribe({
       next: stats => this.stats.set(stats),

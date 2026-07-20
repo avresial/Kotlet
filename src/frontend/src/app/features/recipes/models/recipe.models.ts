@@ -42,6 +42,18 @@ export interface RecipeIngredient {
   note: string | null;
 }
 
+export type RecipeAuditImportance = 'important' | 'minor';
+export type RecipeAuditElement = 'ingredients' | 'description' | 'image' | 'mealType';
+
+export interface RecipeAuditItem {
+  id: string;
+  title: string;
+  slug: string;
+  importance: RecipeAuditImportance;
+  missingElements: RecipeAuditElement[];
+  missingCount: number;
+}
+
 export interface RecipeSummary {
   id: string;
   title: string;

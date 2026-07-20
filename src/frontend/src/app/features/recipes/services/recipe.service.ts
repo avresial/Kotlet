@@ -4,6 +4,7 @@ import { apiUrl } from '../../../core/http/api-url';
 import {
   CreateRecipeRequest,
   PagedResponse,
+  RecipeAuditItem,
   RecipeDetail,
   RecipeImage,
   RecipeImageSourceData,
@@ -51,6 +52,11 @@ export class RecipeService {
 
   acceptImport(id: string, draft: RecipeImportDraft) {
     return this.http.post<{ id: string }>(apiUrl(`/api/recipes/import/${id}/accept`), draft);
+  }
+
+  listAudit(limit = 5) {
+    const params = new HttpParams().set('limit', limit);
+    return this.http.get<RecipeAuditItem[]>(apiUrl('/api/recipes/audit'), { params });
   }
 
   listRecent(limit = 4) {
