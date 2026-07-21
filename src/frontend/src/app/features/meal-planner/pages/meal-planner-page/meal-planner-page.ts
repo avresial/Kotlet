@@ -128,6 +128,7 @@ export class MealPlannerPage implements OnInit {
       this.allItems(),
       this.recipeDetails(),
       this.ingredients(),
+      this.preparedMeals(),
       this.translations.translate('meal.guests'),
       this.translations.translate('meal.unassignedServings'),
     )
@@ -694,6 +695,9 @@ export class MealPlannerPage implements OnInit {
       const ingredient = this.ingredients().find((candidate) => candidate.id === item.ingredientId);
       return ingredient ? directIngredientCaloriesPerServing(ingredient) : null;
     }
+
+    if (item.type === 'prepared-meal')
+      return this.preparedMeals().find((meal) => meal.id === item.preparedMealId)?.caloriesPerServing ?? null;
 
     const detail = item.recipeId ? this.recipeDetails()[item.recipeId] : undefined;
     return detail ? recipeCaloriesPerServing(detail, this.ingredients()) : null;

@@ -1,4 +1,5 @@
 import { Ingredient } from '../ingredients/ingredient.models';
+import { PreparedMeal } from '../prepared-meals/prepared-meal.models';
 import { RecipeDetail } from '../recipes/models/recipe.models';
 import { MealPlanItem, MealSlot } from './models/meal-planner.models';
 
@@ -27,6 +28,7 @@ export function allocateCaloriesByPerson(
   items: MealPlanItem[],
   recipeDetails: Record<string, RecipeDetail>,
   ingredients: readonly Ingredient[],
+  preparedMeals: readonly PreparedMeal[],
   guestLabel: string,
   unassignedLabel: string,
 ): PersonCalories[] {
@@ -35,6 +37,9 @@ export function allocateCaloriesByPerson(
       const ingredient = ingredients.find((candidate) => candidate.id === item.ingredientId);
       return ingredient ? directIngredientCaloriesPerServing(ingredient) : null;
     }
+
+    if (item.type === 'prepared-meal')
+      return preparedMeals.find((meal) => meal.id === item.preparedMealId)?.caloriesPerServing ?? null;
 
     const detail = item.recipeId ? recipeDetails[item.recipeId] : undefined;
     return detail ? recipeCaloriesPerServing(detail, ingredients) : null;

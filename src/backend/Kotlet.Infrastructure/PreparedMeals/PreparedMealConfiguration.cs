@@ -11,8 +11,7 @@ internal sealed class PreparedMealConfiguration : IEntityTypeConfiguration<Prepa
     {
         builder.ToTable("prepared_meals", table => table.HasCheckConstraint(
             "ck_prepared_meals_values",
-            "servings > 0 AND (price IS NULL OR price >= 0) " +
-            "AND (calories_per_serving IS NULL OR calories_per_serving >= 0)"));
+            "servings > 0 AND (price IS NULL OR price >= 0) AND calories_per_serving >= 0"));
         builder.HasKey(meal => meal.Id);
         builder.Property(meal => meal.Id).HasColumnName("id");
         builder.Property(meal => meal.HouseId).HasColumnName("house_id");

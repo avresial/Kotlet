@@ -43,7 +43,7 @@ public sealed record PreparedMealResponse(
     decimal? PackageQuantity,
     string? PackageUnit,
     int Servings,
-    decimal? CaloriesPerServing,
+    decimal CaloriesPerServing,
     decimal? Price,
     string? PreparationInstructions,
     Guid? ShoppingIngredientId,
