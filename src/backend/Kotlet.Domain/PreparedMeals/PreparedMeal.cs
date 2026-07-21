@@ -14,7 +14,7 @@ public sealed class PreparedMeal
     public decimal? PackageQuantity { get; set; }
     public string? PackageUnit { get; set; }
     public int Servings { get; set; } = 1;
-    public decimal? CaloriesPerServing { get; set; }
+    public decimal CaloriesPerServing { get; set; }
     public decimal? Price { get; set; }
     public string? PreparationInstructions { get; set; }
     public Guid? ShoppingIngredientId { get; set; }

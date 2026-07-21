@@ -90,11 +90,13 @@ public sealed class PreparedMealService(IPreparedMealRepository repository, IIng
             errors["servings"] = ["Servings must be greater than zero."];
         if (request.Price < 0)
             errors["price"] = ["Price cannot be negative."];
-        if (request.CaloriesPerServing < 0)
+        if (request.CaloriesPerServing is null)
+            errors["caloriesPerServing"] = ["Calories per serving are required."];
+        else if (request.CaloriesPerServing < 0)
             errors["caloriesPerServing"] = ["Calories cannot be negative."];
         if (request.PackageQuantity <= 0)
             errors["packageQuantity"] = ["Package quantity must be greater than zero."];
-        if (request.Addons.GroupBy(a => a.IngredientId).Any(g => g.Count() > 1))
+        if (request.Addons.GroupBy(addon => addon.IngredientId).Any(group => group.Count() > 1))
             errors["addons"] = ["Duplicate ingredients are not allowed."];
 
         for (var i = 0; i < request.Addons.Count; i++)
@@ -123,7 +125,7 @@ public sealed class PreparedMealService(IPreparedMealRepository repository, IIng
         meal.PackageQuantity = request.PackageQuantity;
         meal.PackageUnit = request.PackageUnit?.Trim();
         meal.Servings = request.Servings;
-        meal.CaloriesPerServing = request.CaloriesPerServing;
+        meal.CaloriesPerServing = request.CaloriesPerServing!.Value;
         meal.Price = request.Price;
         meal.PreparationInstructions = request.PreparationInstructions?.Trim();
         meal.ShoppingIngredientId = request.ShoppingIngredientId;
