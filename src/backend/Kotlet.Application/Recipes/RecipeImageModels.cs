@@ -14,7 +14,7 @@ public sealed record SourceAttributionResponse(
     /// <summary>Maps the primary (first) source of an image; null when the image has none.</summary>
     public static SourceAttributionResponse? FromPrimarySource(RecipeImage image)
     {
-        var source = image.Sources.Select(s => s.Source).FirstOrDefault();
+        var source = image.Image.Sources.Select(s => s.Source).FirstOrDefault();
         return source is null ? null : new(source.Provider, source.AuthorName, source.AuthorUrl, source.Url);
     }
 }

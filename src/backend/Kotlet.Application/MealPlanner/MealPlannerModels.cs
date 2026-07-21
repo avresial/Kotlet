@@ -5,7 +5,11 @@ public sealed record AddMealPlanItemRequest(
     string Slot,
     Guid? RecipeId,
     Guid? IngredientId,
-    string? Note);
+    string? Note,
+    Guid? PreparedMealId = null,
+    IReadOnlyList<SelectedPreparedMealAddon>? Addons = null);
+
+public sealed record SelectedPreparedMealAddon(Guid IngredientId, decimal Quantity, string Unit);
 
 public sealed record AddWeeklyMealPlanRequest(
     DateOnly WeekStart,
@@ -40,6 +44,10 @@ public sealed record MealPlanItemResponse(
     string Type,
     Guid? RecipeId,
     Guid? IngredientId,
+    Guid? PreparedMealId,
+    Guid? ParentMealPlanItemId,
+    decimal? IngredientQuantity,
+    string? IngredientUnit,
     string DisplayName,
     string? Note,
     int SortOrder,

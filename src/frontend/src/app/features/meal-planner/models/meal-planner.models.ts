@@ -1,5 +1,5 @@
 export type MealSlot = 'breakfast' | 'second-breakfast' | 'dinner' | 'snack' | 'supper';
-export type MealPlanItemType = 'recipe' | 'ingredient';
+export type MealPlanItemType = 'recipe' | 'ingredient' | 'prepared-meal';
 
 export interface MealParticipant {
   userId: string;
@@ -14,6 +14,10 @@ export interface MealPlanItem {
   type: MealPlanItemType;
   recipeId?: string | null;
   ingredientId?: string | null;
+  preparedMealId?: string | null;
+  parentMealPlanItemId?: string | null;
+  ingredientQuantity?: number | null;
+  ingredientUnit?: string | null;
   displayName: string;
   note?: string | null;
   sortOrder: number;
@@ -38,6 +42,8 @@ export interface AddMealPlanItemRequest {
   slot: MealSlot;
   recipeId?: string | null;
   ingredientId?: string | null;
+  preparedMealId?: string | null;
+  addons?: { ingredientId: string; quantity: number; unit: string }[];
   note?: string | null;
 }
 

@@ -136,13 +136,10 @@ public sealed class RecipeAuditServiceTests
 
         public Task<bool> RecipeExistsAsync(Guid recipeId, Guid ownerUserId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task<int> CountAsync(Guid recipeId, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<IReadOnlyList<RecipeImage>> ListAsync(Guid recipeId, bool tracked, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<RecipeImage?> GetAsync(Guid recipeId, Guid imageId, bool includeContent, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<int> UpdateAltTextAsync(Guid recipeId, Guid imageId, string? altText, DateTimeOffset updatedAtUtc, CancellationToken cancellationToken) => throw new NotSupportedException();
-        public Task<int> DeleteAsync(Guid recipeId, Guid imageId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<IReadOnlyList<RecipeImage>> ListAsync(Guid recipeId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<RecipeImage?> GetAsync(Guid recipeId, Guid imageId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task UpdateSortOrdersAsync(Guid recipeId, IReadOnlyList<Guid> imageIds, CancellationToken cancellationToken) => throw new NotSupportedException();
         public void Add(RecipeImage image) => throw new NotSupportedException();
-        public void Remove(RecipeImage image) => throw new NotSupportedException();
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

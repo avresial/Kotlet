@@ -1,9 +1,11 @@
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.MealPlanner;
 using Kotlet.Application.Recipes;
+using Kotlet.Application.PreparedMeals;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.MealPlanner;
 using Kotlet.Domain.Recipes;
+using Kotlet.Domain.PreparedMeals;
 using Xunit;
 
 namespace Kotlet.Application.UnitTests.MealPlanner;
@@ -47,6 +49,27 @@ public sealed class MealPlannerServiceTests
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
         Assert.Equal("ingredient", result.Item!.Type);
         Assert.Equal("Bread", result.Item.DisplayName);
+    }
+
+    [Fact]
+    public async Task AddItem_WithPreparedMeal_PersistsSelectedAddonsAsLinkedIngredientItems()
+    {
+        var meals = new FakeMealPlanRepository();
+        var preparedMeal = new PreparedMeal
+        {
+            Id = Guid.NewGuid(), HouseId = HouseId, Name = "Pierogi",
+            Addons = [new PreparedMealAddon { Id = Guid.NewGuid(), IngredientId = Bread.Id, Unit = "g", DefaultQuantity = new(50), IsRequired = true }]
+        };
+        var service = new MealPlannerService(meals, new FakeRecipeRepository(), new FakeIngredientRepository(Bread), new FakePreparedMealRepository(preparedMeal));
+
+        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+            new AddMealPlanItemRequest(Today, "dinner", null, null, null, preparedMeal.Id,
+                [new SelectedPreparedMealAddon(Bread.Id, 75, "g")]), CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        var parent = Assert.Single(meals.Items, item => item.PreparedMealId == preparedMeal.Id);
+        var addon = Assert.Single(meals.Items, item => item.ParentMealPlanItemId == parent.Id);
+        Assert.Equal((75m, "g", Bread.Id), (addon.IngredientQuantity, addon.IngredientUnit, addon.IngredientId));
     }
 
     [Fact]
@@ -644,6 +667,15 @@ public sealed class MealPlannerServiceTests
         public Task<bool> IsInUseAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(false);
         public void Add(Ingredient ingredient) => throw new NotSupportedException();
         public void Remove(Ingredient ingredient) => throw new NotSupportedException();
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class FakePreparedMealRepository(params PreparedMeal[] meals) : IPreparedMealRepository
+    {
+        public Task<IReadOnlyList<PreparedMeal>> ListAsync(Guid houseId, bool includeArchived, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<PreparedMeal>>(meals);
+        public Task<PreparedMeal?> GetAsync(Guid id, Guid houseId, bool tracked, CancellationToken cancellationToken) => Task.FromResult(meals.SingleOrDefault(x => x.Id == id && x.HouseId == houseId));
+        public void Add(PreparedMeal meal) => throw new NotSupportedException();
+        public void Remove(PreparedMeal meal) => throw new NotSupportedException();
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

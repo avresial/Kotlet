@@ -1,4 +1,5 @@
 using Kotlet.Domain.Sources;
+using Kotlet.Domain.Images;
 
 namespace Kotlet.Domain.Recipes;
 
@@ -6,7 +7,7 @@ namespace Kotlet.Domain.Recipes;
 public sealed class RecipeImageSource
 {
     public Guid RecipeImageId { get; set; }
-    public RecipeImage RecipeImage { get; set; } = null!;
+    public StoredImage Image { get; set; } = null!;
     public Guid SourceId { get; set; }
     public Source Source { get; set; } = null!;
 }
