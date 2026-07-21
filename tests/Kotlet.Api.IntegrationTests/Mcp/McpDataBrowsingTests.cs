@@ -29,9 +29,11 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         foreach (var tool in new[]
                  {
                      "get_recipes", "get_recipe", "get_ingredients",
-                     "get_shopping_list", "get_pantry", "get_meal_plan_overview", "get_meal_plan",
+                     "get_prepared_meals", "get_prepared_meal", "get_shopping_list", "get_pantry",
+                     "get_meal_plan_overview", "get_meal_plan",
                      "get_meal_plan_members", "add_recipe", "create_ingredient",
                      "check_recipe_exists",
+                     "add_prepared_meal", "update_prepared_meal", "remove_prepared_meal",
                      "add_pantry_item", "update_pantry_item", "remove_pantry_item",
                      "add_meal_to_plan", "add_meal_participants", "set_meal_participants",
                      "set_meal_participant_portion", "set_meal_guests", "set_meal_servings",
@@ -39,6 +41,83 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
                      "remove_meal_from_plan"
                  })
             Assert.Contains($"\"{tool}\"", body);
+    }
+
+    [Fact]
+    public async Task PreparedMeals_AreBrowsableAndEditableThroughTools()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+        var name = $"Frozen curry {Guid.NewGuid():N}";
+
+        var added = await CallTool(client, accessToken, "add_prepared_meal", new
+        {
+            request = new
+            {
+                name,
+                description = "A quick freezer meal",
+                brand = "Kotlet Foods",
+                store = "Local market",
+                category = "Dinner",
+                packageQuantity = 400,
+                packageUnit = "g",
+                servings = 2,
+                caloriesPerServing = 350,
+                price = 12.50m,
+                preparationInstructions = "Heat for 8 minutes.",
+                shoppingIngredientId = (Guid?)null,
+                addons = Array.Empty<object>()
+            }
+        });
+        var addedBody = await added.Content.ReadAsStringAsync();
+        Assert.Contains("\"Success\"", addedBody);
+        var preparedMealId = ExtractGuidAfter(addedBody, "\"id\":\"");
+
+        var list = await CallTool(client, accessToken, "get_prepared_meals", new { });
+        Assert.Contains(name, await list.Content.ReadAsStringAsync());
+
+        var updatedName = $"Updated {name}";
+        var updated = await CallTool(client, accessToken, "update_prepared_meal", new
+        {
+            preparedMealId,
+            request = new
+            {
+                name = updatedName,
+                description = "Ready even faster",
+                brand = "Kotlet Foods",
+                store = "Local market",
+                category = "Dinner",
+                packageQuantity = 400,
+                packageUnit = "g",
+                servings = 2,
+                caloriesPerServing = 340,
+                price = 11.50m,
+                preparationInstructions = "Heat for 7 minutes.",
+                shoppingIngredientId = (Guid?)null,
+                addons = Array.Empty<object>()
+            }
+        });
+        Assert.Contains(updatedName, await updated.Content.ReadAsStringAsync());
+
+        var detail = await CallTool(client, accessToken, "get_prepared_meal", new { preparedMealId });
+        Assert.Contains(updatedName, await detail.Content.ReadAsStringAsync());
+
+        var resource = await SendMcp(
+            client,
+            accessToken,
+            "resources/read",
+            new { uri = $"kotlet://prepared-meals/{preparedMealId}" });
+        Assert.Contains(updatedName, await resource.Content.ReadAsStringAsync());
+
+        var removed = await CallTool(client, accessToken, "remove_prepared_meal", new { preparedMealId });
+        Assert.Contains("true", (await removed.Content.ReadAsStringAsync()).ToLowerInvariant());
+
+        var active = await CallTool(client, accessToken, "get_prepared_meals", new { });
+        Assert.DoesNotContain(updatedName, await active.Content.ReadAsStringAsync());
+
+        var archived = await CallTool(client, accessToken, "get_prepared_meals", new { includeArchived = true });
+        var archivedBody = await archived.Content.ReadAsStringAsync();
+        Assert.Contains(updatedName, archivedBody);
+        Assert.Contains("\"isArchived\":true", archivedBody);
     }
 
     [Fact]

@@ -468,8 +468,12 @@ public sealed class RecipeImageServiceTests
                 RecipeId = recipeId,
                 Image = new StoredImage
                 {
-                    Id = Guid.NewGuid(), FileName = $"image-{sortOrder}.jpg", ContentType = "image/jpeg",
-                    FileSizeBytes = SampleContent.LongLength, Content = SampleContent, CreatedAtUtc = DateTimeOffset.UtcNow
+                    Id = Guid.NewGuid(),
+                    FileName = $"image-{sortOrder}.jpg",
+                    ContentType = "image/jpeg",
+                    FileSizeBytes = SampleContent.LongLength,
+                    Content = SampleContent,
+                    CreatedAtUtc = DateTimeOffset.UtcNow
                 },
                 SortOrder = sortOrder,
             };

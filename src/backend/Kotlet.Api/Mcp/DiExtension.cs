@@ -34,13 +34,15 @@ public static class DiExtension
         }));
         services.AddMcpServer(options => options.ServerInstructions =
                 """
-                Kotlet is a household food app: recipes, a shopping list, a pantry, and a meal planner.
+                Kotlet is a household food app: recipes, prepared meals, a shopping list, a pantry,
+                and a meal planner.
                 All data is scoped to the authenticated user's household; ingredients live in a catalog
                 shared by every household.
 
                 Browsing data: use get_recipes/get_recipe, get_ingredients,
-                get_shopping_list, get_pantry, and get_meal_plan_overview/get_meal_plan. Search tools
-                return resource links; the singular get_* tools and kotlet:// resources return full data.
+                get_prepared_meals/get_prepared_meal, get_shopping_list, get_pantry, and
+                get_meal_plan_overview/get_meal_plan. Search tools return resource links; the singular
+                get_* tools and kotlet:// resources return full data.
 
                 Adding a recipe (e.g. one found on the internet): follow the
                 kotlet://recipes/new-recipe-guide resource. In short: check for duplicates first with

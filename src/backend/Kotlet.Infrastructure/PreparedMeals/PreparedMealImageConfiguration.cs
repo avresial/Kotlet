@@ -6,12 +6,21 @@ namespace Kotlet.Infrastructure.PreparedMeals;
 
 internal sealed class PreparedMealImageConfiguration : IEntityTypeConfiguration<PreparedMealImage>
 {
-    public void Configure(EntityTypeBuilder<PreparedMealImage> b)
+    public void Configure(EntityTypeBuilder<PreparedMealImage> builder)
     {
-        b.ToTable("prepared_meal_images"); b.HasKey(x => x.Id); b.Property(x => x.Id).HasColumnName("id");
-        b.Property(x => x.PreparedMealId).HasColumnName("prepared_meal_id"); b.Property(x => x.SortOrder).HasColumnName("sort_order");
-        b.HasOne(x => x.Image).WithOne().HasForeignKey<PreparedMealImage>(x => x.Id).OnDelete(DeleteBehavior.Cascade);
-        b.HasOne(x => x.PreparedMeal).WithMany(x => x.Images).HasForeignKey(x => x.PreparedMealId).OnDelete(DeleteBehavior.Cascade);
-        b.HasIndex(x => new { x.PreparedMealId, x.SortOrder }).IsUnique();
+        builder.ToTable("prepared_meal_images");
+        builder.HasKey(image => image.Id);
+        builder.Property(image => image.Id).HasColumnName("id");
+        builder.Property(image => image.PreparedMealId).HasColumnName("prepared_meal_id");
+        builder.Property(image => image.SortOrder).HasColumnName("sort_order");
+        builder.HasOne(image => image.Image)
+            .WithOne()
+            .HasForeignKey<PreparedMealImage>(image => image.Id)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(image => image.PreparedMeal)
+            .WithMany(meal => meal.Images)
+            .HasForeignKey(image => image.PreparedMealId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(image => new { image.PreparedMealId, image.SortOrder }).IsUnique();
     }
 }

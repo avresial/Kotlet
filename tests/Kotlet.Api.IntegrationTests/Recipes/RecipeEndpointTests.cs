@@ -309,7 +309,7 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
                 descriptionMarkdown = (string?)null,
                 mealType = "dinner",
                 ingredients = ingredientIds.Select(id => new
-                    { ingredientId = id, quantity = 1m, unit = "g", note = (string?)null }).ToArray()
+                { ingredientId = id, quantity = 1m, unit = "g", note = (string?)null }).ToArray()
             });
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
             return (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
