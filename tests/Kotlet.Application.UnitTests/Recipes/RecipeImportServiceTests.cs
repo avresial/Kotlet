@@ -77,8 +77,13 @@ public sealed class RecipeImportServiceTests
 
     private static RecipeImportJob NewJob(RecipeImportJobStatus status) => new()
     {
-        Id = Guid.NewGuid(), HouseId = Guid.NewGuid(), UserId = Guid.NewGuid(), Url = "https://youtu.be/test",
-        Status = status, CreatedAtUtc = DateTimeOffset.UtcNow, UpdatedAtUtc = DateTimeOffset.UtcNow
+        Id = Guid.NewGuid(),
+        HouseId = Guid.NewGuid(),
+        UserId = Guid.NewGuid(),
+        Url = "https://youtu.be/test",
+        Status = status,
+        CreatedAtUtc = DateTimeOffset.UtcNow,
+        UpdatedAtUtc = DateTimeOffset.UtcNow
     };
 
     private sealed class FakeSignal : IRecipeImportSignal

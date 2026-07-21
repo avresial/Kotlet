@@ -6,7 +6,7 @@ namespace Kotlet.Api.Mcp;
 public static class McpEndpoints
 {
     private const string ServerName = "Kotlet";
-    private const string ServerDescription = "Kotlet recipe MCP server";
+    private const string ServerDescription = "Kotlet household food MCP server";
     private const string SupportedScope = "mcp";
 
     public static IEndpointRouteBuilder MapMcpDiscovery(this IEndpointRouteBuilder endpoints)

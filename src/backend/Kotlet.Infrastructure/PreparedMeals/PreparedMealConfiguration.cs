@@ -7,20 +7,42 @@ namespace Kotlet.Infrastructure.PreparedMeals;
 
 internal sealed class PreparedMealConfiguration : IEntityTypeConfiguration<PreparedMeal>
 {
-    public void Configure(EntityTypeBuilder<PreparedMeal> b)
+    public void Configure(EntityTypeBuilder<PreparedMeal> builder)
     {
-        b.ToTable("prepared_meals", t => t.HasCheckConstraint("ck_prepared_meals_values", "servings > 0 AND (price IS NULL OR price >= 0) AND (calories_per_serving IS NULL OR calories_per_serving >= 0)"));
-        b.HasKey(x => x.Id); b.Property(x => x.Id).HasColumnName("id"); b.Property(x => x.HouseId).HasColumnName("house_id");
-        b.Property(x => x.Name).HasColumnName("name").HasMaxLength(160).IsRequired(); b.Property(x => x.Description).HasColumnName("description");
-        b.Property(x => x.Brand).HasColumnName("brand").HasMaxLength(160); b.Property(x => x.Store).HasColumnName("store").HasMaxLength(160);
-        b.Property(x => x.Category).HasColumnName("category").HasMaxLength(160); b.Property(x => x.PackageQuantity).HasColumnName("package_quantity");
-        b.Property(x => x.PackageUnit).HasColumnName("package_unit").HasMaxLength(32); b.Property(x => x.Servings).HasColumnName("servings");
-        b.Property(x => x.CaloriesPerServing).HasColumnName("calories_per_serving");
-        b.Property(x => x.Price).HasColumnName("price");
-        b.Property(x => x.PreparationInstructions).HasColumnName("preparation_instructions"); b.Property(x => x.ShoppingIngredientId).HasColumnName("shopping_ingredient_id");
-        b.Property(x => x.IsArchived).HasColumnName("is_archived"); b.Property(x => x.CreatedAtUtc).HasColumnName("created_at_utc"); b.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at_utc");
-        b.HasOne<House>().WithMany().HasForeignKey(x => x.HouseId).OnDelete(DeleteBehavior.Cascade); b.HasOne(x => x.ShoppingIngredient).WithMany().HasForeignKey(x => x.ShoppingIngredientId).OnDelete(DeleteBehavior.Restrict);
-        b.HasMany(x => x.Addons).WithOne(x => x.PreparedMeal).HasForeignKey(x => x.PreparedMealId).OnDelete(DeleteBehavior.Cascade);
-        b.HasIndex(x => new { x.HouseId, x.Name });
+        builder.ToTable("prepared_meals", table => table.HasCheckConstraint(
+            "ck_prepared_meals_values",
+            "servings > 0 AND (price IS NULL OR price >= 0) " +
+            "AND (calories_per_serving IS NULL OR calories_per_serving >= 0)"));
+        builder.HasKey(meal => meal.Id);
+        builder.Property(meal => meal.Id).HasColumnName("id");
+        builder.Property(meal => meal.HouseId).HasColumnName("house_id");
+        builder.Property(meal => meal.Name).HasColumnName("name").HasMaxLength(160).IsRequired();
+        builder.Property(meal => meal.Description).HasColumnName("description");
+        builder.Property(meal => meal.Brand).HasColumnName("brand").HasMaxLength(160);
+        builder.Property(meal => meal.Store).HasColumnName("store").HasMaxLength(160);
+        builder.Property(meal => meal.Category).HasColumnName("category").HasMaxLength(160);
+        builder.Property(meal => meal.PackageQuantity).HasColumnName("package_quantity");
+        builder.Property(meal => meal.PackageUnit).HasColumnName("package_unit").HasMaxLength(32);
+        builder.Property(meal => meal.Servings).HasColumnName("servings");
+        builder.Property(meal => meal.CaloriesPerServing).HasColumnName("calories_per_serving");
+        builder.Property(meal => meal.Price).HasColumnName("price");
+        builder.Property(meal => meal.PreparationInstructions).HasColumnName("preparation_instructions");
+        builder.Property(meal => meal.ShoppingIngredientId).HasColumnName("shopping_ingredient_id");
+        builder.Property(meal => meal.IsArchived).HasColumnName("is_archived");
+        builder.Property(meal => meal.CreatedAtUtc).HasColumnName("created_at_utc");
+        builder.Property(meal => meal.UpdatedAtUtc).HasColumnName("updated_at_utc");
+        builder.HasOne<House>()
+            .WithMany()
+            .HasForeignKey(meal => meal.HouseId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(meal => meal.ShoppingIngredient)
+            .WithMany()
+            .HasForeignKey(meal => meal.ShoppingIngredientId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasMany(meal => meal.Addons)
+            .WithOne(addon => addon.PreparedMeal)
+            .HasForeignKey(addon => addon.PreparedMealId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(meal => new { meal.HouseId, meal.Name });
     }
 }

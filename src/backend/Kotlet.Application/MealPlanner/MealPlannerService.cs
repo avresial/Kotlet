@@ -91,10 +91,18 @@ public sealed class MealPlannerService(
         foreach (var addon in request.Addons ?? [])
             repository.Add(new MealPlanItem
             {
-                Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = request.Date, Slot = slot,
-                IngredientId = addon.IngredientId, ParentMealPlanItemId = item.Id,
-                IngredientQuantity = addon.Quantity, IngredientUnit = addon.Unit.Trim(),
-                SortOrder = ++existingCount, CreatedAt = item.CreatedAt, UpdatedAt = item.UpdatedAt
+                Id = Guid.NewGuid(),
+                HouseId = houseId,
+                UserId = userId,
+                Date = request.Date,
+                Slot = slot,
+                IngredientId = addon.IngredientId,
+                ParentMealPlanItemId = item.Id,
+                IngredientQuantity = addon.Quantity,
+                IngredientUnit = addon.Unit.Trim(),
+                SortOrder = ++existingCount,
+                CreatedAt = item.CreatedAt,
+                UpdatedAt = item.UpdatedAt
             });
         await repository.SaveChangesAsync(cancellationToken);
 
@@ -163,10 +171,18 @@ public sealed class MealPlannerService(
             {
                 repository.Add(new MealPlanItem
                 {
-                    Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = meal.Date, Slot = slot,
-                    IngredientId = addon.IngredientId, ParentMealPlanItemId = item.Id,
-                    IngredientQuantity = addon.Quantity, IngredientUnit = addon.Unit.Trim(),
-                    SortOrder = slotCounts[slotKey]++, CreatedAt = now, UpdatedAt = now
+                    Id = Guid.NewGuid(),
+                    HouseId = houseId,
+                    UserId = userId,
+                    Date = meal.Date,
+                    Slot = slot,
+                    IngredientId = addon.IngredientId,
+                    ParentMealPlanItemId = item.Id,
+                    IngredientQuantity = addon.Quantity,
+                    IngredientUnit = addon.Unit.Trim(),
+                    SortOrder = slotCounts[slotKey]++,
+                    CreatedAt = now,
+                    UpdatedAt = now
                 });
             }
             added.Add(item);
@@ -553,11 +569,23 @@ public sealed class MealPlannerService(
         var now = DateTimeOffset.UtcNow;
         var copies = source.ToDictionary(original => original.Id, original => new MealPlanItem
         {
-            Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = targetDate(original), Slot = original.Slot,
-            RecipeId = original.RecipeId, IngredientId = original.IngredientId, PreparedMealId = original.PreparedMealId,
-            IngredientQuantity = original.IngredientQuantity, IngredientUnit = original.IngredientUnit, Note = original.Note,
-            SortOrder = original.SortOrder, Servings = original.Servings, Guests = original.Guests, CreatedAt = now,
-            UpdatedAt = now, Participants = original.Participants.Select(participant => new MealPlanItemParticipant
+            Id = Guid.NewGuid(),
+            HouseId = houseId,
+            UserId = userId,
+            Date = targetDate(original),
+            Slot = original.Slot,
+            RecipeId = original.RecipeId,
+            IngredientId = original.IngredientId,
+            PreparedMealId = original.PreparedMealId,
+            IngredientQuantity = original.IngredientQuantity,
+            IngredientUnit = original.IngredientUnit,
+            Note = original.Note,
+            SortOrder = original.SortOrder,
+            Servings = original.Servings,
+            Guests = original.Guests,
+            CreatedAt = now,
+            UpdatedAt = now,
+            Participants = original.Participants.Select(participant => new MealPlanItemParticipant
             { UserId = participant.UserId, PortionPercent = participant.PortionPercent }).ToList()
         });
         foreach (var original in source)

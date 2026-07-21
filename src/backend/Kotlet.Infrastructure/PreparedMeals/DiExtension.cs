@@ -5,5 +5,8 @@ namespace Kotlet.Infrastructure.PreparedMeals;
 
 public static class DiExtension
 {
-    public static IServiceCollection AddPreparedMealsInfrastructure(this IServiceCollection services) => services.AddScoped<IPreparedMealRepository, PreparedMealRepository>().AddScoped<IPreparedMealImageRepository, PreparedMealImageRepository>();
+    public static IServiceCollection AddPreparedMealsInfrastructure(this IServiceCollection services) =>
+        services
+            .AddScoped<IPreparedMealRepository, PreparedMealRepository>()
+            .AddScoped<IPreparedMealImageRepository, PreparedMealImageRepository>();
 }
