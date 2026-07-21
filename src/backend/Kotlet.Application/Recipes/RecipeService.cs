@@ -151,11 +151,13 @@ public sealed class RecipeService(
         if (recipe is null)
             return RecipeOperationStatus.NotFound;
 
-        if (imageRepository is not null && imageStorage is not null)
-            foreach (var image in await imageRepository.ListAsync(id, cancellationToken))
-                await imageStorage.DeleteAsync(image.Id, cancellationToken);
+        var imageIds = imageRepository is not null && imageStorage is not null
+            ? (await imageRepository.ListAsync(id, cancellationToken)).Select(image => image.Id).ToList()
+            : [];
         repository.Remove(recipe);
         await repository.SaveChangesAsync(cancellationToken);
+        foreach (var imageId in imageIds)
+            await imageStorage!.DeleteAsync(imageId, cancellationToken);
         return RecipeOperationStatus.Success;
     }
 

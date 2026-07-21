@@ -1,8 +1,10 @@
 using Kotlet.Application.Recipes;
 using Kotlet.Application.Ingredients;
+using Kotlet.Application.Images;
 using Kotlet.Application.Measurements;
 using Kotlet.Application.Translations;
 using Kotlet.Domain.Common;
+using Kotlet.Domain.Images;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.MealPlanner;
 using Kotlet.Domain.Recipes;
@@ -414,6 +416,23 @@ public sealed class RecipeServiceTests
         Assert.Equal(0, repo.SaveCount);
     }
 
+    [Fact]
+    public async Task Delete_DoesNotDeleteImages_WhenRecipeSaveFails()
+    {
+        var recipe = MakeRecipe("Recipe", "recipe", OwnerId);
+        var image = new RecipeImage { Id = Guid.NewGuid(), RecipeId = recipe.Id };
+        var repo = new FakeRecipeRepository { ThrowOnSave = true };
+        var storedImages = new FakeStoredImageRepository();
+        repo.Recipes.Add(recipe);
+        var service = CreateService(repo, imageRepository: new FakeRecipeImageRepository(image),
+            imageStorage: new StoredImageService(storedImages, new FakeImageProcessor()));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.DeleteAsync(recipe.Id, OwnerId, CancellationToken.None));
+
+        Assert.Empty(storedImages.DeletedIds);
+    }
+
     // ---- CheckExists (duplicate detection) ----
 
     [Fact]
@@ -563,11 +582,13 @@ public sealed class RecipeServiceTests
         MeasurementUnit = "g"
     };
 
-    private static RecipeService CreateService(FakeRecipeRepository repository, FakeTranslationRepository? translations = null)
+    private static RecipeService CreateService(FakeRecipeRepository repository, FakeTranslationRepository? translations = null,
+        IRecipeImageRepository? imageRepository = null, StoredImageService? imageStorage = null)
     {
         var trans = translations ?? new FakeTranslationRepository();
         var mapper = new RecipeResponseMapper(new MeasurementMappingService(), trans);
-        return new(repository, new FakeIngredientRepository(Tomatoes, Garlic, Pasta), new MeasurementMappingService(), mapper);
+        return new(repository, new FakeIngredientRepository(Tomatoes, Garlic, Pasta), new MeasurementMappingService(), mapper,
+            imageRepository, imageStorage);
     }
 
     private static RecipeDuplicateDetectionService CreateDuplicateDetectionService(FakeRecipeRepository repository) =>
@@ -591,6 +612,7 @@ public sealed class RecipeServiceTests
     {
         public List<Recipe> Recipes { get; } = [];
         public int SaveCount { get; private set; }
+        public bool ThrowOnSave { get; init; }
 
         public Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
             Guid ownerUserId, int page, int pageSize, string? search, MealSlot? mealType,
@@ -633,7 +655,39 @@ public sealed class RecipeServiceTests
 
         public void Add(Recipe recipe) => Recipes.Add(recipe);
         public void Remove(Recipe recipe) => Recipes.Remove(recipe);
-        public Task SaveChangesAsync(CancellationToken cancellationToken) { SaveCount++; return Task.CompletedTask; }
+        public Task SaveChangesAsync(CancellationToken cancellationToken)
+        {
+            SaveCount++;
+            return ThrowOnSave ? Task.FromException(new InvalidOperationException("Save failed.")) : Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeRecipeImageRepository(params RecipeImage[] images) : IRecipeImageRepository
+    {
+        public Task<IReadOnlyList<RecipeImage>> ListAsync(Guid recipeId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<RecipeImage>>(images.Where(image => image.RecipeId == recipeId).ToList());
+        public Task<bool> RecipeExistsAsync(Guid recipeId, Guid ownerUserId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<int> CountAsync(Guid recipeId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<IReadOnlyDictionary<Guid, Guid>> GetFirstImageIdsAsync(IReadOnlyList<Guid> recipeIds, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<RecipeImage?> GetAsync(Guid recipeId, Guid imageId, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task UpdateSortOrdersAsync(Guid recipeId, IReadOnlyList<Guid> imageIds, CancellationToken cancellationToken) => throw new NotSupportedException();
+        public void Add(RecipeImage image) => throw new NotSupportedException();
+        public Task SaveChangesAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+    }
+
+    private sealed class FakeStoredImageRepository : IStoredImageRepository
+    {
+        public List<Guid> DeletedIds { get; } = [];
+        public Task DeleteAsync(Guid id, CancellationToken ct) { DeletedIds.Add(id); return Task.CompletedTask; }
+        public Task<StoredImage?> GetAsync(Guid id, bool includeContent, CancellationToken ct) => throw new NotSupportedException();
+        public void Add(StoredImage image) => throw new NotSupportedException();
+        public Task UpdateAltTextAsync(Guid id, string? altText, DateTimeOffset updatedAt, CancellationToken ct) => throw new NotSupportedException();
+    }
+
+    private sealed class FakeImageProcessor : IImageProcessor
+    {
+        public Task<ImageProcessingResult> ProcessAsync(Stream image, ImageProcessingOptions options, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 
     private sealed class FakeTranslationRepository : ITranslationRepository
