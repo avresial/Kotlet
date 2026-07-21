@@ -57,7 +57,9 @@ public sealed class MealPlannerServiceTests
         var meals = new FakeMealPlanRepository();
         var preparedMeal = new PreparedMeal
         {
-            Id = Guid.NewGuid(), HouseId = HouseId, Name = "Pierogi",
+            Id = Guid.NewGuid(),
+            HouseId = HouseId,
+            Name = "Pierogi",
             Addons = [new PreparedMealAddon { Id = Guid.NewGuid(), IngredientId = Bread.Id, Unit = "g", DefaultQuantity = new(50), IsRequired = true }]
         };
         var service = new MealPlannerService(meals, new FakeRecipeRepository(), new FakeIngredientRepository(Bread), new FakePreparedMealRepository(preparedMeal));

@@ -20,25 +20,49 @@ internal sealed class RecipeImageRepository(KotletDbContext dbContext) : IRecipe
             {
                 Id = i.Id,
                 RecipeId = i.RecipeId,
-                Image = new StoredImage { Id = i.Image.Id, FileName = i.Image.FileName, ContentType = i.Image.ContentType,
-                    FileSizeBytes = i.Image.FileSizeBytes, Content = Array.Empty<byte>(), AltText = i.Image.AltText,
-                    CreatedAtUtc = i.Image.CreatedAtUtc, UpdatedAtUtc = i.Image.UpdatedAtUtc,
-                    Sources = i.Image.Sources.Select(s => new RecipeImageSource { RecipeImageId = s.RecipeImageId,
-                        SourceId = s.SourceId, Source = s.Source }).ToList() },
+                Image = new StoredImage
+                {
+                    Id = i.Image.Id,
+                    FileName = i.Image.FileName,
+                    ContentType = i.Image.ContentType,
+                    FileSizeBytes = i.Image.FileSizeBytes,
+                    Content = Array.Empty<byte>(),
+                    AltText = i.Image.AltText,
+                    CreatedAtUtc = i.Image.CreatedAtUtc,
+                    UpdatedAtUtc = i.Image.UpdatedAtUtc,
+                    Sources = i.Image.Sources.Select(s => new RecipeImageSource
+                    {
+                        RecipeImageId = s.RecipeImageId,
+                        SourceId = s.SourceId,
+                        Source = s.Source
+                    }).ToList()
+                },
                 SortOrder = i.SortOrder,
             }).ToListAsync(ct);
     public Task<RecipeImage?> GetAsync(Guid recipeId, Guid imageId, CancellationToken ct) =>
         dbContext.RecipeImages.AsNoTracking().Where(i => i.RecipeId == recipeId && i.Id == imageId).Select(i => new RecipeImage
+        {
+            Id = i.Id,
+            RecipeId = i.RecipeId,
+            Image = new StoredImage
             {
-                Id = i.Id,
-                RecipeId = i.RecipeId,
-                Image = new StoredImage { Id = i.Image.Id, FileName = i.Image.FileName, ContentType = i.Image.ContentType,
-                    FileSizeBytes = i.Image.FileSizeBytes, Content = Array.Empty<byte>(), AltText = i.Image.AltText,
-                    CreatedAtUtc = i.Image.CreatedAtUtc, UpdatedAtUtc = i.Image.UpdatedAtUtc,
-                    Sources = i.Image.Sources.Select(s => new RecipeImageSource { RecipeImageId = s.RecipeImageId,
-                        SourceId = s.SourceId, Source = s.Source }).ToList() },
-                SortOrder = i.SortOrder,
-            }).SingleOrDefaultAsync(ct);
+                Id = i.Image.Id,
+                FileName = i.Image.FileName,
+                ContentType = i.Image.ContentType,
+                FileSizeBytes = i.Image.FileSizeBytes,
+                Content = Array.Empty<byte>(),
+                AltText = i.Image.AltText,
+                CreatedAtUtc = i.Image.CreatedAtUtc,
+                UpdatedAtUtc = i.Image.UpdatedAtUtc,
+                Sources = i.Image.Sources.Select(s => new RecipeImageSource
+                {
+                    RecipeImageId = s.RecipeImageId,
+                    SourceId = s.SourceId,
+                    Source = s.Source
+                }).ToList()
+            },
+            SortOrder = i.SortOrder,
+        }).SingleOrDefaultAsync(ct);
     public async Task<IReadOnlyDictionary<Guid, Guid>> GetFirstImageIdsAsync(IReadOnlyList<Guid> recipeIds, CancellationToken ct)
     {
         var images = await dbContext.RecipeImages

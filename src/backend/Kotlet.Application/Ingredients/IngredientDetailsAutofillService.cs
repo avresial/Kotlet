@@ -77,7 +77,12 @@ public sealed class IngredientDetailsAutofillService(
         long flags = 0;
         foreach (var name in names ?? [])
         {
-            if (!Enum.TryParse<T>(name, true, out var value) || Convert.ToInt64(value) == 0) { result = default; return false; }
+            if (!Enum.TryParse<T>(name, true, out var value) || Convert.ToInt64(value) == 0)
+            {
+                result = default;
+                return false;
+            }
+
             flags |= Convert.ToInt64(value);
         }
         result = (T)Enum.ToObject(typeof(T), flags);

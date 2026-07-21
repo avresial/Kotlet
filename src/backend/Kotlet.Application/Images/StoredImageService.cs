@@ -17,7 +17,9 @@ public sealed class StoredImageService(IStoredImageRepository repository, IImage
     private static readonly HashSet<string> AllowedTypes = ["image/jpeg", "image/png", "image/webp"];
     private static readonly Dictionary<string, string[]> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["image/jpeg"] = [".jpg", ".jpeg"], ["image/png"] = [".png"], ["image/webp"] = [".webp"]
+        ["image/jpeg"] = [".jpg", ".jpeg"],
+        ["image/png"] = [".png"],
+        ["image/webp"] = [".webp"]
     };
 
     public async Task<StoredImageCreateResult> CreateAsync(string fileName, string contentType, byte[] content,
@@ -26,12 +28,30 @@ public sealed class StoredImageService(IStoredImageRepository repository, IImage
         var errors = Validate(fileName, contentType, content, altText, source);
         if (errors.Count > 0) return new(null, errors);
         ImageProcessingResult processed;
-        try { using var stream = new MemoryStream(content, false); processed = await processor.ProcessAsync(stream, new(ProcessedMaxWidth, ProcessedMaxHeight), ct); }
-        catch (InvalidImageException) { return new(null, new Dictionary<string, string[]> { ["file"] = ["The file is not a valid image."] }); }
+        try
+        {
+            using var stream = new MemoryStream(content, false);
+            processed = await processor.ProcessAsync(
+                stream,
+                new(ProcessedMaxWidth, ProcessedMaxHeight),
+                ct);
+        }
+        catch (InvalidImageException)
+        {
+            return new(null, new Dictionary<string, string[]>
+            {
+                ["file"] = ["The file is not a valid image."]
+            });
+        }
         var image = new StoredImage
         {
-            Id = Guid.NewGuid(), FileName = Path.ChangeExtension(Path.GetFileName(fileName), ".webp"), ContentType = processed.ContentType,
-            FileSizeBytes = processed.Content.LongLength, Content = processed.Content, AltText = altText?.Trim(), CreatedAtUtc = DateTimeOffset.UtcNow,
+            Id = Guid.NewGuid(),
+            FileName = Path.ChangeExtension(Path.GetFileName(fileName), ".webp"),
+            ContentType = processed.ContentType,
+            FileSizeBytes = processed.Content.LongLength,
+            Content = processed.Content,
+            AltText = altText?.Trim(),
+            CreatedAtUtc = DateTimeOffset.UtcNow,
             Sources = source is null ? [] : [new RecipeImageSource { Source = new Source { Id = Guid.NewGuid(), Type = SourceType.ExternalImage,
                 Provider = source.Provider.Trim(), ExternalId = source.ExternalId?.Trim(), Url = source.Url?.Trim(), AuthorName = source.AuthorName?.Trim(),
                 AuthorUrl = source.AuthorUrl?.Trim(), RetrievedAtUtc = DateTimeOffset.UtcNow } }]

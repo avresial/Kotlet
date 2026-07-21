@@ -39,8 +39,13 @@ public sealed class RecipeImportService(
         var now = DateTimeOffset.UtcNow;
         var job = new RecipeImportJob
         {
-            Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Url = uri.ToString(),
-            Status = RecipeImportJobStatus.Pending, CreatedAtUtc = now, UpdatedAtUtc = now
+            Id = Guid.NewGuid(),
+            HouseId = houseId,
+            UserId = userId,
+            Url = uri.ToString(),
+            Status = RecipeImportJobStatus.Pending,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
         };
         jobs.Add(job);
         await jobs.SaveChangesAsync(cancellationToken);
@@ -119,11 +124,16 @@ public sealed class RecipeImportService(
             var unit = CanonicalUnit(line.Unit!);
             var ingredient = new Ingredient
             {
-                Id = Guid.NewGuid(), Name = name, MeasurementUnit = IsVolume(unit) ? "ml" : "g",
+                Id = Guid.NewGuid(),
+                Name = name,
+                MeasurementUnit = IsVolume(unit) ? "ml" : "g",
                 // ponytail: one base unit per piece until imports can collect weight-per-piece metadata.
-                IsCountable = unit == "piece", MeasurementUnitsPerPiece = unit == "piece" ? 1 : null,
-                CaloriesPer100BaseUnits = Calories.Zero, PricePer100BaseUnits = Price.Zero,
-                IsAiModified = true, CreatedAtUtc = DateTimeOffset.UtcNow
+                IsCountable = unit == "piece",
+                MeasurementUnitsPerPiece = unit == "piece" ? 1 : null,
+                CaloriesPer100BaseUnits = Calories.Zero,
+                PricePer100BaseUnits = Price.Zero,
+                IsAiModified = true,
+                CreatedAtUtc = DateTimeOffset.UtcNow
             };
             proposed.Add(name, ingredient);
             ingredients.Add(ingredient);
@@ -141,9 +151,14 @@ public sealed class RecipeImportService(
                 return Validation("ingredients", $"Unsupported measurement '{line.Unit}' for {line.Name}.");
             recipeIngredients.Add(new RecipeIngredient
             {
-                Id = Guid.NewGuid(), RecipeId = recipeId, IngredientId = ingredient.Id, Ingredient = ingredient,
-                SortOrder = i, NormalizedQuantity = Quantity.FromAmount(normalized.Quantity),
-                NormalizedUnit = normalized.Unit, Note = line.Note?.Trim()
+                Id = Guid.NewGuid(),
+                RecipeId = recipeId,
+                IngredientId = ingredient.Id,
+                Ingredient = ingredient,
+                SortOrder = i,
+                NormalizedQuantity = Quantity.FromAmount(normalized.Quantity),
+                NormalizedUnit = normalized.Unit,
+                Note = line.Note?.Trim()
             });
         }
 
@@ -152,9 +167,17 @@ public sealed class RecipeImportService(
         var now = DateTimeOffset.UtcNow;
         recipes.Add(new Recipe
         {
-            Id = recipeId, HouseId = houseId, OwnerUserId = userId, Title = title, Slug = slug,
-            DescriptionMarkdown = draft.InstructionsMarkdown.Trim(), Servings = ServingCount.FromInt32(draft.Servings),
-            IsAiAssisted = true, SourceUrl = job.Url, CreatedAtUtc = now, UpdatedAtUtc = now,
+            Id = recipeId,
+            HouseId = houseId,
+            OwnerUserId = userId,
+            Title = title,
+            Slug = slug,
+            DescriptionMarkdown = draft.InstructionsMarkdown.Trim(),
+            Servings = ServingCount.FromInt32(draft.Servings),
+            IsAiAssisted = true,
+            SourceUrl = job.Url,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now,
             Ingredients = recipeIngredients,
             Sources =
             [
@@ -206,21 +229,30 @@ public sealed class RecipeImportService(
 
     private static string CanonicalUnit(string unit) => unit.Trim().ToLowerInvariant() switch
     {
-        "cups" => "cup", "tablespoon" or "tablespoons" => "tbsp",
-        "teaspoon" or "teaspoons" => "tsp", "pieces" => "piece", var value => value
+        "cups" => "cup",
+        "tablespoon" or "tablespoons" => "tbsp",
+        "teaspoon" or "teaspoons" => "tsp",
+        "pieces" => "piece",
+        var value => value
     };
     private static bool IsVolume(string unit) => unit is "ml" or "l" or "cup" or "tbsp" or "tsp";
 
     private async Task SetStatusAsync(RecipeImportJob job, RecipeImportJobStatus status, CancellationToken cancellationToken)
     {
-        job.Status = status; job.ErrorReason = null; job.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        job.Status = status;
+        job.ErrorReason = null;
+        job.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await jobs.SaveChangesAsync(cancellationToken);
     }
+
     private async Task FailAsync(RecipeImportJob job, string reason, CancellationToken cancellationToken)
     {
-        job.Status = RecipeImportJobStatus.Failed; job.ErrorReason = reason; job.UpdatedAtUtc = DateTimeOffset.UtcNow;
+        job.Status = RecipeImportJobStatus.Failed;
+        job.ErrorReason = reason;
+        job.UpdatedAtUtc = DateTimeOffset.UtcNow;
         await jobs.SaveChangesAsync(cancellationToken);
     }
+
     private static RecipeImportOperationResult Validation(string key, string message) =>
         new(RecipeImportOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]> { [key] = [message] });
     private static string TranscriptError(VideoTranscriptStatus status) => status switch
