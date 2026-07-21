@@ -12,6 +12,8 @@ import { IngredientPicker } from '../../../ingredients/components/ingredient-pic
 import { RecipeDetail, RecipeSummary } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { RecipePicker } from '../../../recipes/components/recipe-picker/recipe-picker';
+import { PreparedMeal } from '../../../prepared-meals/prepared-meal.models';
+import { PreparedMealService } from '../../../prepared-meals/prepared-meal.service';
 import { DailyMealPlan, HouseMember, MealParticipant, MealPlanItem, MealPlanItemType, MealPlanOverviewDay, MealSlot } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
 import { ShoppingListIntegrationService } from '../../services/shopping-list-integration.service';
@@ -56,6 +58,7 @@ export class MealPlannerPage implements OnInit {
   private readonly service = inject(MealPlannerService);
   private readonly recipeService = inject(RecipeService);
   private readonly ingredientService = inject(IngredientService);
+  private readonly preparedMealService = inject(PreparedMealService);
   private readonly shoppingListIntegration = inject(ShoppingListIntegrationService);
   private readonly translations = inject(TranslationService);
   private readonly route = inject(ActivatedRoute);
@@ -96,12 +99,15 @@ export class MealPlannerPage implements OnInit {
   readonly recipes = signal<RecipeSummary[]>([]);
   readonly recipeDetails = signal<Record<string, RecipeDetail>>({});
   readonly ingredients = signal<Ingredient[]>([]);
+  readonly preparedMeals = signal<PreparedMeal[]>([]);
   readonly isLoadingOptions = signal(true);
 
   readonly members = signal<HouseMember[]>([]);
 
   readonly selectedRecipeId = signal<Record<MealSlot, string>>({ breakfast: '', 'second-breakfast': '', dinner: '', snack: '', supper: '' });
   readonly selectedIngredientId = signal<Record<MealSlot, string>>({ breakfast: '', 'second-breakfast': '', dinner: '', snack: '', supper: '' });
+  readonly selectedPreparedMealId = signal<Record<MealSlot, string>>({ breakfast: '', 'second-breakfast': '', dinner: '', snack: '', supper: '' });
+  readonly preparedAddonSelections = signal<Record<string, { selected: boolean; quantity: number }>>({});
   readonly addingSlot = signal<string | null>(null);
   readonly removingId = signal<string | null>(null);
   readonly busyItemId = signal<string | null>(null);
@@ -184,8 +190,9 @@ export class MealPlannerPage implements OnInit {
     this.isLoadingOptions.set(true);
     let recipesLoaded = false;
     let ingredientsLoaded = false;
+    let preparedMealsLoaded = false;
     const checkDone = () => {
-      if (recipesLoaded && ingredientsLoaded) this.isLoadingOptions.set(false);
+      if (recipesLoaded && ingredientsLoaded && preparedMealsLoaded) this.isLoadingOptions.set(false);
     };
 
     this.recipeService.list(1, 100).subscribe({
@@ -196,6 +203,10 @@ export class MealPlannerPage implements OnInit {
     this.ingredientService.getAll().subscribe({
       next: (items) => { this.ingredients.set(items); ingredientsLoaded = true; checkDone(); },
       error: () => { ingredientsLoaded = true; checkDone(); },
+    });
+    this.preparedMealService.list().subscribe({
+      next: (items) => { this.preparedMeals.set(items); preparedMealsLoaded = true; checkDone(); },
+      error: () => { preparedMealsLoaded = true; checkDone(); },
     });
   }
 
@@ -320,6 +331,20 @@ export class MealPlannerPage implements OnInit {
         this.loadOverview();
       },
       error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.addIngredientError'))),
+    });
+  }
+
+  addPreparedMeal(slot: MealSlot): void {
+    const preparedMealId = this.selectedPreparedMealId()[slot];
+    const meal = this.preparedMeals().find(value => value.id === preparedMealId);
+    if (!meal || this.addingSlot()) return;
+    this.addingSlot.set(`prepared-meal-${slot}`);
+    const selections = this.preparedAddonSelections();
+    const addons = meal.addons.filter(addon => addon.isRequired || selections[`${slot}-${addon.id}`]?.selected)
+      .map(addon => ({ ingredientId: addon.ingredientId, quantity: selections[`${slot}-${addon.id}`]?.quantity ?? addon.quantity, unit: addon.unit }));
+    this.service.addItem({ date: this.selectedDate(), slot, preparedMealId, addons }).pipe(finalize(() => this.addingSlot.set(null))).subscribe({
+      next: () => { this.selectedPreparedMealId.update(value => ({ ...value, [slot]: '' })); this.composer.update(value => ({ ...value, [slot]: null })); this.loadPlan(); this.loadOverview(); },
+      error: (err) => this.planError.set(getApiError(err, this.translations.translate('preparedMeals.saveError'))),
     });
   }
 
@@ -627,6 +652,16 @@ export class MealPlannerPage implements OnInit {
     if (value) this.addIngredient(slot);
   }
 
+  setSelectedPreparedMealId(slot: MealSlot, value: string): void {
+    this.selectedPreparedMealId.update(s => ({ ...s, [slot]: value }));
+    const meal = this.preparedMeals().find(candidate => candidate.id === value);
+    if (meal) this.preparedAddonSelections.update(selections => ({ ...selections, ...Object.fromEntries(meal.addons.map(addon => [`${slot}-${addon.id}`, { selected: addon.isSelectedByDefault || addon.isRequired, quantity: addon.quantity }])) }));
+  }
+
+  preparedMealForSlot(slot: MealSlot): PreparedMeal | undefined { return this.preparedMeals().find(meal => meal.id === this.selectedPreparedMealId()[slot]); }
+  setPreparedAddonSelected(slot: MealSlot, addonId: string, selected: boolean): void { this.preparedAddonSelections.update(value => ({ ...value, [`${slot}-${addonId}`]: { ...(value[`${slot}-${addonId}`] ?? { quantity: 1 }), selected } })); }
+  setPreparedAddonQuantity(slot: MealSlot, addonId: string, quantity: number): void { this.preparedAddonSelections.update(value => ({ ...value, [`${slot}-${addonId}`]: { ...(value[`${slot}-${addonId}`] ?? { selected: true }), quantity } })); }
+
   openComposer(slot: MealSlot, type: MealPlanItemType): void {
     this.composer.update((value) => ({ ...value, [slot]: type }));
   }
@@ -634,6 +669,7 @@ export class MealPlannerPage implements OnInit {
   closeComposer(slot: MealSlot): void {
     this.selectedRecipeId.update((value) => ({ ...value, [slot]: '' }));
     this.selectedIngredientId.update((value) => ({ ...value, [slot]: '' }));
+    this.selectedPreparedMealId.update((value) => ({ ...value, [slot]: '' }));
     this.composer.update((value) => ({ ...value, [slot]: null }));
   }
 

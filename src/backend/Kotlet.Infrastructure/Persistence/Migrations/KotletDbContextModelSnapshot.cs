@@ -372,6 +372,52 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.ToTable("house_memberships", "kotlet");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.Images.StoredImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AltText")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("alt_text");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)")
+                        .HasColumnName("file_name");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size_bytes");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("images", "kotlet");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.Ingredients.Ingredient", b =>
                 {
                     b.Property<Guid>("Id")
@@ -487,9 +533,26 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("ingredient_id");
 
+                    b.Property<decimal?>("IngredientQuantity")
+                        .HasColumnType("numeric")
+                        .HasColumnName("ingredient_quantity");
+
+                    b.Property<string>("IngredientUnit")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("ingredient_unit");
+
                     b.Property<string>("Note")
                         .HasColumnType("text")
                         .HasColumnName("note");
+
+                    b.Property<Guid?>("ParentMealPlanItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_meal_plan_item_id");
+
+                    b.Property<Guid?>("PreparedMealId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("prepared_meal_id");
 
                     b.Property<Guid?>("RecipeId")
                         .HasColumnType("uuid")
@@ -517,6 +580,10 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ParentMealPlanItemId");
+
+                    b.HasIndex("PreparedMealId");
+
                     b.HasIndex("HouseId", "Date")
                         .HasDatabaseName("ix_meal_plan_items_house_date");
 
@@ -528,7 +595,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
                     b.ToTable("meal_plan_items", "kotlet", t =>
                         {
-                            t.HasCheckConstraint("CK_meal_plan_items_recipe_or_ingredient", "(recipe_id IS NOT NULL AND ingredient_id IS NULL) OR (recipe_id IS NULL AND ingredient_id IS NOT NULL)");
+                            t.HasCheckConstraint("CK_meal_plan_items_one_source", "(CASE WHEN recipe_id IS NULL THEN 0 ELSE 1 END + CASE WHEN ingredient_id IS NULL THEN 0 ELSE 1 END + CASE WHEN prepared_meal_id IS NULL THEN 0 ELSE 1 END) = 1");
                         });
                 });
 
@@ -596,6 +663,167 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ux_pantry_items_house_ingredient");
 
                     b.ToTable("pantry_items", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.PreparedMeals.PreparedMeal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Brand")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("brand");
+
+                    b.Property<decimal?>("CaloriesPerServing")
+                        .HasColumnType("numeric")
+                        .HasColumnName("calories_per_serving");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_archived");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("name");
+
+                    b.Property<decimal?>("PackageQuantity")
+                        .HasColumnType("numeric")
+                        .HasColumnName("package_quantity");
+
+                    b.Property<string>("PackageUnit")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("package_unit");
+
+                    b.Property<string>("PreparationInstructions")
+                        .HasColumnType("text")
+                        .HasColumnName("preparation_instructions");
+
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("numeric")
+                        .HasColumnName("price");
+
+                    b.Property<int>("Servings")
+                        .HasColumnType("integer")
+                        .HasColumnName("servings");
+
+                    b.Property<Guid?>("ShoppingIngredientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("shopping_ingredient_id");
+
+                    b.Property<string>("Store")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("store");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShoppingIngredientId");
+
+                    b.HasIndex("HouseId", "Name");
+
+                    b.ToTable("prepared_meals", "kotlet", t =>
+                        {
+                            t.HasCheckConstraint("ck_prepared_meals_values", "servings > 0 AND (price IS NULL OR price >= 0) AND (calories_per_serving IS NULL OR calories_per_serving >= 0)");
+                        });
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.PreparedMeals.PreparedMealAddon", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("DefaultQuantity")
+                        .HasColumnType("numeric")
+                        .HasColumnName("default_quantity");
+
+                    b.Property<Guid>("IngredientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ingredient_id");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_required");
+
+                    b.Property<bool>("IsSelectedByDefault")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_selected_by_default");
+
+                    b.Property<Guid>("PreparedMealId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("prepared_meal_id");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("unit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("PreparedMealId", "IngredientId")
+                        .IsUnique();
+
+                    b.ToTable("prepared_meal_addons", "kotlet", t =>
+                        {
+                            t.HasCheckConstraint("ck_prepared_meal_addons_quantity", "default_quantity > 0");
+                        });
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.PreparedMeals.PreparedMealImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("PreparedMealId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("prepared_meal_id");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PreparedMealId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("prepared_meal_images", "kotlet");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Recipes.Recipe", b =>
@@ -679,39 +907,8 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImage", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
-
-                    b.Property<string>("AltText")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)")
-                        .HasColumnName("alt_text");
-
-                    b.Property<byte[]>("Content")
-                        .IsRequired()
-                        .HasColumnType("bytea")
-                        .HasColumnName("content");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("content_type");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(260)
-                        .HasColumnType("character varying(260)")
-                        .HasColumnName("file_name");
-
-                    b.Property<long>("FileSizeBytes")
-                        .HasColumnType("bigint")
-                        .HasColumnName("file_size_bytes");
 
                     b.Property<Guid>("RecipeId")
                         .HasColumnType("uuid")
@@ -720,10 +917,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer")
                         .HasColumnName("sort_order");
-
-                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at_utc");
 
                     b.HasKey("Id");
 
@@ -741,7 +934,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("RecipeImageId")
                         .HasColumnType("uuid")
-                        .HasColumnName("recipe_image_id");
+                        .HasColumnName("image_id");
 
                     b.Property<Guid>("SourceId")
                         .HasColumnType("uuid")
@@ -752,7 +945,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.HasIndex("SourceId")
                         .HasDatabaseName("ix_recipe_image_sources_source_id");
 
-                    b.ToTable("recipe_image_sources", "kotlet");
+                    b.ToTable("image_sources", "kotlet");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImportJob", b =>
@@ -1342,6 +1535,20 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasForeignKey("HouseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.MealPlanner.MealPlanItem", "ParentMealPlanItem")
+                        .WithMany("AddonItems")
+                        .HasForeignKey("ParentMealPlanItemId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Kotlet.Domain.PreparedMeals.PreparedMeal", "PreparedMeal")
+                        .WithMany()
+                        .HasForeignKey("PreparedMealId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentMealPlanItem");
+
+                    b.Navigation("PreparedMeal");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.MealPlanner.MealPlanItemParticipant", b =>
@@ -1382,6 +1589,60 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("Ingredient");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.PreparedMeals.PreparedMeal", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Houses.House", null)
+                        .WithMany()
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.Ingredients.Ingredient", "ShoppingIngredient")
+                        .WithMany()
+                        .HasForeignKey("ShoppingIngredientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ShoppingIngredient");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.PreparedMeals.PreparedMealAddon", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Ingredients.Ingredient", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.PreparedMeals.PreparedMeal", "PreparedMeal")
+                        .WithMany("Addons")
+                        .HasForeignKey("PreparedMealId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("PreparedMeal");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.PreparedMeals.PreparedMealImage", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Images.StoredImage", "Image")
+                        .WithOne()
+                        .HasForeignKey("Kotlet.Domain.PreparedMeals.PreparedMealImage", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.PreparedMeals.PreparedMeal", "PreparedMeal")
+                        .WithMany("Images")
+                        .HasForeignKey("PreparedMealId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Image");
+
+                    b.Navigation("PreparedMeal");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.Recipes.Recipe", b =>
                 {
                     b.HasOne("Kotlet.Domain.Houses.House", null)
@@ -1393,18 +1654,26 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImage", b =>
                 {
+                    b.HasOne("Kotlet.Domain.Images.StoredImage", "Image")
+                        .WithOne()
+                        .HasForeignKey("Kotlet.Domain.Recipes.RecipeImage", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Kotlet.Domain.Recipes.Recipe", "Recipe")
                         .WithMany("Images")
                         .HasForeignKey("RecipeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Image");
+
                     b.Navigation("Recipe");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImageSource", b =>
                 {
-                    b.HasOne("Kotlet.Domain.Recipes.RecipeImage", "RecipeImage")
+                    b.HasOne("Kotlet.Domain.Images.StoredImage", "Image")
                         .WithMany("Sources")
                         .HasForeignKey("RecipeImageId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1416,7 +1685,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("RecipeImage");
+                    b.Navigation("Image");
 
                     b.Navigation("Source");
                 });
@@ -1553,9 +1822,23 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("ShoppingListItems");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.Images.StoredImage", b =>
+                {
+                    b.Navigation("Sources");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.MealPlanner.MealPlanItem", b =>
                 {
+                    b.Navigation("AddonItems");
+
                     b.Navigation("Participants");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.PreparedMeals.PreparedMeal", b =>
+                {
+                    b.Navigation("Addons");
+
+                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Recipes.Recipe", b =>
@@ -1564,11 +1847,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
                     b.Navigation("Ingredients");
 
-                    b.Navigation("Sources");
-                });
-
-            modelBuilder.Entity("Kotlet.Domain.Recipes.RecipeImage", b =>
-                {
                     b.Navigation("Sources");
                 });
 

@@ -42,9 +42,9 @@ public sealed class RecipeResponseMapper(
             firstImageUrl, recipe.IsAiAssisted, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
     }
 
-    public static RecipeImageResponse ToImageResponse(RecipeImage i) => new(i.Id, i.RecipeId, i.FileName,
-        i.ContentType, i.FileSizeBytes, i.AltText, i.SortOrder,
-        $"/api/recipes/{i.RecipeId}/images/{i.Id}/content", i.CreatedAtUtc,
+    public static RecipeImageResponse ToImageResponse(RecipeImage i) => new(i.Id, i.RecipeId, i.Image.FileName,
+        i.Image.ContentType, i.Image.FileSizeBytes, i.Image.AltText, i.SortOrder,
+        $"/api/recipes/{i.RecipeId}/images/{i.Id}/content", i.Image.CreatedAtUtc,
         SourceAttributionResponse.FromPrimarySource(i));
 
     private Task<IReadOnlyDictionary<string, string>> LoadTranslationsAsync(string languageCode, CancellationToken cancellationToken) =>

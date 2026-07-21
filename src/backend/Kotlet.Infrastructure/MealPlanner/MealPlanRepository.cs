@@ -20,6 +20,7 @@ internal sealed class MealPlanRepository(KotletDbContext dbContext) : IMealPlanR
     public Task<MealPlanItem?> GetByIdAsync(Guid id, Guid houseId, CancellationToken cancellationToken) =>
         dbContext.MealPlanItems
             .Include(m => m.Participants)
+            .Include(m => m.AddonItems)
             .FirstOrDefaultAsync(
                 m => m.Id == id && m.HouseId == houseId,
                 cancellationToken);

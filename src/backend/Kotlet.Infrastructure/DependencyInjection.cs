@@ -9,6 +9,7 @@ using Kotlet.Infrastructure.Images;
 using Kotlet.Infrastructure.Ingredients;
 using Kotlet.Infrastructure.MealPlanner;
 using Kotlet.Infrastructure.Pantry;
+using Kotlet.Infrastructure.PreparedMeals;
 using Kotlet.Infrastructure.Persistence;
 using Kotlet.Infrastructure.Recipes;
 using Kotlet.Infrastructure.RecipeImageSearch;
@@ -30,9 +31,11 @@ public static class DependencyInjection
         .AddAuthInfrastructure()
         .AddHousesInfrastructure()
         .AddSingleton<IImageProcessor, ImageSharpImageProcessor>()
+        .AddScoped<IStoredImageRepository, StoredImageRepository>()
         .AddIngredientsInfrastructure()
         .AddMealPlannerInfrastructure()
         .AddPantryInfrastructure()
+        .AddPreparedMealsInfrastructure()
         .AddRecipesInfrastructure()
         .AddRecipeImageSearchInfrastructure(configuration)
         .AddShoppingInfrastructure()

@@ -93,6 +93,7 @@
               <div class="add-buttons" [attr.aria-label]="('meal.addTo' | t) + ' ' + slotLabels()[slot]">
                 <button type="button" class="text-button" (click)="openComposer(slot, 'recipe')">+ {{ 'recipes.recipe' | t }}</button>
                 <button type="button" class="text-button" (click)="openComposer(slot, 'ingredient')">+ {{ 'common.ingredient' | t }}</button>
+                <button type="button" class="text-button" (click)="openComposer(slot, 'prepared-meal')">+ {{ 'nav.preparedMeals' | t }}</button>
               </div>
             }
           </div>
@@ -320,7 +321,7 @@
                     [disabled]="isAdding('recipe', slot)"
                     [ariaLabel]="('meal.selectRecipeFor' | t) + ' ' + slotLabels()[slot]"
                   />
-                } @else {
+                } @else if (composer()[slot] === 'ingredient') {
                   <app-ingredient-picker
                     [ingredients]="ingredients()"
                     [ngModel]="selectedIngredientId()[slot]"
@@ -328,6 +329,19 @@
                     [disabled]="isAdding('ingredient', slot)"
                     [ariaLabel]="('meal.selectIngredientFor' | t) + ' ' + slotLabels()[slot]"
                   />
+                } @else {
+                  <div><select [ngModel]="selectedPreparedMealId()[slot]" (ngModelChange)="setSelectedPreparedMealId(slot, $event)" [attr.aria-label]="'nav.preparedMeals' | t">
+                      <option value="">{{ 'nav.preparedMeals' | t }}</option>
+                      @for (meal of preparedMeals(); track meal.id) { <option [value]="meal.id">{{ meal.name }}</option> }
+                    </select>
+                    @if (preparedMealForSlot(slot); as meal) {
+                      @for (addon of meal.addons; track addon.id) {
+                        <label><input type="checkbox" [checked]="addon.isRequired || preparedAddonSelections()[slot + '-' + addon.id]?.selected" [disabled]="addon.isRequired" (change)="setPreparedAddonSelected(slot, addon.id, $any($event.target).checked)" /> {{ addon.ingredientName }}
+                          <input type="number" min="0.01" step="0.01" [ngModel]="preparedAddonSelections()[slot + '-' + addon.id]?.quantity" (ngModelChange)="setPreparedAddonQuantity(slot, addon.id, $event)" /> {{ addon.unit }}</label>
+                      }
+                      <button type="button" (click)="addPreparedMeal(slot)">{{ 'preparedMeals.addToPlan' | t }}</button>
+                    }
+                  </div>
                 }
                 <button type="button" class="icon-button" (click)="closeComposer(slot)" [attr.aria-label]="'common.cancel' | t" [title]="'common.cancel' | t">×</button>
               </li>

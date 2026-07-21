@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Kotlet.Application.Ingredients;
+using Kotlet.Application.Images;
 using Kotlet.Application.Measurements;
 using Kotlet.Application.Translations;
 using Kotlet.Domain.Common;
@@ -14,7 +15,8 @@ public sealed class RecipeService(
     IIngredientRepository ingredientRepository,
     MeasurementMappingService measurementMappingService,
     RecipeResponseMapper responseMapper,
-    IRecipeImageRepository? imageRepository = null)
+    IRecipeImageRepository? imageRepository = null,
+    StoredImageService? imageStorage = null)
 {
     public async Task<PagedResponse<RecipeSummaryResponse>> ListAsync(
         Guid houseId, int page, int pageSize, string? search, string? mealType,
@@ -46,7 +48,7 @@ public sealed class RecipeService(
         if (recipe is null) return null;
         var images = imageRepository is null
             ? []
-            : await imageRepository.ListAsync(id, false, cancellationToken);
+            : await imageRepository.ListAsync(id, cancellationToken);
         return await responseMapper.ToDetailResponseAsync(recipe, languageCode, images.Select(RecipeResponseMapper.ToImageResponse).ToList(), canEdit: true, cancellationToken);
     }
 
@@ -57,7 +59,7 @@ public sealed class RecipeService(
         if (recipe is null) return null;
         var images = imageRepository is null
             ? []
-            : await imageRepository.ListAsync(id, false, cancellationToken);
+            : await imageRepository.ListAsync(id, cancellationToken);
         return await responseMapper.ToDetailResponseAsync(recipe, languageCode, images.Select(RecipeResponseMapper.ToImageResponse).ToList(),
             canEdit: currentHouseId == recipe.HouseId, cancellationToken);
     }
@@ -149,8 +151,13 @@ public sealed class RecipeService(
         if (recipe is null)
             return RecipeOperationStatus.NotFound;
 
+        var imageIds = imageRepository is not null && imageStorage is not null
+            ? (await imageRepository.ListAsync(id, cancellationToken)).Select(image => image.Id).ToList()
+            : [];
         repository.Remove(recipe);
         await repository.SaveChangesAsync(cancellationToken);
+        foreach (var imageId in imageIds)
+            await imageStorage!.DeleteAsync(imageId, cancellationToken);
         return RecipeOperationStatus.Success;
     }
 
