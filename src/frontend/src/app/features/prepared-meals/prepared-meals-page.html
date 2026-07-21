@@ -1,0 +1,129 @@
+<main class="prepared-meals-page">
+  <a class="back" routerLink="/dashboard">← {{ 'common.backOverview' | t }}</a>
+  <header>
+    <div>
+      <p class="eyebrow">{{ 'preparedMeals.eyebrow' | t }}</p>
+      <h1>{{ 'preparedMeals.title' | t }}</h1>
+      <p>{{ 'preparedMeals.intro' | t }}</p>
+    </div>
+  </header>
+
+  @if (error()) { <div class="error" role="alert">{{ error() | t }}</div> }
+
+  <section class="editor" aria-labelledby="editor-title">
+    <h2 id="editor-title">{{ (id ? 'preparedMeals.editTitle' : 'preparedMeals.addTitle') | t }}</h2>
+    <form (ngSubmit)="save()">
+      <div class="form-grid">
+        <div class="field-group">
+          <p class="group-title">{{ 'preparedMeals.groupBasics' | t }}</p>
+          <label>{{ 'preparedMeals.name' | t }}<input name="name" required maxlength="160" [(ngModel)]="name" [placeholder]="'preparedMeals.namePlaceholder' | t" /></label>
+          <label>{{ 'preparedMeals.brand' | t }} <span class="optional">{{ 'common.optional' | t }}</span><input name="brand" [(ngModel)]="brand" [placeholder]="'preparedMeals.brandPlaceholder' | t" /></label>
+          <div class="two-col">
+            <label>{{ 'preparedMeals.servings' | t }}<input name="servings" type="number" min="1" required [(ngModel)]="servings" /></label>
+            <label>{{ 'preparedMeals.price' | t }} <span class="optional">{{ 'common.optional' | t }}</span><input name="price" type="number" min="0" step="0.01" [(ngModel)]="price" placeholder="0.00" /></label>
+          </div>
+        </div>
+        <div class="field-group">
+          <p class="group-title">{{ 'preparedMeals.instructions' | t }}</p>
+          <label class="fill">
+            <span class="sr-only">{{ 'preparedMeals.instructions' | t }}</span>
+            <textarea name="instructions" rows="7" [(ngModel)]="instructions" [placeholder]="'preparedMeals.instructionsPlaceholder' | t"></textarea>
+          </label>
+        </div>
+      </div>
+
+      <fieldset class="addons">
+        <legend>{{ 'preparedMeals.addons' | t }}</legend>
+        <p class="fieldset-hint">{{ 'preparedMeals.addonsHint' | t }}</p>
+        @for (addon of addons(); track $index) {
+          <div class="addon-row">
+            <label class="addon-ingredient">
+              <span class="sr-only">{{ 'common.ingredient' | t }}</span>
+              <select [ngModel]="addon.ingredientId" (ngModelChange)="updateAddon($index, 'ingredientId', $event)" [name]="'ingredient-' + $index">
+                <option value="">{{ 'common.ingredient' | t }}</option>
+                @for (ingredient of ingredients(); track ingredient.id) { <option [value]="ingredient.id">{{ ingredient.name }}</option> }
+              </select>
+            </label>
+            <label class="addon-qty">
+              <span class="sr-only">{{ 'common.quantity' | t }}</span>
+              <input type="number" min="0.01" step="0.01" [ngModel]="addon.quantity" (ngModelChange)="updateAddon($index, 'quantity', $event)" [name]="'quantity-' + $index" [placeholder]="'common.quantity' | t" />
+            </label>
+            <label class="addon-unit">
+              <span class="sr-only">{{ 'preparedMeals.unit' | t }}</span>
+              <input [ngModel]="addon.unit" (ngModelChange)="updateAddon($index, 'unit', $event)" [name]="'unit-' + $index" [placeholder]="'preparedMeals.unit' | t" />
+            </label>
+            <label class="chip"><input type="checkbox" [ngModel]="addon.isSelectedByDefault" (ngModelChange)="updateAddon($index, 'isSelectedByDefault', $event)" [name]="'default-' + $index" /><span>{{ 'preparedMeals.default' | t }}</span></label>
+            <label class="chip"><input type="checkbox" [ngModel]="addon.isRequired" (ngModelChange)="updateAddon($index, 'isRequired', $event)" [name]="'required-' + $index" /><span>{{ 'preparedMeals.required' | t }}</span></label>
+            <button class="icon-button" type="button" [attr.aria-label]="'common.remove' | t" (click)="removeAddon($index)">×</button>
+          </div>
+        } @empty {
+          <p class="addons-empty">{{ 'preparedMeals.addonsEmpty' | t }}</p>
+        }
+        <button class="secondary add-addon" type="button" (click)="addAddon()">+ {{ 'preparedMeals.addAddon' | t }}</button>
+      </fieldset>
+
+      @if (id) {
+        <fieldset class="gallery-field">
+          <legend>{{ 'preparedMeals.gallery' | t }}</legend>
+          @if (images().length) {
+            <div class="gallery">
+              @for (image of images(); track image.id; let i = $index) {
+                <figure>
+                  <img [src]="imageUrl(image)" [alt]="image.altText || name" />
+                  <input class="alt-input" maxlength="300" [value]="image.altText || ''" (change)="saveAlt(image, $event)" [placeholder]="'preparedMeals.altText' | t" />
+                  <div class="image-actions">
+                    <button class="icon-button" type="button" [attr.aria-label]="'common.moveUp' | t" [disabled]="i === 0" (click)="moveImage(i, -1)">↑</button>
+                    <button class="icon-button" type="button" [attr.aria-label]="'common.moveDown' | t" [disabled]="i === images().length - 1" (click)="moveImage(i, 1)">↓</button>
+                    <button class="icon-button delete" type="button" [attr.aria-label]="'common.delete' | t" (click)="deleteImage(image)">×</button>
+                  </div>
+                </figure>
+              }
+            </div>
+          } @else {
+            <p class="addons-empty">{{ 'preparedMeals.galleryEmpty' | t }}</p>
+          }
+          @if (images().length < 10) {
+            <div class="upload-row">
+              <label class="upload-file">{{ 'preparedMeals.image' | t }}<input type="file" accept="image/jpeg,image/png,image/webp" (change)="selectImage($event)" /></label>
+              <label>{{ 'preparedMeals.altText' | t }}<input [(ngModel)]="imageAltText" name="imageAltText" maxlength="300" /></label>
+              <button class="secondary" type="button" [disabled]="!imageFile" (click)="uploadImage()">{{ 'preparedMeals.upload' | t }}</button>
+            </div>
+          }
+        </fieldset>
+      }
+
+      <div class="form-footer">
+        @if (id) { <button class="secondary" type="button" (click)="reset()">{{ 'common.cancel' | t }}</button> }
+        <button class="primary" type="submit" [disabled]="saving() || !name.trim() || servings < 1 || hasInvalidAddons()">{{ (saving() ? 'common.saving' : 'preparedMeals.save') | t }}</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="catalogue" aria-labelledby="catalogue-title">
+    <div class="section-heading">
+      <h2 id="catalogue-title">{{ 'preparedMeals.catalogue' | t }}</h2>
+      <span>{{ activeMeals() }} {{ 'common.total' | t }}</span>
+    </div>
+    <ul class="meal-list">
+      @for (meal of meals(); track meal.id) {
+        <li class="meal-card" [class.archived]="meal.isArchived">
+          <div class="meal-info">
+            <div class="meal-name">
+              <strong>{{ meal.name }}</strong>
+              @if (meal.isArchived) { <span class="badge">{{ 'preparedMeals.archived' | t }}</span> }
+            </div>
+            <span class="meal-meta">
+              @if (meal.brand) { {{ meal.brand }} · }{{ meal.servings }} {{ 'preparedMeals.servings' | t }}@if (meal.price != null) {  ·  {{ meal.price.toFixed(2) }} }@if (meal.addons.length) {  ·  {{ meal.addons.length }} {{ 'preparedMeals.addons' | t }} }
+            </span>
+          </div>
+          <div class="meal-actions">
+            <button type="button" (click)="edit(meal)">{{ 'common.edit' | t }}</button>
+            <button type="button" (click)="toggleArchive(meal)">{{ (meal.isArchived ? 'preparedMeals.restore' : 'preparedMeals.archive') | t }}</button>
+          </div>
+        </li>
+      } @empty {
+        <li class="empty">{{ 'preparedMeals.empty' | t }}</li>
+      }
+    </ul>
+  </section>
+</main>

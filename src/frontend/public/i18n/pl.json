@@ -1,4 +1,5 @@
 {
+  "preparedMeals.intro": "Zapisz gotowe dania, które często kupujesz — wraz z porcjami, ceną i sugerowanymi dodatkami.", "preparedMeals.addTitle": "Dodaj gotowe danie", "preparedMeals.editTitle": "Edytuj gotowe danie", "preparedMeals.catalogue": "Twoje gotowe dania", "preparedMeals.groupBasics": "Podstawy", "preparedMeals.namePlaceholder": "np. Kurczak tikka masala", "preparedMeals.brandPlaceholder": "np. Winiary", "preparedMeals.instructionsPlaceholder": "Jak przygotować to danie…", "preparedMeals.addonsHint": "Opcjonalne składniki, które zwykle podajesz do tego dania.", "preparedMeals.addonsEmpty": "Brak dodatków.", "preparedMeals.galleryEmpty": "Brak zdjęć.", "preparedMeals.unit": "Jednostka", "preparedMeals.archived": "Zarchiwizowane",
   "preparedMeals.addToPlan": "Dodaj do planu",
   "preparedMeals.gallery": "Galeria zdjęć", "preparedMeals.image": "Zdjęcie", "preparedMeals.altText": "Tekst alternatywny", "preparedMeals.upload": "Prześlij zdjęcie",
   "preparedMeals.addons": "Sugerowane dodatki", "preparedMeals.addAddon": "Dodaj sugestię", "preparedMeals.default": "Domyślnie wybrany", "preparedMeals.required": "Wymagany",
