@@ -4,9 +4,11 @@ using Kotlet.Application.FoodSettings;
 using Kotlet.Application.Auth;
 using Kotlet.Application.Houses;
 using Kotlet.Application.Ingredients;
+using Kotlet.Application.Images;
 using Kotlet.Application.MealPlanner;
 using Kotlet.Application.Measurements;
 using Kotlet.Application.Pantry;
+using Kotlet.Application.PreparedMeals;
 using Kotlet.Application.Recipes;
 using Kotlet.Application.RecipeImageSearch;
 using Kotlet.Application.Shopping;
@@ -26,9 +28,11 @@ public static class DependencyInjection
             .AddAuthApplication()
             .AddHousesApplication()
             .AddIngredientsApplication()
+            .AddScoped<StoredImageService>()
             .AddMealPlannerApplication()
             .AddMeasurementsApplication()
             .AddPantryApplication()
+            .AddPreparedMealsApplication()
             .AddRecipesApplication()
             .AddRecipeImageSearchApplication()
             .AddShoppingApplication()

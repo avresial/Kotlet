@@ -1,4 +1,8 @@
 {
+  "preparedMeals.addToPlan": "Add to plan",
+  "preparedMeals.gallery": "Photo gallery", "preparedMeals.image": "Image", "preparedMeals.altText": "Alternative text", "preparedMeals.upload": "Upload image",
+  "preparedMeals.addons": "Suggested add-ons", "preparedMeals.addAddon": "Add suggestion", "preparedMeals.default": "Selected by default", "preparedMeals.required": "Required",
+  "nav.preparedMeals": "Prepared meals", "preparedMeals.eyebrow": "Ready-made favourites", "preparedMeals.title": "Prepared meals", "preparedMeals.name": "Name", "preparedMeals.brand": "Brand", "preparedMeals.servings": "Servings", "preparedMeals.price": "Price", "preparedMeals.instructions": "Preparation instructions", "preparedMeals.save": "Save prepared meal", "preparedMeals.archive": "Archive", "preparedMeals.restore": "Restore", "preparedMeals.empty": "No prepared meals yet.", "preparedMeals.loadError": "Unable to load prepared meals.", "preparedMeals.saveError": "Unable to save the prepared meal.",
   "agent.experimental": "Experimental", "agent.title": "Agent", "agent.model": "Model", "agent.welcome": "What can I help with?", "agent.hint": "Ask about your ingredients, recipes, pantry, shopping list, or meal plan.", "agent.you": "You", "agent.thinking": "Thinking…", "agent.placeholder": "Message Agent…", "agent.send": "Send", "agent.error": "The agent could not answer. Check your provider and model settings, then try again.", "agent.disclaimer": "Experimental agent responses may be inaccurate.",
   "settings.aiProviderModels": "Available models", "settings.aiProviderModelsPlaceholder": "gpt-4.1-mini\ngpt-4.1", "settings.aiProviderModelsHelp": "One model per line. The Agent can switch only between these models.",
   "ingredients.aiModified": "AI modified",

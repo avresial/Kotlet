@@ -1,5 +1,7 @@
 namespace Kotlet.Domain.MealPlanner;
 
+using Kotlet.Domain.PreparedMeals;
+
 public sealed class MealPlanItem
 {
     public Guid Id { get; set; }
@@ -9,6 +11,16 @@ public sealed class MealPlanItem
     public MealSlot Slot { get; set; }
     public Guid? RecipeId { get; set; }
     public Guid? IngredientId { get; set; }
+    public Guid? PreparedMealId { get; set; }
+    public PreparedMeal? PreparedMeal { get; set; }
+    // MVP: prepared-meal add-ons are stored as regular ingredient meal-plan items
+    // linked to their prepared-meal item. Introduce PlannedMealAddon only if add-ons
+    // later require behavior that cannot be represented by normal ingredient items.
+    public Guid? ParentMealPlanItemId { get; set; }
+    public MealPlanItem? ParentMealPlanItem { get; set; }
+    public ICollection<MealPlanItem> AddonItems { get; set; } = [];
+    public decimal? IngredientQuantity { get; set; }
+    public string? IngredientUnit { get; set; }
     public string? Note { get; set; }
     public int SortOrder { get; set; }
 

@@ -1,8 +1,10 @@
 using Kotlet.Domain.Auth;
 using Kotlet.Domain.Ai;
 using Kotlet.Domain.Ingredients;
+using Kotlet.Domain.Images;
 using Kotlet.Domain.MealPlanner;
 using Kotlet.Domain.Pantry;
+using Kotlet.Domain.PreparedMeals;
 using Kotlet.Domain.Houses;
 using Kotlet.Domain.Recipes;
 using Kotlet.Domain.Shopping;
@@ -40,6 +42,10 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<RecipeImageSource> RecipeImageSources => Set<RecipeImageSource>();
     public DbSet<MealPlanItem> MealPlanItems => Set<MealPlanItem>();
     public DbSet<MealPlanItemParticipant> MealPlanItemParticipants => Set<MealPlanItemParticipant>();
+    public DbSet<PreparedMeal> PreparedMeals => Set<PreparedMeal>();
+    public DbSet<PreparedMealAddon> PreparedMealAddons => Set<PreparedMealAddon>();
+    public DbSet<PreparedMealImage> PreparedMealImages => Set<PreparedMealImage>();
+    public DbSet<StoredImage> Images => Set<StoredImage>();
     public DbSet<Translation> Translations => Set<Translation>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 

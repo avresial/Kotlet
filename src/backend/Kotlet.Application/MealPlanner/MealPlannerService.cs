@@ -1,5 +1,6 @@
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.Recipes;
+using Kotlet.Application.PreparedMeals;
 using Kotlet.Domain.MealPlanner;
 
 namespace Kotlet.Application.MealPlanner;
@@ -7,7 +8,8 @@ namespace Kotlet.Application.MealPlanner;
 public sealed class MealPlannerService(
     IMealPlanRepository repository,
     IRecipeRepository recipeRepository,
-    IIngredientRepository ingredientRepository)
+    IIngredientRepository ingredientRepository,
+    IPreparedMealRepository? preparedMealRepository = null)
 {
     private static readonly HashSet<string> ValidSlots = ["breakfast", "second-breakfast", "dinner", "snack", "supper"];
     private const int MaxServings = 99;
@@ -78,6 +80,7 @@ public sealed class MealPlannerService(
             Slot = slot,
             RecipeId = request.RecipeId,
             IngredientId = request.IngredientId,
+            PreparedMealId = request.PreparedMealId,
             Note = request.Note?.Trim(),
             SortOrder = existingCount,
             CreatedAt = DateTimeOffset.UtcNow,
@@ -85,6 +88,14 @@ public sealed class MealPlannerService(
         };
 
         repository.Add(item);
+        foreach (var addon in request.Addons ?? [])
+            repository.Add(new MealPlanItem
+            {
+                Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = request.Date, Slot = slot,
+                IngredientId = addon.IngredientId, ParentMealPlanItemId = item.Id,
+                IngredientQuantity = addon.Quantity, IngredientUnit = addon.Unit.Trim(),
+                SortOrder = ++existingCount, CreatedAt = item.CreatedAt, UpdatedAt = item.UpdatedAt
+            });
         await repository.SaveChangesAsync(cancellationToken);
 
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
@@ -123,7 +134,7 @@ public sealed class MealPlannerService(
         foreach (var meal in request.Meals)
         {
             var slot = ParseSlot(meal.Slot);
-            var key = (meal.Date, slot, meal.RecipeId, meal.IngredientId);
+            var key = (meal.Date, slot, meal.RecipeId, meal.IngredientId, meal.PreparedMealId);
             if (!keys.Add(key))
             {
                 skipped++;
@@ -140,6 +151,7 @@ public sealed class MealPlannerService(
                 Slot = slot,
                 RecipeId = meal.RecipeId,
                 IngredientId = meal.IngredientId,
+                PreparedMealId = meal.PreparedMealId,
                 Note = meal.Note?.Trim(),
                 SortOrder = slotCounts.GetValueOrDefault(slotKey),
                 CreatedAt = now,
@@ -147,6 +159,16 @@ public sealed class MealPlannerService(
             };
             slotCounts[slotKey] = item.SortOrder + 1;
             repository.Add(item);
+            foreach (var addon in meal.Addons ?? [])
+            {
+                repository.Add(new MealPlanItem
+                {
+                    Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = meal.Date, Slot = slot,
+                    IngredientId = addon.IngredientId, ParentMealPlanItemId = item.Id,
+                    IngredientQuantity = addon.Quantity, IngredientUnit = addon.Unit.Trim(),
+                    SortOrder = slotCounts[slotKey]++, CreatedAt = now, UpdatedAt = now
+                });
+            }
             added.Add(item);
         }
 
@@ -172,29 +194,7 @@ public sealed class MealPlannerService(
         if ((await repository.GetByDateAsync(houseId, request.TargetDate, cancellationToken)).Count > 0)
             return new(MealPlannerOperationStatus.Conflict);
 
-        var now = DateTimeOffset.UtcNow;
-        foreach (var original in source)
-        {
-            var copy = new MealPlanItem
-            {
-                Id = Guid.NewGuid(),
-                HouseId = houseId,
-                UserId = userId,
-                Date = request.TargetDate,
-                Slot = original.Slot,
-                RecipeId = original.RecipeId,
-                IngredientId = original.IngredientId,
-                Note = original.Note,
-                SortOrder = original.SortOrder,
-                Servings = original.Servings,
-                Guests = original.Guests,
-                CreatedAt = now,
-                UpdatedAt = now,
-                Participants = original.Participants.Select(participant => new MealPlanItemParticipant
-                { UserId = participant.UserId, PortionPercent = participant.PortionPercent }).ToList()
-            };
-            repository.Add(copy);
-        }
+        AddCopies(source, userId, houseId, _ => request.TargetDate);
 
         await repository.SaveChangesAsync(cancellationToken);
         return new(MealPlannerOperationStatus.Success,
@@ -217,28 +217,7 @@ public sealed class MealPlannerService(
             return new(MealPlannerOperationStatus.Conflict);
 
         var offset = request.TargetWeekStart.DayNumber - request.SourceWeekStart.DayNumber;
-        var now = DateTimeOffset.UtcNow;
-        foreach (var original in source)
-        {
-            repository.Add(new MealPlanItem
-            {
-                Id = Guid.NewGuid(),
-                HouseId = houseId,
-                UserId = userId,
-                Date = original.Date.AddDays(offset),
-                Slot = original.Slot,
-                RecipeId = original.RecipeId,
-                IngredientId = original.IngredientId,
-                Note = original.Note,
-                SortOrder = original.SortOrder,
-                Servings = original.Servings,
-                Guests = original.Guests,
-                CreatedAt = now,
-                UpdatedAt = now,
-                Participants = original.Participants.Select(participant => new MealPlanItemParticipant
-                { UserId = participant.UserId, PortionPercent = participant.PortionPercent }).ToList()
-            });
-        }
+        AddCopies(source, userId, houseId, original => original.Date.AddDays(offset));
 
         await repository.SaveChangesAsync(cancellationToken);
         return new(MealPlannerOperationStatus.Success, source.Count);
@@ -267,6 +246,12 @@ public sealed class MealPlannerService(
             item.Slot = targetSlot;
             item.SortOrder = targetCount;
             item.UpdatedAt = DateTimeOffset.UtcNow;
+            foreach (var addon in item.AddonItems)
+            {
+                addon.Date = request.Date;
+                addon.Slot = targetSlot;
+                addon.UpdatedAt = item.UpdatedAt;
+            }
             await repository.SaveChangesAsync(cancellationToken);
         }
 
@@ -438,20 +423,32 @@ public sealed class MealPlannerService(
 
         var hasRecipe = request.RecipeId.HasValue;
         var hasIngredient = request.IngredientId.HasValue;
+        var hasPreparedMeal = request.PreparedMealId.HasValue;
 
-        if (!hasRecipe && !hasIngredient)
-            errors["item"] = ["Either recipeId or ingredientId must be provided."];
-        else if (hasRecipe && hasIngredient)
-            errors["item"] = ["Only one of recipeId or ingredientId may be provided."];
+        if ((hasRecipe ? 1 : 0) + (hasIngredient ? 1 : 0) + (hasPreparedMeal ? 1 : 0) != 1)
+            errors["item"] = ["Exactly one of recipeId, ingredientId or preparedMealId must be provided."];
         else if (hasRecipe)
         {
             var recipe = await recipeRepository.GetByIdAsync(request.RecipeId!.Value, houseId, tracked: false, cancellationToken);
             if (recipe is null) errors["recipeId"] = ["Recipe not found."];
         }
-        else
+        else if (hasIngredient)
         {
             var ingredient = await ingredientRepository.GetByIdAsync(request.IngredientId!.Value, tracked: false, cancellationToken);
             if (ingredient is null) errors["ingredientId"] = ["Ingredient not found."];
+        }
+        else if (preparedMealRepository is null || await preparedMealRepository.GetAsync(request.PreparedMealId!.Value, houseId, false, cancellationToken) is not { IsArchived: false } meal)
+            errors["preparedMealId"] = ["Prepared meal not found or archived."];
+        else
+        {
+            var selected = request.Addons ?? [];
+            if (selected.GroupBy(a => a.IngredientId).Any(g => g.Count() > 1)) errors["addons"] = ["Duplicate add-ons are not allowed."];
+            if (meal.Addons.Where(a => a.IsRequired).Any(required => selected.All(a => a.IngredientId != required.IngredientId))) errors["addons"] = ["Required add-ons must be selected."];
+            foreach (var addon in selected)
+            {
+                if (addon.Quantity <= 0 || string.IsNullOrWhiteSpace(addon.Unit)) errors["addons"] = ["Add-on quantity and unit are required."];
+                if (meal.Addons.All(a => a.IngredientId != addon.IngredientId)) errors["addons"] = ["Selected add-on is not configured for this prepared meal."];
+            }
         }
 
         return errors;
@@ -475,11 +472,17 @@ public sealed class MealPlannerService(
             displayName = recipe?.Title ?? "Unknown recipe";
             type = "recipe";
         }
-        else
+        else if (item.IngredientId.HasValue)
         {
             var ingredient = await ingredientRepository.GetByIdAsync(item.IngredientId!.Value, tracked: false, cancellationToken);
             displayName = ingredient?.Name ?? "Unknown ingredient";
             type = "ingredient";
+        }
+        else
+        {
+            var meal = preparedMealRepository is null ? null : await preparedMealRepository.GetAsync(item.PreparedMealId!.Value, houseId, false, cancellationToken);
+            displayName = meal?.Name ?? "Unknown prepared meal";
+            type = "prepared-meal";
         }
 
         var participants = item.Participants
@@ -498,6 +501,10 @@ public sealed class MealPlannerService(
             type,
             item.RecipeId,
             item.IngredientId,
+            item.PreparedMealId,
+            item.ParentMealPlanItemId,
+            item.IngredientQuantity,
+            item.IngredientUnit,
             displayName,
             item.Note,
             item.SortOrder,
@@ -537,8 +544,29 @@ public sealed class MealPlannerService(
         _ => throw new InvalidOperationException($"Unknown slot: {slot}")
     };
 
-    private static (DateOnly, MealSlot, Guid?, Guid?) MealKey(MealPlanItem item) =>
-        (item.Date, item.Slot, item.RecipeId, item.IngredientId);
+    private static (DateOnly, MealSlot, Guid?, Guid?, Guid?) MealKey(MealPlanItem item) =>
+        (item.Date, item.Slot, item.RecipeId, item.IngredientId, item.PreparedMealId);
+
+    private void AddCopies(IReadOnlyList<MealPlanItem> source, Guid userId, Guid houseId,
+        Func<MealPlanItem, DateOnly> targetDate)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var copies = source.ToDictionary(original => original.Id, original => new MealPlanItem
+        {
+            Id = Guid.NewGuid(), HouseId = houseId, UserId = userId, Date = targetDate(original), Slot = original.Slot,
+            RecipeId = original.RecipeId, IngredientId = original.IngredientId, PreparedMealId = original.PreparedMealId,
+            IngredientQuantity = original.IngredientQuantity, IngredientUnit = original.IngredientUnit, Note = original.Note,
+            SortOrder = original.SortOrder, Servings = original.Servings, Guests = original.Guests, CreatedAt = now,
+            UpdatedAt = now, Participants = original.Participants.Select(participant => new MealPlanItemParticipant
+            { UserId = participant.UserId, PortionPercent = participant.PortionPercent }).ToList()
+        });
+        foreach (var original in source)
+        {
+            var copy = copies[original.Id];
+            copy.ParentMealPlanItemId = original.ParentMealPlanItemId is { } parentId ? copies[parentId].Id : null;
+            repository.Add(copy);
+        }
+    }
 
     private static WeeklyMealPlannerOperationResult WeeklyValidation(string field, string message) =>
         new(MealPlannerOperationStatus.ValidationFailed,

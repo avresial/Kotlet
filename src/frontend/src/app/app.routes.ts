@@ -17,6 +17,7 @@ export const routes: Routes = [
   },
   ...recipeRoutes,
   ...mealPlannerRoutes,
+  { path: 'prepared-meals', canActivate: [homeGuard], loadComponent: () => import('./features/prepared-meals/prepared-meals-page').then(m => m.PreparedMealsPage) },
   {
     path: 'dashboard',
     canActivate: [homeGuard],

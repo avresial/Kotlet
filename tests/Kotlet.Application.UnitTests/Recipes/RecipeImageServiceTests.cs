@@ -1,6 +1,7 @@
 using Kotlet.Application.Images;
 using Kotlet.Application.Recipes;
 using Kotlet.Domain.Recipes;
+using Kotlet.Domain.Images;
 using Kotlet.Domain.Sources;
 using Xunit;
 
@@ -14,7 +15,7 @@ public sealed class RecipeImageServiceTests
     private static readonly byte[] ProcessedContent = [9, 8, 7];
 
     private static RecipeImageService CreateService(FakeRepository repo, FakeImageProcessor? processor = null) =>
-        new(repo, processor ?? new FakeImageProcessor());
+        new(repo, new StoredImageService(repo, processor ?? new FakeImageProcessor()));
 
     // ---- Add ----
 
@@ -46,7 +47,7 @@ public sealed class RecipeImageServiceTests
             "Pasta", CancellationToken.None, source);
 
         Assert.Equal(RecipeImageOperationStatus.Success, result.Status);
-        var persistedSource = Assert.Single(Assert.Single(repo.Images).Sources).Source;
+        var persistedSource = Assert.Single(Assert.Single(repo.Images).Image.Sources).Source;
         Assert.Equal(SourceType.ExternalImage, persistedSource.Type);
         Assert.Equal("Pexels", persistedSource.Provider);
         Assert.Equal("42", persistedSource.ExternalId);
@@ -181,10 +182,10 @@ public sealed class RecipeImageServiceTests
         Assert.Equal(RecipeImageService.ProcessedMaxWidth, processor.LastOptions!.MaxWidth);
         Assert.Equal(RecipeImageService.ProcessedMaxHeight, processor.LastOptions.MaxHeight);
         var stored = Assert.Single(repo.Images);
-        Assert.Equal("image/webp", stored.ContentType);
-        Assert.Equal(ProcessedContent, stored.Content);
-        Assert.Equal(ProcessedContent.LongLength, stored.FileSizeBytes);
-        Assert.Equal("photo.webp", stored.FileName);
+        Assert.Equal("image/webp", stored.Image.ContentType);
+        Assert.Equal(ProcessedContent, stored.Image.Content);
+        Assert.Equal(ProcessedContent.LongLength, stored.Image.FileSizeBytes);
+        Assert.Equal("photo.webp", stored.Image.FileName);
         Assert.Equal("image/webp", result.Image!.ContentType);
         Assert.Equal(ProcessedContent.LongLength, result.Image.FileSizeBytes);
     }
@@ -232,7 +233,7 @@ public sealed class RecipeImageServiceTests
     {
         var repo = new FakeRepository(recipeExists: true);
         var image = repo.SeedImage(RecipeId, 0);
-        image.Sources.Add(new RecipeImageSource
+        image.Image.Sources.Add(new RecipeImageSource
         {
             RecipeImageId = image.Id,
             SourceId = Guid.NewGuid(),
@@ -283,8 +284,8 @@ public sealed class RecipeImageServiceTests
         var content = await service.GetContentAsync(RecipeId, image.Id, OwnerId, CancellationToken.None);
 
         Assert.NotNull(content);
-        Assert.Equal(image.ContentType, content.ContentType);
-        Assert.Equal(image.Content, content.Content);
+        Assert.Equal(image.Image.ContentType, content.ContentType);
+        Assert.Equal(image.Image.Content, content.Content);
     }
 
     [Fact]
@@ -316,7 +317,7 @@ public sealed class RecipeImageServiceTests
     {
         var repo = new FakeRepository(recipeExists: true);
         var image = repo.SeedImage(RecipeId, 0);
-        image.AltText = "old";
+        image.Image.AltText = "old";
         var service = CreateService(repo);
 
         var result = await service.UpdateAsync(RecipeId, image.Id, OwnerId, "   ", CancellationToken.None);
@@ -455,7 +456,7 @@ public sealed class RecipeImageServiceTests
         }
     }
 
-    private sealed class FakeRepository(bool recipeExists) : IRecipeImageRepository
+    private sealed class FakeRepository(bool recipeExists) : IRecipeImageRepository, IStoredImageRepository
     {
         public List<RecipeImage> Images { get; } = [];
 
@@ -465,12 +466,12 @@ public sealed class RecipeImageServiceTests
             {
                 Id = Guid.NewGuid(),
                 RecipeId = recipeId,
-                FileName = $"image-{sortOrder}.jpg",
-                ContentType = "image/jpeg",
-                FileSizeBytes = SampleContent.LongLength,
-                Content = SampleContent,
+                Image = new StoredImage
+                {
+                    Id = Guid.NewGuid(), FileName = $"image-{sortOrder}.jpg", ContentType = "image/jpeg",
+                    FileSizeBytes = SampleContent.LongLength, Content = SampleContent, CreatedAtUtc = DateTimeOffset.UtcNow
+                },
                 SortOrder = sortOrder,
-                CreatedAtUtc = DateTimeOffset.UtcNow
             };
             Images.Add(image);
             return image;
@@ -482,7 +483,7 @@ public sealed class RecipeImageServiceTests
         public Task<int> CountAsync(Guid recipeId, CancellationToken cancellationToken) =>
             Task.FromResult(Images.Count(i => i.RecipeId == recipeId));
 
-        public Task<IReadOnlyList<RecipeImage>> ListAsync(Guid recipeId, bool tracked, CancellationToken cancellationToken) =>
+        public Task<IReadOnlyList<RecipeImage>> ListAsync(Guid recipeId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<RecipeImage>>(Images.Where(i => i.RecipeId == recipeId).OrderBy(i => i.SortOrder).ToList());
 
         public Task<IReadOnlyDictionary<Guid, Guid>> GetFirstImageIdsAsync(IReadOnlyList<Guid> recipeIds, CancellationToken cancellationToken) =>
@@ -491,20 +492,8 @@ public sealed class RecipeImageServiceTests
                 .GroupBy(i => i.RecipeId)
                 .ToDictionary(g => g.Key, g => g.OrderBy(i => i.SortOrder).First().Id));
 
-        public Task<RecipeImage?> GetAsync(Guid recipeId, Guid imageId, bool includeContent, CancellationToken cancellationToken) =>
+        public Task<RecipeImage?> GetAsync(Guid recipeId, Guid imageId, CancellationToken cancellationToken) =>
             Task.FromResult(Images.SingleOrDefault(i => i.RecipeId == recipeId && i.Id == imageId));
-
-        public Task<int> UpdateAltTextAsync(Guid recipeId, Guid imageId, string? altText, DateTimeOffset updatedAtUtc, CancellationToken cancellationToken)
-        {
-            var image = Images.SingleOrDefault(i => i.RecipeId == recipeId && i.Id == imageId);
-            if (image is null) return Task.FromResult(0);
-            image.AltText = altText;
-            image.UpdatedAtUtc = updatedAtUtc;
-            return Task.FromResult(1);
-        }
-
-        public Task<int> DeleteAsync(Guid recipeId, Guid imageId, CancellationToken cancellationToken) =>
-            Task.FromResult(Images.RemoveAll(i => i.RecipeId == recipeId && i.Id == imageId));
 
         public Task UpdateSortOrdersAsync(Guid recipeId, IReadOnlyList<Guid> imageIds, CancellationToken cancellationToken)
         {
@@ -517,7 +506,16 @@ public sealed class RecipeImageServiceTests
         }
 
         public void Add(RecipeImage image) => Images.Add(image);
-        public void Remove(RecipeImage image) => Images.Remove(image);
         public Task SaveChangesAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task<StoredImage?> GetAsync(Guid id, bool includeContent, CancellationToken cancellationToken) =>
+            Task.FromResult(Images.SingleOrDefault(image => image.Id == id)?.Image);
+        public void Add(StoredImage image) { }
+        public Task UpdateAltTextAsync(Guid id, string? altText, DateTimeOffset updatedAt, CancellationToken cancellationToken)
+        {
+            var image = Images.SingleOrDefault(value => value.Id == id)?.Image;
+            if (image is not null) { image.AltText = altText; image.UpdatedAtUtc = updatedAt; }
+            return Task.CompletedTask;
+        }
+        public Task DeleteAsync(Guid id, CancellationToken cancellationToken) { Images.RemoveAll(image => image.Id == id); return Task.CompletedTask; }
     }
 }
