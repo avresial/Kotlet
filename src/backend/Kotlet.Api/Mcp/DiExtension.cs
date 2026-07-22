@@ -78,12 +78,20 @@ public static class DiExtension
             // (e.g. Recipes/RecipeMcp.cs). Scan the assembly so new domains register automatically.
             .WithToolsFromAssembly()
             .WithPromptsFromAssembly()
-            .WithResourcesFromAssembly();
+            .WithResourcesFromAssembly()
+            .WithRequestFilters(filters => filters.AddListToolsFilter(next => async (request, cancellationToken) =>
+            {
+                var result = await next(request, cancellationToken);
+                DataUiMcp.AttachTo(result.Tools);
+                return result;
+            }));
         // The MCP Apps (SEP-1865) recipe UI primitives carry dynamic _meta.ui metadata, which
         // attribute scanning cannot express, so they are registered as singletons directly.
         services.AddSingleton(RecipeUiMcp.CreateShowRecipesTool);
         services.AddSingleton<McpServerResource>(_ =>
             RecipeUiMcp.CreateRecipesUiResource(RecipeUiMcp.ApiOrigin(oauth)));
+        services.AddSingleton<McpServerResource>(_ =>
+            DataUiMcp.CreateResource(RecipeUiMcp.ApiOrigin(oauth)));
         return services;
     }
 

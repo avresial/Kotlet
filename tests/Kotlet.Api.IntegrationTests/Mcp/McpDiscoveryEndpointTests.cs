@@ -21,7 +21,7 @@ public sealed class McpDiscoveryEndpointTests(TestWebApplicationFactory factory)
         var document = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("Kotlet", document.GetProperty("name").GetString());
         // Pinned to the assembly <Version>; bump both together so metadata-caching clients refresh.
-        Assert.Equal("1.1.1", document.GetProperty("version").GetString());
+        Assert.Equal("1.2.0", document.GetProperty("version").GetString());
         Assert.Equal("http://localhost/mcp", document.GetProperty("mcp_endpoint").GetString());
         Assert.Equal("http://localhost/connect/authorize", document.GetProperty("authorization_endpoint").GetString());
         Assert.Equal("http://localhost/connect/token", document.GetProperty("token_endpoint").GetString());
