@@ -8,7 +8,7 @@
     <!-- Surfaced as the MCP server version (serverInfo.version) and in /.well-known/mcp.json.
          Bump on MCP surface changes so clients that cache connector metadata (e.g. ChatGPT)
          re-read tools and UI resources instead of serving a stale template. -->
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Single-file MCP Apps UI served as the ui://kotlet/recipes resource. -->
+    <!-- Single-file MCP Apps UI served as the ui://kotlet/recipes-v2 resource. -->
     <EmbeddedResource Include="Recipes\RecipeUiApp.html" />
   </ItemGroup>
 

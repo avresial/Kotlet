@@ -12,7 +12,7 @@ namespace Kotlet.Api.IntegrationTests.Mcp;
 
 /// <summary>
 /// Exercises the MCP Apps (SEP-1865) recipe UI proof of concept: the show_recipes tool
-/// advertises the ui://kotlet/recipes resource, serves structured card data with a plain
+/// advertises the ui://kotlet/recipes-v2 resource, serves structured card data with a plain
 /// text fallback, and the resource itself is served as an MCP App HTML document.
 /// </summary>
 public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
@@ -29,10 +29,16 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("\"show_recipes\"", body);
         var showRecipes = body[body.IndexOf("\"show_recipes\"", StringComparison.Ordinal)..];
-        Assert.Contains("ui://kotlet/recipes", showRecipes);
+        Assert.Contains("ui://kotlet/recipes-v2", showRecipes);
         Assert.Contains("resourceUri", showRecipes);
         // ChatGPT's Apps SDK links the tool to its widget via this key.
         Assert.Contains("openai/outputTemplate", showRecipes);
+        Assert.Contains("outputSchema", showRecipes);
+        Assert.Contains("\"recipes\"", showRecipes);
+        Assert.Contains("openai/toolInvocation/invoking", showRecipes);
+        Assert.Contains("Loading recipes...", showRecipes);
+        Assert.Contains("openai/toolInvocation/invoked", showRecipes);
+        Assert.Contains("Recipes ready", showRecipes);
     }
 
     [Fact]
@@ -43,16 +49,33 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         var response = await SendMcp(client, accessToken, "resources/list", new { });
 
         var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("ui://kotlet/recipes", body);
+        Assert.Contains("ui://kotlet/recipes-v2", body);
         Assert.Contains("text/html;profile=mcp-app", body);
         // Hosts enforce the iframe CSP from the full connect/resource/frame domain shape.
         Assert.Contains("connectDomains", body);
         Assert.Contains("resourceDomains", body);
         Assert.Contains("frameDomains", body);
+        Assert.Contains("\"domain\":", body);
         // ChatGPT's Apps SDK reads its own snake_case CSP/domain namespace.
         Assert.Contains("openai/widgetCSP", body);
         Assert.Contains("resource_domains", body);
         Assert.Contains("openai/widgetDomain", body);
+        Assert.Contains("openai/widgetDescription", body);
+        Assert.Contains("prefersBorder", body);
+        Assert.Contains("openai/widgetPrefersBorder", body);
+
+        var dataLine = body.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Single(line => line.StartsWith("data: ", StringComparison.Ordinal));
+        using var document = JsonDocument.Parse(dataLine["data: ".Length..]);
+        var resource = document.RootElement.GetProperty("result").GetProperty("resources")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("uri").GetString() == "ui://kotlet/recipes-v2");
+        var ui = resource.GetProperty("_meta").GetProperty("ui");
+        Assert.Equal("http://localhost", ui.GetProperty("domain").GetString());
+        Assert.Equal(
+            ["http://localhost"],
+            ui.GetProperty("csp").GetProperty("resourceDomains")
+                .EnumerateArray().Select(domain => domain.GetString()));
     }
 
     [Fact]
@@ -60,7 +83,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
     {
         var (client, accessToken) = await AuthorizeMcpClientAsync();
 
-        var response = await SendMcp(client, accessToken, "resources/read", new { uri = "ui://kotlet/recipes" });
+        var response = await SendMcp(client, accessToken, "resources/read", new { uri = "ui://kotlet/recipes-v2" });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
