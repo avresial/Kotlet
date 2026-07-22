@@ -43,7 +43,10 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("ui://kotlet/recipes", body);
         Assert.Contains("text/html;profile=mcp-app", body);
+        // Hosts enforce the iframe CSP from the full connect/resource/frame domain shape.
+        Assert.Contains("connectDomains", body);
         Assert.Contains("resourceDomains", body);
+        Assert.Contains("frameDomains", body);
     }
 
     [Fact]
@@ -59,6 +62,8 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         // Card grid, the MCP Apps bridge handshake, and the detail-view tool call all ship inline.
         Assert.Contains("recipe-grid", body);
         Assert.Contains("ui/initialize", body);
+        // Hosts reject the ui/initialize handshake unless it carries a protocolVersion string.
+        Assert.Contains("protocolVersion", body);
         Assert.Contains("get_recipe", body);
         // The UI must stay self-contained: no external scripts, styles, or REST calls.
         Assert.DoesNotContain("src=\\\"http", body);
