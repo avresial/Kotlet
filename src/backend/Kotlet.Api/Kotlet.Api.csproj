@@ -21,6 +21,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Single-file MCP Apps UI served as the ui://kotlet/recipes resource. -->
+    <EmbeddedResource Include="Recipes\RecipeUiApp.html" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Kotlet.Application\Kotlet.Application.csproj" />
     <ProjectReference Include="..\Kotlet.Infrastructure\Kotlet.Infrastructure.csproj" />
     <ProjectReference Include="..\..\aspire\Kotlet.ServiceDefaults\Kotlet.ServiceDefaults.csproj" />

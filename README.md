@@ -86,7 +86,9 @@ homes, and add guests to individual meals. Personal settings include profile and
 password management, English and Polish, dietary preferences, allergens, intolerances,
 and excluded ingredients. You can also configure a personal AI provider and connect
 assistants such as Claude or ChatGPT through Kotlet's OAuth-protected MCP integration
-for recipes, meal planning, shopping, and household data.
+for recipes, meal planning, shopping, and household data. Hosts that support MCP Apps
+can render recipes as interactive cards inside the conversation
+(see [docs/mcp-apps-recipe-ui.md](docs/mcp-apps-recipe-ui.md)).
 
 Administrators get a role-protected area for searching and managing users and configuring
 video-transcription settings.
