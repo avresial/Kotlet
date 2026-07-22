@@ -116,7 +116,7 @@ public static class RecipeEndpoints
         if (image is null) return Results.NotFound();
         context.Response.Headers.CacheControl = "public,max-age=86400";
         context.Response.Headers["Cross-Origin-Resource-Policy"] = "cross-origin";
-        return Results.File(image.Content, image.ContentType, image.FileName, enableRangeProcessing: true);
+        return Results.File(image.Content, image.ContentType, enableRangeProcessing: true);
     }
 
     private static async Task<IResult> ReorderImages(Guid recipeId, ReorderRecipeImagesRequest request,
