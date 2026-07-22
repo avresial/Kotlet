@@ -43,7 +43,10 @@ public static class OAuthRegistrationEndpoints
         {
             request = await context.Request.ReadFromJsonAsync<ClientRegistrationRequest>(cancellationToken);
         }
-        catch (JsonException)
+        // JsonException: malformed body. InvalidOperationException: ReadFromJsonAsync throws it when the
+        // request Content-Type is missing or not a JSON media type. Both are client mistakes, not server
+        // faults, so answer with the RFC 7591 error instead of letting them surface as a 500.
+        catch (Exception exception) when (exception is JsonException or InvalidOperationException)
         {
             return RegistrationError("invalid_client_metadata", "The registration request body is not valid JSON.");
         }
@@ -88,7 +91,9 @@ public static class OAuthRegistrationEndpoints
         var response = new ClientRegistrationResponse(
             ClientId: clientId,
             ClientIdIssuedAt: DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            RedirectUris: request.RedirectUris,
+            // Echo the normalized URIs that were actually persisted, not the raw request strings, so the
+            // client holds the exact value OpenIddict compares against at /connect/authorize.
+            RedirectUris: redirectUris.Select(uri => uri.AbsoluteUri).ToArray(),
             TokenEndpointAuthMethod: "none",
             GrantTypes: ["authorization_code", "refresh_token"],
             ResponseTypes: ["code"],
