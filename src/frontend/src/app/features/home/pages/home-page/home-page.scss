@@ -126,3 +126,4 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 @media (max-width: 52rem) { .dashboard { padding: 2rem 1.25rem; } .card-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 38rem) { .welcome { align-items: flex-start; flex-direction: column; } .primary-action { display: none; } .card-heading { display: block; } .status { display: inline-block; margin-top: .8rem; } }
 @media (max-width: 30rem) { .shopping-item { grid-template-columns: auto 1fr 3.4rem auto; } .shopping-price { grid-column: 2 / 4; text-align: left; } .ingredient-item { grid-template-columns: auto 1fr auto; } .ingredient-item > span:nth-of-type(3) { display: none; } }
+@media (max-width: 34rem) { .audit-item { grid-template-columns: 1fr; align-items: start; gap: .5rem; padding: 1rem 0; } .audit-badge { justify-self: start; } .audit-visit { justify-self: start; } }
