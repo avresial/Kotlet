@@ -118,6 +118,7 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
         var content = await anonymous.GetAsync($"/api/recipes/{recipeId}/images/{imageId}/content");
         Assert.Equal(HttpStatusCode.OK, content.StatusCode);
         Assert.Equal("cross-origin", content.Headers.GetValues("Cross-Origin-Resource-Policy").Single());
+        Assert.Null(content.Content.Headers.ContentDisposition);
         Assert.True(TestImages.IsWebp(await content.Content.ReadAsByteArrayAsync()));
         Assert.Equal(HttpStatusCode.Unauthorized, (await Upload(anonymous, recipeId, "nope.png", "image/png", TestImages.Png(), null)).StatusCode);
     }
