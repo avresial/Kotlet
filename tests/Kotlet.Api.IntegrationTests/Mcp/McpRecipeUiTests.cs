@@ -91,7 +91,9 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         // Card grid, the MCP Apps bridge handshake, and the detail-view tool call all ship inline.
         Assert.Contains("recipe-grid", body);
         Assert.Contains("ui/initialize", body);
-        // Hosts reject the ui/initialize handshake unless it carries a protocolVersion string.
+        // Hosts reject the ui/initialize handshake unless it carries app identity and a protocol version.
+        Assert.Contains("appInfo", body);
+        Assert.DoesNotContain("clientInfo", body);
         Assert.Contains("protocolVersion", body);
         Assert.Contains("get_recipe", body);
         // The UI must stay self-contained: no external scripts, styles, or REST calls.

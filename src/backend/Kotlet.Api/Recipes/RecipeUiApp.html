@@ -313,11 +313,9 @@ bridge.on("ui/notifications/host-context-changed", (params) =>
   applyHostContext(null);
   try {
     const result = await bridge.request("ui/initialize", {
-      // Mirrors the standard MCP initialize params (protocolVersion/capabilities/clientInfo);
-      // hosts validate these and reject the handshake if protocolVersion is missing.
+      // MCP Apps hosts require appInfo alongside the negotiated protocol version.
       protocolVersion: "2026-01-26",
-      capabilities: {},
-      clientInfo: { name: "kotlet-recipes", version: "1.0.0" },
+      appInfo: { name: "kotlet-recipes", version: "1.0.0" },
       appCapabilities: { availableDisplayModes: ["inline"] }
     });
     applyHostContext(result && result.hostContext);
