@@ -62,9 +62,16 @@ public static class RecipeUiMcp
             {
                 ["ui"] = new JsonObject
                 {
-                    // Recipe images are served by this API (anonymous content endpoint), so the
-                    // host's iframe CSP must allow loading static resources from the API origin.
-                    ["csp"] = new JsonObject { ["resourceDomains"] = new JsonArray(apiOrigin) }
+                    // The iframe CSP the host enforces. Recipe images are served by this API
+                    // (anonymous content endpoint), so the API origin must be allowed as a
+                    // static-resource source; the UI makes no fetch/XHR/WebSocket or nested-frame
+                    // calls, so connectDomains and frameDomains stay empty.
+                    ["csp"] = new JsonObject
+                    {
+                        ["connectDomains"] = new JsonArray(),
+                        ["resourceDomains"] = new JsonArray(apiOrigin),
+                        ["frameDomains"] = new JsonArray()
+                    }
                 }
             }
         });
