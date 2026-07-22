@@ -140,6 +140,49 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains("3 serving(s)", body);
     }
 
+    [Fact]
+    public async Task ToolsList_AttachesAnUiResourceToEveryTool()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+
+        var response = await SendMcp(client, accessToken, "tools/list", new { });
+        var body = await response.Content.ReadAsStringAsync();
+        var dataLine = body.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Single(line => line.StartsWith("data: ", StringComparison.Ordinal));
+        using var document = JsonDocument.Parse(dataLine["data: ".Length..]);
+        var tools = document.RootElement.GetProperty("result").GetProperty("tools").EnumerateArray().ToList();
+
+        Assert.NotEmpty(tools);
+        Assert.All(tools, tool =>
+        {
+            var meta = tool.GetProperty("_meta");
+            Assert.True(meta.TryGetProperty("openai/outputTemplate", out var template), tool.GetProperty("name").GetString());
+            Assert.StartsWith("ui://kotlet/", template.GetString(), StringComparison.Ordinal);
+            Assert.True(meta.GetProperty("ui").TryGetProperty("resourceUri", out _));
+        });
+        Assert.All(tools.Where(tool => tool.GetProperty("name").GetString() != "show_recipes"), tool =>
+            Assert.Equal("ui://kotlet/data-v1", tool.GetProperty("_meta").GetProperty("openai/outputTemplate").GetString()));
+    }
+
+    [Fact]
+    public async Task SharedDataUiResource_IsSelfContainedAndUsesReusableResultComponents()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+
+        var response = await SendMcp(client, accessToken, "resources/read", new { uri = "ui://kotlet/data-v1" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("text/html;profile=mcp-app", body);
+        Assert.Contains("ui/initialize", body);
+        Assert.Contains("ui/notifications/tool-result", body);
+        Assert.Contains("grid-template-columns", body);
+        Assert.Contains("function table", body);
+        Assert.Contains(".tag{", body);
+        Assert.DoesNotContain("src=\"http", body);
+        Assert.DoesNotContain("fetch(", body);
+    }
+
     /// <summary>Registers a user with a home and runs the OAuth PKCE flow for an MCP-scoped token.</summary>
     private async Task<(HttpClient Client, string AccessToken)> AuthorizeMcpClientAsync()
     {
