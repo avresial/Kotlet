@@ -63,6 +63,19 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains("openai/widgetDescription", body);
         Assert.Contains("prefersBorder", body);
         Assert.Contains("openai/widgetPrefersBorder", body);
+
+        var dataLine = body.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Single(line => line.StartsWith("data: ", StringComparison.Ordinal));
+        using var document = JsonDocument.Parse(dataLine["data: ".Length..]);
+        var resource = document.RootElement.GetProperty("result").GetProperty("resources")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("uri").GetString() == "ui://kotlet/recipes-v2");
+        var ui = resource.GetProperty("_meta").GetProperty("ui");
+        Assert.Equal("http://localhost", ui.GetProperty("domain").GetString());
+        Assert.Equal(
+            ["http://localhost"],
+            ui.GetProperty("csp").GetProperty("resourceDomains")
+                .EnumerateArray().Select(domain => domain.GetString()));
     }
 
     [Fact]
