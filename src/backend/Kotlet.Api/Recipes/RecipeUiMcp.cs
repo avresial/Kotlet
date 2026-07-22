@@ -46,7 +46,11 @@ public static class RecipeUiMcp
             OpenWorld = false,
             Meta = new JsonObject
             {
-                ["ui"] = new JsonObject { ["resourceUri"] = ResourceUri }
+                ["ui"] = new JsonObject { ["resourceUri"] = ResourceUri },
+                // ChatGPT's Apps SDK links a tool to its widget through its own metadata
+                // namespace rather than _meta.ui.resourceUri; provided alongside so the same
+                // tool works in both SEP-1865 MCP Apps hosts and ChatGPT.
+                ["openai/outputTemplate"] = ResourceUri
             }
         });
 
@@ -72,7 +76,17 @@ public static class RecipeUiMcp
                         ["resourceDomains"] = new JsonArray(apiOrigin),
                         ["frameDomains"] = new JsonArray()
                     }
-                }
+                },
+                // ChatGPT's Apps SDK reads the same CSP/domain info from its own (snake_case)
+                // metadata namespace, provided alongside _meta.ui so the widget is recognized in
+                // ChatGPT as well as in SEP-1865 MCP Apps hosts. widgetDomain is the origin the
+                // widget loads static resources (images) from.
+                ["openai/widgetCSP"] = new JsonObject
+                {
+                    ["connect_domains"] = new JsonArray(),
+                    ["resource_domains"] = new JsonArray(apiOrigin)
+                },
+                ["openai/widgetDomain"] = apiOrigin
             }
         });
 
