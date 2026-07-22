@@ -1,6 +1,7 @@
 using Kotlet.Api.Auth;
 using Kotlet.Api.Recipes;
 using ModelContextProtocol.AspNetCore.Authentication;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
@@ -34,7 +35,17 @@ public static class DiExtension
             policy.RequireAuthenticatedUser();
             policy.RequireAssertion(context => context.User.HasScope("mcp"));
         }));
-        services.AddMcpServer(options => options.ServerInstructions =
+        services.AddMcpServer(options =>
+            {
+                // Report a stable name and the assembly version (see Kotlet.Api.csproj <Version>)
+                // so clients display and cache-key the MCP server correctly; bumping the version
+                // invalidates cached connector metadata in clients such as ChatGPT.
+                options.ServerInfo = new Implementation
+                {
+                    Name = "Kotlet",
+                    Version = typeof(DiExtension).Assembly.GetName().Version?.ToString(3) ?? "1.0.0"
+                };
+                options.ServerInstructions =
                 """
                 Kotlet is a household food app: recipes, prepared meals, a shopping list, a pantry,
                 and a meal planner.
@@ -60,7 +71,8 @@ public static class DiExtension
 
                 In hosts that support MCP Apps, show_recipes renders household recipes as interactive
                 cards; other hosts receive a plain text list from it.
-                """)
+                """;
+            })
             .WithHttpTransport(options => options.Stateless = true)
             // Tools, prompts, and resources live next to each feature's HTTP endpoints
             // (e.g. Recipes/RecipeMcp.cs). Scan the assembly so new domains register automatically.
