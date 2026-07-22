@@ -251,6 +251,9 @@ function renderList(data) {
   footer.hidden = data.totalCount <= data.recipes.length;
   footer.textContent = `Showing ${data.recipes.length} of ${plural(data.totalCount, "recipe")}.`;
   show("list");
+  if (data.totalCount === 1 && data.recipes.length === 1) {
+    void openRecipe(data.recipes[0].id);
+  }
 }
 
 function renderDetail(recipe) {

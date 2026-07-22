@@ -115,6 +115,7 @@ public static class RecipeEndpoints
         var image = await service.GetPublicContentAsync(recipeId, imageId, ct);
         if (image is null) return Results.NotFound();
         context.Response.Headers.CacheControl = "public,max-age=86400";
+        context.Response.Headers["Cross-Origin-Resource-Policy"] = "cross-origin";
         return Results.File(image.Content, image.ContentType, image.FileName, enableRangeProcessing: true);
     }
 
