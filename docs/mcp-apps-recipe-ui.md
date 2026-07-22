@@ -9,8 +9,8 @@ UI for recipes, served by the existing ASP.NET Core MCP server.
 1. The user asks an MCP-Apps-capable host (e.g. a compatible MCP client UI) to show recipes.
 2. The `show_recipes` tool returns the recipe list twice: as structured content for the UI and as a
    plain text list for hosts without MCP Apps support. Its tool definition carries
-   `_meta.ui.resourceUri = "ui://kotlet/recipes"`.
-3. The host reads the `ui://kotlet/recipes` resource (`text/html;profile=mcp-app`) and renders it in
+   `_meta.ui.resourceUri = "ui://kotlet/recipes-v2"`.
+3. The host reads the `ui://kotlet/recipes-v2` resource (`text/html;profile=mcp-app`) and renders it in
    a sandboxed iframe, delivering the tool result to it via the MCP Apps postMessage bridge.
 4. The UI renders recipe cards (name, image when available, meal type, servings, ingredient count).
 5. "View recipe" calls the existing `get_recipe` MCP tool through the bridge (`tools/call`) and
@@ -26,7 +26,7 @@ resource declares via `_meta.ui.csp.resourceDomains` so the host's CSP allows it
 
 | File | Purpose |
 | --- | --- |
-| `src/backend/Kotlet.Api/Recipes/RecipeUiMcp.cs` | `show_recipes` tool + `ui://kotlet/recipes` resource, registered manually because both carry `_meta.ui` metadata that attribute scanning cannot express. |
+| `src/backend/Kotlet.Api/Recipes/RecipeUiMcp.cs` | `show_recipes` tool + `ui://kotlet/recipes-v2` resource, registered manually because both carry `_meta.ui` metadata that attribute scanning cannot express. |
 | `src/backend/Kotlet.Api/Recipes/RecipeUiApp.html` | The entire UI: one self-contained HTML document (embedded resource) with inline CSS/JS and a hand-rolled MCP Apps bridge. |
 | `tests/Kotlet.Api.IntegrationTests/Mcp/McpRecipeUiTests.cs` | Verifies the tool metadata, resource MIME type, structured content, and text fallback. |
 
