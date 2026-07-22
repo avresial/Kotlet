@@ -5,6 +5,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>3f29941e-2e9e-4a9b-865b-0b44866141e2</UserSecretsId>
+    <!-- Surfaced as the MCP server version (serverInfo.version) and in /.well-known/mcp.json.
+         Bump on MCP surface changes so clients that cache connector metadata (e.g. ChatGPT)
+         re-read tools and UI resources instead of serving a stale template. -->
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

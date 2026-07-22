@@ -31,6 +31,8 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         var showRecipes = body[body.IndexOf("\"show_recipes\"", StringComparison.Ordinal)..];
         Assert.Contains("ui://kotlet/recipes", showRecipes);
         Assert.Contains("resourceUri", showRecipes);
+        // ChatGPT's Apps SDK links the tool to its widget via this key.
+        Assert.Contains("openai/outputTemplate", showRecipes);
     }
 
     [Fact]
@@ -47,6 +49,10 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains("connectDomains", body);
         Assert.Contains("resourceDomains", body);
         Assert.Contains("frameDomains", body);
+        // ChatGPT's Apps SDK reads its own snake_case CSP/domain namespace.
+        Assert.Contains("openai/widgetCSP", body);
+        Assert.Contains("resource_domains", body);
+        Assert.Contains("openai/widgetDomain", body);
     }
 
     [Fact]
