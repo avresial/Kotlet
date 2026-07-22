@@ -58,7 +58,9 @@ public static class DiExtension
                 options.AddEventHandler<OpenIddictServerEvents.HandleConfigurationRequestContext>(builder =>
                     builder.UseInlineHandler(context =>
                     {
-                        context.Metadata[OpenIddictConstants.Metadata.RegistrationEndpoint] = registrationEndpoint;
+                        // RFC 8414 / OpenID Connect Discovery metadata key. Spelled out because this
+                        // OpenIddict version does not expose it as a named constant.
+                        context.Metadata["registration_endpoint"] = registrationEndpoint;
                         return default;
                     }));
                 if (allowHttp)
