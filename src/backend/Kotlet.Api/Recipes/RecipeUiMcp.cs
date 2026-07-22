@@ -13,7 +13,7 @@ namespace Kotlet.Api.Recipes;
 /// <summary>
 /// MCP Apps (SEP-1865) proof of concept: a recipe-card UI rendered inside compatible MCP hosts.
 /// The <c>show_recipes</c> tool returns recipe data as structured content and advertises the
-/// <c>ui://kotlet/recipes</c> HTML resource through <c>_meta.ui.resourceUri</c>; the embedded UI
+/// <c>ui://kotlet/recipes-v2</c> HTML resource through <c>_meta.ui.resourceUri</c>; the embedded UI
 /// then calls the existing <c>get_recipe</c> tool through the MCP Apps bridge for details.
 /// Registered manually instead of via attribute scanning because both primitives carry
 /// dynamic <c>_meta.ui</c> metadata (the CSP resource domain depends on the API origin).
@@ -21,7 +21,7 @@ namespace Kotlet.Api.Recipes;
 public static class RecipeUiMcp
 {
     public const string ToolName = "show_recipes";
-    public const string ResourceUri = "ui://kotlet/recipes";
+    public const string ResourceUri = "ui://kotlet/recipes-v2";
     public const string ResourceMimeType = "text/html;profile=mcp-app";
 
     private static readonly Lazy<string> AppHtml = new(() =>
@@ -75,7 +75,10 @@ public static class RecipeUiMcp
                         ["connectDomains"] = new JsonArray(),
                         ["resourceDomains"] = new JsonArray(apiOrigin),
                         ["frameDomains"] = new JsonArray()
-                    }
+                    },
+                    // Required by ChatGPT for plugin submission. The host derives a unique
+                    // web-sandbox origin from this application-owned HTTPS origin.
+                    ["domain"] = apiOrigin
                 },
                 // ChatGPT's Apps SDK reads the same CSP/domain info from its own (snake_case)
                 // metadata namespace, provided alongside _meta.ui so the widget is recognized in
