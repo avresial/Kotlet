@@ -1,4 +1,5 @@
 using Kotlet.Api.Auth;
+using Kotlet.Api.MealPlanner;
 using Kotlet.Api.Recipes;
 using ModelContextProtocol.AspNetCore.Authentication;
 using ModelContextProtocol.Protocol;
@@ -70,7 +71,8 @@ public static class DiExtension
                 says otherwise. Dates use yyyy-MM-dd.
 
                 In hosts that support MCP Apps, show_recipes renders household recipes as interactive
-                cards; other hosts receive a plain text list from it.
+                cards and show_meal_plan renders a read-only day view of the meal plan; other hosts
+                receive a plain text list from them.
                 """;
             })
             .WithHttpTransport(options => options.Stateless = true)
@@ -90,6 +92,9 @@ public static class DiExtension
         services.AddSingleton(RecipeUiMcp.CreateShowRecipesTool);
         services.AddSingleton<McpServerResource>(_ =>
             RecipeUiMcp.CreateRecipesUiResource(RecipeUiMcp.ApiOrigin(oauth)));
+        services.AddSingleton(MealPlannerUiMcp.CreateShowMealPlanTool);
+        services.AddSingleton<McpServerResource>(_ =>
+            MealPlannerUiMcp.CreateMealPlanUiResource(MealPlannerUiMcp.ApiOrigin(oauth)));
         services.AddSingleton<McpServerResource>(_ =>
             DataUiMcp.CreateResource(RecipeUiMcp.ApiOrigin(oauth)));
         return services;
