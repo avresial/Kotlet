@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
+using OpenIddict.Server;
 
 namespace Kotlet.Api.Auth;
 
@@ -28,11 +29,23 @@ public static class DiExtension
 
         var allowHttp = environment.IsDevelopment() || environment.IsEnvironment("Test");
         var oauthIssuer = new Uri(oauth.Issuer);
+        // RFC 7591 Dynamic Client Registration endpoint. AI agents (Claude Code, Claude
+        // Desktop, claude.ai) refuse to connect to an MCP server whose discovery metadata
+        // lacks a registration_endpoint: they register their own client (with their own
+        // loopback / callback redirect URI) rather than using a pre-shared client id the way
+        // ChatGPT does. The endpoint itself is served by OAuthEndpoints.MapOAuthEndpoints.
+        var registrationEndpoint = new Uri(oauthIssuer, "connect/register").AbsoluteUri;
         services.AddOpenIddict()
             .AddCore(options => options.UseEntityFrameworkCore().UseDbContext<KotletDbContext>())
             .AddServer(options =>
             {
                 options.SetIssuer(oauthIssuer)
+                    // Serve the authorization-server metadata on both the OpenID Connect and the
+                    // RFC 8414 well-known paths. MCP clients probe /.well-known/oauth-authorization-server
+                    // first (some only probe that), so advertising both maximises compatibility.
+                    .SetConfigurationEndpointUris(
+                        "/.well-known/openid-configuration",
+                        "/.well-known/oauth-authorization-server")
                     .SetAuthorizationEndpointUris("/connect/authorize")
                     .SetTokenEndpointUris("/connect/token")
                     .AllowAuthorizationCodeFlow()
@@ -40,6 +53,14 @@ public static class DiExtension
                     .RegisterScopes("mcp")
                     .RegisterResources(oauth.Resource)
                     .DisableAccessTokenEncryption();
+                // Advertise the DCR endpoint in the discovery document. OpenIddict does not host a
+                // registration endpoint itself, so it is added to the metadata by hand.
+                options.AddEventHandler<OpenIddictServerEvents.HandleConfigurationRequestContext>(builder =>
+                    builder.UseInlineHandler(context =>
+                    {
+                        context.Metadata[OpenIddictConstants.Metadata.RegistrationEndpoint] = registrationEndpoint;
+                        return default;
+                    }));
                 if (allowHttp)
                     options.AddDevelopmentEncryptionCertificate().AddDevelopmentSigningCertificate();
                 else
@@ -102,6 +123,7 @@ public static class DiExtension
     {
         endpoints.MapAuthEndpoints();
         endpoints.MapOAuthEndpoints();
+        endpoints.MapOAuthRegistrationEndpoints();
         return endpoints;
     }
 
