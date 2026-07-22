@@ -26,9 +26,14 @@ namespace Kotlet.Api.Auth;
 /// </summary>
 public static class OAuthRegistrationEndpoints
 {
+    /// <summary>Rate-limiting policy name applied to the anonymous registration endpoint.</summary>
+    public const string RateLimitPolicy = "oauth-registration";
+
     public static IEndpointRouteBuilder MapOAuthRegistrationEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPost("/connect/register", Register).AllowAnonymous();
+        endpoints.MapPost("/connect/register", Register)
+            .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicy);
         return endpoints;
     }
 

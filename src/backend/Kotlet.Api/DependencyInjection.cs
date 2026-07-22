@@ -13,6 +13,7 @@ using Kotlet.Api.PreparedMeals;
 using Kotlet.Api.Persistence;
 using Kotlet.Api.Recipes;
 using Kotlet.Api.Shopping;
+using System.Threading.RateLimiting;
 
 namespace Kotlet.Api;
 
@@ -37,6 +38,21 @@ public static class DependencyInjection
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials()));
+        // Bound the anonymous, open Dynamic Client Registration endpoint: each successful call persists a
+        // new OpenIddict application row, so throttle per client IP to blunt scripted/spam registration.
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy(OAuthRegistrationEndpoints.RateLimitPolicy, context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 20,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0
+                    }));
+        });
         return services;
     }
 
