@@ -156,6 +156,7 @@ describe('meal planner calculations', () => {
       items,
       { [recipe.id]: recipeWithHighCalories },
       [calorieIngredient],
+      [],
       'Guests',
       'Unassigned',
     );
@@ -166,5 +167,20 @@ describe('meal planner calculations', () => {
     expect(result.find((person) => person.id === 'bob')!.total).toBe(50);
     expect(result.find((person) => person.id === 'guests')!.total).toBe(100);
     expect(result.find((person) => person.id === 'unassigned')!.total).toBe(300);
+  });
+
+  it('allocates saved calories for a prepared meal', () => {
+    const item: MealPlanItem = {
+      id: 'prepared-item', slot: 'dinner', type: 'prepared-meal', preparedMealId: 'prepared', displayName: 'Prepared meal',
+      sortOrder: 0, participants: [], guests: 0, servings: 2, servingsOverridden: false,
+    };
+
+    const result = allocateCaloriesByPerson(
+      [item], {}, [],
+      [{ id: 'prepared', name: 'Prepared meal', servings: 1, caloriesPerServing: 450, isArchived: false, addons: [] }],
+      'Guests', 'Unassigned',
+    );
+
+    expect(result[0].total).toBe(900);
   });
 });

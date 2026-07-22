@@ -15,7 +15,7 @@ form { margin-top: 1.25rem; display: grid; gap: 1.5rem; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 1.5rem; }
 .field-group { display: grid; gap: 1rem; align-content: start; padding: 1rem 1.1rem 1.2rem; border: 1px solid var(--app-border); border-radius: .75rem; background: var(--app-surface-raised); }
 .group-title { margin: 0; padding-bottom: .35rem; border-bottom: 1px solid var(--app-border); color: var(--app-accent); font-size: .68rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: 1rem; }
 
 label { display: grid; gap: .4rem; color: var(--app-text-soft); font-size: .78rem; font-weight: 750; }
 label.fill { align-content: start; height: 100%; }
@@ -44,8 +44,6 @@ legend { padding: 0 .4rem; color: var(--app-accent); font-size: .68rem; font-wei
 .gallery img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: .6rem; border: 1px solid var(--app-border); }
 .alt-input { font-size: .78rem; }
 .image-actions { display: flex; gap: .4rem; }
-.upload-row { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: .75rem; }
-.upload-file input { padding: .45rem; }
 
 .form-footer { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: .6rem; padding-top: 1.1rem; border-top: 1px solid var(--app-border); }
 .form-footer .primary { min-width: 12rem; justify-content: center; }
@@ -78,7 +76,6 @@ button:disabled { opacity: .55; cursor: default; }
   .addon-row { grid-template-columns: 1fr 1fr; }
   .addon-ingredient { grid-column: 1 / -1; }
   .add-addon { justify-self: stretch; }
-  .upload-row { grid-template-columns: 1fr; }
 }
 @media (max-width: 36rem) {
   .two-col { grid-template-columns: 1fr; }

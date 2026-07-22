@@ -1,5 +1,7 @@
 using Kotlet.Api.Auth;
+using Kotlet.Api.Recipes;
 using ModelContextProtocol.AspNetCore.Authentication;
+using ModelContextProtocol.Server;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 
@@ -55,6 +57,9 @@ public static class DiExtension
 
                 Quantities always use the ingredient's base measurement unit (g or ml) unless the tool
                 says otherwise. Dates use yyyy-MM-dd.
+
+                In hosts that support MCP Apps, show_recipes renders household recipes as interactive
+                cards; other hosts receive a plain text list from it.
                 """)
             .WithHttpTransport(options => options.Stateless = true)
             // Tools, prompts, and resources live next to each feature's HTTP endpoints
@@ -62,6 +67,11 @@ public static class DiExtension
             .WithToolsFromAssembly()
             .WithPromptsFromAssembly()
             .WithResourcesFromAssembly();
+        // The MCP Apps (SEP-1865) recipe UI primitives carry dynamic _meta.ui metadata, which
+        // attribute scanning cannot express, so they are registered as singletons directly.
+        services.AddSingleton(RecipeUiMcp.CreateShowRecipesTool);
+        services.AddSingleton<McpServerResource>(_ =>
+            RecipeUiMcp.CreateRecipesUiResource(RecipeUiMcp.ApiOrigin(oauth)));
         return services;
     }
 
