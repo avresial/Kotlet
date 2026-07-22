@@ -96,6 +96,9 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.DoesNotContain("clientInfo", body);
         Assert.Contains("protocolVersion", body);
         Assert.Contains("get_recipe", body);
+        Assert.Contains("data.totalCount === 1", body);
+        Assert.Contains("data.recipes.length === 1", body);
+        Assert.Contains("openRecipe(data.recipes[0].id)", body);
         // The UI must stay self-contained: no external scripts, styles, or REST calls.
         Assert.DoesNotContain("src=\\\"http", body);
         Assert.DoesNotContain("fetch(", body);
