@@ -44,13 +44,54 @@ public static class RecipeUiMcp
             Destructive = false,
             Idempotent = true,
             OpenWorld = false,
+            UseStructuredContent = true,
+            OutputSchema = JsonSerializer.SerializeToElement(new
+            {
+                type = "object",
+                properties = new
+                {
+                    recipes = new
+                    {
+                        type = "array",
+                        items = new
+                        {
+                            type = "object",
+                            properties = new
+                            {
+                                id = new { type = "string", format = "uuid" },
+                                title = new { type = "string" },
+                                mealType = new { type = new[] { "string", "null" } },
+                                servings = new { type = "integer" },
+                                ingredientCount = new { type = "integer" },
+                                imageUrl = new { type = new[] { "string", "null" } },
+                                isAiAssisted = new { type = "boolean" },
+                                updatedAtUtc = new { type = "string", format = "date-time" }
+                            },
+                            required = new[]
+                            {
+                                "id", "title", "mealType", "servings", "ingredientCount",
+                                "imageUrl", "isAiAssisted", "updatedAtUtc"
+                            },
+                            additionalProperties = false
+                        }
+                    },
+                    totalCount = new { type = "integer" },
+                    page = new { type = "integer" },
+                    pageSize = new { type = "integer" },
+                    apiOrigin = new { type = "string", format = "uri" }
+                },
+                required = new[] { "recipes", "totalCount", "page", "pageSize", "apiOrigin" },
+                additionalProperties = false
+            }, JsonSerializerOptions.Web),
             Meta = new JsonObject
             {
                 ["ui"] = new JsonObject { ["resourceUri"] = ResourceUri },
                 // ChatGPT's Apps SDK links a tool to its widget through its own metadata
                 // namespace rather than _meta.ui.resourceUri; provided alongside so the same
                 // tool works in both SEP-1865 MCP Apps hosts and ChatGPT.
-                ["openai/outputTemplate"] = ResourceUri
+                ["openai/outputTemplate"] = ResourceUri,
+                ["openai/toolInvocation/invoking"] = "Loading recipes...",
+                ["openai/toolInvocation/invoked"] = "Recipes ready"
             }
         });
 
@@ -78,7 +119,8 @@ public static class RecipeUiMcp
                     },
                     // Required by ChatGPT for plugin submission. The host derives a unique
                     // web-sandbox origin from this application-owned HTTPS origin.
-                    ["domain"] = apiOrigin
+                    ["domain"] = apiOrigin,
+                    ["prefersBorder"] = true
                 },
                 // ChatGPT's Apps SDK reads the same CSP/domain info from its own (snake_case)
                 // metadata namespace, provided alongside _meta.ui so the widget is recognized in
@@ -89,7 +131,10 @@ public static class RecipeUiMcp
                     ["connect_domains"] = new JsonArray(),
                     ["resource_domains"] = new JsonArray(apiOrigin)
                 },
-                ["openai/widgetDomain"] = apiOrigin
+                ["openai/widgetDomain"] = apiOrigin,
+                ["openai/widgetDescription"] =
+                    "Interactive recipe cards showing the household's recipes, with actions to open recipe details.",
+                ["openai/widgetPrefersBorder"] = true
             }
         });
 
