@@ -114,7 +114,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         });
         var ingredientId = ExtractGuidAfter(await ingredient.Content.ReadAsStringAsync(), "\"id\":\"");
         var title = $"Chickpea stew {Guid.NewGuid():N}";
-        await CallTool(client, accessToken, "add_recipe", new
+        var recipe = await CallTool(client, accessToken, "add_recipe", new
         {
             request = new
             {
@@ -125,8 +125,13 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
                 ingredients = new[] { new { ingredientId, quantity = 240, unit = "g" } }
             }
         });
+        var recipeId = ExtractGuidAfter(await recipe.Content.ReadAsStringAsync(), "\"id\":\"");
+        using var image = new ByteArrayContent(TestImages.Png());
+        image.Headers.ContentType = new("image/png");
+        using var upload = new MultipartFormDataContent { { image, "file", "recipe.png" } };
+        (await client.PostAsync($"/api/recipes/{recipeId}/images", upload)).EnsureSuccessStatusCode();
 
-        var response = await CallTool(client, accessToken, "show_recipes", new { });
+        var response = await CallTool(client, accessToken, "show_recipes", new { search = title });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
@@ -135,6 +140,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains("structuredContent", body);
         Assert.Contains("\"apiOrigin\"", body);
         Assert.Contains("\"ingredientCount\":1", body);
+        Assert.Contains($"\"imageUrl\":\"http://localhost/api/recipes/{recipeId}/images/", body);
         // …while hosts without MCP Apps support still get a readable text list.
         Assert.Contains("Household recipes", body);
         Assert.Contains("3 serving(s)", body);
@@ -164,7 +170,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         // to the shared data renderer.
         string[] dedicatedUiTools = ["show_recipes", "show_meal_plan"];
         Assert.All(tools.Where(tool => !dedicatedUiTools.Contains(tool.GetProperty("name").GetString())), tool =>
-            Assert.Equal("ui://kotlet/data-v1", tool.GetProperty("_meta").GetProperty("openai/outputTemplate").GetString()));
+            Assert.Equal("ui://kotlet/data-v2", tool.GetProperty("_meta").GetProperty("openai/outputTemplate").GetString()));
     }
 
     [Fact]
@@ -172,7 +178,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
     {
         var (client, accessToken) = await AuthorizeMcpClientAsync();
 
-        var response = await SendMcp(client, accessToken, "resources/read", new { uri = "ui://kotlet/data-v1" });
+        var response = await SendMcp(client, accessToken, "resources/read", new { uri = "ui://kotlet/data-v2" });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
@@ -181,6 +187,12 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains("ui/notifications/tool-result", body);
         Assert.Contains("grid-template-columns", body);
         Assert.Contains("function table", body);
+        Assert.Contains("function shopping", body);
+        Assert.Contains("function pantry", body);
+        Assert.Contains("function prepared", body);
+        Assert.Contains("function mealPlan", body);
+        Assert.Contains("function ingredientMatches", body);
+        Assert.Contains("function duplicates", body);
         Assert.Contains(".tag{", body);
         Assert.DoesNotContain("src=\"http", body);
         Assert.DoesNotContain("fetch(", body);
