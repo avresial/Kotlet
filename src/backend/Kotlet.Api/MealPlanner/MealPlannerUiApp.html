@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kotlet meal plan</title>
+<style>
+  /* Palette mirrors src/frontend (styles.scss, meal-planner-page.scss) so the embedded read-only
+     view looks like the Kotlet meal planner. Every editing affordance from the Angular component
+     (add buttons, drag handles, remove/×, editable portion inputs, people pickers) is intentionally
+     dropped — this surface only displays the plan. */
+  :root {
+    --app-bg: #f6f1e8; --app-surface: #fffaf2; --app-surface-raised: #fffdf9; --app-surface-bright: #fff;
+    --app-text: #29251f; --app-text-soft: #554e45; --app-text-muted: #746d63;
+    --app-border: #dcd2c4; --app-border-strong: #cfc3b4;
+    --app-inset: #f4ead9; --app-inset-strong: #f2dfd7;
+    --app-accent: #8e392b; --app-accent-bg: #f8e8e2;
+    --app-link: #7d3428;
+    color: var(--app-text); background: var(--app-bg); font-family: system-ui, sans-serif;
+  }
+  .app-dark {
+    --app-bg: #171512; --app-surface: #211e1a; --app-surface-raised: #29251f; --app-surface-bright: #302b25;
+    --app-text: #f4eee5; --app-text-soft: #ded5c9; --app-text-muted: #b8aea1;
+    --app-border: #49423a; --app-border-strong: #5a5147;
+    --app-inset: #2c2823; --app-inset-strong: #38312a;
+    --app-accent: #d98a6f; --app-accent-bg: #3a2620;
+    --app-link: #d98a6f;
+  }
+  html, body { margin: 0; min-width: 16rem; }
+  body { color: var(--app-text); background: var(--app-bg); padding: 1rem; }
+  button { font: inherit; }
+
+  .eyebrow { margin: 0; color: var(--app-accent); font-size: .7rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+  .empty { margin: 2rem 0; color: var(--app-text-muted); text-align: center; }
+  .error {
+    padding: 12px 16px; margin-bottom: 16px; border-radius: .6rem;
+    background: #fff0ec; color: #9a3022; border: 1px solid #d99b8b;
+  }
+  .app-dark .error { background: #33211d; color: #e2917f; border-color: #6d3d33; }
+
+  /* Header + day navigation */
+  .plan-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .plan-header h1 { margin: .1rem 0 0; font: 500 1.5rem Georgia, serif; }
+  .day-nav { display: inline-flex; align-items: center; gap: .5rem; }
+  .day-nav button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2rem; height: 2rem; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--app-border-strong); background: var(--app-surface); color: var(--app-text-soft);
+  }
+  .day-nav button:hover { background: var(--app-inset); }
+  .day-nav button:disabled { opacity: .5; cursor: not-allowed; }
+  .day-nav .day-label { min-width: 8rem; text-align: center; font-weight: 600; }
+  .readonly-tag {
+    display: inline-block; margin-left: .5rem; padding: .1rem .45rem; border-radius: 999px; vertical-align: middle;
+    background: var(--app-accent-bg); color: var(--app-accent); font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  }
+
+  /* Slot section (mirrors .slot-section / .slot-heading) */
+  .slot-section {
+    margin-bottom: 1rem; border: 1px solid var(--app-border); border-radius: 1rem;
+    background: var(--app-surface); box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%); overflow: hidden;
+  }
+  .slot-heading {
+    display: flex; align-items: baseline; justify-content: space-between; gap: .5rem;
+    padding: .85rem 1.1rem; border-bottom: 1px solid var(--app-border);
+  }
+  .slot-heading h2 { margin: 0; font: 500 1.2rem Georgia, serif; }
+  .slot-count { font-size: .8rem; color: var(--app-text-muted); }
+
+  .item-list { list-style: none; margin: 0; padding: 0; }
+  .empty-slot { padding: .9rem 1.1rem; color: var(--app-text-muted); font-size: .9rem; }
+  .meal-item { padding: .9rem 1.1rem; border-bottom: 1px solid var(--app-border); }
+  .meal-item:last-child { border-bottom: 0; }
+  .meal-item-header { display: flex; align-items: center; gap: .6rem; }
+  .item-type { color: var(--app-accent); font-size: 1rem; }
+  .item-title { flex: 1; min-width: 0; }
+  .item-title strong { display: block; font-weight: 600; }
+  .item-title span { display: block; font-size: .8rem; color: var(--app-text-muted); }
+
+  /* Participant portions (read-only rendering of .portion-table) */
+  .portion-table-wrap { overflow-x: auto; margin-top: .7rem; }
+  .portion-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .portion-table th, .portion-table td { text-align: left; padding: .35rem .6rem; border-bottom: 1px solid var(--app-border); white-space: nowrap; }
+  .portion-table thead th {
+    font-size: .65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--app-text-muted);
+  }
+  .portion-table tbody th { font-weight: 600; }
+  .portion-table tbody th.is-me { color: var(--app-accent); }
+  .portion-table td.num { font-variant-numeric: tabular-nums; }
+
+  /* People chips (read-only rendering of .chips) */
+  .people-row { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; margin-top: .7rem; }
+  .row-label { font-size: .65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--app-text-muted); margin-right: .2rem; }
+  .chip {
+    display: inline-flex; align-items: center; padding: .2rem .6rem; border-radius: 999px;
+    background: var(--app-inset); color: var(--app-text-soft); font-size: .8rem; border: 1px solid var(--app-border);
+  }
+  .chip.is-me { background: var(--app-accent-bg); color: var(--app-accent); border-color: transparent; }
+  .chip.is-guest { background: var(--app-inset-strong); }
+  .no-people { font-size: .82rem; color: var(--app-text-muted); }
+
+  /* Meal summary (read-only rendering of .meal-summary) */
+  .meal-summary { display: flex; flex-wrap: wrap; gap: 1.2rem; margin: .8rem 0 0; }
+  .meal-summary div { margin: 0; }
+  .meal-summary dt { margin: 0; font-size: .65rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--app-text-muted); }
+  .meal-summary dd { margin: .1rem 0 0; font: 500 1.05rem Georgia, serif; }
+
+  .plan-footer { margin-top: 1rem; font-size: .85rem; color: var(--app-text-muted); text-align: center; }
+</style>
+</head>
+<body>
+<div id="error" class="error" hidden></div>
+
+<section id="plan-view" hidden>
+  <div class="plan-header">
+    <div>
+      <p class="eyebrow">Kotlet · Meal planner</p>
+      <h1>Meal plan <span class="readonly-tag">Read-only</span></h1>
+    </div>
+    <div class="day-nav">
+      <button type="button" id="prev-day" aria-label="Previous day" title="Previous day">‹</button>
+      <span class="day-label" id="day-label"></span>
+      <button type="button" id="next-day" aria-label="Next day" title="Next day">›</button>
+    </div>
+  </div>
+  <div id="slots"></div>
+  <p class="plan-footer" id="plan-footer"></p>
+</section>
+
+<p id="loading" class="empty">Loading meal plan…</p>
+
+<script>
+"use strict";
+/* Minimal MCP Apps (SEP-1865) bridge.
+ * Hand-rolled equivalent of @modelcontextprotocol/ext-apps: JSON-RPC 2.0 over
+ * window.parent.postMessage. Kept dependency-free so the UI stays a single HTML
+ * document that satisfies the default MCP Apps CSP (no external scripts). */
+const bridge = (() => {
+  const pending = new Map();
+  let nextId = 1;
+  const post = (message) => window.parent.postMessage(message, "*");
+  const request = (method, params) => new Promise((resolve, reject) => {
+    const id = nextId++;
+    pending.set(id, { resolve, reject });
+    post({ jsonrpc: "2.0", id, method, params });
+  });
+  const notify = (method, params) => post({ jsonrpc: "2.0", method, params: params ?? {} });
+  const notificationHandlers = new Map();
+
+  window.addEventListener("message", (event) => {
+    const message = event.data;
+    if (!message || message.jsonrpc !== "2.0") return;
+    if (message.id !== undefined && message.method === undefined) {
+      const entry = pending.get(message.id);
+      if (!entry) return;
+      pending.delete(message.id);
+      if (message.error) entry.reject(new Error(message.error.message || "Host request failed."));
+      else entry.resolve(message.result);
+    } else if (message.method !== undefined && message.id !== undefined) {
+      // Host-initiated request (e.g. ui/resource-teardown): acknowledge with an empty result.
+      post({ jsonrpc: "2.0", id: message.id, result: {} });
+    } else if (message.method !== undefined) {
+      const handler = notificationHandlers.get(message.method);
+      if (handler) handler(message.params);
+    }
+  });
+
+  return {
+    request,
+    notify,
+    on: (method, handler) => notificationHandlers.set(method, handler),
+    callTool: (name, args) => request("tools/call", { name, arguments: args })
+  };
+})();
+
+const el = (id) => document.getElementById(id);
+const state = { date: null, loading: false };
+
+function applyHostContext(context) {
+  const theme = context && context.theme;
+  const dark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.classList.toggle("app-dark", dark);
+}
+
+function showError(message) {
+  const box = el("error");
+  box.textContent = message;
+  box.hidden = false;
+}
+
+const escapeHtml = (text) => String(text)
+  .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+
+const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+const trimNumber = (value) => Number(value).toFixed(2).replace(/\.?0+$/, "");
+
+/* yyyy-MM-dd only, formatted without timezone drift (parse the parts directly). */
+function formatDay(iso) {
+  const [y, m, d] = String(iso).split("-").map(Number);
+  if (!y || !m || !d) return String(iso);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+}
+function shiftDay(iso, days) {
+  const [y, m, d] = String(iso).split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d + days));
+  return date.toISOString().slice(0, 10);
+}
+
+function renderParticipants(item) {
+  if (!item.participants.length) return "";
+  const showQuantity = item.type === "ingredient" && item.ingredientUnit;
+  const rows = item.participants.map((person) => {
+    // Portion quantity for ingredients scales the meal's total quantity by this person's share
+    // of all portions — a read-only echo of the app's per-person quantity column.
+    let quantityCell = "";
+    if (showQuantity) {
+      const totalPercent = item.participants.reduce((sum, p) => sum + p.portionPercent, 0) + item.guests * 100;
+      const share = totalPercent > 0 ? (item.ingredientQuantity || 0) * person.portionPercent / totalPercent : 0;
+      quantityCell = `<td class="num">${escapeHtml(trimNumber(share))} ${escapeHtml(item.ingredientUnit)}</td>`;
+    }
+    return "<tr>" +
+      `<th scope="row"${person.isCurrentUser ? ' class="is-me"' : ""}>${escapeHtml(person.displayName)}</th>` +
+      quantityCell +
+      `<td class="num">${person.portionPercent}%</td>` +
+      "</tr>";
+  }).join("");
+  return '<div class="portion-table-wrap"><table class="portion-table"><thead><tr>' +
+    "<th scope=\"col\">User</th>" +
+    (showQuantity ? "<th scope=\"col\">Quantity</th>" : "") +
+    "<th scope=\"col\">Serving</th>" +
+    "</tr></thead><tbody>" + rows + "</tbody></table></div>";
+}
+
+function renderPeople(item) {
+  const chips = item.participants.map((person) =>
+    `<span class="chip${person.isCurrentUser ? " is-me" : ""}">${escapeHtml(person.displayName)}</span>`);
+  for (let i = 0; i < item.guests; i++) chips.push('<span class="chip is-guest">Guest</span>');
+  const body = chips.length
+    ? `<span class="row-label">People</span>${chips.join("")}`
+    : '<span class="no-people">No people assigned.</span>';
+  return `<div class="people-row">${body}</div>`;
+}
+
+function renderItem(item) {
+  const icon = item.type === "recipe" ? "▤" : item.type === "prepared-meal" ? "▦" : "◉";
+  return '<li class="meal-item">' +
+    '<div class="meal-item-header">' +
+    `<span class="item-type" aria-hidden="true">${icon}</span>` +
+    `<div class="item-title"><strong>${escapeHtml(item.displayName)}</strong>` +
+    (item.note ? `<span>${escapeHtml(item.note)}</span>` : "") +
+    "</div></div>" +
+    renderParticipants(item) +
+    renderPeople(item) +
+    '<dl class="meal-summary">' +
+    `<div><dt>People served</dt><dd>${escapeHtml(trimNumber(item.servings))}</dd></div>` +
+    (item.guests ? `<div><dt>Guests</dt><dd>${item.guests}</dd></div>` : "") +
+    "</dl></li>";
+}
+
+function renderPlan(data) {
+  state.date = data.date;
+  el("day-label").textContent = formatDay(data.date);
+  const container = el("slots");
+  container.innerHTML = data.slots.map((slot) => {
+    const items = slot.items.length
+      ? slot.items.map(renderItem).join("")
+      : '<li class="empty-slot">No items yet.</li>';
+    const count = slot.items.length ? `<span class="slot-count">${plural(slot.items.length, "meal")}</span>` : "";
+    return '<section class="slot-section"><div class="slot-heading">' +
+      `<h2>${escapeHtml(slot.label)}</h2>${count}</div>` +
+      `<ul class="item-list">${items}</ul></section>`;
+  }).join("");
+  el("plan-footer").textContent = data.mealCount === 0
+    ? "Nothing planned for this day yet."
+    : `${plural(data.mealCount, "meal")} planned.`;
+  el("loading").hidden = true;
+  el("plan-view").hidden = false;
+}
+
+async function loadDay(date) {
+  if (state.loading) return;
+  state.loading = true;
+  el("error").hidden = true;
+  el("prev-day").disabled = el("next-day").disabled = true;
+  try {
+    const result = await bridge.callTool("show_meal_plan", date ? { date } : {});
+    if (result.isError) {
+      const text = (result.content || []).map((block) => block.text).join(" ");
+      throw new Error(text || "The meal plan could not be loaded.");
+    }
+    if (!result.structuredContent) throw new Error("The host returned no meal-plan data.");
+    renderPlan(result.structuredContent);
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    state.loading = false;
+    el("prev-day").disabled = el("next-day").disabled = false;
+  }
+}
+
+el("prev-day").addEventListener("click", () => { if (state.date) void loadDay(shiftDay(state.date, -1)); });
+el("next-day").addEventListener("click", () => { if (state.date) void loadDay(shiftDay(state.date, 1)); });
+
+bridge.on("ui/notifications/tool-result", (params) => {
+  if (params && params.structuredContent) renderPlan(params.structuredContent);
+  else {
+    el("loading").hidden = true;
+    showError("The host did not deliver meal-plan data to the app.");
+  }
+});
+bridge.on("ui/notifications/host-context-changed", (params) =>
+  applyHostContext((params && params.hostContext) || params));
+
+(async () => {
+  applyHostContext(null);
+  try {
+    const result = await bridge.request("ui/initialize", {
+      // MCP Apps hosts require appInfo alongside the negotiated protocol version.
+      protocolVersion: "2026-01-26",
+      appInfo: { name: "kotlet-meal-plan", version: "1.0.0" },
+      appCapabilities: { availableDisplayModes: ["inline"] }
+    });
+    applyHostContext(result && result.hostContext);
+    bridge.notify("ui/notifications/initialized");
+  } catch (error) {
+    showError("MCP Apps initialization failed: " + error.message);
+  }
+})();
+</script>
+</body>
+</html>

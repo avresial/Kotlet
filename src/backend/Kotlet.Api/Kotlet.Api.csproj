@@ -8,7 +8,7 @@
     <!-- Surfaced as the MCP server version (serverInfo.version) and in /.well-known/mcp.json.
          Bump on MCP surface changes so clients that cache connector metadata (e.g. ChatGPT)
          re-read tools and UI resources instead of serving a stale template. -->
-    <Version>1.2.0</Version>
+    <Version>1.4.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,8 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Self-contained MCP Apps UIs: a rich recipe view and a reusable data renderer. -->
+    <!-- Self-contained MCP Apps UIs: a rich recipe view, a read-only meal plan, and a reusable data renderer. -->
     <EmbeddedResource Include="Recipes\RecipeUiApp.html" />
+    <EmbeddedResource Include="MealPlanner\MealPlannerUiApp.html" />
     <EmbeddedResource Include="Mcp\DataUiApp.html" />
   </ItemGroup>
 

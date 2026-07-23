@@ -11,15 +11,15 @@ using Xunit;
 namespace Kotlet.Api.IntegrationTests.Mcp;
 
 /// <summary>
-/// Exercises the MCP Apps (SEP-1865) recipe UI proof of concept: the show_recipes tool
-/// advertises the ui://kotlet/recipes-v2 resource, serves structured card data with a plain
-/// text fallback, and the resource itself is served as an MCP App HTML document.
+/// Exercises the MCP Apps (SEP-1865) read-only meal-plan UI: the show_meal_plan tool advertises the
+/// ui://kotlet/meal-plan-v1 resource, serves structured day data with a plain text fallback, and the
+/// resource itself is served as a self-contained MCP App HTML document that only displays the plan.
 /// </summary>
-public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
+public sealed class McpMealPlanUiTests(TestWebApplicationFactory factory)
     : IClassFixture<TestWebApplicationFactory>
 {
     [Fact]
-    public async Task ToolsList_AdvertisesShowRecipesWithUiResourceMetadata()
+    public async Task ToolsList_AdvertisesShowMealPlanWithUiResourceMetadata()
     {
         var (client, accessToken) = await AuthorizeMcpClientAsync();
 
@@ -27,182 +27,117 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("\"show_recipes\"", body);
-        var showRecipes = body[body.IndexOf("\"show_recipes\"", StringComparison.Ordinal)..];
-        Assert.Contains("ui://kotlet/recipes-v2", showRecipes);
-        Assert.Contains("resourceUri", showRecipes);
+        Assert.Contains("\"show_meal_plan\"", body);
+        var showMealPlan = body[body.IndexOf("\"show_meal_plan\"", StringComparison.Ordinal)..];
+        Assert.Contains("ui://kotlet/meal-plan-v1", showMealPlan);
+        Assert.Contains("resourceUri", showMealPlan);
         // ChatGPT's Apps SDK links the tool to its widget via this key.
-        Assert.Contains("openai/outputTemplate", showRecipes);
-        Assert.Contains("outputSchema", showRecipes);
-        Assert.Contains("\"recipes\"", showRecipes);
-        Assert.Contains("openai/toolInvocation/invoking", showRecipes);
-        Assert.Contains("Loading recipes...", showRecipes);
-        Assert.Contains("openai/toolInvocation/invoked", showRecipes);
-        Assert.Contains("Recipes ready", showRecipes);
+        Assert.Contains("openai/outputTemplate", showMealPlan);
+        Assert.Contains("outputSchema", showMealPlan);
+        Assert.Contains("\"slots\"", showMealPlan);
+        Assert.Contains("Loading meal plan...", showMealPlan);
+        Assert.Contains("Meal plan ready", showMealPlan);
     }
 
     [Fact]
-    public async Task ResourcesList_ExposesRecipeUiWithCspMetadata()
+    public async Task ResourcesList_ExposesMealPlanUiWithCspMetadata()
     {
         var (client, accessToken) = await AuthorizeMcpClientAsync();
 
         var response = await SendMcp(client, accessToken, "resources/list", new { });
 
         var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("ui://kotlet/recipes-v2", body);
+        Assert.Contains("ui://kotlet/meal-plan-v1", body);
         Assert.Contains("text/html;profile=mcp-app", body);
-        // Hosts enforce the iframe CSP from the full connect/resource/frame domain shape.
-        Assert.Contains("connectDomains", body);
-        Assert.Contains("resourceDomains", body);
-        Assert.Contains("frameDomains", body);
-        Assert.Contains("\"domain\":", body);
-        // ChatGPT's Apps SDK reads its own snake_case CSP/domain namespace.
         Assert.Contains("openai/widgetCSP", body);
-        Assert.Contains("resource_domains", body);
         Assert.Contains("openai/widgetDomain", body);
         Assert.Contains("openai/widgetDescription", body);
-        Assert.Contains("prefersBorder", body);
-        Assert.Contains("openai/widgetPrefersBorder", body);
 
         var dataLine = body.Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .Single(line => line.StartsWith("data: ", StringComparison.Ordinal));
         using var document = JsonDocument.Parse(dataLine["data: ".Length..]);
         var resource = document.RootElement.GetProperty("result").GetProperty("resources")
             .EnumerateArray()
-            .Single(item => item.GetProperty("uri").GetString() == "ui://kotlet/recipes-v2");
+            .Single(item => item.GetProperty("uri").GetString() == "ui://kotlet/meal-plan-v1");
         var ui = resource.GetProperty("_meta").GetProperty("ui");
         Assert.Equal("http://localhost", ui.GetProperty("domain").GetString());
-        Assert.Equal(
-            ["http://localhost"],
-            ui.GetProperty("csp").GetProperty("resourceDomains")
-                .EnumerateArray().Select(domain => domain.GetString()));
+        // A read-only, text-only view: every CSP domain list is empty.
+        Assert.Empty(ui.GetProperty("csp").GetProperty("resourceDomains").EnumerateArray());
+        Assert.Empty(ui.GetProperty("csp").GetProperty("connectDomains").EnumerateArray());
+        Assert.Empty(ui.GetProperty("csp").GetProperty("frameDomains").EnumerateArray());
     }
 
     [Fact]
-    public async Task RecipeUiResource_IsServedAsSelfContainedMcpAppHtml()
+    public async Task MealPlanUiResource_IsServedAsReadOnlySelfContainedMcpAppHtml()
     {
         var (client, accessToken) = await AuthorizeMcpClientAsync();
 
-        var response = await SendMcp(client, accessToken, "resources/read", new { uri = "ui://kotlet/recipes-v2" });
+        var response = await SendMcp(client, accessToken, "resources/read", new { uri = "ui://kotlet/meal-plan-v1" });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains("text/html;profile=mcp-app", body);
-        // Card grid, the MCP Apps bridge handshake, and the detail-view tool call all ship inline.
-        Assert.Contains("recipe-grid", body);
+        // The MCP Apps bridge handshake and read-only day view ship inline.
         Assert.Contains("ui/initialize", body);
-        // Hosts reject the ui/initialize handshake unless it carries app identity and a protocol version.
         Assert.Contains("appInfo", body);
         Assert.DoesNotContain("clientInfo", body);
         Assert.Contains("protocolVersion", body);
-        Assert.Contains("get_recipe", body);
-        Assert.Contains("data.totalCount === 1", body);
-        Assert.Contains("data.recipes.length === 1", body);
-        Assert.Contains("openRecipe(data.recipes[0].id)", body);
+        Assert.Contains("slot-section", body);
+        Assert.Contains("Read-only", body);
+        // Day navigation re-calls the same read-only tool.
+        Assert.Contains("show_meal_plan", body);
         // The UI must stay self-contained: no external scripts, styles, or REST calls.
         Assert.DoesNotContain("src=\\\"http", body);
         Assert.DoesNotContain("fetch(", body);
     }
 
     [Fact]
-    public async Task ShowRecipes_ReturnsStructuredCardsAndTextFallback()
+    public async Task ShowMealPlan_ReturnsStructuredDayAndTextFallback()
     {
         var (client, accessToken) = await AuthorizeMcpClientAsync();
         var ingredient = await CallTool(client, accessToken, "create_ingredient", new
         {
-            request = new { name = $"Chickpeas {Guid.NewGuid():N}", measurementUnit = "g", caloriesPer100BaseUnits = 164 }
+            request = new { name = $"Oats {Guid.NewGuid():N}", measurementUnit = "g", caloriesPer100BaseUnits = 379 }
         });
         var ingredientId = ExtractGuidAfter(await ingredient.Content.ReadAsStringAsync(), "\"id\":\"");
-        var title = $"Chickpea stew {Guid.NewGuid():N}";
+        var title = $"Porridge {Guid.NewGuid():N}";
         var recipe = await CallTool(client, accessToken, "add_recipe", new
         {
             request = new
             {
                 title,
-                servings = 3,
-                mealType = "dinner",
-                descriptionMarkdown = "1. Simmer the chickpeas.",
-                ingredients = new[] { new { ingredientId, quantity = 240, unit = "g" } }
+                servings = 2,
+                mealType = "breakfast",
+                descriptionMarkdown = "1. Cook the oats.",
+                ingredients = new[] { new { ingredientId, quantity = 80, unit = "g" } }
             }
         });
         var recipeId = ExtractGuidAfter(await recipe.Content.ReadAsStringAsync(), "\"id\":\"");
-        using var image = new ByteArrayContent(TestImages.Png());
-        image.Headers.ContentType = new("image/png");
-        using var upload = new MultipartFormDataContent { { image, "file", "recipe.png" } };
-        (await client.PostAsync($"/api/recipes/{recipeId}/images", upload)).EnsureSuccessStatusCode();
+        var date = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
+        await CallTool(client, accessToken, "add_meal_to_plan", new
+        {
+            request = new { date, slot = "breakfast", recipeId }
+        });
 
-        var response = await CallTool(client, accessToken, "show_recipes", new { search = title });
+        var response = await CallTool(client, accessToken, "show_meal_plan", new { date });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         Assert.Contains(title, body);
         // Structured content feeds the embedded UI…
         Assert.Contains("structuredContent", body);
-        Assert.Contains("\"apiOrigin\"", body);
-        Assert.Contains("\"ingredientCount\":1", body);
-        Assert.Contains($"\"imageUrl\":\"http://localhost/api/recipes/{recipeId}/images/", body);
-        // …while hosts without MCP Apps support still get a readable text list.
-        Assert.Contains("Household recipes", body);
-        Assert.Contains("3 serving(s)", body);
-    }
-
-    [Fact]
-    public async Task ToolsList_AttachesAnUiResourceToEveryTool()
-    {
-        var (client, accessToken) = await AuthorizeMcpClientAsync();
-
-        var response = await SendMcp(client, accessToken, "tools/list", new { });
-        var body = await response.Content.ReadAsStringAsync();
-        var dataLine = body.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-            .Single(line => line.StartsWith("data: ", StringComparison.Ordinal));
-        using var document = JsonDocument.Parse(dataLine["data: ".Length..]);
-        var tools = document.RootElement.GetProperty("result").GetProperty("tools").EnumerateArray().ToList();
-
-        Assert.NotEmpty(tools);
-        Assert.All(tools, tool =>
-        {
-            var meta = tool.GetProperty("_meta");
-            Assert.True(meta.TryGetProperty("openai/outputTemplate", out var template), tool.GetProperty("name").GetString());
-            Assert.StartsWith("ui://kotlet/", template.GetString(), StringComparison.Ordinal);
-            Assert.True(meta.GetProperty("ui").TryGetProperty("resourceUri", out _));
-        });
-        // show_recipes and show_meal_plan carry their own MCP Apps UI; every other tool falls back
-        // to the shared data renderer.
-        string[] dedicatedUiTools = ["show_recipes", "show_meal_plan"];
-        Assert.All(tools.Where(tool => !dedicatedUiTools.Contains(tool.GetProperty("name").GetString())), tool =>
-            Assert.Equal("ui://kotlet/data-v2", tool.GetProperty("_meta").GetProperty("openai/outputTemplate").GetString()));
-    }
-
-    [Fact]
-    public async Task SharedDataUiResource_IsSelfContainedAndUsesReusableResultComponents()
-    {
-        var (client, accessToken) = await AuthorizeMcpClientAsync();
-
-        var response = await SendMcp(client, accessToken, "resources/read", new { uri = "ui://kotlet/data-v2" });
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = await response.Content.ReadAsStringAsync();
-        Assert.Contains("text/html;profile=mcp-app", body);
-        Assert.Contains("ui/initialize", body);
-        Assert.Contains("ui/notifications/tool-result", body);
-        Assert.Contains("grid-template-columns", body);
-        Assert.Contains("function table", body);
-        Assert.Contains("function shopping", body);
-        Assert.Contains("function pantry", body);
-        Assert.Contains("function prepared", body);
-        Assert.Contains("function mealPlan", body);
-        Assert.Contains("function ingredientMatches", body);
-        Assert.Contains("function duplicates", body);
-        Assert.Contains(".tag{", body);
-        Assert.DoesNotContain("src=\"http", body);
-        Assert.DoesNotContain("fetch(", body);
+        Assert.Contains("\"slots\"", body);
+        Assert.Contains("\"mealCount\":1", body);
+        // …while hosts without MCP Apps support still get a readable text summary.
+        Assert.Contains("Meal plan for", body);
+        Assert.Contains("[Breakfast]", body);
     }
 
     /// <summary>Registers a user with a home and runs the OAuth PKCE flow for an MCP-scoped token.</summary>
     private async Task<(HttpClient Client, string AccessToken)> AuthorizeMcpClientAsync()
     {
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var email = $"mcp-ui-{Guid.NewGuid():N}@example.com";
+        var email = $"mcp-meal-ui-{Guid.NewGuid():N}@example.com";
         var registration = await client.PostAsJsonAsync("/api/auth/register", new
         {
             email,
@@ -213,7 +148,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         var registrationToken = (await registration.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("accessToken").GetString();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", registrationToken);
-        var house = await client.PostAsJsonAsync("/api/houses", new { name = "MCP UI home" });
+        var house = await client.PostAsJsonAsync("/api/houses", new { name = "MCP meal UI home" });
         house.EnsureSuccessStatusCode();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
             (await house.Content.ReadFromJsonAsync<JsonElement>())

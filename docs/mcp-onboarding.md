@@ -62,9 +62,23 @@ Example response:
 ```
 
 This is a lightweight, client-friendly pointer. The standards-based
-`/.well-known/openid-configuration` and `/.well-known/oauth-protected-resource`
-documents are also served and are what OAuth-aware clients rely on for the full
-authorization-server metadata.
+authorization-server metadata is also served, on both
+`/.well-known/openid-configuration` and `/.well-known/oauth-authorization-server`
+(RFC 8414), alongside `/.well-known/oauth-protected-resource` (RFC 9728). These
+are what OAuth-aware clients rely on for the full authorization-server metadata.
+
+### Dynamic Client Registration
+
+The authorization-server metadata advertises a `registration_endpoint`
+(`/connect/register`) implementing OAuth 2.0 Dynamic Client Registration
+(RFC 7591). Clients that follow the MCP authorization spec — Claude Code, Claude
+Desktop, and the claude.ai web connector — register their own public client
+(carrying their own redirect/callback URI) automatically before running the
+Authorization Code + PKCE flow, so **no client ID or redirect URI has to be
+pre-registered by hand** for them. Registration is open (no initial access
+token); every registered client is public, PKCE-only, and limited to the `mcp`
+scope and resource. ChatGPT does not perform dynamic registration and continues
+to use the pre-shared `OAuth:ClientId` described below.
 
 ## Claude
 
@@ -72,8 +86,11 @@ authorization-server metadata.
 2. Add a custom connector and paste the Kotlet MCP server URL (`.../mcp`).
 3. Complete the Kotlet login when Claude opens the authorization window.
 
-Claude runs the Authorization Code + PKCE flow against Kotlet's OAuth endpoints
-and stores its own short-lived token. You never handle a token yourself.
+Claude discovers the metadata, dynamically registers its own OAuth client
+(RFC 7591) with the redirect URI it wants to use, then runs the Authorization
+Code + PKCE flow against Kotlet's OAuth endpoints and stores its own short-lived
+token. You never handle a token or a client ID yourself. The same automatic flow
+works from Claude Code (`claude mcp add`) and Claude Desktop.
 
 ## ChatGPT — current limitation
 

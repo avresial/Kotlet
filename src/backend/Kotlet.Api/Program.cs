@@ -15,6 +15,7 @@ app.MapDefaultEndpoints();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.MapApiFeatures();
 
 app.Run();

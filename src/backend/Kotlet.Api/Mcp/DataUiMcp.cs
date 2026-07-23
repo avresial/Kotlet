@@ -4,10 +4,10 @@ using ModelContextProtocol.Server;
 
 namespace Kotlet.Api.Mcp;
 
-/// <summary>Shared, schema-agnostic MCP App used to present every regular tool result.</summary>
+/// <summary>Shared MCP App with tailored views for rich data and a generic fallback for every other tool result.</summary>
 public static class DataUiMcp
 {
-    public const string ResourceUri = "ui://kotlet/data-v1";
+    public const string ResourceUri = "ui://kotlet/data-v2";
     public const string ResourceMimeType = "text/html;profile=mcp-app";
 
     private static readonly Lazy<string> AppHtml = new(() =>
@@ -26,7 +26,7 @@ public static class DataUiMcp
             UriTemplate = ResourceUri,
             Name = "kotlet-data-ui",
             Title = "Kotlet data",
-            Description = "Reusable cards and tables for Kotlet MCP tool results.",
+            Description = "Tailored household-data views with reusable cards and tables for other Kotlet tool results.",
             MimeType = ResourceMimeType,
             Meta = new JsonObject
             {
