@@ -38,7 +38,7 @@
             </div>
             <strong class="line-price">{{ item.totalPrice.toFixed(2) }} zł</strong>
             @if (item.note) {
-              <input class="note-input" type="text" maxlength="500" [value]="item.note" [disabled]="isSaving()" (change)="updateNote(item, $any($event.target).value)" [attr.aria-label]="('shopping.note' | t) + ': ' + item.ingredientName" />
+              <textarea class="note-input" rows="1" maxlength="500" [disabled]="isSaving()" (change)="updateNote(item, $any($event.target).value)" [attr.aria-label]="('shopping.note' | t) + ': ' + item.ingredientName">{{ item.note }}</textarea>
             }
           </article>
           }
