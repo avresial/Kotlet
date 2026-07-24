@@ -116,9 +116,11 @@ export class ShoppingListPage implements OnInit {
     if (ingredient) this.update(item, { quantity: toBaseQuantity(quantity, this.display(item).unit, ingredient) });
   }
   updateNote(item: ShoppingListItem, note: string): void {
-    const normalized = note.trim() || null;
-    if (normalized === (item.note ?? null)) return;
-    this.update(item, { note: normalized });
+    // Send the (possibly empty) trimmed string so the backend clears the note on blank
+    // rather than treating an omitted note as "no change".
+    const trimmed = note.trim();
+    if (trimmed === (item.note ?? '')) return;
+    this.update(item, { note: trimmed });
   }
 
   print(): void { window.print(); }

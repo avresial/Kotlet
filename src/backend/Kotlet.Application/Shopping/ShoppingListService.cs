@@ -36,7 +36,9 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
         if (item is null) return new(ShoppingListOperationStatus.NotFound);
         item.Quantity = Quantity.FromAmount(command.Quantity);
         item.IsPurchased = command.IsPurchased;
-        item.Note = NormalizeNote(command.Note);
+        // Note is a partial field: omitting it (null) preserves the stored value; an
+        // explicit (possibly empty) string replaces it, clearing when blank.
+        if (command.Note is not null) item.Note = NormalizeNote(command.Note);
         await repository.SaveChangesAsync(cancellationToken);
         return new(ShoppingListOperationStatus.Success, await ToLocalizedDtoAsync(item, languageCode, cancellationToken));
     }

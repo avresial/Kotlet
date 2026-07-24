@@ -93,7 +93,7 @@ describe('ShoppingListIntegrationService', () => {
       totalPrice: 5,
       isPurchased: false,
       category: ingredient.category,
-      note: null,
+      note: 'Buy the wholegrain brand',
     };
 
     const updated: ShoppingListItem = {
@@ -106,7 +106,7 @@ describe('ShoppingListIntegrationService', () => {
       totalPrice: 15,
       isPurchased: false,
       category: ingredient.category,
-      note: null,
+      note: 'Buy the wholegrain brand',
     };
 
     vi.mocked(shoppingListService.getAll).mockReturnValue(of([existing]));
@@ -118,6 +118,7 @@ describe('ShoppingListIntegrationService', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual(updated);
+    expect(result[0].note).toBe('Buy the wholegrain brand');
     expect(shoppingListService.update).toHaveBeenCalledWith(existing, {
       quantity: 300,
       isPurchased: false,
