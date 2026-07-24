@@ -16,12 +16,13 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
     public async Task<ShoppingListOperationResult> CreateAsync(Guid houseId, CreateShoppingListItemCommand command, string languageCode, CancellationToken cancellationToken)
     {
         if (!ValidQuantity(command.Quantity)) return InvalidQuantity();
+        if (!ValidNote(command.Note)) return InvalidNote();
         if (!await repository.IngredientExistsAsync(command.IngredientId, cancellationToken))
             return new(ShoppingListOperationStatus.NotFound);
         if (await repository.ItemExistsAsync(houseId, command.IngredientId, cancellationToken))
             return new(ShoppingListOperationStatus.Conflict, Message: "This ingredient is already on the shopping list.");
 
-        var item = new ShoppingListItem { Id = Guid.NewGuid(), HouseId = houseId, IngredientId = command.IngredientId, Quantity = Quantity.FromAmount(command.Quantity) };
+        var item = new ShoppingListItem { Id = Guid.NewGuid(), HouseId = houseId, IngredientId = command.IngredientId, Quantity = Quantity.FromAmount(command.Quantity), Note = NormalizeNote(command.Note) };
         repository.Add(item);
         await repository.SaveChangesAsync(cancellationToken);
         return new(ShoppingListOperationStatus.Success, await ToLocalizedDtoAsync((await repository.GetByIdAsync(item.Id, houseId, cancellationToken))!, languageCode, cancellationToken));
@@ -30,10 +31,14 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
     public async Task<ShoppingListOperationResult> UpdateAsync(Guid id, Guid houseId, UpdateShoppingListItemCommand command, string languageCode, CancellationToken cancellationToken)
     {
         if (!ValidQuantity(command.Quantity)) return InvalidQuantity();
+        if (!ValidNote(command.Note)) return InvalidNote();
         var item = await repository.GetByIdAsync(id, houseId, cancellationToken);
         if (item is null) return new(ShoppingListOperationStatus.NotFound);
         item.Quantity = Quantity.FromAmount(command.Quantity);
         item.IsPurchased = command.IsPurchased;
+        // Note is a partial field: omitting it (null) preserves the stored value; an
+        // explicit (possibly empty) string replaces it, clearing when blank.
+        if (command.Note is not null) item.Note = NormalizeNote(command.Note);
         await repository.SaveChangesAsync(cancellationToken);
         return new(ShoppingListOperationStatus.Success, await ToLocalizedDtoAsync(item, languageCode, cancellationToken));
     }
@@ -83,9 +88,14 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
             Items: await GetAllAsync(houseId, languageCode, cancellationToken));
     }
 
+    private const int MaxNoteLength = 500;
     private static bool ValidQuantity(decimal quantity) => quantity > 0 && quantity <= 99999999.999m;
     private static ShoppingListOperationResult InvalidQuantity() => new(ShoppingListOperationStatus.ValidationFailed,
         ValidationErrors: new Dictionary<string, string[]> { ["quantity"] = ["Quantity must be greater than 0 and no more than 99999999.999."] });
+    private static bool ValidNote(string? note) => note is null || note.Trim().Length <= MaxNoteLength;
+    private static ShoppingListOperationResult InvalidNote() => new(ShoppingListOperationStatus.ValidationFailed,
+        ValidationErrors: new Dictionary<string, string[]> { ["note"] = [$"Note must be no more than {MaxNoteLength} characters."] });
+    private static string? NormalizeNote(string? note) => string.IsNullOrWhiteSpace(note) ? null : note.Trim();
     private async Task<ShoppingListItemDto> ToLocalizedDtoAsync(ShoppingListItem item, string languageCode, CancellationToken cancellationToken)
     {
         var dictionary = await LoadTranslationsAsync(languageCode, cancellationToken);
@@ -106,5 +116,5 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
         item.Id, item.IngredientId, ingredientName, item.Ingredient.MeasurementUnit,
         item.Quantity.Amount, item.Ingredient.PricePer100BaseUnits.Amount,
         (item.Quantity.Amount / 100m * item.Ingredient.PricePer100BaseUnits).RoundedToCents().Amount, item.IsPurchased,
-        item.Ingredient.Category);
+        item.Ingredient.Category, item.Note);
 }

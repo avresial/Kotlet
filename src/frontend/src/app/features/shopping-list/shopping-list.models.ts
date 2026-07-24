@@ -8,4 +8,5 @@ export interface ShoppingListItem {
   totalPrice: number;
   isPurchased: boolean;
   category: number;
+  note: string | null;
 }
