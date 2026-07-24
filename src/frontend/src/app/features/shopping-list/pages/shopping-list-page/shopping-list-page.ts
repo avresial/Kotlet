@@ -12,9 +12,22 @@ import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
 import { DisplayUnit, displayMeasurement, toBaseQuantity, unitsForIngredient } from '../../../ingredients/display-units';
 
-export function groupShoppingItems(items: ShoppingListItem[]) {
-  return foodCategories.map(category => ({ ...category, items: items.filter(item => item.category === category.value) }))
+export interface ShoppingListGroup {
+  key: string;
+  label: string;
+  items: ShoppingListItem[];
+  isBought: boolean;
+}
+
+/** Items still to buy stay grouped by category at the top; everything already ticked off drops into a
+    single group at the bottom, so the list always opens on what is left to pick up. */
+export function groupShoppingItems(items: ShoppingListItem[]): ShoppingListGroup[] {
+  const byCategory = (include: (item: ShoppingListItem) => boolean) => foodCategories
+    .map(category => ({ key: `category-${category.value}`, label: category.label as string, isBought: false, items: items.filter(item => item.category === category.value && include(item)) }))
     .filter(group => group.items.length);
+  const remaining = byCategory(item => !item.isPurchased);
+  const bought = byCategory(item => item.isPurchased).flatMap(group => group.items);
+  return bought.length ? [...remaining, { key: 'bought', label: 'shopping.alreadyBought', isBought: true, items: bought }] : remaining;
 }
 
 @Component({

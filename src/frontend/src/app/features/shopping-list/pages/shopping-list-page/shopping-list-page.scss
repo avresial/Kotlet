@@ -12,7 +12,7 @@ header p:last-child, .add-panel p { margin: 0; color: var(--app-text-muted); }
 .add-panel, .generate-panel, .receipt { border: 1px solid var(--app-border); border-radius: 1rem; background: var(--app-surface); box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%); }
 .add-panel, .receipt { padding: clamp(1.25rem, 3vw, 2rem); }
 .add-panel { display: grid; grid-template-columns: minmax(13rem, 1fr) 2fr; align-items: start; gap: 2rem; }
-h2 { margin: 0 0 .3rem; font: 500 1.5rem Georgia, serif; }
+h2 { margin: 0 0 .3rem; font: 500 clamp(1.35rem, 5cqi, 1.5rem)/1.15 Georgia, serif; }
 form { display: grid; grid-template-columns: minmax(11rem, 2fr) minmax(4.5rem, 1fr) minmax(7rem, 1fr) auto; align-items: end; gap: .8rem; }
 .note-field { grid-column: 1 / 4; }
 form .primary { grid-column: 4; grid-row: 1 / 3; align-self: stretch; }
@@ -23,13 +23,18 @@ button { border: 0; color: #5d554c; background: transparent; font: inherit; font
 button:disabled { opacity: .5; cursor: default; }
 .primary { min-height: 2.75rem; padding: .55rem .85rem; border-radius: .5rem; color: #fff; background: #963827; white-space: nowrap; }
 .receipt { margin-top: 1.25rem; }
-.receipt-heading { display: flex; justify-content: space-between; align-items: start; }
-.receipt-heading > span { color: var(--app-text-muted); font-size: .8rem; }
-.receipt-actions { display: flex; align-items: center; gap: 1rem; }
-.receipt-actions span { color: var(--app-text-muted); font-size: .8rem; }
-.receipt-actions button { color: #8e392b; font-size: .78rem; }
+/* Narrow first: the title needs the full column width, otherwise the heading wraps to three lines
+   next to the actions. The actions then sit on their own row as tappable pills. */
+.receipt-heading { display: grid; gap: .9rem; }
+.receipt-title { display: grid; gap: .15rem; min-width: 0; }
+.receipt-title h2 { margin: 0; }
+.receipt-count { margin: 0; color: var(--app-text-muted); font-size: .8rem; }
+.receipt-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr)); gap: .5rem; }
+.receipt-actions button { min-height: 2.5rem; padding: .4rem .8rem; border: 1px solid var(--app-border-strong); border-radius: 2rem; color: #8e392b; font-size: .78rem; }
+.receipt-actions button:focus-visible { outline: 2px solid #b96554; outline-offset: 1px; }
 .receipt-lines { margin-top: 1rem; border-top: 1px solid #e1d7c9; }
 .category-heading { margin: .9rem 0 .1rem; color: #766e63; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+.bought-heading { margin-top: 1.5rem; color: #8b8377; }
 .receipt-line {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -69,6 +74,8 @@ button:disabled { opacity: .5; cursor: default; }
 
 /* Once the content column is wide enough, lay each item out on a single scannable row. */
 @container page (min-width: 40rem) {
+  .receipt-heading { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; }
+  .receipt-actions { display: flex; flex: none; align-items: center; }
   .receipt-line {
     grid-template-columns: 2rem minmax(8rem, 18rem) 1fr auto auto 2rem;
     grid-template-areas:
