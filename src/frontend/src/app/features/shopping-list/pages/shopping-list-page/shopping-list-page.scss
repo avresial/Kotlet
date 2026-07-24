@@ -32,16 +32,16 @@ button:disabled { opacity: .5; cursor: default; }
 .category-heading { margin: .9rem 0 .1rem; color: #766e63; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
 .receipt-line {
   display: grid;
-  grid-template-columns: 1.75rem 1fr auto;
+  grid-template-columns: auto 1fr auto;
   grid-template-areas:
-    "check name      remove"
-    "check price-per price-per"
-    "check qty       total"
-    ".     note      note";
+    "check     name      remove"
+    "price-per price-per price-per"
+    "qty       qty       total"
+    "note      note      note";
   column-gap: .7rem; row-gap: .3rem; align-items: center;
   padding: .75rem 0; border-bottom: 1px solid #e1d7c9;
 }
-.check { grid-area: check; align-self: start; display: grid; place-items: center; min-width: 2rem; min-height: 2rem; margin: -.3rem 0 -.3rem -.3rem; color: #9b8e7d; font-size: 1.15rem; }
+.check { grid-area: check; align-self: center; display: grid; place-items: center; min-width: 2rem; min-height: 2rem; margin: -.3rem 0 -.3rem -.3rem; color: #9b8e7d; font-size: 1.15rem; }
 .name { grid-area: name; align-self: center; min-width: 0; font-family: Georgia, serif; font-weight: 500; }
 .remove { grid-area: remove; align-self: start; justify-self: end; display: grid; place-items: center; min-width: 2rem; min-height: 2rem; margin: -.3rem -.3rem 0 0; color: #9a3024; font-size: 1.35rem; line-height: 1; }
 .check:focus-visible, .remove:focus-visible { outline: 2px solid #b96554; outline-offset: 1px; border-radius: .4rem; }
@@ -73,7 +73,7 @@ button:disabled { opacity: .5; cursor: default; }
     grid-template-columns: 2rem minmax(8rem, 18rem) 1fr auto auto 2rem;
     grid-template-areas:
       "check name price-per qty total remove"
-      ".     note note      note note note";
+      "note  note note      note note note";
     column-gap: 1rem; align-items: center;
   }
   .check { align-self: center; margin-block: 0; }
