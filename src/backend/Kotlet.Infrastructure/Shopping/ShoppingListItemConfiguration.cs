@@ -19,6 +19,7 @@ internal sealed class ShoppingListItemConfiguration : IEntityTypeConfiguration<S
             .HasConversion(quantity => quantity.Amount, amount => Quantity.FromAmount(amount))
             .HasPrecision(11, 3);
         builder.Property(x => x.IsPurchased).HasColumnName("is_purchased");
+        builder.Property(x => x.Note).HasColumnName("note").HasMaxLength(500);
         builder.HasIndex(x => new { x.HouseId, x.IngredientId }).IsUnique().HasDatabaseName("ux_shopping_list_items_house_ingredient");
         builder.HasOne(x => x.House).WithMany(x => x.ShoppingListItems).HasForeignKey(x => x.HouseId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(x => x.Ingredient).WithMany().HasForeignKey(x => x.IngredientId).OnDelete(DeleteBehavior.Cascade);

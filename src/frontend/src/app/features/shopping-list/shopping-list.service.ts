@@ -7,11 +7,12 @@ import { ShoppingListItem } from './shopping-list.models';
 export class ShoppingListService {
   private readonly http = inject(HttpClient);
   getAll() { return this.http.get<ShoppingListItem[]>(apiUrl('/api/shopping-list')); }
-  create(ingredientId: string, quantity: number) { return this.http.post<ShoppingListItem>(apiUrl('/api/shopping-list'), { ingredientId, quantity }); }
-  update(item: ShoppingListItem, changes: Partial<Pick<ShoppingListItem, 'quantity' | 'isPurchased'>>) {
+  create(ingredientId: string, quantity: number, note?: string | null) { return this.http.post<ShoppingListItem>(apiUrl('/api/shopping-list'), { ingredientId, quantity, note: note ?? null }); }
+  update(item: ShoppingListItem, changes: Partial<Pick<ShoppingListItem, 'quantity' | 'isPurchased' | 'note'>>) {
     return this.http.put<ShoppingListItem>(apiUrl(`/api/shopping-list/${item.id}`), {
       quantity: changes.quantity ?? item.quantity,
       isPurchased: changes.isPurchased ?? item.isPurchased,
+      note: changes.note !== undefined ? changes.note : item.note,
     });
   }
   delete(id: string) { return this.http.delete<void>(apiUrl(`/api/shopping-list/${id}`)); }

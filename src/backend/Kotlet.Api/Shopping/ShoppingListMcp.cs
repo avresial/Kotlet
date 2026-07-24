@@ -39,7 +39,7 @@ public sealed class ShoppingListMcp
      Description("Changes the quantity or purchased state of one shopping-list item.")]
     public static Task<ShoppingListOperationResult> UpdateShoppingListItem(
         [Description("Shopping-list item ID from the kotlet://shopping-list resource.")] Guid itemId,
-        [Description("New positive quantity and purchased state.")] UpdateShoppingListItemCommand request,
+        [Description("New positive quantity and purchased state. Omit note to keep the existing one; send an empty string to clear it.")] UpdateShoppingListItemCommand request,
         ShoppingListService service, ICurrentUser currentUser, ILanguageContext language,
         CancellationToken cancellationToken) =>
         service.UpdateAsync(itemId, RequireHouse(currentUser), request, language.Language, cancellationToken);

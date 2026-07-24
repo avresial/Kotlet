@@ -35,6 +35,7 @@ export class ShoppingListPage implements OnInit {
   readonly isSaving = signal(false);
   readonly generateFrom = signal(this.dateString(this.monday(new Date())));
   readonly generateTo = signal(this.dateString(new Date(this.monday(new Date()).getTime() + 6 * 86400000)));
+  readonly showGenerate = signal(false);
   readonly error = signal<string | null>(null);
   readonly availableIngredients = computed(() => this.ingredients().filter(ingredient =>
     !this.items().some(item => item.ingredientId === ingredient.id)));
@@ -45,6 +46,7 @@ export class ShoppingListPage implements OnInit {
     ingredientId: ['', Validators.required],
     quantity: [1, [Validators.required, Validators.min(0.001)]],
     unit: ['g', Validators.required],
+    note: ['', Validators.maxLength(500)],
   });
 
   ngOnInit(): void {
@@ -58,15 +60,15 @@ export class ShoppingListPage implements OnInit {
   add(): void {
     if (this.form.invalid || this.isSaving()) { this.form.markAllAsTouched(); return; }
     this.isSaving.set(true); this.error.set(null);
-    const { ingredientId, quantity, unit } = this.form.getRawValue();
+    const { ingredientId, quantity, unit, note } = this.form.getRawValue();
     const ingredient = this.selectedIngredient()!;
-    this.shoppingListService.create(ingredientId, toBaseQuantity(quantity, unit as DisplayUnit, ingredient)).pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: item => { this.items.update(items => [...items, item]); this.form.reset({ ingredientId: '', quantity: 1, unit: 'g' }); },
+    this.shoppingListService.create(ingredientId, toBaseQuantity(quantity, unit as DisplayUnit, ingredient), note.trim() || null).pipe(finalize(() => this.isSaving.set(false))).subscribe({
+      next: item => { this.items.update(items => [...items, item]); this.form.reset({ ingredientId: '', quantity: 1, unit: 'g', note: '' }); },
       error: error => this.error.set(getApiError(error, this.translations.translate('shopping.addError'))),
     });
   }
 
-  update(item: ShoppingListItem, changes: Partial<Pick<ShoppingListItem, 'quantity' | 'isPurchased'>>): void {
+  update(item: ShoppingListItem, changes: Partial<Pick<ShoppingListItem, 'quantity' | 'isPurchased' | 'note'>>): void {
     if (changes.quantity !== undefined && (!Number.isFinite(changes.quantity) || changes.quantity <= 0)) return;
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.update(item, changes).pipe(finalize(() => this.isSaving.set(false))).subscribe({
@@ -112,6 +114,13 @@ export class ShoppingListPage implements OnInit {
   updateDisplayQuantity(item: ShoppingListItem, quantity: number): void {
     const ingredient = this.ingredients().find(value => value.id === item.ingredientId);
     if (ingredient) this.update(item, { quantity: toBaseQuantity(quantity, this.display(item).unit, ingredient) });
+  }
+  updateNote(item: ShoppingListItem, note: string): void {
+    // Send the (possibly empty) trimmed string so the backend clears the note on blank
+    // rather than treating an omitted note as "no change".
+    const trimmed = note.trim();
+    if (trimmed === (item.note ?? '')) return;
+    this.update(item, { note: trimmed });
   }
 
   print(): void { window.print(); }

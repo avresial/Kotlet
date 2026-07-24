@@ -1,5 +1,5 @@
 :host { display: block; }
-.shopping-page { width: min(72rem, calc(100% - 2.5rem)); margin: 0 auto; padding: 2.5rem 0 4rem; color: var(--app-text); }
+.shopping-page { width: min(72rem, calc(100% - 2.5rem)); margin: 0 auto; padding: 2.5rem 0 4rem; color: var(--app-text); container: page / inline-size; }
 .back { color: #7d3428; font-weight: 700; text-decoration: none; }
 header { margin: 2rem 0; display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
 .eyebrow { margin: 0; color: #9a3a2a; font-size: .7rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
@@ -9,13 +9,13 @@ header p:last-child, .add-panel p { margin: 0; color: var(--app-text-muted); }
 .summary strong { font: 500 1.6rem Georgia, serif; }
 .summary span { color: var(--app-text-muted); font-size: .8rem; }
 .error { margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid var(--app-danger-border); border-radius: .6rem; color: var(--app-danger); background: var(--app-danger-bg); }
-.add-panel, .generate-panel, .receipt { padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--app-border); border-radius: 1rem; background: var(--app-surface); box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%); }
-.generate-panel { margin-bottom: 1.25rem; display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
-.generate-panel p { margin: 0; color: var(--app-text-muted); }
-.generate-fields { display: flex; align-items: end; gap: .8rem; }
-.add-panel { display: grid; grid-template-columns: minmax(13rem, 1fr) 2fr; align-items: end; gap: 2rem; }
+.add-panel, .generate-panel, .receipt { border: 1px solid var(--app-border); border-radius: 1rem; background: var(--app-surface); box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%); }
+.add-panel, .receipt { padding: clamp(1.25rem, 3vw, 2rem); }
+.add-panel { display: grid; grid-template-columns: minmax(13rem, 1fr) 2fr; align-items: start; gap: 2rem; }
 h2 { margin: 0 0 .3rem; font: 500 1.5rem Georgia, serif; }
-form { display: grid; grid-template-columns: 2fr 1fr 1fr auto; align-items: end; gap: .8rem; }
+form { display: grid; grid-template-columns: minmax(11rem, 2fr) minmax(4.5rem, 1fr) minmax(7rem, 1fr) auto; align-items: end; gap: .8rem; }
+.note-field { grid-column: 1 / 4; }
+form .primary { grid-column: 4; grid-row: 1 / 3; align-self: stretch; }
 label { display: grid; gap: .4rem; color: var(--app-text-soft); font-size: .78rem; font-weight: 750; }
 input, select { width: 100%; min-height: 2.75rem; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid var(--app-border-strong); border-radius: .55rem; color: var(--app-text); background: var(--app-surface-raised); }
 input:focus, select:focus { outline: 2px solid #b96554; outline-offset: 1px; }
@@ -28,26 +28,78 @@ button:disabled { opacity: .5; cursor: default; }
 .receipt-actions { display: flex; align-items: center; gap: 1rem; }
 .receipt-actions span { color: var(--app-text-muted); font-size: .8rem; }
 .receipt-actions button { color: #8e392b; font-size: .78rem; }
-.receipt-lines { margin-top: 1.25rem; border-top: 1px solid #e1d7c9; }
-.category-heading { margin: 1rem 0 0; color: #766e63; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
-.receipt-line { display: grid; grid-template-columns: 2rem minmax(8rem, 1fr) 5rem auto 6rem 2rem; align-items: center; gap: .75rem; padding: .8rem 0; border-bottom: 1px solid #e1d7c9; }
-.check { color: #9b8e7d; font-size: 1.15rem; }
-.product { display: grid; }
-.product strong { font-family: Georgia, serif; font-weight: 500; }
-.product span, .unit { color: var(--app-text-muted); font-size: .75rem; }
-.receipt-line input { min-height: 2.25rem; padding: .35rem; text-align: right; }
-.line-price { text-align: right; font-variant-numeric: tabular-nums; }
-.remove { color: #9a3024; font-size: 1.2rem; }
-.is-purchased .product strong, .is-purchased .line-price { color: #999084; text-decoration: line-through; }
+.receipt-lines { margin-top: 1rem; border-top: 1px solid #e1d7c9; }
+.category-heading { margin: .9rem 0 .1rem; color: #766e63; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+.receipt-line {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "check     name      remove"
+    "price-per price-per price-per"
+    "qty       qty       total"
+    "note      note      note";
+  column-gap: .7rem; row-gap: .3rem; align-items: center;
+  padding: .75rem 0; border-bottom: 1px solid #e1d7c9;
+}
+.check { grid-area: check; align-self: center; display: grid; place-items: center; min-width: 2rem; min-height: 2rem; margin: -.3rem 0 -.3rem -.3rem; color: #9b8e7d; font-size: 1.15rem; }
+.name { grid-area: name; align-self: center; min-width: 0; font-family: Georgia, serif; font-weight: 500; }
+.remove { grid-area: remove; align-self: start; justify-self: end; display: grid; place-items: center; min-width: 2rem; min-height: 2rem; margin: -.3rem -.3rem 0 0; color: #9a3024; font-size: 1.35rem; line-height: 1; }
+.check:focus-visible, .remove:focus-visible { outline: 2px solid #b96554; outline-offset: 1px; border-radius: .4rem; }
+.price-per { grid-area: price-per; align-self: center; }
+.price-per, .unit { color: var(--app-text-muted); font-size: .75rem; }
+.qty { grid-area: qty; display: flex; align-items: center; gap: .35rem; }
+.qty input { min-height: 2.1rem; width: 4rem; padding: .3rem .35rem; text-align: right; }
+.line-price { grid-area: total; align-self: center; justify-self: end; text-align: right; font-variant-numeric: tabular-nums; }
+.note-input { grid-area: note; display: block; width: 100%; min-height: 1.9rem; field-sizing: content; resize: none; overflow: hidden; margin-top: .15rem; padding: .3rem .55rem; border: 0; border-left: 2px solid var(--app-border-strong); border-radius: 0 .3rem .3rem 0; color: var(--app-text-soft); background: transparent; font: italic .78rem/1.35 inherit; white-space: pre-wrap; word-break: break-word; }
+.note-input:focus { font-style: normal; color: var(--app-text); border-left-color: #b96554; background: var(--app-surface-raised); }
+.is-purchased { opacity: .58; }
+.is-purchased .name, .is-purchased .line-price { text-decoration: line-through; }
 .is-purchased .check { color: #567451; }
 .empty { margin: 2rem 0; color: #756d62; text-align: center; }
-.total { margin-top: 1.25rem; padding-top: 1rem; border-top: 2px dashed #cbb9a2; display: flex; justify-content: space-between; font-family: ui-monospace, monospace; font-size: 1.05rem; letter-spacing: .08em; }
-@media (max-width: 60rem) { .add-panel { grid-template-columns: 1fr; gap: 1rem; } }
-@media (max-width: 42rem) { header { align-items: start; flex-direction: column; } .summary { text-align: left; } form { grid-template-columns: 1fr; } .receipt-line { grid-template-columns: 2rem 1fr 4.5rem auto; } .unit { display: none; } .line-price { grid-column: 2 / 4; text-align: left; } }
-@media (max-width: 42rem) { .generate-panel, .generate-fields { align-items: stretch; flex-direction: column; } }
+.total { margin-top: 1.1rem; padding-top: 1rem; border-top: 2px dashed #cbb9a2; display: flex; justify-content: space-between; font-family: ui-monospace, monospace; font-size: 1.05rem; letter-spacing: .08em; }
+
+.generate-panel { margin-top: 1.25rem; overflow: hidden; }
+.generate-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 1rem; padding: clamp(1rem, 2.5vw, 1.4rem) clamp(1.25rem, 3vw, 2rem); text-align: left; color: var(--app-text); }
+.generate-toggle > span:first-child { display: grid; gap: .2rem; }
+.generate-title-line { font: 500 1.15rem Georgia, serif; }
+.generate-help { color: var(--app-text-muted); font-size: .82rem; font-weight: 400; }
+.chevron { flex: none; width: 1.9rem; height: 1.9rem; display: grid; place-items: center; border: 1px solid var(--app-border-strong); border-radius: 50%; color: #963827; font-size: 1.2rem; }
+.generate-fields { display: flex; align-items: end; gap: .8rem; padding: 0 clamp(1.25rem, 3vw, 2rem) clamp(1.25rem, 3vw, 1.6rem); }
+.generate-fields label { flex: 1; }
+
+/* Once the content column is wide enough, lay each item out on a single scannable row. */
+@container page (min-width: 40rem) {
+  .receipt-line {
+    grid-template-columns: 2rem minmax(8rem, 18rem) 1fr auto auto 2rem;
+    grid-template-areas:
+      "check name price-per qty total remove"
+      "note  note note      note note note";
+    column-gap: 1rem; align-items: center;
+  }
+  .check { align-self: center; margin-block: 0; }
+  .remove { align-self: center; margin-top: 0; }
+  .price-per { justify-self: start; }
+  .qty { justify-self: end; }
+}
+
+/* Collapse the add form to a single column until the content column is wide enough for the
+   two-column heading + fields layout — this accounts for the app sidebar on laptops. */
+@container page (max-width: 60rem) {
+  .add-panel { grid-template-columns: 1fr; gap: 1rem; }
+  form { grid-template-columns: 1fr 1fr; }
+  form label:first-of-type, .note-field, form .primary { grid-column: 1 / -1; }
+  form .primary { grid-row: auto; }
+}
+
+@media (max-width: 42rem) {
+  header { align-items: start; flex-direction: column; }
+  .summary { text-align: left; }
+  .generate-fields { flex-direction: column; align-items: stretch; }
+}
 @media print {
   .shopping-page { width: auto; padding: 0; }
   .back, header, .error, .generate-panel, .add-panel, .receipt-actions button, .remove { display: none; }
   .receipt { margin: 0; border: 0; box-shadow: none; }
-  .receipt-line input { border: 0; background: transparent; }
+  .receipt-line input, .receipt-line textarea { border: 0; background: transparent; }
+  .note-input { color: var(--app-text) !important; font-style: normal; }
 }
