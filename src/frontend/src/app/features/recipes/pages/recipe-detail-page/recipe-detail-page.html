@@ -50,6 +50,10 @@
           <div><span>{{ 'recipes.totalCalories' | t }}</span><strong>{{ (caloriesPerServing() * r.servings).toFixed(0) }} kcal</strong><small>{{ caloriesPerServing().toFixed(0) }} kcal / {{ 'recipes.serving' | t }}</small></div>
         </section>
 
+        @if (isAuthenticated() && r.ingredients.length > 0) {
+          <app-recipe-shopping-list [recipe]="r" [ingredients]="ingredients()" />
+        }
+
         @if (propertyGroups().length) {
           <section class="properties-section">
             <h2>{{ 'recipes.ingredientProperties' | t }}</h2>

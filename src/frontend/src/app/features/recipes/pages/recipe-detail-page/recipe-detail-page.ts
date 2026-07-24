@@ -12,6 +12,7 @@ import { TranslationService } from '../../../../core/i18n/translation.service';
 import { RecipeDetail, RecipeIngredient } from '../../models/recipe.models';
 import { RecipeService } from '../../services/recipe.service';
 import { ImageGallery } from '../../components/image-gallery/image-gallery';
+import { RecipeShoppingList } from '../../components/recipe-shopping-list/recipe-shopping-list';
 import { allergenOptions, dietarySuitabilityOptions, foodAttributeOptions, Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { recipeCaloriesPerServing, recipePricePerServing } from '../../../meal-planner/meal-planner-calculations';
@@ -19,7 +20,7 @@ import { AiBadge } from '../../../../shared/ui/ai-badge/ai-badge';
 
 @Component({
   selector: 'app-recipe-detail-page',
-  imports: [RouterLink, DatePipe, ImageGallery, TranslatePipe, AiBadge],
+  imports: [RouterLink, DatePipe, ImageGallery, TranslatePipe, AiBadge, RecipeShoppingList],
   templateUrl: './recipe-detail-page.html',
   styleUrl: './recipe-detail-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,6 +34,7 @@ export class RecipeDetailPage implements OnInit {
   private readonly translations = inject(TranslationService);
   private readonly auth = inject(AuthService);
 
+  readonly isAuthenticated = this.auth.isAuthenticated;
   readonly recipe = signal<RecipeDetail | null>(null);
   readonly ingredients = signal<Ingredient[]>([]);
   readonly isLoading = signal(true);
