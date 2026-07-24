@@ -11,6 +11,7 @@ public sealed class ShoppingListItem
     public Guid IngredientId { get; set; }
     public Quantity Quantity { get; set; }
     public bool IsPurchased { get; set; }
+    public string? Note { get; set; }
     public House House { get; set; } = null!;
     public Ingredient Ingredient { get; set; } = null!;
 }

@@ -93,6 +93,7 @@ describe('ShoppingListIntegrationService', () => {
       totalPrice: 5,
       isPurchased: false,
       category: ingredient.category,
+      note: null,
     };
 
     const updated: ShoppingListItem = {
@@ -105,6 +106,7 @@ describe('ShoppingListIntegrationService', () => {
       totalPrice: 15,
       isPurchased: false,
       category: ingredient.category,
+      note: null,
     };
 
     vi.mocked(shoppingListService.getAll).mockReturnValue(of([existing]));

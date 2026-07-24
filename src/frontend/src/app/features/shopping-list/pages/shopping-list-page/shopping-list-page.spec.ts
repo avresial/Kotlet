@@ -4,7 +4,7 @@ import { groupShoppingItems } from './shopping-list-page';
 
 const item = (id: string, category: number): ShoppingListItem => ({
   id, ingredientId: id, ingredientName: id, measurementUnit: 'g', quantity: 1,
-  pricePer100BaseUnits: 1, totalPrice: 1, isPurchased: false, category,
+  pricePer100BaseUnits: 1, totalPrice: 1, isPurchased: false, category, note: null,
 });
 
 describe('groupShoppingItems', () => {
