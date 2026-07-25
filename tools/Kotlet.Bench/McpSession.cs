@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>One authenticated MCP connection, plus the JSON-RPC plumbing used to time calls.</summary>
 public sealed class McpSession(HttpClient client, string accessToken, string protocolVersion)

@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>Renders a run as a console report, and a run against a baseline as a diff.</summary>
 public static class Report
@@ -10,7 +10,7 @@ public static class Report
     {
         var text = new StringBuilder();
         text.AppendLine();
-        text.AppendLine($"Kotlet MCP benchmark  ({result.Mode})");
+        text.AppendLine($"Kotlet benchmark  ({result.Mode})");
         text.AppendLine($"  captured  {result.CapturedAtUtc:u}");
         text.AppendLine($"  fixture   {result.Fixture}");
         if (baseline is not null)

@@ -12,7 +12,7 @@
     <Project Path="src/backend/Kotlet.TestData/Kotlet.TestData.csproj" />
   </Folder>
   <Folder Name="/tools/">
-    <Project Path="tools/Kotlet.McpBench/Kotlet.McpBench.csproj" />
+    <Project Path="tools/Kotlet.Bench/Kotlet.Bench.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Kotlet.Application.UnitTests/Kotlet.Application.UnitTests.csproj" />

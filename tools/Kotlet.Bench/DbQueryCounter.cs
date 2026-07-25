@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>
 /// Counts EF Core commands by subscribing to the framework's DiagnosticSource, so the

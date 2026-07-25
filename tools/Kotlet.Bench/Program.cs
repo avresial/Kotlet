@@ -1,6 +1,6 @@
 using Kotlet.TestData;
 
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>
 /// Entry point. Deliberately a named class rather than top-level statements: those would
@@ -48,7 +48,7 @@ public static class BenchProgram
         var toolsList = await session.SendAsync("tools/list", new { });
         var surface = ToolSurface.Analyze(toolsList);
 
-        var scenario = new Scenario(session, counter);
+        var scenario = new McpScenario(session, counter);
         if (!options.SeedsData)
             Console.Error.WriteLine(
                 "Read-only run: payload sizes reflect whatever this household already holds, " +
@@ -71,7 +71,7 @@ public static class BenchProgram
             BenchResult.CurrentSchemaVersion,
             DateTimeOffset.UtcNow,
             target.Mode,
-            options.SeedsData ? Scenario.FixtureDescription : "existing household data (read-only run)",
+            options.SeedsData ? McpScenario.FixtureDescription : "existing household data (read-only run)",
             surface,
             calls,
             agentSession,
@@ -104,7 +104,7 @@ public static class BenchProgram
     }
 
     private static async Task<List<CallResult>> MeasureCallsAsync(
-        Scenario scenario, McpSession session, DbQueryCounter? counter, int runs)
+        McpScenario scenario, McpSession session, DbQueryCounter? counter, int runs)
     {
         var calls = new List<CallResult>();
         foreach (var (label, tool, arguments) in scenario.ReadCalls())

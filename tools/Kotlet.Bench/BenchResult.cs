@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>One complete benchmark run, shaped so two runs can be diffed field by field.</summary>
 public sealed record BenchResult(

@@ -6,10 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <RootNamespace>Kotlet.McpBench</RootNamespace>
+    <RootNamespace>Kotlet.Bench</RootNamespace>
     <!-- Kotlet.Api also exposes a Program type; naming ours keeps WebApplicationFactory<Program>
          bound to the API's entry point rather than this one. -->
-    <StartupObject>Kotlet.McpBench.BenchProgram</StartupObject>
+    <StartupObject>Kotlet.Bench.BenchProgram</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>

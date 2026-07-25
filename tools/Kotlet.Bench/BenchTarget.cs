@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>The server a benchmark run measures: either booted in this process or already deployed.</summary>
 public abstract class BenchTarget : IAsyncDisposable

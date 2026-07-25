@@ -1,8 +1,10 @@
 # Measuring performance
 
-`tools/Kotlet.McpBench` measures two surfaces against the same seeded fixture: the **MCP tool
+`tools/Kotlet.Bench` measures two surfaces against the same seeded fixture: the **MCP tool
 surface** an AI agent talks to, and the **REST endpoints** the Angular app calls to paint a
-screen. (The project name predates the REST half.)
+screen. One run, one baseline, one report covering both — they share the host, the fixture,
+and the query counter, so splitting them would mean booting the app twice to compare halves
+of the same system.
 
 ## Why the MCP half looks different
 
@@ -21,12 +23,12 @@ are judged on the two things a user actually waits for: response size and databa
 ## Running it
 
 ```bash
-dotnet run --project tools/Kotlet.McpBench
+dotnet run --project tools/Kotlet.Bench
 ```
 
 That boots the real API in-process against a private copy of the shared test fixture
 (`Kotlet.TestData`), replays a fixed set of MCP calls, and prints a report compared against
-`tools/Kotlet.McpBench/baseline.json`. Nothing external is required — no Docker, no
+`tools/Kotlet.Bench/baseline.json`. Nothing external is required — no Docker, no
 PostgreSQL, no deployed instance.
 
 The fixture matters: it carries the **full production ingredient catalogue**, twelve recipes,
@@ -36,13 +38,13 @@ across the whole catalogue, so its cost is invisible on a near-empty database.
 
 ```bash
 # record the current numbers as the baseline (do this once a change is accepted)
-dotnet run --project tools/Kotlet.McpBench -- --save
+dotnet run --project tools/Kotlet.Bench -- --save
 
 # fail the build when a headline metric grows by more than 1%
-dotnet run --project tools/Kotlet.McpBench -- --fail-on-regression 1
+dotnet run --project tools/Kotlet.Bench -- --fail-on-regression 1
 
 # machine-readable output for a script or CI artifact
-dotnet run --project tools/Kotlet.McpBench -- --json out/mcp-bench.json
+dotnet run --project tools/Kotlet.Bench -- --json out/mcp-bench.json
 ```
 
 `--help` lists every option.
@@ -117,7 +119,7 @@ PostgreSQL instance several milliseconds away.
 For real wall-clock, point the benchmark at a deployment:
 
 ```bash
-dotnet run --project tools/Kotlet.McpBench -- \
+dotnet run --project tools/Kotlet.Bench -- \
   --url https://your-instance.example.com \
   --email you@example.com --password '...'
 ```
@@ -130,7 +132,7 @@ each other, not to in-process baselines. SQL counts are unavailable remotely. Pa
 ## Keeping the baseline honest
 
 The baseline is only meaningful while the fixture and the call list stay fixed. The call list
-lives in `tools/Kotlet.McpBench/Scenario.cs` (MCP) and `ApiScenario.cs` (REST); the data lives in
+lives in `tools/Kotlet.Bench/Scenario.cs` (MCP) and `ApiScenario.cs` (REST); the data lives in
 `src/backend/Kotlet.TestData/KotletTestData.cs` and is shared with the integration tests and
 local development. Changing either invalidates every earlier baseline — when you do, re-record
 with `--save` in the same commit and say so in the message, otherwise the next diff will report

@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Kotlet.TestData;
 
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>
 /// The REST endpoints the Angular app hits to paint a screen. These are the calls a user waits

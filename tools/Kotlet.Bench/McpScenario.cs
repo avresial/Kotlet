@@ -2,14 +2,14 @@ using System.Diagnostics;
 using System.Text.Json;
 using Kotlet.TestData;
 
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>
 /// The fixed workload every run measures. The data comes from <see cref="KotletTestData"/>, so
 /// the fixture is shared with the integration and browser tests rather than invented here.
 /// Changing the call list below, or the fixture it reads, invalidates existing baselines.
 /// </summary>
-public sealed class Scenario(McpSession session, DbQueryCounter? counter)
+public sealed class McpScenario(McpSession session, DbQueryCounter? counter)
 {
     public static string FixtureDescription =>
         $"{KotletTestData.RecipeCount} recipes, {KotletTestData.PlannedDays} planned days x " +

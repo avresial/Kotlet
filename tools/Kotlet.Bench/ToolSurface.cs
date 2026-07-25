@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>Breaks a tools/list response down into what each part of each tool definition costs.</summary>
 public static class ToolSurface

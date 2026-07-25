@@ -1,4 +1,4 @@
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>
 /// Locates repository files from the build output. The benchmark runs from
@@ -13,7 +13,7 @@ public static class RepoPaths
 
     public static string ApiProject => Path.Combine(Root, "src", "backend", "Kotlet.Api");
 
-    public static string BenchProject => Path.Combine(Root, "tools", "Kotlet.McpBench");
+    public static string BenchProject => Path.Combine(Root, "tools", "Kotlet.Bench");
 
     private static string FindRoot()
     {
