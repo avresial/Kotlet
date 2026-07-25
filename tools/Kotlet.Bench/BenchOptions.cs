@@ -1,4 +1,4 @@
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>Command-line configuration for one benchmark run.</summary>
 public sealed record BenchOptions
@@ -75,17 +75,17 @@ public sealed record BenchOptions
     }
 
     public const string Help = """
-        Kotlet MCP benchmark - measures what an AI agent pays to talk to this server.
+        Kotlet benchmark - measures the MCP tool surface and the REST endpoints.
 
         Usage:
-          dotnet run --project tools/Kotlet.McpBench [options]
+          dotnet run --project tools/Kotlet.Bench [options]
 
         By default the API is booted in this process against a private copy of the shared test
         fixture (a file-backed SQLite database). That makes byte counts and SQL query counts
         reproducible, which is what you want when checking whether a change helped.
 
         Options:
-          --save                     record this run as the baseline (tools/Kotlet.McpBench/baseline.json)
+          --save                     record this run as the baseline (tools/Kotlet.Bench/baseline.json)
           --baseline <path>          compare against a different baseline file
           --no-compare               skip the baseline comparison
           --runs <n>                 repeats per read-only call, median reported (default 5)
@@ -100,10 +100,10 @@ public sealed record BenchOptions
           --allow-writes             let a deployed run seed fixture data (it writes to that household)
 
         Examples:
-          dotnet run --project tools/Kotlet.McpBench
-          dotnet run --project tools/Kotlet.McpBench -- --save
-          dotnet run --project tools/Kotlet.McpBench -- --fail-on-regression 2
-          dotnet run --project tools/Kotlet.McpBench -- --url https://kotlet.example.com \
+          dotnet run --project tools/Kotlet.Bench
+          dotnet run --project tools/Kotlet.Bench -- --save
+          dotnet run --project tools/Kotlet.Bench -- --fail-on-regression 2
+          dotnet run --project tools/Kotlet.Bench -- --url https://kotlet.example.com \
             --email me@example.com --password '...'
         """;
 }

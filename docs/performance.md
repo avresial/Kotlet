@@ -1,4 +1,12 @@
-# Measuring MCP performance
+# Measuring performance
+
+`tools/Kotlet.Bench` measures two surfaces against the same seeded fixture: the **MCP tool
+surface** an AI agent talks to, and the **REST endpoints** the Angular app calls to paint a
+screen. One run, one baseline, one report covering both — they share the host, the fixture,
+and the query counter, so splitting them would mean booting the app twice to compare halves
+of the same system.
+
+## Why the MCP half looks different
 
 When an AI agent feels slow talking to Kotlet, the wall-clock of a single HTTP request is
 rarely the reason. Three other things dominate, and all three are measurable:
@@ -9,17 +17,18 @@ rarely the reason. Three other things dominate, and all three are measurable:
 3. **Round trips.** Each tool call is a separate model turn — seconds, not milliseconds. A
    workflow that needs five calls is slower than any server-side optimisation can fix.
 
-`tools/Kotlet.McpBench` measures all three and diffs a run against a recorded baseline.
+For REST the picture is simpler — no per-turn tool tax, no model round trips — so those calls
+are judged on the two things a user actually waits for: response size and database work.
 
 ## Running it
 
 ```bash
-dotnet run --project tools/Kotlet.McpBench
+dotnet run --project tools/Kotlet.Bench
 ```
 
 That boots the real API in-process against a private copy of the shared test fixture
 (`Kotlet.TestData`), replays a fixed set of MCP calls, and prints a report compared against
-`tools/Kotlet.McpBench/baseline.json`. Nothing external is required — no Docker, no
+`tools/Kotlet.Bench/baseline.json`. Nothing external is required — no Docker, no
 PostgreSQL, no deployed instance.
 
 The fixture matters: it carries the **full production ingredient catalogue**, twelve recipes,
@@ -29,13 +38,13 @@ across the whole catalogue, so its cost is invisible on a near-empty database.
 
 ```bash
 # record the current numbers as the baseline (do this once a change is accepted)
-dotnet run --project tools/Kotlet.McpBench -- --save
+dotnet run --project tools/Kotlet.Bench -- --save
 
 # fail the build when a headline metric grows by more than 1%
-dotnet run --project tools/Kotlet.McpBench -- --fail-on-regression 1
+dotnet run --project tools/Kotlet.Bench -- --fail-on-regression 1
 
 # machine-readable output for a script or CI artifact
-dotnet run --project tools/Kotlet.McpBench -- --json out/mcp-bench.json
+dotnet run --project tools/Kotlet.Bench -- --json out/mcp-bench.json
 ```
 
 `--help` lists every option.
@@ -80,6 +89,21 @@ AGENT SESSION  "Import a recipe found online"
 Round trips are the most expensive unit in the report. Removing one is worth more than any
 byte-level saving.
 
+```text
+REST ENDPOINTS  (median of repeats; what a user waits on to paint a screen)
+  endpoint                      screen               ms    bytes   sql
+  ingredients (all)             recipe editor       9.1  126,263     2
+  meal-planner (one day)        meal planner       10.1    1,832     6
+```
+
+The REST list is the read path of each main screen, taken from what the Angular services
+actually call. Only reads are measured, so a run never changes the fixture. `sql` is the same
+N+1 detector as above; `bytes` is what crosses the wire, which on a phone is the number that
+matters.
+
+Endpoints are keyed by their label, so renaming one in `ApiScenario.cs` detaches it from every
+earlier baseline.
+
 ## What is trustworthy, and what is not
 
 **Trust the byte counts and the SQL counts.** They are deterministic: two runs on the same
@@ -95,7 +119,7 @@ PostgreSQL instance several milliseconds away.
 For real wall-clock, point the benchmark at a deployment:
 
 ```bash
-dotnet run --project tools/Kotlet.McpBench -- \
+dotnet run --project tools/Kotlet.Bench -- \
   --url https://your-instance.example.com \
   --email you@example.com --password '...'
 ```
@@ -108,7 +132,7 @@ each other, not to in-process baselines. SQL counts are unavailable remotely. Pa
 ## Keeping the baseline honest
 
 The baseline is only meaningful while the fixture and the call list stay fixed. The call list
-lives in `tools/Kotlet.McpBench/Scenario.cs`; the data lives in
+lives in `tools/Kotlet.Bench/Scenario.cs` (MCP) and `ApiScenario.cs` (REST); the data lives in
 `src/backend/Kotlet.TestData/KotletTestData.cs` and is shared with the integration tests and
 local development. Changing either invalidates every earlier baseline — when you do, re-record
 with `--save` in the same commit and say so in the message, otherwise the next diff will report

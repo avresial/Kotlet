@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>One complete benchmark run, shaped so two runs can be diffed field by field.</summary>
 public sealed record BenchResult(
@@ -11,9 +11,11 @@ public sealed record BenchResult(
     string Fixture,
     ToolSurfaceResult ToolSurface,
     IReadOnlyList<CallResult> Calls,
-    SessionResult? Session)
+    SessionResult? Session,
+    IReadOnlyList<ApiCallResult> ApiCalls)
 {
-    public const int CurrentSchemaVersion = 1;
+    // v2 added the REST endpoint measurements.
+    public const int CurrentSchemaVersion = 2;
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -61,6 +63,20 @@ public sealed record CallResult(
     int TextBytes,
     int StructuredBytes,
     int RedundantBytes,
+    int? DbQueries);
+
+/// <summary>
+/// The cost of one REST call the frontend makes to paint a screen. No duplicate-payload column
+/// here: unlike MCP tool results, a REST response is sent once.
+/// </summary>
+public sealed record ApiCallResult(
+    string Label,
+    string Screen,
+    string Path,
+    int StatusCode,
+    double MedianMs,
+    double MinMs,
+    int Bytes,
     int? DbQueries);
 
 /// <summary>

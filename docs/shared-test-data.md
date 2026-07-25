@@ -57,13 +57,13 @@ would be confused by pre-existing rows.
 **Local development** — set `Database__SeedSampleData=true` alongside `Database__Provider=Sqlite`.
 The `kotlet-runtime` scripts already do this, so `run.sh` gives you a populated household.
 
-**MCP benchmark** — automatic. See [mcp-performance.md](mcp-performance.md).
+**Benchmark** — automatic. See [performance.md](performance.md).
 
 ## Changing it
 
 Adding rows changes benchmark numbers, so treat the fixture as part of the measurement
 contract: change it and re-record the benchmark baseline in the same commit
-(`dotnet run --project tools/Kotlet.McpBench -- --save`).
+(`dotnet run --project tools/Kotlet.Bench -- --save`).
 
 Prefer growing the fixture over inventing local data in a test. A test that seeds its own
 household is fine when it is testing creation; a test that seeds a household in order to read

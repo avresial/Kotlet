@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace Kotlet.McpBench;
+namespace Kotlet.Bench;
 
 /// <summary>Renders a run as a console report, and a run against a baseline as a diff.</summary>
 public static class Report
@@ -10,7 +10,7 @@ public static class Report
     {
         var text = new StringBuilder();
         text.AppendLine();
-        text.AppendLine($"Kotlet MCP benchmark  ({result.Mode})");
+        text.AppendLine($"Kotlet benchmark  ({result.Mode})");
         text.AppendLine($"  captured  {result.CapturedAtUtc:u}");
         text.AppendLine($"  fixture   {result.Fixture}");
         if (baseline is not null)
@@ -20,6 +20,7 @@ public static class Report
         RenderToolSurface(text, result, baseline, topTools);
         RenderCalls(text, result, baseline);
         RenderSession(text, result, baseline);
+        RenderApiCalls(text, result, baseline);
         RenderHeadline(text, result, baseline);
         return text.ToString();
     }
@@ -109,6 +110,31 @@ public static class Report
         text.AppendLine();
     }
 
+    private static void RenderApiCalls(StringBuilder text, BenchResult result, BenchResult? baseline)
+    {
+        if (result.ApiCalls.Count == 0) return;
+
+        text.AppendLine("REST ENDPOINTS  (median of repeats; what a user waits on to paint a screen)");
+        text.AppendLine($"  {"endpoint",-30}{"screen",-16}{"ms",7}{"bytes",9}{"sql",6}   {"bytes vs baseline",-24}");
+        foreach (var call in result.ApiCalls)
+        {
+            var before = baseline?.ApiCalls.FirstOrDefault(candidate => candidate.Label == call.Label);
+            var queries = call.DbQueries?.ToString(CultureInfo.InvariantCulture) ?? "-";
+            // A non-2xx response means the measurement is of an error page, not the real work.
+            var label = call.StatusCode is >= 200 and < 300 ? call.Label : $"{call.Label} [{call.StatusCode}]";
+            text.AppendLine(
+                $"  {label,-30}{call.Screen,-16}{call.MedianMs,7:F1}{call.Bytes,9:N0}{queries,6}" +
+                $"   {Delta(call.Bytes, before?.Bytes),-24}");
+        }
+
+        var totalBytes = result.ApiCalls.Sum(call => call.Bytes);
+        var totalQueries = result.ApiCalls.Sum(call => call.DbQueries ?? 0);
+        var baselineBytes = baseline?.ApiCalls.Sum(call => call.Bytes);
+        text.AppendLine(
+            $"  {"TOTAL",-30}{"",-16}{"",7}{totalBytes,9:N0}{totalQueries,6}   {Delta(totalBytes, baselineBytes),-24}");
+        text.AppendLine();
+    }
+
     private static void RenderHeadline(StringBuilder text, BenchResult result, BenchResult? baseline)
     {
         if (baseline is null)
@@ -131,7 +157,11 @@ public static class Report
         ("tool call wire bytes", result.Calls.Sum(call => call.WireBytes), baseline.Calls.Sum(call => call.WireBytes)),
         ("duplicated bytes", result.Calls.Sum(call => call.RedundantBytes), baseline.Calls.Sum(call => call.RedundantBytes)),
         ("tool call sql queries", result.Calls.Sum(call => call.DbQueries ?? 0), baseline.Calls.Sum(call => call.DbQueries ?? 0)),
-        ("session round trips", result.Session?.RoundTrips ?? 0, baseline.Session?.RoundTrips ?? 0)
+        ("session round trips", result.Session?.RoundTrips ?? 0, baseline.Session?.RoundTrips ?? 0),
+        ("api response bytes", result.ApiCalls.Sum(call => call.Bytes), baseline.ApiCalls.Sum(call => call.Bytes)),
+        ("api sql queries",
+            result.ApiCalls.Sum(call => call.DbQueries ?? 0),
+            baseline.ApiCalls.Sum(call => call.DbQueries ?? 0))
     ];
 
     private static string Cell(int current, int? baseline) =>
@@ -142,8 +172,11 @@ public static class Report
         if (baseline is not { } before) return string.Empty;
         var change = current - before;
         if (change == 0) return $"= {before:N0}";
-        var percent = before == 0 ? double.PositiveInfinity : 100.0 * change / before;
+        // Signs are written by hand: composite numeric format sections apply their own literal
+        // signs to the absolute value, which is easy to get doubled up.
+        var sign = change < 0 ? "-" : "+";
+        var percent = before == 0 ? double.PositiveInfinity : 100.0 * Math.Abs(change) / before;
         var verdict = change < 0 ? "improved" : "REGRESSED";
-        return $"{before:N0} -> {current:N0}  {(change < 0 ? "" : "+")}{change:N0} ({percent:+0.0;-0.0}%) {verdict}";
+        return $"{before:N0} -> {current:N0}  {sign}{Math.Abs(change):N0} ({sign}{percent:F1}%) {verdict}";
     }
 }
