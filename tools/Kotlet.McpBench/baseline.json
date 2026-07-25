@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAtUtc": "2026-07-25T09:55:47.7212556+00:00",
+  "capturedAtUtc": "2026-07-25T12:16:15.9300817+00:00",
   "mode": "in-process",
   "fixture": "12 recipes, 14 planned days x 3 slots, 12 shopping items, 15 pantry items, full ingredient catalogue",
   "toolSurface": {
@@ -312,8 +312,8 @@
     {
       "label": "get_recipes",
       "tool": "get_recipes",
-      "medianMs": 13.8552,
-      "minMs": 9.8235,
+      "medianMs": 21.5468,
+      "minMs": 10.907,
       "wireBytes": 2783,
       "textBytes": 0,
       "structuredBytes": 0,
@@ -323,8 +323,8 @@
     {
       "label": "get_recipe (one)",
       "tool": "get_recipe",
-      "medianMs": 9.918,
-      "minMs": 8.4783,
+      "medianMs": 9.78,
+      "minMs": 8.1332,
       "wireBytes": 5858,
       "textBytes": 2353,
       "structuredBytes": 2363,
@@ -334,8 +334,8 @@
     {
       "label": "get_ingredients (x8)",
       "tool": "get_ingredients",
-      "medianMs": 16.8981,
-      "minMs": 15.0297,
+      "medianMs": 20.7707,
+      "minMs": 15.8645,
       "wireBytes": 5652,
       "textBytes": 2173,
       "structuredBytes": 2184,
@@ -345,8 +345,8 @@
     {
       "label": "get_shopping_list",
       "tool": "get_shopping_list",
-      "medianMs": 6.4131,
-      "minMs": 5.537,
+      "medianMs": 8.1803,
+      "minMs": 6.4336,
       "wireBytes": 7406,
       "textBytes": 2830,
       "structuredBytes": 2841,
@@ -356,8 +356,8 @@
     {
       "label": "get_pantry",
       "tool": "get_pantry",
-      "medianMs": 6.8519,
-      "minMs": 6.6095,
+      "medianMs": 7.5987,
+      "minMs": 6.7129,
       "wireBytes": 8172,
       "textBytes": 3158,
       "structuredBytes": 3169,
@@ -367,8 +367,8 @@
     {
       "label": "get_prepared_meals",
       "tool": "get_prepared_meals",
-      "medianMs": 6.6716,
-      "minMs": 4.8025,
+      "medianMs": 8.821,
+      "minMs": 5.3422,
       "wireBytes": 3060,
       "textBytes": 1147,
       "structuredBytes": 1158,
@@ -378,8 +378,8 @@
     {
       "label": "get_meal_plan_overview (7d)",
       "tool": "get_meal_plan_overview",
-      "medianMs": 13.4554,
-      "minMs": 5.7387,
+      "medianMs": 8.8755,
+      "minMs": 5.9447,
       "wireBytes": 1630,
       "textBytes": 0,
       "structuredBytes": 0,
@@ -389,8 +389,8 @@
     {
       "label": "get_meal_plan (7d)",
       "tool": "get_meal_plan",
-      "medianMs": 107.2533,
-      "minMs": 86.1832,
+      "medianMs": 83.5501,
+      "minMs": 70.1384,
       "wireBytes": 25368,
       "textBytes": 9776,
       "structuredBytes": 9787,
@@ -400,8 +400,8 @@
     {
       "label": "get_meal_plan (31d)",
       "tool": "get_meal_plan",
-      "medianMs": 174.7748,
-      "minMs": 159.5572,
+      "medianMs": 180.4444,
+      "minMs": 174.0736,
       "wireBytes": 55128,
       "textBytes": 21161,
       "structuredBytes": 21172,
@@ -411,19 +411,19 @@
     {
       "label": "show_recipes",
       "tool": "show_recipes",
-      "medianMs": 10.667,
-      "minMs": 9.1209,
+      "medianMs": 11.2608,
+      "minMs": 9.6246,
       "wireBytes": 3577,
-      "textBytes": 808,
+      "textBytes": 832,
       "structuredBytes": 2600,
-      "redundantBytes": 808,
+      "redundantBytes": 832,
       "dbQueries": 3
     }
   ],
   "session": {
     "label": "Import a recipe found online",
     "roundTrips": 5,
-    "totalMs": 268.013,
+    "totalMs": 285.8506,
     "wireBytes": 8633,
     "dbQueries": 10
   }

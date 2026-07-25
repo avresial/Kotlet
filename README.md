@@ -241,6 +241,7 @@ dotnet run --project tools/Kotlet.McpBench           # measure and diff against 
 dotnet run --project tools/Kotlet.McpBench -- --save # record the current numbers as the baseline
 ```
 
-It boots the API in-process on in-memory SQLite, so no database or deployment is needed. See
+It boots the API in-process against a private SQLite copy of the shared test fixture, so no
+database or deployment is needed. See
 [docs/mcp-performance.md](docs/mcp-performance.md) for what the numbers mean and how to point
 it at a deployed instance.

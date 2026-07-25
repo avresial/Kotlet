@@ -53,7 +53,7 @@ public sealed class McpSession(HttpClient client, string accessToken, string pro
             method,
             (int)response.StatusCode,
             stopwatch.Elapsed.TotalMilliseconds,
-            payload.Length,
+            McpCallResult.Utf8Bytes(payload),
             queries,
             payload);
     }
@@ -155,6 +155,14 @@ public sealed record McpCallResult(
     }
 
     /// <summary>
+    /// Counts what actually travels: UTF-8 bytes, not UTF-16 chars. Accented ingredient names
+    /// and unicode punctuation cost more than one byte each, and reporting char counts would
+    /// under-state every payload metric the benchmark exists to track.
+    /// </summary>
+    internal static int Utf8Bytes(string? value) =>
+        value is null ? 0 : Encoding.UTF8.GetByteCount(value);
+
+    /// <summary>
     /// Splits a tools/call result into the text block agents read and the structuredContent
     /// copy. When both carry the same data, the smaller of the two is redundant payload.
     /// </summary>
@@ -163,10 +171,10 @@ public sealed record McpCallResult(
         var result = Result;
         var text = result.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Array
             ? content.EnumerateArray().Sum(block =>
-                block.TryGetProperty("text", out var value) ? value.GetString()?.Length ?? 0 : 0)
+                block.TryGetProperty("text", out var value) ? Utf8Bytes(value.GetString()) : 0)
             : 0;
         var structured = result.TryGetProperty("structuredContent", out var structuredContent)
-            ? structuredContent.GetRawText().Length
+            ? Utf8Bytes(structuredContent.GetRawText())
             : 0;
         return (text, structured);
     }

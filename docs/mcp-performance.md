@@ -42,7 +42,7 @@ dotnet run --project tools/Kotlet.McpBench -- --json out/mcp-bench.json
 
 ## Reading the report
 
-```
+```text
 TOOL SURFACE  (sent to the model on every turn)
   tools                     36
   bytes                 72,399
@@ -59,7 +59,7 @@ The `by field` breakdown is the useful part: it says *which* part of the tool de
 expensive. Descriptions are documentation an agent actually reads; `outputSchema` and `_meta`
 are plumbing that costs the same tokens.
 
-```
+```text
 TOOL CALLS  (median of repeats; 'dup' is the copy sent twice as text + structuredContent)
   call                                ms     wire     dup   sql
   get_meal_plan (7d)                33.2   15,480   5,832    35
@@ -72,7 +72,7 @@ TOOL CALLS  (median of repeats; 'dup' is the copy sent twice as text + structure
   the number that exposes N+1 loops: a call whose `sql` grows with the requested range is
   querying per item.
 
-```
+```text
 AGENT SESSION  "Import a recipe found online"
   round trips                5      (each one is a model turn)
 ```
@@ -86,11 +86,11 @@ byte-level saving.
 commit produce byte-for-byte identical numbers, because the fixture fixes every identifier and
 every timestamp. A change in those columns is a real change, not noise.
 
-**Do not read the `ms` column as production latency.** It is in-process against in-memory
-SQLite: no network, no connection pool, no real query planner. It is useful for comparing a
-call against itself across commits, and useless as an absolute number. A call issuing 35
-queries costs ~33 ms here and considerably more against a managed PostgreSQL instance several
-milliseconds away.
+**Do not read the `ms` column as production latency.** It is in-process against a private
+file-backed SQLite copy: no network, no connection pool, no real query planner. It is useful
+for comparing a call against itself across commits, and useless as an absolute number. A call
+issuing 35 queries costs tens of milliseconds here and considerably more against a managed
+PostgreSQL instance several milliseconds away.
 
 For real wall-clock, point the benchmark at a deployment:
 

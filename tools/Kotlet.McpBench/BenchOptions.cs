@@ -80,9 +80,9 @@ public sealed record BenchOptions
         Usage:
           dotnet run --project tools/Kotlet.McpBench [options]
 
-        By default the API is booted in this process on in-memory SQLite, seeded with a fixed
-        fixture, and measured. That makes byte counts and SQL query counts reproducible, which
-        is what you want when checking whether a change helped.
+        By default the API is booted in this process against a private copy of the shared test
+        fixture (a file-backed SQLite database). That makes byte counts and SQL query counts
+        reproducible, which is what you want when checking whether a change helped.
 
         Options:
           --save                     record this run as the baseline (tools/Kotlet.McpBench/baseline.json)
@@ -90,7 +90,8 @@ public sealed record BenchOptions
           --no-compare               skip the baseline comparison
           --runs <n>                 repeats per read-only call, median reported (default 5)
           --json <path>              also write the machine-readable result to a file
-          --stdout-json              print only JSON, no human report
+          --stdout-json              print JSON instead of the human report; --save and
+                                     --fail-on-regression still apply
           --top <n>                  how many heaviest tools to list (default 12)
           --fail-on-regression <pct> exit 1 when a headline metric grows more than pct percent
           --url <base-url>           measure a deployed instance instead (real network + database)

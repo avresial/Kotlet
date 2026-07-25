@@ -74,21 +74,20 @@ public static class BenchProgram
             await File.WriteAllTextAsync(fullPath, result.ToJson());
         }
 
-        if (options.JsonToStdout)
-        {
-            Console.WriteLine(result.ToJson());
-            return 0;
-        }
-
+        // --stdout-json only changes what lands on stdout. Saving a baseline and gating on
+        // regressions still happen, so a CI job can emit machine-readable output and fail.
         var baseline = await LoadBaselineAsync(options);
-        Console.WriteLine(Report.Render(result, baseline, options.TopTools));
+        Console.WriteLine(options.JsonToStdout
+            ? result.ToJson()
+            : Report.Render(result, baseline, options.TopTools));
 
         if (options.Save)
         {
             var path = Path.GetFullPath(options.BaselinePath);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             await File.WriteAllTextAsync(path, result.ToJson());
-            Console.WriteLine($"Baseline written to {path}");
+            if (!options.JsonToStdout)
+                Console.WriteLine($"Baseline written to {path}");
         }
 
         return Verdict(result, baseline, options);
