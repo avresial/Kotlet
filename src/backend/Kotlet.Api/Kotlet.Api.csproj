@@ -11,6 +11,10 @@
     <Version>1.4.0</Version>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' != 'Release'">
+    <DefineConstants>$(DefineConstants);SAMPLE_DATA</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
@@ -34,6 +38,11 @@
   <ItemGroup>
     <ProjectReference Include="..\Kotlet.Application\Kotlet.Application.csproj" />
     <ProjectReference Include="..\Kotlet.Infrastructure\Kotlet.Infrastructure.csproj" />
+    <!-- Sample-data fixture for local SQLite runs, gated behind Database:SeedSampleData.
+         Excluded from Release so test fixtures never ship in a production artifact; the
+         seeding call is compiled out with it via the SAMPLE_DATA symbol below. -->
+    <ProjectReference Include="..\Kotlet.TestData\Kotlet.TestData.csproj"
+                      Condition="'$(Configuration)' != 'Release'" />
     <ProjectReference Include="..\..\aspire\Kotlet.ServiceDefaults\Kotlet.ServiceDefaults.csproj" />
   </ItemGroup>
 

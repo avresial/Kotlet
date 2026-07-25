@@ -32,6 +32,11 @@ re-running them skips anything already installed/running.
 - **SQLite mode** — sets `Database__Provider=Sqlite` (shared in-memory DB,
   schema via `EnsureCreated`, dev users seeded on startup). Data is lost when
   the API restarts — that is intended for test runs.
+- **Sample data** — sets `Database__SeedSampleData=true`, which loads the shared
+  fixture from `Kotlet.TestData`: the full ingredient catalogue, 12 recipes, a
+  14-day meal plan, a shopping list, and a pantry, all under the "Test kitchen"
+  household. The MCP benchmark and the integration tests use the same fixture,
+  so what you see locally is what they measure and assert against.
 - **JWT signing key** — normally injected by the Aspire AppHost; `run.sh`
   generates one so the API can start standalone.
 - **Frontend → API proxy** — sets `services__api__http__0` so the Angular dev
@@ -43,6 +48,10 @@ re-running them skips anything already installed/running.
 | --- | --- | --- |
 | User | `testuser@kotlet.local` | `TestUser123!` |
 | Admin | `admin@kotlet.local` | `Admin123!` |
+| Housemate | `housemate@kotlet.local` | `Housemate123!` |
+
+All three belong to the seeded "Test kitchen" household, so meal-plan
+participants and household sharing can be exercised without extra setup.
 
 ## API calls
 

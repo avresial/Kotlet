@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Kotlet.McpBench</RootNamespace>
+    <!-- Kotlet.Api also exposes a Program type; naming ours keeps WebApplicationFactory<Program>
+         bound to the API's entry point rather than this one. -->
+    <StartupObject>Kotlet.McpBench.BenchProgram</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Test projects get this attribute generated for them from MvcTestingAppManifest.json.
+         This is a console app, so it declares the API's content root itself; without it
+         WebApplicationFactory guesses a directory next to the solution file and fails. -->
+    <AssemblyAttribute Include="Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryContentRootAttribute">
+      <_Parameter1>Kotlet.Api</_Parameter1>
+      <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../src/backend/Kotlet.Api'))</_Parameter2>
+      <_Parameter3>Kotlet.Api.csproj</_Parameter3>
+      <_Parameter4>0</_Parameter4>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\backend\Kotlet.Api\Kotlet.Api.csproj" />
+    <ProjectReference Include="..\..\src\backend\Kotlet.TestData\Kotlet.TestData.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="baseline.json" CopyToOutputDirectory="Never" />
+  </ItemGroup>
+
+</Project>

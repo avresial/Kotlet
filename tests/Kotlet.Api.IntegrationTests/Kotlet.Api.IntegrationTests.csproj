@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\backend\Kotlet.Api\Kotlet.Api.csproj" />
+    <ProjectReference Include="..\..\src\backend\Kotlet.TestData\Kotlet.TestData.csproj" />
   </ItemGroup>
 
 </Project>
