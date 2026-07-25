@@ -75,7 +75,7 @@ public static class KotletTestData
         var preparedMeals = SeedPreparedMeals(dbContext);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        SeedMealPlan(dbContext, recipes, preparedMeals, users);
+        SeedMealPlan(dbContext, recipes, preparedMeals);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -250,8 +250,7 @@ public static class KotletTestData
     private static void SeedMealPlan(
         KotletDbContext dbContext,
         IReadOnlyList<Recipe> recipes,
-        IReadOnlyList<PreparedMeal> preparedMeals,
-        Dictionary<string, User> users)
+        IReadOnlyList<PreparedMeal> preparedMeals)
     {
         var ownerId = TestIds.User(Owner.Email);
         var housemateId = TestIds.User(Housemate.Email);
@@ -290,8 +289,6 @@ public static class KotletTestData
 
                 dbContext.MealPlanItems.Add(item);
             }
-
-        _ = users;
     }
 
     private static MealSlot SlotFor(string slot) => slot switch

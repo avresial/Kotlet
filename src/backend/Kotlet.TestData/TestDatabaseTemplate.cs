@@ -20,9 +20,29 @@ public static class TestDatabaseTemplate
     private static readonly SemaphoreSlim BuildLock = new(1, 1);
     private static string? templatePath;
 
-    /// <summary>Where copies are written. Cleared on process start so stale runs do not accumulate.</summary>
-    private static readonly string WorkingDirectory =
-        Path.Combine(Path.GetTempPath(), "kotlet-testdata", Environment.ProcessId.ToString());
+    /// <summary>
+    /// Where the template and its copies live. Scoped to this process and removed when the
+    /// process exits, so parallel runs cannot collide and repeated runs do not accumulate
+    /// databases in the temp directory.
+    /// </summary>
+    private static readonly string WorkingDirectory = CreateWorkingDirectory();
+
+    private static string CreateWorkingDirectory()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "kotlet-testdata", Environment.ProcessId.ToString());
+        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+        {
+            try
+            {
+                if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+            }
+            catch (IOException)
+            {
+                // Best effort: a file still held open is left for the OS to reclaim.
+            }
+        };
+        return directory;
+    }
 
     /// <summary>Builds the template if this process has not built it yet, and returns its path.</summary>
     public static async Task<string> EnsureBuiltAsync(CancellationToken cancellationToken = default)

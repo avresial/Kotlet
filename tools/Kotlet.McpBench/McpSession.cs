@@ -16,11 +16,9 @@ public sealed class McpSession(HttpClient client, string accessToken, string pro
     public static async Task<McpSession> ConnectAsync(
         HttpClient client, Credentials credentials, string resource, string clientId, string protocolVersion)
     {
-        // The authorization endpoint authenticates from the refresh cookie that register/login
+        // The authorization endpoint authenticates from the refresh cookie that signing in
         // sets, so the cookie-carrying client is what drives the OAuth handshake below.
-        var bearer = credentials.IsNewAccount
-            ? await RegisterAsync(client, credentials)
-            : await LoginAsync(client, credentials);
+        var bearer = await SignInAsync(client, credentials);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
 
         var accessToken = await AuthorizeAsync(client, resource, clientId);
@@ -70,25 +68,7 @@ public sealed class McpSession(HttpClient client, string accessToken, string pro
         return index < 0 ? body.Trim() : body[(index + "data: ".Length)..].Trim();
     }
 
-    private static async Task<string> RegisterAsync(HttpClient client, Credentials credentials)
-    {
-        var response = await client.PostAsJsonAsync("/api/auth/register", new
-        {
-            email = credentials.Email,
-            password = credentials.Password,
-            confirmPassword = credentials.Password
-        });
-        response.EnsureSuccessStatusCode();
-        var token = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("accessToken").GetString()!;
-
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        var house = await client.PostAsJsonAsync("/api/houses", new { name = "MCP benchmark household" });
-        house.EnsureSuccessStatusCode();
-        return (await house.Content.ReadFromJsonAsync<JsonElement>())
-            .GetProperty("token").GetProperty("accessToken").GetString()!;
-    }
-
-    private static async Task<string> LoginAsync(HttpClient client, Credentials credentials)
+    private static async Task<string> SignInAsync(HttpClient client, Credentials credentials)
     {
         var response = await client.PostAsJsonAsync("/api/auth/login", new
         {
@@ -153,7 +133,7 @@ public sealed class McpSession(HttpClient client, string accessToken, string pro
     }
 }
 
-public sealed record Credentials(string Email, string Password, bool IsNewAccount);
+public sealed record Credentials(string Email, string Password);
 
 public sealed record McpCallResult(
     string Method,

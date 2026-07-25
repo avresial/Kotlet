@@ -25,15 +25,11 @@ public sealed class DbQueryCounter : IObserver<DiagnosticListener>, IDisposable
         return counter;
     }
 
+    /// <summary>
+    /// Commands executed so far. Callers take the difference across a call to attribute
+    /// queries to it.
+    /// </summary>
     public int Count => Volatile.Read(ref count);
-
-    /// <summary>Returns how many commands ran while <paramref name="action"/> executed.</summary>
-    public async Task<(T Result, int Queries)> MeasureAsync<T>(Func<Task<T>> action)
-    {
-        var before = Count;
-        var result = await action();
-        return (result, Count - before);
-    }
 
     void IObserver<DiagnosticListener>.OnNext(DiagnosticListener listener)
     {

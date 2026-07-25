@@ -35,8 +35,8 @@ public static class BenchProgram
         // In-process runs sign in as the shared fixture's owner; the household and its data are
         // already there, so nothing has to be created before measuring.
         var credentials = options.Url is null
-            ? new Credentials(KotletTestData.Owner.Email, KotletTestData.Owner.Password, IsNewAccount: false)
-            : new Credentials(options.Email!, options.Password!, IsNewAccount: false);
+            ? new Credentials(KotletTestData.Owner.Email, KotletTestData.Owner.Password)
+            : new Credentials(options.Email!, options.Password!);
 
         var session = await McpSession.ConnectAsync(
             target.CreateClient(), credentials, target.Resource, target.ClientId, ProtocolVersion);
