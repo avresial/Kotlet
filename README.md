@@ -230,11 +230,13 @@ npm --prefix src/frontend run build
 
 ---
 
-## Measuring MCP performance
+## Measuring performance
 
-Kotlet's MCP server is what AI agents talk to, and agent responsiveness depends far more on
-the size of the tool catalogue and the number of round trips than on raw request latency.
-`tools/Kotlet.McpBench` measures both and compares a run against a recorded baseline:
+`tools/Kotlet.McpBench` measures two surfaces against the same seeded fixture and compares a
+run against a recorded baseline: the **MCP tool surface** AI agents talk to (where the size of
+the tool catalogue and the number of round trips matter far more than raw request latency),
+and the **REST endpoints** the Angular app calls to paint each screen (response size and
+database queries per call):
 
 ```powershell
 dotnet run --project tools/Kotlet.McpBench           # measure and diff against the baseline

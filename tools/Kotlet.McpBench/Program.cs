@@ -55,7 +55,16 @@ public static class BenchProgram
                 "so compare remote runs against each other rather than against an in-process baseline.");
 
         var calls = await MeasureCallsAsync(scenario, session, counter, options.Runs);
-        // The import workflow creates a recipe, so it only runs where writing is safe.
+
+        // The REST surface the frontend uses, on its own authenticated client so the MCP
+        // handshake's tokens and cookies cannot influence it.
+        var apiClient = target.CreateClient();
+        await McpSession.SignInAsync(apiClient, credentials);
+        var apiCalls = await MeasureApiCallsAsync(new ApiScenario(apiClient, counter), options.Runs);
+
+        // Every read is measured before this point. The import workflow creates a recipe stamped
+        // with the current time, which would otherwise leak a variable-length timestamp into any
+        // recipe list measured afterwards. It also only runs where writing is safe.
         var agentSession = options.SeedsData ? await scenario.MeasureRecipeImportAsync() : null;
 
         var result = new BenchResult(
@@ -65,7 +74,8 @@ public static class BenchProgram
             options.SeedsData ? Scenario.FixtureDescription : "existing household data (read-only run)",
             surface,
             calls,
-            agentSession);
+            agentSession,
+            apiCalls);
 
         if (options.JsonPath is { } jsonPath)
         {
@@ -117,6 +127,25 @@ public static class BenchProgram
                 // Both copies carry the same data, so the smaller one is what the model pays twice for.
                 text > 0 && structured > 0 ? Math.Min(text, structured) : 0,
                 last.DbQueries));
+        }
+
+        return calls;
+    }
+
+    private static async Task<List<ApiCallResult>> MeasureApiCallsAsync(ApiScenario scenario, int runs)
+    {
+        var calls = new List<ApiCallResult>();
+        foreach (var (label, screen, path) in ApiScenario.Calls())
+        {
+            var samples = new List<(int StatusCode, double ElapsedMs, int Bytes, int? Queries)>(runs);
+            for (var run = 0; run < runs; run++)
+                samples.Add(await scenario.GetAsync(path));
+
+            var last = samples[^1];
+            var timings = samples.Select(sample => sample.ElapsedMs).Order().ToArray();
+            calls.Add(new ApiCallResult(
+                label, screen, path, last.StatusCode,
+                Median(timings), timings[0], last.Bytes, last.Queries));
         }
 
         return calls;

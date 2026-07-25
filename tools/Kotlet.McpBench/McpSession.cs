@@ -68,7 +68,11 @@ public sealed class McpSession(HttpClient client, string accessToken, string pro
         return index < 0 ? body.Trim() : body[(index + "data: ".Length)..].Trim();
     }
 
-    private static async Task<string> SignInAsync(HttpClient client, Credentials credentials)
+    /// <summary>
+    /// Signs in and selects a household, leaving the bearer on the client. Public because the
+    /// REST benchmark needs the same authenticated client without an MCP handshake.
+    /// </summary>
+    public static async Task<string> SignInAsync(HttpClient client, Credentials credentials)
     {
         var response = await client.PostAsJsonAsync("/api/auth/login", new
         {
