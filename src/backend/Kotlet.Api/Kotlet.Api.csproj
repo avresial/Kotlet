@@ -34,6 +34,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Kotlet.Application\Kotlet.Application.csproj" />
     <ProjectReference Include="..\Kotlet.Infrastructure\Kotlet.Infrastructure.csproj" />
+    <!-- Sample-data fixture for local SQLite runs, gated behind Database:SeedSampleData. -->
+    <ProjectReference Include="..\Kotlet.TestData\Kotlet.TestData.csproj" />
     <ProjectReference Include="..\..\aspire\Kotlet.ServiceDefaults\Kotlet.ServiceDefaults.csproj" />
   </ItemGroup>
 

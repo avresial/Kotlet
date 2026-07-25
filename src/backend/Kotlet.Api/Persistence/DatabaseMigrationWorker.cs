@@ -1,4 +1,5 @@
 using Kotlet.Infrastructure.Persistence;
+using Kotlet.TestData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Kotlet.Api.Auth;
@@ -10,6 +11,7 @@ namespace Kotlet.Api.Persistence;
 public sealed class DatabaseMigrationWorker(
     IServiceScopeFactory scopeFactory,
     IWebHostEnvironment environment,
+    IConfiguration configuration,
     IOptions<OAuthOptions> oauthOptions,
     MigrationReadySignal migrationReady,
     ILogger<DatabaseMigrationWorker> logger) : BackgroundService
@@ -79,6 +81,15 @@ public sealed class DatabaseMigrationWorker(
         {
             var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
             await seeder.SeedAsync(stoppingToken);
+        }
+
+        // Opt-in sample data: the same fixture the MCP benchmark and the browser tests use, so a
+        // local run starts with recipes, a meal plan, a shopping list, and a pantry rather than
+        // an empty household. Off unless Database:SeedSampleData is set, and never in production.
+        if (configuration.GetValue("Database:SeedSampleData", false))
+        {
+            logger.LogInformation("Seeding shared sample data");
+            await KotletTestData.SeedAsync(dbContext, stoppingToken);
         }
     }
 }

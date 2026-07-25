@@ -32,12 +32,13 @@ if [ "$(probe "http://localhost:$API_PORT/api/ingredients")" != 000 ]; then
 else
   # The Aspire AppHost normally injects the JWT signing key; generate one here.
   JWT_KEY="$(openssl rand -base64 32 2>/dev/null || head -c 32 /dev/urandom | base64)"
-  log "Building and starting API on :$API_PORT (SQLite in-memory)..."
+  log "Building and starting API on :$API_PORT (SQLite, shared sample data)..."
   dotnet build "$REPO_ROOT/src/backend/Kotlet.Api/Kotlet.Api.csproj" >"$RUN_DIR/api-build.log" 2>&1
   (
     cd "$REPO_ROOT/src/backend/Kotlet.Api"
     ASPNETCORE_ENVIRONMENT=Development \
     Database__Provider=Sqlite \
+    Database__SeedSampleData=true \
     ASPNETCORE_URLS="http://localhost:$API_PORT" \
     Jwt__SigningKey="$JWT_KEY" \
     OAuth__Issuer="http://localhost:$API_PORT" \
@@ -52,7 +53,7 @@ else
   if [ "$(probe "http://localhost:$API_PORT/api/ingredients")" = 000 ]; then
     log "ERROR: API did not come up; last log lines:"; tail -30 "$RUN_DIR/api.log"; exit 1
   fi
-  log "API is up (seeded dev users included)"
+  log "API is up (dev users plus the shared sample household)"
 fi
 
 # --- Frontend (Angular dev server, proxies /api to the local API) --------

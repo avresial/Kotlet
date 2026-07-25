@@ -227,3 +227,20 @@ settings.
 dotnet build Kotlet.slnx
 npm --prefix src/frontend run build
 ```
+
+---
+
+## Measuring MCP performance
+
+Kotlet's MCP server is what AI agents talk to, and agent responsiveness depends far more on
+the size of the tool catalogue and the number of round trips than on raw request latency.
+`tools/Kotlet.McpBench` measures both and compares a run against a recorded baseline:
+
+```powershell
+dotnet run --project tools/Kotlet.McpBench           # measure and diff against the baseline
+dotnet run --project tools/Kotlet.McpBench -- --save # record the current numbers as the baseline
+```
+
+It boots the API in-process on in-memory SQLite, so no database or deployment is needed. See
+[docs/mcp-performance.md](docs/mcp-performance.md) for what the numbers mean and how to point
+it at a deployed instance.

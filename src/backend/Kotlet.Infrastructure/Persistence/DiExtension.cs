@@ -40,10 +40,19 @@ public static class DiExtension
 
         if (provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
-            var connectionString = $"Data Source=Kotlet-{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
-            var keepAliveConnection = new SqliteConnection(connectionString);
-            keepAliveConnection.Open();
-            services.AddSingleton(keepAliveConnection);
+            // A configured connection string points SQLite at a real file, which is how the
+            // shared test fixture (Kotlet.TestData) hands a pre-seeded database to tests, the
+            // MCP benchmark, and local development. Without one, fall back to a private
+            // in-memory database kept alive by a singleton connection.
+            var connectionString = configuration.GetConnectionString("kotletdb");
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                connectionString = $"Data Source=Kotlet-{Guid.NewGuid():N};Mode=Memory;Cache=Shared";
+                var keepAliveConnection = new SqliteConnection(connectionString);
+                keepAliveConnection.Open();
+                services.AddSingleton(keepAliveConnection);
+            }
+
             services.AddDbContext<KotletDbContext>((serviceProvider, options) =>
                 options.UseSqlite(connectionString)
                     .UseOpenIddict()
