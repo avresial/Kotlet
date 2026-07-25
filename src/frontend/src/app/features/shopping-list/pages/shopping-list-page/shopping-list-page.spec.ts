@@ -12,14 +12,29 @@ const item = (id: string, category: number, note: string | null = null): Shoppin
   id, ingredientId: id, ingredientName: id, measurementUnit: 'g', quantity: 1,
   pricePer100BaseUnits: 1, totalPrice: 1, isPurchased: false, category, note,
 });
+const bought = (id: string, category: number): ShoppingListItem => ({ ...item(id, category), isPurchased: true });
+const summarize = (groups: ReturnType<typeof groupShoppingItems>) =>
+  groups.map(group => [group.key, group.items.map(value => value.id)]);
 
 describe('groupShoppingItems', () => {
   it('groups categorized and unknown products in category order', () => {
     const groups = groupShoppingItems([item('apple', 21), item('other', 0), item('pear', 21)]);
 
-    expect(groups.map(group => [group.value, group.items.map(value => value.id)])).toEqual([
-      [0, ['other']], [21, ['apple', 'pear']],
+    expect(summarize(groups)).toEqual([['category-0', ['other']], ['category-21', ['apple', 'pear']]]);
+  });
+
+  it('collects bought items into a single group after the remaining categories', () => {
+    const groups = groupShoppingItems([bought('apple', 21), item('other', 0), bought('egg', 5), item('pear', 21)]);
+
+    expect(summarize(groups)).toEqual([
+      ['category-0', ['other']], ['category-21', ['pear']], ['bought', ['egg', 'apple']],
     ]);
+    expect(groups.map(group => group.isBought)).toEqual([false, false, true]);
+    expect(groups.at(-1)!.label).toBe('shopping.alreadyBought');
+  });
+
+  it('omits the bought group while nothing is ticked off', () => {
+    expect(groupShoppingItems([item('pear', 21)]).some(group => group.isBought)).toBe(false);
   });
 });
 

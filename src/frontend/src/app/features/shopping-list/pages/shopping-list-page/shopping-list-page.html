@@ -19,13 +19,23 @@
   </section>
 
   <section class="receipt" aria-labelledby="receipt-title">
-    <div class="receipt-heading"><div><p class="eyebrow">{{ 'shopping.receipt' | t }}</p><h2 id="receipt-title">{{ 'shopping.itemsToBuy' | t }}</h2></div><div class="receipt-actions"><span>{{ items().length }} {{ 'common.items' | t }}</span><button type="button" [disabled]="items().length === 0" (click)="print()">{{ 'shopping.print' | t }}</button><button class="clear-checked" type="button" [disabled]="isSaving() || purchasedCount() === 0" (click)="clearChecked()">{{ 'shopping.clearChecked' | t }}</button></div></div>
+    <div class="receipt-heading">
+      <div class="receipt-title">
+        <p class="eyebrow">{{ 'shopping.receipt' | t }}</p>
+        <h2 id="receipt-title">{{ 'shopping.itemsToBuy' | t }}</h2>
+        <p class="receipt-count">{{ items().length }} {{ 'common.items' | t }}</p>
+      </div>
+      <div class="receipt-actions">
+        <button type="button" [disabled]="items().length === 0" (click)="print()">{{ 'shopping.print' | t }}</button>
+        <button class="clear-checked" type="button" [disabled]="isSaving() || purchasedCount() === 0" (click)="clearChecked()">{{ 'shopping.clearChecked' | t }}</button>
+      </div>
+    </div>
     @if (isLoading()) { <p class="empty">{{ 'shopping.loading' | t }}</p> }
     @else if (items().length === 0) { <p class="empty">{{ 'shopping.empty' | t }}</p> }
     @else {
       <div class="receipt-lines">
-        @for (group of groups(); track group.value) {
-          <h3 class="category-heading">{{ group.label | t }}</h3>
+        @for (group of groups(); track group.key) {
+          <h3 class="category-heading" [class.bought-heading]="group.isBought">{{ group.label | t }}</h3>
           @for (item of group.items; track item.id) {
           <article class="receipt-line" [class.is-purchased]="item.isPurchased">
             <button class="check" type="button" [disabled]="isSaving()" (click)="update(item, { isPurchased: !item.isPurchased })" [attr.aria-label]="(item.isPurchased ? 'shopping.markNotBought' : 'shopping.markBought') | t">{{ item.isPurchased ? '✓' : '○' }}</button>
