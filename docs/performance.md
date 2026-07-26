@@ -115,9 +115,14 @@ This run measured failed calls, so its numbers are not comparable:
   GET /api/pantry-does-not-exist (pantry) returned HTTP 404
 ```
 
-Two kinds count as failures: a REST response outside 2xx, and an MCP tool that returns
-`isError` (which still arrives as HTTP 200, so it needs checking separately). Exit codes are
-**1** for a regression past `--fail-on-regression`, **2** for bad arguments, and **3** for this.
+Three kinds count as failures: a REST response outside 2xx, an MCP tool that returns `isError`
+(which still arrives as HTTP 200, so it needs checking separately), and a failure in the request
+that resolves a recipe id for the recipe-detail endpoint. Every repeat is checked, not just the
+last, because every repeat feeds the reported median.
+
+Nothing is written on a failed run — no baseline, no `--json` artifact — so a bad run cannot
+become the baseline that later runs are judged against. Exit codes are **1** for a regression
+past `--fail-on-regression`, **2** for bad arguments, and **3** for this.
 
 ## What is trustworthy, and what is not
 

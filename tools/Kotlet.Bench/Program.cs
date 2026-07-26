@@ -83,19 +83,32 @@ public static class BenchProgram
             agentSession,
             apiCalls);
 
-        if (options.JsonPath is { } jsonPath)
-        {
-            var fullPath = Path.GetFullPath(jsonPath);
-            Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
-            await File.WriteAllTextAsync(fullPath, result.ToJson());
-        }
-
         // --stdout-json only changes what lands on stdout. Saving a baseline and gating on
         // regressions still happen, so a CI job can emit machine-readable output and fail.
         var baseline = await LoadBaselineAsync(options);
         Console.WriteLine(options.JsonToStdout
             ? result.ToJson()
             : Report.Render(result, baseline, options.TopTools));
+
+        // Checked before anything is written. Persisting a run that measured a failure would
+        // record its artificially small numbers as the baseline every later run is judged
+        // against, which is the opposite of what this check is for.
+        if (faults.Count > 0)
+        {
+            Console.Error.WriteLine();
+            Console.Error.WriteLine("This run measured failed calls, so its numbers are not comparable:");
+            foreach (var fault in faults)
+                Console.Error.WriteLine($"  {fault}");
+            Console.Error.WriteLine("Nothing was written. Fix the failures and run again.");
+            return 3;
+        }
+
+        if (options.JsonPath is { } jsonPath)
+        {
+            var fullPath = Path.GetFullPath(jsonPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+            await File.WriteAllTextAsync(fullPath, result.ToJson());
+        }
 
         if (options.Save)
         {
@@ -104,15 +117,6 @@ public static class BenchProgram
             await File.WriteAllTextAsync(path, result.ToJson());
             if (!options.JsonToStdout)
                 Console.WriteLine($"Baseline written to {path}");
-        }
-
-        if (faults.Count > 0)
-        {
-            Console.Error.WriteLine();
-            Console.Error.WriteLine("This run measured failed calls, so its numbers are not comparable:");
-            foreach (var fault in faults)
-                Console.Error.WriteLine($"  {fault}");
-            return 3;
         }
 
         return Verdict(result, baseline, options);
@@ -125,13 +129,23 @@ public static class BenchProgram
         foreach (var (label, tool, arguments) in scenario.ReadCalls())
         {
             var samples = new List<McpCallResult>(runs);
+            var faulted = false;
             for (var run = 0; run < runs; run++)
-                samples.Add(await session.CallToolAsync(tool, arguments, counter));
+            {
+                var sample = await session.CallToolAsync(tool, arguments, counter);
+                samples.Add(sample);
+                // Every repeat feeds the median, so a failure in any of them invalidates the
+                // measurement even when the last one happens to succeed. One fault per call is
+                // enough to explain the run.
+                if (sample.IsToolError && !faulted)
+                {
+                    faults.Add($"tool {tool} ({label}) returned isError on repeat {run + 1}: {sample.Payload}");
+                    faulted = true;
+                }
+            }
 
             var last = samples[^1];
-            if (last.IsToolError)
-                faults.Add($"tool {tool} ({label}) returned isError: {last.Payload}");
-            var (text, structured) = last.ContentSplit();
+            var (text, structured) = faulted ? (0, 0) : last.ContentSplit();
             var timings = samples.Select(sample => sample.ElapsedMs).Order().ToArray();
             calls.Add(new CallResult(
                 label,
@@ -153,15 +167,22 @@ public static class BenchProgram
         ApiScenario scenario, int runs, List<string> faults)
     {
         var calls = new List<ApiCallResult>();
-        foreach (var (label, screen, path) in await scenario.CallsAsync())
+        foreach (var (label, screen, path) in await scenario.CallsAsync(faults))
         {
             var samples = new List<(int StatusCode, double ElapsedMs, int Bytes, int? Queries)>(runs);
+            var faulted = false;
             for (var run = 0; run < runs; run++)
-                samples.Add(await scenario.GetAsync(path));
+            {
+                var sample = await scenario.GetAsync(path);
+                samples.Add(sample);
+                if (sample.StatusCode is < 200 or >= 300 && !faulted)
+                {
+                    faults.Add($"GET {path} ({label}) returned HTTP {sample.StatusCode} on repeat {run + 1}");
+                    faulted = true;
+                }
+            }
 
             var last = samples[^1];
-            if (last.StatusCode is < 200 or >= 300)
-                faults.Add($"GET {path} ({label}) returned HTTP {last.StatusCode}");
             var timings = samples.Select(sample => sample.ElapsedMs).Order().ToArray();
             calls.Add(new ApiCallResult(
                 label, screen, path, last.StatusCode,
