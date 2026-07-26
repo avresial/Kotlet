@@ -132,6 +132,15 @@ public static class Report
         var baselineBytes = baseline?.ApiCalls.Sum(call => call.Bytes);
         text.AppendLine(
             $"  {"TOTAL",-30}{"",-16}{"",7}{totalBytes,9:N0}{totalQueries,6}   {Delta(totalBytes, baselineBytes),-24}");
+
+        if (baseline is not null)
+        {
+            var missing = baseline.ApiCalls.Select(call => call.Label)
+                .Except(result.ApiCalls.Select(call => call.Label)).ToArray();
+            if (missing.Length > 0)
+                text.AppendLine($"  ! not measured this run: {string.Join(", ", missing)}");
+        }
+
         text.AppendLine();
     }
 

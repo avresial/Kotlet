@@ -159,6 +159,15 @@ public sealed record McpCallResult(
     }
 
     /// <summary>
+    /// True when the server ran the tool and the tool itself failed. A failed tool still returns
+    /// HTTP 200 with a small payload, so without this check a broken tool would show up in the
+    /// report as a large payload saving rather than as a fault.
+    /// </summary>
+    public bool IsToolError =>
+        Result.TryGetProperty("isError", out var isError)
+        && isError.ValueKind == JsonValueKind.True;
+
+    /// <summary>
     /// Counts what actually travels: UTF-8 bytes, not UTF-16 chars. Accented ingredient names
     /// and unicode punctuation cost more than one byte each, and reporting char counts would
     /// under-state every payload metric the benchmark exists to track.
