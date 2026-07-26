@@ -54,13 +54,19 @@ public static class BenchProgram
                 "Read-only run: payload sizes reflect whatever this household already holds, " +
                 "so compare remote runs against each other rather than against an in-process baseline.");
 
-        var calls = await MeasureCallsAsync(scenario, session, counter, options.Runs);
+        // Faults collected while measuring. A failed call still produces a small, fast, cheap
+        // measurement, which would read as an improvement — so a run that hit one is not a
+        // result at all.
+        var faults = new List<string>();
+
+        var calls = await MeasureCallsAsync(scenario, session, counter, options.Runs, faults);
 
         // The REST surface the frontend uses, on its own authenticated client so the MCP
         // handshake's tokens and cookies cannot influence it.
-        var apiClient = target.CreateClient();
+        using var apiClient = target.CreateClient();
         await McpSession.SignInAsync(apiClient, credentials);
-        var apiCalls = await MeasureApiCallsAsync(new ApiScenario(apiClient, counter), options.Runs);
+        var apiScenario = new ApiScenario(apiClient, counter, KotletTestData.PlanStart);
+        var apiCalls = await MeasureApiCallsAsync(apiScenario, options.Runs, faults);
 
         // Every read is measured before this point. The import workflow creates a recipe stamped
         // with the current time, which would otherwise leak a variable-length timestamp into any
@@ -100,11 +106,20 @@ public static class BenchProgram
                 Console.WriteLine($"Baseline written to {path}");
         }
 
+        if (faults.Count > 0)
+        {
+            Console.Error.WriteLine();
+            Console.Error.WriteLine("This run measured failed calls, so its numbers are not comparable:");
+            foreach (var fault in faults)
+                Console.Error.WriteLine($"  {fault}");
+            return 3;
+        }
+
         return Verdict(result, baseline, options);
     }
 
     private static async Task<List<CallResult>> MeasureCallsAsync(
-        McpScenario scenario, McpSession session, DbQueryCounter? counter, int runs)
+        McpScenario scenario, McpSession session, DbQueryCounter? counter, int runs, List<string> faults)
     {
         var calls = new List<CallResult>();
         foreach (var (label, tool, arguments) in scenario.ReadCalls())
@@ -114,6 +129,8 @@ public static class BenchProgram
                 samples.Add(await session.CallToolAsync(tool, arguments, counter));
 
             var last = samples[^1];
+            if (last.IsToolError)
+                faults.Add($"tool {tool} ({label}) returned isError: {last.Payload}");
             var (text, structured) = last.ContentSplit();
             var timings = samples.Select(sample => sample.ElapsedMs).Order().ToArray();
             calls.Add(new CallResult(
@@ -132,16 +149,19 @@ public static class BenchProgram
         return calls;
     }
 
-    private static async Task<List<ApiCallResult>> MeasureApiCallsAsync(ApiScenario scenario, int runs)
+    private static async Task<List<ApiCallResult>> MeasureApiCallsAsync(
+        ApiScenario scenario, int runs, List<string> faults)
     {
         var calls = new List<ApiCallResult>();
-        foreach (var (label, screen, path) in ApiScenario.Calls())
+        foreach (var (label, screen, path) in await scenario.CallsAsync())
         {
             var samples = new List<(int StatusCode, double ElapsedMs, int Bytes, int? Queries)>(runs);
             for (var run = 0; run < runs; run++)
                 samples.Add(await scenario.GetAsync(path));
 
             var last = samples[^1];
+            if (last.StatusCode is < 200 or >= 300)
+                faults.Add($"GET {path} ({label}) returned HTTP {last.StatusCode}");
             var timings = samples.Select(sample => sample.ElapsedMs).Order().ToArray();
             calls.Add(new ApiCallResult(
                 label, screen, path, last.StatusCode,

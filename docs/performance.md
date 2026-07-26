@@ -104,6 +104,21 @@ matters.
 Endpoints are keyed by their label, so renaming one in `ApiScenario.cs` detaches it from every
 earlier baseline.
 
+## A run that measured a failure is not a result
+
+A failed call is small, fast, and cheap to serve, so it reads as an improvement on every axis
+the report tracks — a 500 on `/api/ingredients` would look like a 126 KB saving. The benchmark
+therefore exits **3** and refuses to compare when any measured call failed:
+
+```text
+This run measured failed calls, so its numbers are not comparable:
+  GET /api/pantry-does-not-exist (pantry) returned HTTP 404
+```
+
+Two kinds count as failures: a REST response outside 2xx, and an MCP tool that returns
+`isError` (which still arrives as HTTP 200, so it needs checking separately). Exit codes are
+**1** for a regression past `--fail-on-regression`, **2** for bad arguments, and **3** for this.
+
 ## What is trustworthy, and what is not
 
 **Trust the byte counts and the SQL counts.** They are deterministic: two runs on the same
