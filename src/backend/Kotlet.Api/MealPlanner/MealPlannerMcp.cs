@@ -61,10 +61,7 @@ public sealed class MealPlannerMcp
 
         var userId = RequireUser(currentUser);
         var houseId = RequireHouse(currentUser);
-        var plan = new List<DailyMealPlanResponse>(days);
-        for (var offset = 0; offset < days; offset++)
-            plan.Add(await service.GetForDateAsync(userId, houseId, parsedFrom.AddDays(offset), cancellationToken));
-        return plan;
+        return await service.GetForRangeAsync(userId, houseId, parsedFrom, days, cancellationToken);
     }
 
     [McpServerTool(Name = "add_weekly_meal_plan", ReadOnly = false, Destructive = false,
@@ -230,10 +227,7 @@ public sealed class MealPlannerMcp
 
         var userId = RequireUser(currentUser);
         var houseId = RequireHouse(currentUser);
-        var days = new List<DailyMealPlanResponse>(7);
-        for (var offset = 0; offset < 7; offset++)
-            days.Add(await service.GetForDateAsync(userId, houseId, start.AddDays(offset), cancellationToken));
-        return Json(days);
+        return Json(await service.GetForRangeAsync(userId, houseId, start, 7, cancellationToken));
     }
 
     [McpServerResource(UriTemplate = "kotlet://meal-plans/members", Name = "meal-plan-members",
