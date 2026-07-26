@@ -16,19 +16,41 @@ public sealed class MealPlannerService(
     private const int MaxGuests = 99;
 
     public async Task<DailyMealPlanResponse> GetForDateAsync(
-        Guid userId, Guid houseId, DateOnly date, CancellationToken cancellationToken)
+        Guid userId, Guid houseId, DateOnly date, CancellationToken cancellationToken) =>
+        (await GetForRangeAsync(userId, houseId, date, 1, cancellationToken))[0];
+
+    public async Task<IReadOnlyList<DailyMealPlanResponse>> GetForRangeAsync(
+        Guid userId, Guid houseId, DateOnly from, int days, CancellationToken cancellationToken)
     {
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
-        var items = await repository.GetByDateAsync(houseId, date, cancellationToken);
-        var responses = new List<MealPlanItemResponse>();
-        foreach (var item in items)
-        {
-            var response = await ToResponseAsync(item, userId, houseId, members, cancellationToken);
-            responses.Add(response);
-        }
+        var items = await repository.GetByDateRangeAsync(houseId, from, from.AddDays(days - 1), cancellationToken);
+        var recipes = items.Any(item => item.RecipeId.HasValue)
+            ? (await recipeRepository.GetAllForDuplicateCheckAsync(houseId, cancellationToken))
+                .ToDictionary(recipe => recipe.Id, recipe => recipe.Title)
+            : [];
+        var ingredientIds = items.Where(item => item.IngredientId.HasValue)
+            .Select(item => item.IngredientId!.Value).Distinct().ToArray();
+        var ingredients = ingredientIds.Length == 0
+            ? []
+            : (await ingredientRepository.GetByIdsAsync(ingredientIds, cancellationToken))
+                .ToDictionary(entry => entry.Key, entry => entry.Value.Name);
+        var preparedMeals = items.Any(item => item.PreparedMealId.HasValue) && preparedMealRepository is not null
+            ? (await preparedMealRepository.ListAsync(houseId, includeArchived: true, cancellationToken))
+                .ToDictionary(meal => meal.Id, meal => meal.Name)
+            : [];
 
-        return new DailyMealPlanResponse(
-            date.ToString("yyyy-MM-dd"),
+        return Enumerable.Range(0, days).Select(offset =>
+        {
+            var date = from.AddDays(offset);
+            var responses = items.Where(item => item.Date == date).Select(item =>
+                item.RecipeId is { } recipeId
+                    ? ToResponse(item, userId, members, recipes.GetValueOrDefault(recipeId, "Unknown recipe"), "recipe")
+                    : item.IngredientId is { } ingredientId
+                        ? ToResponse(item, userId, members, ingredients.GetValueOrDefault(ingredientId, "Unknown ingredient"), "ingredient")
+                        : ToResponse(item, userId, members, preparedMeals.GetValueOrDefault(item.PreparedMealId!.Value, "Unknown prepared meal"), "prepared-meal"))
+                .ToList();
+            return new DailyMealPlanResponse(
+                date.ToString("yyyy-MM-dd"),
             new Dictionary<string, IReadOnlyList<MealPlanItemResponse>>
             {
                 ["breakfast"] = responses.Where(r => r.Slot == "breakfast").OrderBy(r => r.SortOrder).ToList(),
@@ -37,6 +59,7 @@ public sealed class MealPlannerService(
                 ["snack"] = responses.Where(r => r.Slot == "snack").OrderBy(r => r.SortOrder).ToList(),
                 ["supper"] = responses.Where(r => r.Slot == "supper").OrderBy(r => r.SortOrder).ToList()
             });
+        }).ToList();
     }
 
     public async Task<IReadOnlyList<MealHouseMember>> GetHouseMembersAsync(
@@ -501,6 +524,12 @@ public sealed class MealPlannerService(
             type = "prepared-meal";
         }
 
+        return ToResponse(item, userId, memberNames, displayName, type);
+    }
+
+    private static MealPlanItemResponse ToResponse(
+        MealPlanItem item, Guid userId, IReadOnlyDictionary<Guid, string> memberNames, string displayName, string type)
+    {
         var participants = item.Participants
             .Select(p => new MealParticipantResponse(
                 p.UserId,

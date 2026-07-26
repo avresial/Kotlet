@@ -84,7 +84,9 @@ public sealed class ApiScenario(HttpClient client, DbQueryCounter? counter, Date
     {
         var queriesBefore = counter?.Count ?? 0;
         var stopwatch = Stopwatch.StartNew();
-        var response = await client.GetAsync(path);
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.AcceptEncoding.ParseAdd("gzip");
+        using var response = await client.SendAsync(request);
         var body = await response.Content.ReadAsByteArrayAsync();
         stopwatch.Stop();
 
