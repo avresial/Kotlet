@@ -16,11 +16,13 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
       if (!(error instanceof HttpErrorResponse) || error.status !== 401 || !isApiRequest || isAuthEndpoint) {
         return throwError(() => error);
       }
-      return auth.refresh().pipe(
-        switchMap((response) => {
-          auth.setSession(response);
-          return next(request.clone({ setHeaders: { Authorization: `Bearer ${response.accessToken}` } }));
-        }),
+      // refreshSession collapses parallel 401s into one call: the API rotates the refresh token
+      // and revokes the whole family when a rotated one is replayed, so racing refreshes would
+      // sign the user out everywhere.
+      return auth.refreshSession().pipe(
+        switchMap((response) =>
+          next(request.clone({ setHeaders: { Authorization: `Bearer ${response.accessToken}` } })),
+        ),
       );
     }),
   );

@@ -8,8 +8,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="favicon.ico" sizes="48x48">
   <link rel="icon" type="image/svg+xml" href="favicon.svg" sizes="any">
+  <!--
+    Bootstrap waits for the session to be restored, and the API sleeps when idle, so the first
+    load after a while can sit on this screen for a moment while it wakes up. Angular drops this
+    placeholder as soon as it renders.
+  -->
+  <style>
+    .app-splash { display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1rem; min-height: 100vh; font-family: system-ui, sans-serif; color: #6b7280; }
+    .app-splash div { width: 2.5rem; height: 2.5rem; border-radius: 50%;
+      border: 3px solid rgba(107, 114, 128, .25); border-top-color: #f59e0b; animation: app-splash-spin 1s linear infinite; }
+    @keyframes app-splash-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .app-splash div { animation: none; } }
+  </style>
 </head>
 <body>
-  <app-root></app-root>
+  <app-root>
+    <div class="app-splash">
+      <div></div>
+      <p>Warming up the kitchen…</p>
+    </div>
+  </app-root>
 </body>
 </html>

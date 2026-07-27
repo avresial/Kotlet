@@ -14,6 +14,11 @@ public sealed class AuthSessionRepository(KotletDbContext dbContext) : IAuthSess
         dbContext.RefreshTokens.Include(token => token.User).ThenInclude(user => user.Roles)
             .SingleOrDefaultAsync(token => token.TokenHash == tokenHash, cancellationToken);
 
+    public Task<RefreshToken?> GetActiveTokenAsync(Guid tokenId, DateTime asOfUtc, CancellationToken cancellationToken) =>
+        dbContext.RefreshTokens.AsNoTracking().SingleOrDefaultAsync(
+            token => token.Id == tokenId && token.RevokedAtUtc == null && token.ExpiresAtUtc > asOfUtc,
+            cancellationToken);
+
     public Task<bool> IsMemberAsync(Guid userId, Guid houseId, CancellationToken cancellationToken) =>
         dbContext.HouseMemberships.AnyAsync(
             membership => membership.UserId == userId && membership.HouseId == houseId, cancellationToken);

@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Xunit;
+using Kotlet.Api.Persistence;
 using Kotlet.Domain.Houses;
 using Kotlet.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -84,7 +85,7 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
     }
 
     [Fact]
-    public async Task Refresh_RotatesCookieAndOldTokenCannotBeReused()
+    public async Task Refresh_RotatesCookieAndReplaysConcurrentCallsOnTheSameSession()
     {
         var client = _factory.CreateClient();
         var registration = await Register(client);
@@ -95,9 +96,46 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
         var newCookie = Assert.Single(refresh.Headers.GetValues("Set-Cookie")).Split(';')[0];
         Assert.NotEqual(oldCookie, newCookie);
 
+        // A second tab that started refreshing before the rotation landed still holds the old
+        // cookie. Inside the grace window that is answered with an access token, and crucially
+        // without rotating again or invalidating the cookie the browser now holds.
+        using var replay = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        replay.Headers.Add("Cookie", oldCookie);
+        var replayed = await _factory.CreateClient().SendAsync(replay);
+        Assert.Equal(HttpStatusCode.OK, replayed.StatusCode);
+        Assert.False(replayed.Headers.Contains("Set-Cookie"));
+        var body = await replayed.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(string.IsNullOrWhiteSpace(body.GetProperty("accessToken").GetString()));
+
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/auth/refresh", null)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Refresh_RevokesTheFamilyWhenARotatedTokenComesBackLate()
+    {
+        // Grace of zero stands in for "long after the rotation": the replay is no longer
+        // explainable as a concurrent refresh, so reuse detection has to fire.
+        using var factory = _factory.WithWebHostBuilder(builder =>
+            builder.UseSetting("Auth:RefreshReuseGraceSeconds", "0"));
+        var client = factory.CreateClient();
+        // A second host means a second in-memory database, so wait for its migration worker the
+        // same way the shared fixture does.
+        await factory.Services.GetRequiredService<MigrationReadySignal>()
+            .WaitAsync(new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token);
+        var registration = await Register(client);
+        var oldCookie = Assert.Single(registration.Headers.GetValues("Set-Cookie")).Split(';')[0];
+
+        var refresh = await client.PostAsync("/api/auth/refresh", null);
+        var newCookie = Assert.Single(refresh.Headers.GetValues("Set-Cookie")).Split(';')[0];
+
         using var reuse = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
         reuse.Headers.Add("Cookie", oldCookie);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().SendAsync(reuse)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().SendAsync(reuse)).StatusCode);
+
+        // The whole family goes down with it, including the token issued by the rotation.
+        using var survivor = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        survivor.Headers.Add("Cookie", newCookie);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().SendAsync(survivor)).StatusCode);
     }
 
     [Fact]
