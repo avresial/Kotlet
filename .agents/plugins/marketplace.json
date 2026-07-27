@@ -1,0 +1,20 @@
+{
+  "name": "kotlet",
+  "interface": {
+    "displayName": "Kotlet"
+  },
+  "plugins": [
+    {
+      "name": "kotlet",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kotlet"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

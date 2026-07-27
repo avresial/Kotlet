@@ -35,6 +35,8 @@ interface RecipeParticipant extends MealParticipant {
   templateUrl: './recipe-shopping-list.html',
   styleUrl: './recipe-shopping-list.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // Lets the host section (e.g. the Ingredients header row) give the expanded panel a full-width line.
+  host: { '[class.is-open]': 'isOpen()' },
 })
 export class RecipeShoppingList implements OnInit {
   readonly recipe = input.required<RecipeDetail>();

@@ -92,6 +92,22 @@ Code + PKCE flow against Kotlet's OAuth endpoints and stores its own short-lived
 token. You never handle a token or a client ID yourself. The same automatic flow
 works from Claude Code (`claude mcp add`) and Claude Desktop.
 
+## Codex
+
+The repository ships a Codex plugin that bundles this MCP connection with an
+`import-recipe` workflow skill, so Codex users do not enter any connection
+details by hand:
+
+```bash
+codex plugin marketplace add .      # from a clone of this repository
+codex plugin install kotlet@kotlet
+codex mcp login kotlet
+```
+
+The plugin package and its manual test are documented in
+[`plugins/kotlet/README.md`](../plugins/kotlet/README.md). It is a proof of
+concept: it reuses the hosted server and adds no server-side capability.
+
 ## ChatGPT — current limitation
 
 ChatGPT does **not** currently offer a public one-click MCP install. You may need
