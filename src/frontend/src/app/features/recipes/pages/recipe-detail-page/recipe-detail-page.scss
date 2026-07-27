@@ -32,6 +32,8 @@ h1 { max-width: 48rem; margin: 0; font-family: Georgia, 'Times New Roman', serif
 .content-card { position: relative; z-index: 3; margin-top: -.35rem; padding: 2rem 2.25rem 2.75rem; border-radius: 1rem 1rem 0 0; background: var(--app-surface); }
 section + section { margin-top: 2.2rem; }
 section h2 { margin: 0 0 1rem; color: var(--app-text-muted); font-size: .72rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.section-heading { margin-bottom: 1rem; display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: .75rem; }
+.section-heading h2 { margin: 0; }
 .recipe-totals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 .recipe-totals div { padding: 1rem 1.25rem; border: 1px solid var(--app-border); border-radius: .9rem; display: grid; gap: .2rem; background: var(--app-inset); }
 .recipe-totals span, .recipe-totals small { color: var(--app-text-muted); font-size: .75rem; }
@@ -78,6 +80,7 @@ section h2 { margin: 0 0 1rem; color: var(--app-text-muted); font-size: .72rem; 
   .meta { align-items: flex-start; flex-direction: column; gap: .25rem; }
   .meta > span[aria-hidden] { display: none; }
   .content-card { padding: 1.6rem 1rem 2.25rem; }
+  .section-heading { align-items: stretch; flex-direction: column; gap: .55rem; }
   .ingredient-list { grid-template-columns: 1fr; padding-inline: 1rem; }
   .recipe-totals { grid-template-columns: 1fr; }
   .ingredient-item:nth-last-child(2) { border-bottom: 1px solid var(--app-border); }

@@ -1,5 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, finalize, Observable, of, switchMap } from 'rxjs';
@@ -95,6 +95,12 @@ export class MealPlannerPage implements OnInit {
   readonly copyTargetDate = signal(this.addDays(this.initialDate, 1));
   readonly isCopying = signal(false);
   readonly copyWeekTargetDate = signal(this.addDays(weekStart(this.initialDate), 7));
+  /** Copying is a rare, destructive-feeling action, so it lives behind a popover instead of the day toolbar. */
+  readonly isCopyPanelOpen = signal(false);
+  /** Copy failures are reported inside the popover so the message stays next to the controls that caused it. */
+  readonly copyError = signal<string | null>(null);
+  private readonly copyTrigger = viewChild<ElementRef<HTMLButtonElement>>('copyTrigger');
+  private readonly copyDayInput = viewChild<ElementRef<HTMLInputElement>>('copyDayInput');
 
   readonly recipes = signal<RecipeSummary[]>([]);
   readonly recipeDetails = signal<Record<string, RecipeDetail>>({});
@@ -134,6 +140,35 @@ export class MealPlannerPage implements OnInit {
     )
   );
 
+  constructor() {
+    // Move focus into the copy popover as soon as it is rendered.
+    effect(() => this.copyDayInput()?.nativeElement.focus());
+  }
+
+  toggleCopyPanel(event: MouseEvent): void {
+    event.stopPropagation();
+    this.copyError.set(null);
+    this.isCopyPanelOpen.update((isOpen) => !isOpen);
+  }
+
+  /** Closes the popover, returning focus to its trigger when the user dismissed it deliberately. */
+  closeCopyPanel(restoreFocus = false): void {
+    if (!this.isCopyPanelOpen()) return;
+    this.isCopyPanelOpen.set(false);
+    this.copyError.set(null);
+    if (restoreFocus) this.copyTrigger()?.nativeElement.focus();
+  }
+
+  @HostListener('document:click')
+  closeCopyPanelFromDocument(): void {
+    this.closeCopyPanel();
+  }
+
+  @HostListener('document:keydown.escape')
+  closeCopyPanelFromEscape(): void {
+    this.closeCopyPanel(true);
+  }
+
   ngOnInit(): void {
     this.loadOptions();
     this.loadMembers();
@@ -170,6 +205,10 @@ export class MealPlannerPage implements OnInit {
 
   isPlanned(day: MealPlanOverviewDay, slot: MealSlot): boolean {
     return day.plannedSlots.includes(slot);
+  }
+
+  mealNames(day: MealPlanOverviewDay, slot: MealSlot): string[] {
+    return day.plannedMeals?.[slot] ?? [];
   }
 
   dayName(date: string): string {
@@ -236,13 +275,14 @@ export class MealPlannerPage implements OnInit {
   copyDay(): void {
     const target = this.copyTargetDate();
     if (!target || target === this.selectedDate() || this.isCopying()) return;
-    this.isCopying.set(true); this.planError.set(null);
+    this.isCopying.set(true); this.copyError.set(null);
     this.service.copyDay(this.selectedDate(), target).pipe(finalize(() => this.isCopying.set(false))).subscribe({
       next: () => {
+        this.closeCopyPanel();
         this.navigateToDate(target);
         this.overviewFrom.set(weekStart(target)); this.loadOverview();
       },
-      error: (error) => this.planError.set(getApiError(error, this.translations.translate('meal.copyDayError'))),
+      error: (error) => this.copyError.set(getApiError(error, this.translations.translate('meal.copyDayError'))),
     });
   }
 
@@ -250,13 +290,14 @@ export class MealPlannerPage implements OnInit {
     const source = weekStart(this.selectedDate());
     const target = weekStart(this.copyWeekTargetDate());
     if (source === target || this.isCopying()) return;
-    this.isCopying.set(true); this.planError.set(null);
+    this.isCopying.set(true); this.copyError.set(null);
     this.service.copyWeek(source, target).pipe(finalize(() => this.isCopying.set(false))).subscribe({
       next: () => {
+        this.closeCopyPanel();
         this.navigateToDate(target);
         this.overviewFrom.set(target); this.loadOverview();
       },
-      error: (error) => this.planError.set(getApiError(error, this.translations.translate('meal.copyWeekError'))),
+      error: (error) => this.copyError.set(getApiError(error, this.translations.translate('meal.copyWeekError'))),
     });
   }
 

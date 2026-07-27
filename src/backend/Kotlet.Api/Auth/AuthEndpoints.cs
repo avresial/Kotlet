@@ -7,6 +7,10 @@ namespace Kotlet.Api.Auth;
 
 public static class AuthEndpoints
 {
+    // How far Replay follows the replacement chain. A handful of rotations can legitimately pile up
+    // inside the grace window; anything longer is not a straggler and is left to reuse detection.
+    private const int MaxReplayChainHops = 8;
+
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var auth = endpoints.MapGroup("/api/auth").WithTags("Auth");
@@ -76,24 +80,30 @@ public static class AuthEndpoints
     }
 
     private static async Task<IResult> Refresh(IAuthSessionRepository sessions, TokenService tokens, HttpContext context,
-        IWebHostEnvironment environment, CancellationToken cancellationToken)
+        IOptions<AuthOptions> authOptions, IWebHostEnvironment environment, CancellationToken cancellationToken)
     {
+        var now = DateTime.UtcNow;
         var raw = tokens.ReadRefreshCookie(context.Request);
         if (string.IsNullOrEmpty(raw)) return Unauthorized(tokens, context, environment);
         var old = await sessions.GetRefreshTokenAsync(tokens.Hash(raw), cancellationToken);
-        if (old is null || old.ExpiresAtUtc <= DateTime.UtcNow) return Unauthorized(tokens, context, environment);
-        if (old.RevokedAtUtc is not null)
+        if (old is null || old.ExpiresAtUtc <= now) return Unauthorized(tokens, context, environment);
+        if (old.RevokedAtUtc is { } revokedAt)
         {
-            await sessions.RevokeFamilyAsync(old.UserId, DateTime.UtcNow, cancellationToken);
-            return Unauthorized(tokens, context, environment);
+            var live = await Replay(old, revokedAt, now, sessions, authOptions.Value, cancellationToken);
+            if (live is null)
+            {
+                await sessions.RevokeFamilyAsync(old.UserId, now, cancellationToken);
+                return Unauthorized(tokens, context, environment);
+            }
+            // A benign race, not theft: hand out an access token off the live replacement and leave
+            // the cookie alone, because the browser already holds the one the winning call set.
+            var replayed = await ActiveHouse(live.HouseId, old.UserId, sessions, cancellationToken);
+            return Results.Ok(Response(old.User, replayed,
+                await sessions.HasHouseAsync(old.UserId, cancellationToken), tokens));
         }
-        // Carry the active home from the rotated token so a session switch survives silent refreshes,
-        // but drop it if that home is no longer one the user belongs to.
-        var active = old.HouseId is { } houseId && await sessions.IsMemberAsync(old.UserId, houseId, cancellationToken)
-            ? old.HouseId
-            : null;
+        var active = await ActiveHouse(old.HouseId, old.UserId, sessions, cancellationToken);
         var (newRaw, replacement) = tokens.CreateRefreshToken(old.User, context, active);
-        old.RevokedAtUtc = DateTime.UtcNow;
+        old.RevokedAtUtc = now;
         old.ReplacedByTokenId = replacement.Id;
         sessions.Add(replacement);
         await sessions.SaveChangesAsync(cancellationToken);
@@ -147,6 +157,36 @@ public static class AuthEndpoints
         if (result.Status == AccountOperationStatus.ValidationFailed) return Results.ValidationProblem(result.ValidationErrors!);
         return result.Status == AccountOperationStatus.Success ? Results.NoContent() : Results.Unauthorized();
     }
+
+    /// <summary>
+    /// Decides whether an already-rotated refresh token is a replay of a concurrent refresh rather
+    /// than a stolen token. It counts as a replay only inside the configured grace window and only
+    /// while the line of succession it started is still alive: a thief who turns up later, or after
+    /// the session ended, still trips reuse detection and takes the whole family down.
+    /// </summary>
+    private static async Task<RefreshToken?> Replay(RefreshToken old, DateTime revokedAt, DateTime now,
+        IAuthSessionRepository sessions, AuthOptions auth, CancellationToken cancellationToken)
+    {
+        if (revokedAt.AddSeconds(auth.RefreshReuseGraceSeconds) < now) return null;
+        // Follow the chain rather than only the direct replacement: a session that rotates twice
+        // inside the grace window leaves a revoked link in the middle, and a straggler holding the
+        // first token is still the same live session. The hop limit bounds the query count.
+        var next = old.ReplacedByTokenId;
+        for (var hop = 0; hop < MaxReplayChainHops && next is { } tokenId; hop++)
+        {
+            var token = await sessions.GetTokenAsync(tokenId, cancellationToken);
+            if (token is null) return null;
+            if (token.RevokedAtUtc is null) return token.ExpiresAtUtc > now ? token : null;
+            next = token.ReplacedByTokenId;
+        }
+        return null;
+    }
+
+    // Carry the active home from the rotated token so a session switch survives silent refreshes,
+    // but drop it if that home is no longer one the user belongs to.
+    private static async Task<Guid?> ActiveHouse(Guid? houseId, Guid userId, IAuthSessionRepository sessions,
+        CancellationToken cancellationToken) =>
+        houseId is { } value && await sessions.IsMemberAsync(userId, value, cancellationToken) ? houseId : null;
 
     private static async Task IssueTokens(User user, Guid? activeHouseId, IAuthSessionRepository sessions,
         TokenService tokens, HttpContext context, IWebHostEnvironment environment, CancellationToken ct)

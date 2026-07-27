@@ -67,19 +67,19 @@ public sealed class MealPlannerService(
         await repository.GetHouseMembersAsync(houseId, cancellationToken);
 
     public async Task<IReadOnlyList<MealPlanOverviewDay>> GetOverviewAsync(
-        Guid houseId, DateOnly from, int days, CancellationToken cancellationToken)
+        Guid userId, Guid houseId, DateOnly from, int days, CancellationToken cancellationToken)
     {
-        var to = from.AddDays(days - 1);
-        var items = await repository.GetByDateRangeAsync(houseId, from, to, cancellationToken);
-        var slotsByDate = items
-            .GroupBy(item => item.Date)
-            .ToDictionary(group => group.Key, group => group.Select(item => SlotToString(item.Slot)).Distinct().ToHashSet());
-
-        return Enumerable.Range(0, days)
-            .Select(offset => from.AddDays(offset))
-            .Select(date => new MealPlanOverviewDay(
-                date.ToString("yyyy-MM-dd"),
-                slotsByDate.TryGetValue(date, out var slots) ? slots.Order().ToList() : []))
+        var plans = await GetForRangeAsync(userId, houseId, from, days, cancellationToken);
+        return plans
+            .Select(plan =>
+            {
+                var meals = plan.Meals
+                    .Where(pair => pair.Value.Count > 0)
+                    .ToDictionary(
+                        pair => pair.Key,
+                        pair => (IReadOnlyList<string>)pair.Value.Select(item => item.DisplayName).ToList());
+                return new MealPlanOverviewDay(plan.Date, meals.Keys.Order().ToList(), meals);
+            })
             .ToList();
     }
 

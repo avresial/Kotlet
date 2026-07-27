@@ -1,4 +1,6 @@
 :host { display: block; }
+/* The expanded panel is far wider than the trigger, so it claims its own line inside a header row. */
+:host(.is-open) { width: 100%; }
 
 .add-shopping-action {
   display: inline-flex;
@@ -113,6 +115,7 @@
 .confirm-action.is-added { border-color: #6c9a5f; background: #6c9a5f; }
 
 @media (max-width: 640px) {
+  .add-shopping-action { width: 100%; justify-content: center; }
   .people-row { align-items: flex-start; flex-wrap: wrap; gap: .3rem; min-height: 0; }
   .row-label { width: 100%; }
   .panel-footer { flex-direction: column; align-items: stretch; }

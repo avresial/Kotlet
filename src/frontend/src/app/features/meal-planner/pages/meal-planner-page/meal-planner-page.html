@@ -5,6 +5,55 @@
       <p class="eyebrow">{{ 'meal.eyebrow' | t }}</p>
       <h1>{{ 'nav.mealPlanner' | t }}</h1>
     </div>
+
+    <div class="plan-toolbar">
+      <div class="date-field">
+        <label for="plan-date">{{ 'meal.selectDate' | t }}</label>
+        <input id="plan-date" type="date" [(ngModel)]="selectedDate" (ngModelChange)="onDateChange()" />
+      </div>
+
+      <button
+        #copyTrigger
+        type="button"
+        class="copy-trigger"
+        aria-haspopup="dialog"
+        [attr.aria-expanded]="isCopyPanelOpen()"
+        (click)="toggleCopyPanel($event)"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        {{ 'meal.copyPlan' | t }}
+      </button>
+
+      @if (isCopyPanelOpen()) {
+        <div class="copy-panel" role="dialog" [attr.aria-label]="'meal.copyPlan' | t" (click)="$event.stopPropagation()">
+          <div class="copy-panel-heading">
+            <h2>{{ 'meal.copyPlan' | t }}</h2>
+            <button type="button" class="icon-button" (click)="closeCopyPanel(true)" [attr.aria-label]="'common.close' | t">×</button>
+          </div>
+          <p class="copy-hint">{{ 'meal.copyPlanHint' | t }}</p>
+
+          @if (copyError()) {
+            <p class="copy-error" role="alert">{{ copyError() }}</p>
+          }
+
+          <div class="copy-field">
+            <label for="copy-target">{{ 'meal.copyTo' | t }}</label>
+            <div>
+              <input #copyDayInput id="copy-target" type="date" [(ngModel)]="copyTargetDate" />
+              <button type="button" [disabled]="isCopying() || !plan() || copyTargetDate() === selectedDate()" (click)="copyDay()">{{ 'meal.copyDay' | t }}</button>
+            </div>
+          </div>
+
+          <div class="copy-field">
+            <label for="copy-week-target">{{ 'meal.copyWeekTo' | t }}</label>
+            <div>
+              <input id="copy-week-target" type="date" [(ngModel)]="copyWeekTargetDate" />
+              <button type="button" [disabled]="isCopying() || weekStart(copyWeekTargetDate()) === weekStart(selectedDate())" (click)="copyWeek()">{{ 'meal.copyWeek' | t }}</button>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
   </header>
 
   @if (overview().length) {
@@ -42,9 +91,19 @@
                 class="overview-cell"
                 [class.is-planned]="isPlanned(day, slot)"
                 [class.is-selected]="selectedDate() === day.date"
-                [attr.aria-label]="slotLabels()[slot] + ' ' + ((isPlanned(day, slot) ? 'meal.plannedFor' : 'meal.notPlannedFor') | t) + ' ' + dayNumber(day.date)"
+                [attr.aria-label]="slotLabels()[slot] + ' ' + ((isPlanned(day, slot) ? 'meal.plannedFor' : 'meal.notPlannedFor') | t) + ' ' + dayNumber(day.date) + (mealNames(day, slot).length ? ': ' + mealNames(day, slot).join(', ') : '')"
                 (click)="selectOverviewDay(day.date)"
-              ></button>
+              >
+                @for (name of mealNames(day, slot).slice(0, 2); track $index) {
+                  <span class="overview-meal-name">{{ name }}</span>
+                }
+                @if (mealNames(day, slot).length > 2) {
+                  <span class="overview-meal-more">+{{ mealNames(day, slot).length - 2 }}</span>
+                }
+                @if (mealNames(day, slot).length) {
+                  <span class="overview-cell-preview" aria-hidden="true">{{ mealNames(day, slot).join(' · ') }}</span>
+                }
+              </button>
             }
           }
         </div>
@@ -58,23 +117,6 @@
     <button type="button" (click)="goToNextDay()">{{ 'meal.nextDay' | t }}</button>
     @if (selectedDayHasMeals()) { <span>{{ 'meal.plannedToday' | t }}</span> }
   </nav>
-
-  <div class="date-picker">
-    <div class="picker-group">
-      <label for="plan-date">{{ 'meal.selectDate' | t }}</label>
-      <input id="plan-date" type="date" [(ngModel)]="selectedDate" (ngModelChange)="onDateChange()" />
-    </div>
-    <div class="picker-group">
-      <label for="copy-target">{{ 'meal.copyTo' | t }}</label>
-      <input id="copy-target" type="date" [(ngModel)]="copyTargetDate" />
-      <button type="button" [disabled]="isCopying() || !plan() || copyTargetDate() === selectedDate()" (click)="copyDay()">{{ 'meal.copyDay' | t }}</button>
-    </div>
-    <div class="picker-group">
-      <label for="copy-week-target">{{ 'meal.copyWeekTo' | t }}</label>
-      <input id="copy-week-target" type="date" [(ngModel)]="copyWeekTargetDate" />
-      <button type="button" [disabled]="isCopying() || weekStart(copyWeekTargetDate()) === weekStart(selectedDate())" (click)="copyWeek()">{{ 'meal.copyWeek' | t }}</button>
-    </div>
-  </div>
 
   @if (planError()) {
     <div class="error" role="alert">{{ planError() }}</div>

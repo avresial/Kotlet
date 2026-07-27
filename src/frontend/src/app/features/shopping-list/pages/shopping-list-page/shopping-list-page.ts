@@ -50,8 +50,9 @@ export class ShoppingListPage implements OnInit {
   readonly generateTo = signal(this.dateString(new Date(this.monday(new Date()).getTime() + 6 * 86400000)));
   readonly showGenerate = signal(false);
   readonly error = signal<string | null>(null);
+  /** Something already ticked off stays pickable so the shopper can restart that line — see add(). */
   readonly availableIngredients = computed(() => this.ingredients().filter(ingredient =>
-    !this.items().some(item => item.ingredientId === ingredient.id)));
+    !this.items().some(item => item.ingredientId === ingredient.id && !item.isPurchased)));
   readonly purchasedCount = computed(() => this.items().filter(item => item.isPurchased).length);
   readonly totalPrice = computed(() => this.items().reduce((sum, item) => sum + item.totalPrice, 0));
   readonly groups = computed(() => groupShoppingItems(this.items()));
@@ -75,8 +76,21 @@ export class ShoppingListPage implements OnInit {
     this.isSaving.set(true); this.error.set(null);
     const { ingredientId, quantity, unit, note } = this.form.getRawValue();
     const ingredient = this.selectedIngredient()!;
-    this.shoppingListService.create(ingredientId, toBaseQuantity(quantity, unit as DisplayUnit, ingredient), note.trim() || null).pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: item => { this.items.update(items => [...items, item]); this.form.reset({ ingredientId: '', quantity: 1, unit: 'g', note: '' }); },
+    const baseQuantity = toBaseQuantity(quantity, unit as DisplayUnit, ingredient);
+    const trimmedNote = note.trim();
+    // Re-adding something already bought restarts that line instead of stacking a duplicate: the tick,
+    // the quantity and the note all reset to what was just entered rather than keeping the old shop's values.
+    const purchased = this.items().find(item => item.ingredientId === ingredientId && item.isPurchased);
+    const saveItem = purchased
+      ? this.shoppingListService.update(purchased, { quantity: baseQuantity, isPurchased: false, note: trimmedNote })
+      : this.shoppingListService.create(ingredientId, baseQuantity, trimmedNote || null);
+    saveItem.pipe(finalize(() => this.isSaving.set(false))).subscribe({
+      next: item => {
+        this.items.update(items => items.some(current => current.id === item.id)
+          ? items.map(current => current.id === item.id ? item : current)
+          : [...items, item]);
+        this.form.reset({ ingredientId: '', quantity: 1, unit: 'g', note: '' });
+      },
       error: error => this.error.set(getApiError(error, this.translations.translate('shopping.addError'))),
     });
   }

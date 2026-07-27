@@ -25,6 +25,8 @@ export class LoginPage {
   private readonly router = inject(Router);
   private readonly translations = inject(TranslationService);
 
+  /** Set while the API is asleep, so a cold start does not read as "you have been signed out". */
+  readonly apiUnreachable = this.auth.apiUnreachable;
   readonly isLoading = signal(false);
   readonly isOAuthRedirect = signal(false);
   readonly errorMessage = signal<string | null>(null);

@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './auth.models';
 
@@ -63,5 +64,47 @@ describe('AuthService', () => {
     await restoration;
 
     expect(service.isAuthenticated()).toBe(false);
+  });
+
+  it('waits for a sleeping API instead of signing the user out', async () => {
+    vi.useFakeTimers();
+    try {
+      const restoration = service.restoreSession();
+      http.expectOne('/api/auth/refresh').flush(null, { status: 503, statusText: 'Service Unavailable' });
+      await vi.advanceTimersByTimeAsync(600);
+
+      http.expectOne('/api/auth/refresh').flush(authResponse);
+      await restoration;
+
+      expect(service.isAuthenticated()).toBe(true);
+      expect(service.apiUnreachable()).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('retries the restoration later when the API never woke up', async () => {
+    vi.useFakeTimers();
+    try {
+      let settled = false;
+      const restoration = service.restoreSession().then(() => (settled = true));
+      for (let attempt = 0; attempt < 20 && !settled; attempt++) {
+        http.expectOne('/api/auth/refresh').flush(null, { status: 504, statusText: 'Gateway Timeout' });
+        await vi.advanceTimersByTimeAsync(30_000);
+      }
+      await restoration;
+
+      expect(service.isAuthenticated()).toBe(false);
+      expect(service.apiUnreachable()).toBe(true);
+
+      // The give-up is not memoized: the next guard run asks again.
+      const retry = service.restoreSession();
+      http.expectOne('/api/auth/refresh').flush(authResponse);
+      await retry;
+
+      expect(service.isAuthenticated()).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

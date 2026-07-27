@@ -1,0 +1,32 @@
+{
+  "name": "kotlet",
+  "version": "0.1.0",
+  "description": "Connects Codex to your Kotlet kitchen: recipes, ingredients, pantry, shopping list, and meal plans over the hosted Kotlet MCP server.",
+  "author": {
+    "name": "Kotlet",
+    "url": "https://github.com/avresial/Kotlet"
+  },
+  "homepage": "https://github.com/avresial/Kotlet/blob/develop/plugins/kotlet/README.md",
+  "repository": "https://github.com/avresial/Kotlet",
+  "license": "MIT",
+  "keywords": ["kotlet", "recipes", "cooking", "meal-planning", "shopping-list", "pantry", "mcp"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Kotlet",
+    "shortDescription": "Import recipes into Kotlet and plan meals from your own kitchen data.",
+    "longDescription": "Kotlet keeps your recipes, pantry, meal plans, and shopping list in one place. This plugin connects Codex to the hosted Kotlet MCP server over OAuth and adds an import-recipe skill that extracts a recipe from a page, video, or pasted text, checks it is not already saved, resolves every ingredient against the shared catalogue, and saves it once.",
+    "developerName": "Kotlet",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "websiteURL": "https://avresial.github.io/Kotlet/",
+    "brandColor": "#C2603F",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "defaultPrompt": [
+      "Import this recipe into Kotlet: <url>",
+      "Check whether this recipe is already in my Kotlet kitchen.",
+      "What is on my Kotlet shopping list?"
+    ]
+  }
+}
