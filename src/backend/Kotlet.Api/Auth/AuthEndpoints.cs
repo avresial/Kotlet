@@ -7,6 +7,10 @@ namespace Kotlet.Api.Auth;
 
 public static class AuthEndpoints
 {
+    // How far Replay follows the replacement chain. A handful of rotations can legitimately pile up
+    // inside the grace window; anything longer is not a straggler and is left to reuse detection.
+    private const int MaxReplayChainHops = 8;
+
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var auth = endpoints.MapGroup("/api/auth").WithTags("Auth");
@@ -157,15 +161,25 @@ public static class AuthEndpoints
     /// <summary>
     /// Decides whether an already-rotated refresh token is a replay of a concurrent refresh rather
     /// than a stolen token. It counts as a replay only inside the configured grace window and only
-    /// while the token that replaced it is still alive: a thief who turns up later, or after the
-    /// session ended, still trips reuse detection and takes the whole family down.
+    /// while the line of succession it started is still alive: a thief who turns up later, or after
+    /// the session ended, still trips reuse detection and takes the whole family down.
     /// </summary>
     private static async Task<RefreshToken?> Replay(RefreshToken old, DateTime revokedAt, DateTime now,
         IAuthSessionRepository sessions, AuthOptions auth, CancellationToken cancellationToken)
     {
-        if (old.ReplacedByTokenId is not { } replacementId) return null;
         if (revokedAt.AddSeconds(auth.RefreshReuseGraceSeconds) < now) return null;
-        return await sessions.GetActiveTokenAsync(replacementId, now, cancellationToken);
+        // Follow the chain rather than only the direct replacement: a session that rotates twice
+        // inside the grace window leaves a revoked link in the middle, and a straggler holding the
+        // first token is still the same live session. The hop limit bounds the query count.
+        var next = old.ReplacedByTokenId;
+        for (var hop = 0; hop < MaxReplayChainHops && next is { } tokenId; hop++)
+        {
+            var token = await sessions.GetTokenAsync(tokenId, cancellationToken);
+            if (token is null) return null;
+            if (token.RevokedAtUtc is null) return token.ExpiresAtUtc > now ? token : null;
+            next = token.ReplacedByTokenId;
+        }
+        return null;
     }
 
     // Carry the active home from the rotated token so a session switch survives silent refreshes,

@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { finalize, firstValueFrom, Observable, shareReplay, tap } from 'rxjs';
+import { finalize, firstValueFrom, Observable, retry, shareReplay, tap, timer } from 'rxjs';
 import {
   AuthResponse,
   ChangePasswordRequest,
@@ -13,10 +13,11 @@ import { apiUrl } from '../http/api-url';
 import { TranslationService } from '../i18n/translation.service';
 
 /**
- * Backoff between restore attempts while the API is unreachable. The API runs on an Azure
+ * Backoff between refresh attempts while the API is unreachable. The API runs on an Azure
  * plan that puts the site to sleep when idle, and a cold start answers the first requests
- * with a gateway error for tens of seconds; without the wait a reload during that window
- * would look exactly like an expired session and bounce the user to the login page.
+ * with a gateway error for tens of seconds; without the wait that window looks exactly like
+ * an expired session, bouncing the user to the login page on reload and failing whatever
+ * they clicked mid-session.
  */
 const wakeUpDelaysMs = [500, 1_000, 2_000, 4_000, 8_000, 8_000];
 
@@ -51,44 +52,52 @@ export class AuthService {
   }
 
   private async restoreFromRefreshToken(): Promise<'settled' | 'unreachable'> {
-    for (let attempt = 0; ; attempt++) {
-      try {
-        await firstValueFrom(this.refreshSession());
-        this.apiUnreachableState.set(false);
-        return 'settled';
-      } catch (error) {
-        if (error instanceof HttpErrorResponse && error.status === 401) break;
-        if (attempt >= wakeUpDelaysMs.length) {
-          console.error('Unable to restore the session.', error);
-          this.clearSession();
-          this.apiUnreachableState.set(true);
-          return 'unreachable';
-        }
-        this.apiUnreachableState.set(true);
-        await new Promise((resolve) => setTimeout(resolve, wakeUpDelaysMs[attempt]));
-      }
+    try {
+      await firstValueFrom(this.refreshSession());
+      return 'settled';
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === 401) return 'settled';
+      console.error('Unable to restore the session.', error);
+      return 'unreachable';
     }
-    this.clearSession();
-    this.apiUnreachableState.set(false);
-    return 'settled';
   }
 
   /**
-   * Refreshes the session, sharing one request between concurrent callers. The API rotates the
-   * refresh token on every call and treats a rotated token that comes back as theft, revoking
-   * every token the user owns. Two requests that hit 401 at the same time — routine once the
-   * access token has expired while the API was asleep — would send the same cookie twice and
-   * trigger exactly that, so they have to queue behind a single call.
+   * Refreshes the session, sharing one request between concurrent callers and waiting out a
+   * sleeping API. The API rotates the refresh token on every call and treats a rotated token that
+   * comes back as theft, revoking every token the user owns. Two requests that hit 401 at the same
+   * time — routine once the access token has expired while the API was asleep — would send the
+   * same cookie twice and trigger exactly that, so they have to queue behind a single call.
+   *
+   * Retrying is safe against that same rotation: if a refresh succeeded but its response was lost,
+   * the retry presents the pre-rotation cookie and the API answers it from the live replacement.
    */
   refreshSession(): Observable<AuthResponse> {
     return (this.refreshInFlight ??= this.refresh().pipe(
-      tap((response) => this.setSession(response)),
+      retry({
+        delay: (error: unknown, attempt) => {
+          // Only the API's own verdict ends the attempt. Everything else — a gateway error, a
+          // timeout, no connection at all — is the site still waking up.
+          if (error instanceof HttpErrorResponse && error.status === 401) throw error;
+          if (attempt > wakeUpDelaysMs.length) throw error;
+          this.apiUnreachableState.set(true);
+          return timer(wakeUpDelaysMs[attempt - 1]);
+        },
+      }),
+      tap((response) => {
+        this.setSession(response);
+        this.apiUnreachableState.set(false);
+      }),
       tap({
         error: (error: unknown) => {
           // A 401 is the API's final word: the cookie is gone, expired or revoked. Drop the local
-          // session so the app shows a login page instead of a signed-in shell that 401s on
-          // every request. Anything else is transient and leaves the session alone.
-          if (error instanceof HttpErrorResponse && error.status === 401) this.clearSession();
+          // session so the app shows a login page instead of a signed-in shell that 401s on every
+          // request. A transient failure that outlasted the backoff leaves the session alone —
+          // mid-session the user can retry, and at startup there is nothing to clear.
+          if (error instanceof HttpErrorResponse && error.status === 401) {
+            this.clearSession();
+            this.apiUnreachableState.set(false);
+          }
         },
       }),
       finalize(() => (this.refreshInFlight = null)),

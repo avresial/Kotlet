@@ -111,6 +111,30 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
     }
 
     [Fact]
+    public async Task Refresh_ReplaysAStragglerAfterTheSessionRotatedAgain()
+    {
+        var client = _factory.CreateClient();
+        var registration = await Register(client);
+        var oldestCookie = Assert.Single(registration.Headers.GetValues("Set-Cookie")).Split(';')[0];
+
+        // Two rotations inside the grace window, so the token that directly replaced the oldest one
+        // is itself revoked by the time the straggler below arrives.
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync("/api/auth/refresh", null)).StatusCode);
+        var second = await client.PostAsync("/api/auth/refresh", null);
+        Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+        var newestCookie = Assert.Single(second.Headers.GetValues("Set-Cookie")).Split(';')[0];
+
+        using var straggler = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        straggler.Headers.Add("Cookie", oldestCookie);
+        Assert.Equal(HttpStatusCode.OK, (await _factory.CreateClient().SendAsync(straggler)).StatusCode);
+
+        // The live end of the chain survives it.
+        using var newest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        newest.Headers.Add("Cookie", newestCookie);
+        Assert.Equal(HttpStatusCode.OK, (await _factory.CreateClient().SendAsync(newest)).StatusCode);
+    }
+
+    [Fact]
     public async Task Refresh_RevokesTheFamilyWhenARotatedTokenComesBackLate()
     {
         // Grace of zero stands in for "long after the rotation": the replay is no longer

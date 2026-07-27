@@ -6,7 +6,7 @@ public interface IAuthSessionRepository
 {
     Task<User?> GetUserAsync(Guid userId, CancellationToken cancellationToken);
     Task<RefreshToken?> GetRefreshTokenAsync(string tokenHash, CancellationToken cancellationToken);
-    Task<RefreshToken?> GetActiveTokenAsync(Guid tokenId, DateTime asOfUtc, CancellationToken cancellationToken);
+    Task<RefreshToken?> GetTokenAsync(Guid tokenId, CancellationToken cancellationToken);
     Task<bool> IsMemberAsync(Guid userId, Guid houseId, CancellationToken cancellationToken);
     Task<bool> HasHouseAsync(Guid userId, CancellationToken cancellationToken);
     Task RevokeFamilyAsync(Guid userId, DateTime revokedAt, CancellationToken cancellationToken);
