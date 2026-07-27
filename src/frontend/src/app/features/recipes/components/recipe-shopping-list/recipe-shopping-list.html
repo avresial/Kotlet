@@ -3,16 +3,16 @@
     <button type="button" class="add-shopping-action" [class.is-added]="state() === 'added'" (click)="open()">
       @if (state() === 'added') {
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-        {{ 'meal.addedToShopping' | t }}
+        {{ 'recipes.addedIngredientsToShopping' | t }}
       } @else {
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12zM6 6 5 3H2M9 20a1 1 0 1 0 0 .01M18 20a1 1 0 1 0 0 .01"/></svg>
-        {{ 'meal.addToShopping' | t }}
+        {{ 'recipes.addIngredientsToShopping' | t }}
       }
     </button>
   } @else {
     <div class="shopping-panel">
       <div class="panel-heading">
-        <h3>{{ 'meal.addToShopping' | t }}</h3>
+        <h3>{{ 'recipes.addIngredientsToShopping' | t }}</h3>
         <button type="button" class="icon-button" (click)="close()" [attr.aria-label]="'common.cancel' | t" [title]="'common.cancel' | t">×</button>
       </div>
 
@@ -136,7 +136,7 @@
           [disabled]="state() === 'adding' || totalServings() <= 0"
           (click)="addToShoppingList()"
         >
-          {{ (state() === 'adding' ? 'common.adding' : state() === 'added' ? 'meal.addedToShopping' : 'meal.addToShopping') | t }}
+          {{ (state() === 'adding' ? 'common.adding' : state() === 'added' ? 'recipes.addedIngredientsToShopping' : 'recipes.addIngredientsToShopping') | t }}
         </button>
       </div>
     </div>
