@@ -9,6 +9,8 @@
     <h1 id="login-title">{{ 'auth.login.title' | t }}</h1>
     <p class="intro">{{ 'auth.login.intro' | t }}</p>
 
+    @if (apiUnreachable()) { <p-message severity="warn" role="status">{{ 'auth.login.serverWakingUp' | t }}</p-message> }
+
     <form [formGroup]="form" (ngSubmit)="login()" novalidate>
       <label>
         {{ 'auth.email' | t }}
