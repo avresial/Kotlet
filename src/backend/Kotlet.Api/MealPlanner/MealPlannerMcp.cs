@@ -27,7 +27,8 @@ public sealed class MealPlannerMcp
         if (days is < 1 or > 62)
             throw new McpException("Days must be between 1 and 62.");
 
-        return (await service.GetOverviewAsync(RequireHouse(currentUser), parsedFrom, days, cancellationToken))
+        return (await service.GetOverviewAsync(
+                RequireUser(currentUser), RequireHouse(currentUser), parsedFrom, days, cancellationToken))
             .Select(day => Link(
                 $"kotlet://meal-plans/days/{day.Date}", $"Meal plan for {day.Date}",
                 day.PlannedSlots.Count == 0

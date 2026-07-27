@@ -273,15 +273,19 @@ public sealed class MealPlannerServiceTests
         meals.SeedItem(Today, MealSlot.Supper, SoupRecipe.Id, 0);
         meals.SeedItem(Today.AddDays(1), MealSlot.Dinner, SoupRecipe.Id, 0);
 
-        var overview = await service.GetOverviewAsync(HouseId, Today, 3, CancellationToken.None);
+        var overview = await service.GetOverviewAsync(CurrentUserId, HouseId, Today, 3, CancellationToken.None);
 
         Assert.Equal(3, overview.Count);
         // Slots come back ordered alphabetically.
         Assert.Equal(2, overview[0].PlannedSlots.Count);
         Assert.Equal("breakfast", overview[0].PlannedSlots[0]);
         Assert.Equal("supper", overview[0].PlannedSlots[1]);
+        Assert.Equal(["Tomato Soup"], overview[0].PlannedMeals["breakfast"]);
+        Assert.Equal(["Tomato Soup"], overview[0].PlannedMeals["supper"]);
         Assert.Equal("dinner", Assert.Single(overview[1].PlannedSlots));
+        Assert.Equal(["Tomato Soup"], overview[1].PlannedMeals["dinner"]);
         Assert.Empty(overview[2].PlannedSlots);
+        Assert.Empty(overview[2].PlannedMeals);
     }
 
     // ---- Move ----

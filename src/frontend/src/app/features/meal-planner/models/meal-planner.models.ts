@@ -35,6 +35,7 @@ export interface DailyMealPlan {
 export interface MealPlanOverviewDay {
   date: string;
   plannedSlots: MealSlot[];
+  plannedMeals?: Partial<Record<MealSlot, string[]>>;
 }
 
 export interface AddMealPlanItemRequest {
