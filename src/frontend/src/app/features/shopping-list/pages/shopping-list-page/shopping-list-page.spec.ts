@@ -95,3 +95,74 @@ describe('ShoppingListPage notes', () => {
     expect(shoppingListService.update).not.toHaveBeenCalled();
   });
 });
+
+describe('ShoppingListPage re-adding a bought item', () => {
+  let shoppingListService: { getAll: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  let storedItems: ShoppingListItem[];
+  const boughtPasta: ShoppingListItem = {
+    ...item('pasta', 0, 'from the last shop'), isPurchased: true, quantity: 75, totalPrice: 3.75,
+  };
+
+  /** getAll() reads storedItems lazily, so each test picks the list it starts from. */
+  const loadPage = (items: ShoppingListItem[]): ShoppingListPage => {
+    storedItems = items;
+    const page = TestBed.inject(ShoppingListPage);
+    page.ngOnInit();
+    return page;
+  };
+
+  beforeEach(() => {
+    storedItems = [];
+    shoppingListService = {
+      getAll: vi.fn().mockImplementation(() => of(storedItems)),
+      create: vi.fn().mockImplementation((id: string) => of(item(id, 0))),
+      update: vi.fn().mockImplementation((existing: ShoppingListItem, changes: Partial<ShoppingListItem>) => of({ ...existing, ...changes })),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        ShoppingListPage,
+        { provide: ShoppingListService, useValue: shoppingListService },
+        { provide: IngredientService, useValue: { getAll: vi.fn().mockReturnValue(of([ingredient])) } },
+        { provide: TranslationService, useValue: { translate: (key: string) => key } },
+      ],
+    });
+  });
+
+  it('offers an ingredient again once it has been ticked off', () => {
+    const page = loadPage([boughtPasta]);
+
+    expect(page.availableIngredients().map(value => value.id)).toEqual(['pasta']);
+  });
+
+  it('keeps an ingredient hidden while it is still waiting to be bought', () => {
+    const page = loadPage([item('pasta', 0)]);
+
+    expect(page.availableIngredients()).toEqual([]);
+  });
+
+  it('resets the bought line instead of creating a duplicate', () => {
+    const page = loadPage([boughtPasta]);
+
+    page.form.setValue({ ingredientId: 'pasta', quantity: 200, unit: 'g', note: '' });
+    page.add();
+
+    expect(shoppingListService.create).not.toHaveBeenCalled();
+    expect(shoppingListService.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'pasta' }),
+      { quantity: 200, isPurchased: false, note: '' },
+    );
+    expect(page.items()).toHaveLength(1);
+    expect(page.items()[0]).toMatchObject({ id: 'pasta', quantity: 200, isPurchased: false, note: '' });
+  });
+
+  it('still creates a new item when nothing matching is on the list', () => {
+    const page = loadPage([]);
+
+    page.form.setValue({ ingredientId: 'pasta', quantity: 1, unit: 'g', note: '' });
+    page.add();
+
+    expect(shoppingListService.update).not.toHaveBeenCalled();
+    expect(shoppingListService.create).toHaveBeenCalledWith('pasta', expect.any(Number), null);
+    expect(page.items()).toHaveLength(1);
+  });
+});

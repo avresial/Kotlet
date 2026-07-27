@@ -26,8 +26,10 @@
         <p class="receipt-count">{{ items().length }} {{ 'common.items' | t }}</p>
       </div>
       <div class="receipt-actions">
-        <button type="button" [disabled]="items().length === 0" (click)="print()">{{ 'shopping.print' | t }}</button>
-        <button class="clear-checked" type="button" [disabled]="isSaving() || purchasedCount() === 0" (click)="clearChecked()">{{ 'shopping.clearChecked' | t }}</button>
+        <button class="pill" type="button" [disabled]="items().length === 0" (click)="print()">{{ 'shopping.print' | t }}</button>
+        <button class="icon-button clear-checked" type="button" [disabled]="isSaving() || purchasedCount() === 0" (click)="clearChecked()" [attr.aria-label]="'shopping.clearChecked' | t" [title]="'shopping.clearChecked' | t">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V3h8v3M19 6l-1 15H6L5 6M10 10v7M14 10v7"/></svg>
+        </button>
       </div>
     </div>
     @if (isLoading()) { <p class="empty">{{ 'shopping.loading' | t }}</p> }
