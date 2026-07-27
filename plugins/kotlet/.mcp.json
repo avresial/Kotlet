@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "kotlet": {
+      "type": "http",
+      "url": "https://kotlet-hcc7hvf2bgb2guf8.canadacentral-01.azurewebsites.net/mcp",
+      "oauth_resource": "https://kotlet-hcc7hvf2bgb2guf8.canadacentral-01.azurewebsites.net/mcp"
+    }
+  }
+}
