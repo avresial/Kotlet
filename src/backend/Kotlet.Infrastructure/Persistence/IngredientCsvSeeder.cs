@@ -12,7 +12,12 @@ public sealed class IngredientCsvSeeder(
 {
     internal const string RelativeFilePath = "SeedData/ingredients.csv";
 
-    public async Task<int> SeedAsync(CancellationToken cancellationToken)
+    /// <param name="idFactory">
+    /// Optional source of ingredient ids, keyed by name. Test fixtures pass a deterministic
+    /// factory so the same catalogue always gets the same ids; production leaves it null and
+    /// gets fresh GUIDs.
+    /// </param>
+    public async Task<int> SeedAsync(CancellationToken cancellationToken, Func<string, Guid>? idFactory = null)
     {
         if (await dbContext.Ingredients.AnyAsync(cancellationToken))
         {
@@ -31,7 +36,7 @@ public sealed class IngredientCsvSeeder(
                 var classification = SeedIngredientDefaults.Classification(seed.Name);
                 return new Ingredient
                 {
-                    Id = Guid.NewGuid(),
+                    Id = idFactory?.Invoke(seed.Name) ?? Guid.NewGuid(),
                     Name = seed.Name,
                     MeasurementUnit = seed.MeasurementUnit,
                     IsCountable = seed.MeasurementUnitsPerPiece.HasValue,

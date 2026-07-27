@@ -642,7 +642,7 @@ public sealed class MealPlannerServiceTests
             Task.FromResult(recipes.SingleOrDefault(r => r.Id == id));
 
         public Task<IReadOnlyList<Recipe>> GetAllForDuplicateCheckAsync(Guid ownerUserId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+            Task.FromResult<IReadOnlyList<Recipe>>(recipes);
 
         public Task<IReadOnlyList<Recipe>> GetAllWithIngredientsAsync(Guid houseId, CancellationToken cancellationToken) =>
             throw new NotSupportedException();

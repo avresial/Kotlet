@@ -9,6 +9,10 @@
     <Project Path="src/backend/Kotlet.Application/Kotlet.Application.csproj" />
     <Project Path="src/backend/Kotlet.Domain/Kotlet.Domain.csproj" />
     <Project Path="src/backend/Kotlet.Infrastructure/Kotlet.Infrastructure.csproj" />
+    <Project Path="src/backend/Kotlet.TestData/Kotlet.TestData.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Kotlet.Bench/Kotlet.Bench.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Kotlet.Application.UnitTests/Kotlet.Application.UnitTests.csproj" />

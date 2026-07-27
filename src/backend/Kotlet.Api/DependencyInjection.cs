@@ -25,6 +25,7 @@ public static class DependencyInjection
         IWebHostEnvironment environment)
     {
         services.AddHttpContextAccessor();
+        services.AddResponseCompression();
         services.AddOpenApiFeature();
         services.AddAuthFeature(configuration, environment);
         services.AddHousesFeature();
@@ -58,6 +59,7 @@ public static class DependencyInjection
 
     public static WebApplication MapApiFeatures(this WebApplication app)
     {
+        app.UseResponseCompression();
         app.MapOpenApiFeature();
         app.MapAuthFeature();
         app.MapMcpFeature();

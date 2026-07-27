@@ -6,6 +6,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
+using System.Text.Json;
 
 namespace Kotlet.Api.Mcp;
 
@@ -81,10 +82,21 @@ public static class DiExtension
             .WithToolsFromAssembly()
             .WithPromptsFromAssembly()
             .WithResourcesFromAssembly()
-            .WithRequestFilters(filters => filters.AddListToolsFilter(next => async (request, cancellationToken) =>
+            .WithRequestFilters(filters => filters
+                .AddListToolsFilter(next => async (request, cancellationToken) =>
+                {
+                    var result = await next(request, cancellationToken);
+                    DataUiMcp.AttachTo(result.Tools);
+                    foreach (var tool in result.Tools.Where(tool => tool.OutputSchema is not null && !tool.Name.StartsWith("show_")))
+                        tool.OutputSchema = JsonSerializer.SerializeToElement(new { type = "object" });
+                    return result;
+                })
+                .AddCallToolFilter(next => async (request, cancellationToken) =>
             {
                 var result = await next(request, cancellationToken);
-                DataUiMcp.AttachTo(result.Tools);
+                if (result.StructuredContent is not null && result.IsError is not true
+                    && !request.Params.Name.StartsWith("show_"))
+                    result.Content = [];
                 return result;
             }));
         // The MCP Apps (SEP-1865) recipe UI primitives carry dynamic _meta.ui metadata, which

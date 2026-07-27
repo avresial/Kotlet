@@ -227,3 +227,23 @@ settings.
 dotnet build Kotlet.slnx
 npm --prefix src/frontend run build
 ```
+
+---
+
+## Measuring performance
+
+`tools/Kotlet.Bench` measures two surfaces against the same seeded fixture and compares a
+run against a recorded baseline: the **MCP tool surface** AI agents talk to (where the size of
+the tool catalogue and the number of round trips matter far more than raw request latency),
+and the **REST endpoints** the Angular app calls to paint each screen (response size and
+database queries per call):
+
+```powershell
+dotnet run --project tools/Kotlet.Bench           # measure and diff against the baseline
+dotnet run --project tools/Kotlet.Bench -- --save # record the current numbers as the baseline
+```
+
+It boots the API in-process against a private SQLite copy of the shared test fixture, so no
+database or deployment is needed. See
+[docs/performance.md](docs/performance.md) for what the numbers mean and how to point
+it at a deployed instance.

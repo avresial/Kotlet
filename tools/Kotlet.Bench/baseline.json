@@ -1,0 +1,572 @@
+{
+  "schemaVersion": 2,
+  "capturedAtUtc": "2026-07-26T18:19:29.2697166+00:00",
+  "mode": "in-process",
+  "fixture": "12 recipes, 14 planned days x 3 slots, 12 shopping items, 15 pantry items, full ingredient catalogue",
+  "toolSurface": {
+    "toolCount": 36,
+    "bytes": 38905,
+    "estimatedTokens": 9726,
+    "bytesByField": {
+      "inputSchema": 14874,
+      "_meta": 7204,
+      "description": 6563,
+      "annotations": 2776,
+      "outputSchema": 2417,
+      "other": 936,
+      "name": 721,
+      "title": 35
+    },
+    "tools": [
+      {
+        "name": "create_ingredient",
+        "bytes": 2743,
+        "descriptionBytes": 273,
+        "inputSchemaBytes": 2117,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "show_meal_plan",
+        "bytes": 1993,
+        "descriptionBytes": 352,
+        "inputSchemaBytes": 150,
+        "outputSchemaBytes": 1113,
+        "metaBytes": 206
+      },
+      {
+        "name": "add_meal_to_plan",
+        "bytes": 1991,
+        "descriptionBytes": 666,
+        "inputSchemaBytes": 973,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "update_prepared_meal",
+        "bytes": 1798,
+        "descriptionBytes": 65,
+        "inputSchemaBytes": 1378,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "add_recipe",
+        "bytes": 1775,
+        "descriptionBytes": 497,
+        "inputSchemaBytes": 932,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "add_prepared_meal",
+        "bytes": 1718,
+        "descriptionBytes": 123,
+        "inputSchemaBytes": 1242,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "show_recipes",
+        "bytes": 1654,
+        "descriptionBytes": 207,
+        "inputSchemaBytes": 313,
+        "outputSchemaBytes": 760,
+        "metaBytes": 198
+      },
+      {
+        "name": "add_weekly_meal_plan",
+        "bytes": 1412,
+        "descriptionBytes": 123,
+        "inputSchemaBytes": 934,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "add_meal_participants",
+        "bytes": 1206,
+        "descriptionBytes": 477,
+        "inputSchemaBytes": 373,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "add_pantry_item",
+        "bytes": 1092,
+        "descriptionBytes": 182,
+        "inputSchemaBytes": 559,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "set_meal_participant_portion",
+        "bytes": 937,
+        "descriptionBytes": 171,
+        "inputSchemaBytes": 403,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "update_shopping_list_item",
+        "bytes": 936,
+        "descriptionBytes": 68,
+        "inputSchemaBytes": 508,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "check_recipe_exists",
+        "bytes": 930,
+        "descriptionBytes": 301,
+        "inputSchemaBytes": 322,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "remove_meal_from_plan",
+        "bytes": 887,
+        "descriptionBytes": 367,
+        "inputSchemaBytes": 165,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "move_meal_in_plan",
+        "bytes": 867,
+        "descriptionBytes": 117,
+        "inputSchemaBytes": 398,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "set_meal_participants",
+        "bytes": 860,
+        "descriptionBytes": 189,
+        "inputSchemaBytes": 315,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "add_shopping_list_item",
+        "bytes": 851,
+        "descriptionBytes": 135,
+        "inputSchemaBytes": 359,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "set_meal_servings",
+        "bytes": 826,
+        "descriptionBytes": 177,
+        "inputSchemaBytes": 297,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "copy_meal_plan_week",
+        "bytes": 797,
+        "descriptionBytes": 122,
+        "inputSchemaBytes": 320,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "copy_meal_plan_day",
+        "bytes": 741,
+        "descriptionBytes": 94,
+        "inputSchemaBytes": 293,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "get_meal_plan",
+        "bytes": 721,
+        "descriptionBytes": 205,
+        "inputSchemaBytes": 215,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "get_ingredients",
+        "bytes": 707,
+        "descriptionBytes": 230,
+        "inputSchemaBytes": 174,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "update_pantry_item",
+        "bytes": 688,
+        "descriptionBytes": 46,
+        "inputSchemaBytes": 289,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "set_meal_guests",
+        "bytes": 685,
+        "descriptionBytes": 104,
+        "inputSchemaBytes": 231,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "get_recipes",
+        "bytes": 674,
+        "descriptionBytes": 79,
+        "inputSchemaBytes": 313,
+        "outputSchemaBytes": 0,
+        "metaBytes": 200
+      },
+      {
+        "name": "remove_prepared_meal",
+        "bytes": 627,
+        "descriptionBytes": 102,
+        "inputSchemaBytes": 171,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "remove_shopping_list_item",
+        "bytes": 621,
+        "descriptionBytes": 85,
+        "inputSchemaBytes": 177,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "get_meal_plan_overview",
+        "bytes": 591,
+        "descriptionBytes": 83,
+        "inputSchemaBytes": 215,
+        "outputSchemaBytes": 0,
+        "metaBytes": 200
+      },
+      {
+        "name": "get_recipe",
+        "bytes": 584,
+        "descriptionBytes": 141,
+        "inputSchemaBytes": 145,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "remove_pantry_item",
+        "bytes": 575,
+        "descriptionBytes": 78,
+        "inputSchemaBytes": 145,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "get_prepared_meal",
+        "bytes": 574,
+        "descriptionBytes": 98,
+        "inputSchemaBytes": 171,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "get_prepared_meals",
+        "bytes": 562,
+        "descriptionBytes": 111,
+        "inputSchemaBytes": 145,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "get_meal_plan_members",
+        "bytes": 510,
+        "descriptionBytes": 168,
+        "inputSchemaBytes": 33,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "clear_purchased_shopping_items",
+        "bytes": 494,
+        "descriptionBytes": 97,
+        "inputSchemaBytes": 33,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "get_pantry",
+        "bytes": 456,
+        "descriptionBytes": 125,
+        "inputSchemaBytes": 33,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      },
+      {
+        "name": "get_shopping_list",
+        "bytes": 443,
+        "descriptionBytes": 105,
+        "inputSchemaBytes": 33,
+        "outputSchemaBytes": 17,
+        "metaBytes": 200
+      }
+    ]
+  },
+  "calls": [
+    {
+      "label": "get_recipes",
+      "tool": "get_recipes",
+      "medianMs": 9.4977,
+      "minMs": 6.7442,
+      "wireBytes": 2783,
+      "textBytes": 0,
+      "structuredBytes": 0,
+      "redundantBytes": 0,
+      "dbQueries": 3
+    },
+    {
+      "label": "get_recipe (one)",
+      "tool": "get_recipe",
+      "medianMs": 4.4537,
+      "minMs": 3.9193,
+      "wireBytes": 2433,
+      "textBytes": 0,
+      "structuredBytes": 2363,
+      "redundantBytes": 0,
+      "dbQueries": 2
+    },
+    {
+      "label": "get_ingredients (x8)",
+      "tool": "get_ingredients",
+      "medianMs": 5.4447,
+      "minMs": 4.955,
+      "wireBytes": 2254,
+      "textBytes": 0,
+      "structuredBytes": 2184,
+      "redundantBytes": 0,
+      "dbQueries": 1
+    },
+    {
+      "label": "get_shopping_list",
+      "tool": "get_shopping_list",
+      "medianMs": 2.9105,
+      "minMs": 2.3737,
+      "wireBytes": 2911,
+      "textBytes": 0,
+      "structuredBytes": 2841,
+      "redundantBytes": 0,
+      "dbQueries": 1
+    },
+    {
+      "label": "get_pantry",
+      "tool": "get_pantry",
+      "medianMs": 3.2798,
+      "minMs": 2.376,
+      "wireBytes": 3239,
+      "textBytes": 0,
+      "structuredBytes": 3169,
+      "redundantBytes": 0,
+      "dbQueries": 1
+    },
+    {
+      "label": "get_prepared_meals",
+      "tool": "get_prepared_meals",
+      "medianMs": 2.9307,
+      "minMs": 2.2719,
+      "wireBytes": 1228,
+      "textBytes": 0,
+      "structuredBytes": 1158,
+      "redundantBytes": 0,
+      "dbQueries": 1
+    },
+    {
+      "label": "get_meal_plan_overview (7d)",
+      "tool": "get_meal_plan_overview",
+      "medianMs": 3.3292,
+      "minMs": 2.5105,
+      "wireBytes": 1630,
+      "textBytes": 0,
+      "structuredBytes": 0,
+      "redundantBytes": 0,
+      "dbQueries": 1
+    },
+    {
+      "label": "get_meal_plan (7d)",
+      "tool": "get_meal_plan",
+      "medianMs": 7.8275,
+      "minMs": 7.619,
+      "wireBytes": 9857,
+      "textBytes": 0,
+      "structuredBytes": 9787,
+      "redundantBytes": 0,
+      "dbQueries": 4
+    },
+    {
+      "label": "get_meal_plan (31d)",
+      "tool": "get_meal_plan",
+      "medianMs": 8.8717,
+      "minMs": 8.4763,
+      "wireBytes": 21242,
+      "textBytes": 0,
+      "structuredBytes": 21172,
+      "redundantBytes": 0,
+      "dbQueries": 4
+    },
+    {
+      "label": "show_recipes",
+      "tool": "show_recipes",
+      "medianMs": 5.9979,
+      "minMs": 5.8855,
+      "wireBytes": 3577,
+      "textBytes": 832,
+      "structuredBytes": 2600,
+      "redundantBytes": 832,
+      "dbQueries": 3
+    }
+  ],
+  "session": {
+    "label": "Import a recipe found online",
+    "roundTrips": 5,
+    "totalMs": 114.5852,
+    "wireBytes": 5018,
+    "dbQueries": 10
+  },
+  "apiCalls": [
+    {
+      "label": "auth/me",
+      "screen": "every page",
+      "path": "/api/auth/me",
+      "statusCode": 200,
+      "medianMs": 4.5521,
+      "minMs": 4.525,
+      "bytes": 321,
+      "dbQueries": 3
+    },
+    {
+      "label": "houses",
+      "screen": "every page",
+      "path": "/api/houses",
+      "statusCode": 200,
+      "medianMs": 4.5281,
+      "minMs": 4.4599,
+      "bytes": 138,
+      "dbQueries": 3
+    },
+    {
+      "label": "dashboard/stats",
+      "screen": "dashboard",
+      "path": "/api/dashboard/stats",
+      "statusCode": 200,
+      "medianMs": 7.9956,
+      "minMs": 7.8487,
+      "bytes": 59,
+      "dbQueries": 5
+    },
+    {
+      "label": "recipes/recent",
+      "screen": "dashboard",
+      "path": "/api/recipes/recent?limit=4",
+      "statusCode": 200,
+      "medianMs": 5.3605,
+      "minMs": 5.3186,
+      "bytes": 517,
+      "dbQueries": 3
+    },
+    {
+      "label": "recipes (page 1)",
+      "screen": "recipe list",
+      "path": "/api/recipes?page=1\u0026pageSize=20",
+      "statusCode": 200,
+      "medianMs": 6.9744,
+      "minMs": 6.8649,
+      "bytes": 1072,
+      "dbQueries": 4
+    },
+    {
+      "label": "recipes/{id}",
+      "screen": "recipe detail",
+      "path": "/api/recipes/477d1905-2f7d-f75b-2ac4-615f4ca2668d",
+      "statusCode": 200,
+      "medianMs": 5.3114,
+      "minMs": 5.022,
+      "bytes": 1185,
+      "dbQueries": 3
+    },
+    {
+      "label": "ingredients (all)",
+      "screen": "recipe editor",
+      "path": "/api/ingredients",
+      "statusCode": 200,
+      "medianMs": 5.3139,
+      "minMs": 4.6577,
+      "bytes": 20510,
+      "dbQueries": 2
+    },
+    {
+      "label": "meal-planner/overview (28d)",
+      "screen": "meal planner",
+      "path": "/api/meal-planner/overview?from=2026-03-02\u0026days=28",
+      "statusCode": 200,
+      "medianMs": 4.1623,
+      "minMs": 3.7327,
+      "bytes": 215,
+      "dbQueries": 2
+    },
+    {
+      "label": "meal-planner (one day)",
+      "screen": "meal planner",
+      "path": "/api/meal-planner?date=2026-03-02",
+      "statusCode": 200,
+      "medianMs": 6.4935,
+      "minMs": 6.16,
+      "bytes": 803,
+      "dbQueries": 4
+    },
+    {
+      "label": "meal-planner/members",
+      "screen": "meal planner",
+      "path": "/api/meal-planner/members",
+      "statusCode": 200,
+      "medianMs": 3.1861,
+      "minMs": 3.1024,
+      "bytes": 199,
+      "dbQueries": 2
+    },
+    {
+      "label": "shopping-list",
+      "screen": "shopping list",
+      "path": "/api/shopping-list",
+      "statusCode": 200,
+      "medianMs": 3.324,
+      "minMs": 3.2441,
+      "bytes": 1432,
+      "dbQueries": 2
+    },
+    {
+      "label": "pantry",
+      "screen": "pantry",
+      "path": "/api/pantry",
+      "statusCode": 200,
+      "medianMs": 3.3903,
+      "minMs": 3.3309,
+      "bytes": 1647,
+      "dbQueries": 2
+    },
+    {
+      "label": "pantry/recipe-matches",
+      "screen": "pantry",
+      "path": "/api/pantry/recipe-matches",
+      "statusCode": 200,
+      "medianMs": 2.3226,
+      "minMs": 1.8164,
+      "bytes": 1632,
+      "dbQueries": 1
+    },
+    {
+      "label": "prepared-meals",
+      "screen": "prepared meals",
+      "path": "/api/prepared-meals?includeArchived=false",
+      "statusCode": 200,
+      "medianMs": 3.3599,
+      "minMs": 3.1649,
+      "bytes": 492,
+      "dbQueries": 2
+    }
+  ]
+}
