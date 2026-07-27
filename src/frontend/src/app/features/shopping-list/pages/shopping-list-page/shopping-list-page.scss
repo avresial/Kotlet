@@ -15,7 +15,9 @@ header p:last-child, .add-panel p { margin: 0; color: var(--app-text-muted); }
 h2 { margin: 0 0 .3rem; font: 500 clamp(1.35rem, 5cqi, 1.5rem)/1.15 Georgia, serif; }
 form { display: grid; grid-template-columns: minmax(11rem, 2fr) minmax(4.5rem, 1fr) minmax(7rem, 1fr) auto; align-items: end; gap: .8rem; }
 .note-field { grid-column: 1 / 4; }
-form .primary { grid-column: 4; grid-row: 1 / 3; align-self: stretch; }
+/* Sits in the corner across both field rows, but keeps its natural height — stretching it here
+   turned the button into a full-height slab next to the inputs. */
+form .primary { grid-column: 4; grid-row: 1 / 3; align-self: end; }
 label { display: grid; gap: .4rem; color: var(--app-text-soft); font-size: .78rem; font-weight: 750; }
 input, select { width: 100%; min-height: 2.75rem; box-sizing: border-box; padding: .55rem .7rem; border: 1px solid var(--app-border-strong); border-radius: .55rem; color: var(--app-text); background: var(--app-surface-raised); }
 input:focus, select:focus { outline: 2px solid #b96554; outline-offset: 1px; }
