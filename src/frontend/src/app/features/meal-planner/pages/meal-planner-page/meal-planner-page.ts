@@ -207,6 +207,10 @@ export class MealPlannerPage implements OnInit {
     return day.plannedSlots.includes(slot);
   }
 
+  mealNames(day: MealPlanOverviewDay, slot: MealSlot): string[] {
+    return day.plannedMeals?.[slot] ?? [];
+  }
+
   dayName(date: string): string {
     return new Intl.DateTimeFormat(this.translations.language(), { weekday: 'short' }).format(this.localDate(date));
   }

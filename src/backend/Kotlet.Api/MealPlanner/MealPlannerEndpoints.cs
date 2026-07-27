@@ -55,7 +55,7 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
         if (!DateOnly.TryParse(from, out var parsedFrom))
             return Results.ValidationProblem(new Dictionary<string, string[]>
             { ["from"] = ["from query parameter is required and must be in yyyy-MM-dd format."] });
@@ -63,7 +63,7 @@ public static class MealPlannerEndpoints
             return Results.ValidationProblem(new Dictionary<string, string[]>
             { ["days"] = ["days must be between 1 and 62."] });
 
-        return Results.Ok(await service.GetOverviewAsync(houseId, parsedFrom, days, cancellationToken));
+        return Results.Ok(await service.GetOverviewAsync(userId, houseId, parsedFrom, days, cancellationToken));
     }
 
     private static async Task<IResult> AddItem(

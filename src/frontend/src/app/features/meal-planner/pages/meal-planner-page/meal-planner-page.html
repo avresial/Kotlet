@@ -91,9 +91,19 @@
                 class="overview-cell"
                 [class.is-planned]="isPlanned(day, slot)"
                 [class.is-selected]="selectedDate() === day.date"
-                [attr.aria-label]="slotLabels()[slot] + ' ' + ((isPlanned(day, slot) ? 'meal.plannedFor' : 'meal.notPlannedFor') | t) + ' ' + dayNumber(day.date)"
+                [attr.aria-label]="slotLabels()[slot] + ' ' + ((isPlanned(day, slot) ? 'meal.plannedFor' : 'meal.notPlannedFor') | t) + ' ' + dayNumber(day.date) + (mealNames(day, slot).length ? ': ' + mealNames(day, slot).join(', ') : '')"
                 (click)="selectOverviewDay(day.date)"
-              ></button>
+              >
+                @for (name of mealNames(day, slot).slice(0, 2); track $index) {
+                  <span class="overview-meal-name">{{ name }}</span>
+                }
+                @if (mealNames(day, slot).length > 2) {
+                  <span class="overview-meal-more">+{{ mealNames(day, slot).length - 2 }}</span>
+                }
+                @if (mealNames(day, slot).length) {
+                  <span class="overview-cell-preview" aria-hidden="true">{{ mealNames(day, slot).join(' · ') }}</span>
+                }
+              </button>
             }
           }
         </div>

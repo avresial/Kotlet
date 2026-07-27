@@ -62,7 +62,8 @@ public sealed record DailyMealPlanResponse(
 
 public sealed record MealPlanOverviewDay(
     string Date,
-    IReadOnlyList<string> PlannedSlots);
+    IReadOnlyList<string> PlannedSlots,
+    IReadOnlyDictionary<string, IReadOnlyList<string>> PlannedMeals);
 
 /// <summary>A member of the current user's house, available to assign to meals.</summary>
 public sealed record MealHouseMember(Guid UserId, string DisplayName);
