@@ -14,8 +14,9 @@ public sealed class AuthSessionRepository(KotletDbContext dbContext) : IAuthSess
         dbContext.RefreshTokens.Include(token => token.User).ThenInclude(user => user.Roles)
             .SingleOrDefaultAsync(token => token.TokenHash == tokenHash, cancellationToken);
 
+    // Tracked on purpose: replay handling rotates the chain's live tail in place.
     public Task<RefreshToken?> GetTokenAsync(Guid tokenId, CancellationToken cancellationToken) =>
-        dbContext.RefreshTokens.AsNoTracking().SingleOrDefaultAsync(token => token.Id == tokenId, cancellationToken);
+        dbContext.RefreshTokens.SingleOrDefaultAsync(token => token.Id == tokenId, cancellationToken);
 
     public Task<bool> IsMemberAsync(Guid userId, Guid houseId, CancellationToken cancellationToken) =>
         dbContext.HouseMemberships.AnyAsync(
@@ -24,12 +25,19 @@ public sealed class AuthSessionRepository(KotletDbContext dbContext) : IAuthSess
     public Task<bool> HasHouseAsync(Guid userId, CancellationToken cancellationToken) =>
         dbContext.HouseMemberships.AnyAsync(membership => membership.UserId == userId, cancellationToken);
 
-    public async Task RevokeFamilyAsync(Guid userId, DateTime revokedAt, CancellationToken cancellationToken)
+    // Walks forward through ReplacedByTokenId. The chain is a singly linked list, so the loop is
+    // bounded anyway; the hop cap only guards against data corruption introducing a cycle.
+    public async Task RevokeChainAsync(RefreshToken token, DateTime revokedAt, CancellationToken cancellationToken)
     {
-        var tokens = await dbContext.RefreshTokens
-            .Where(token => token.UserId == userId && token.RevokedAtUtc == null)
-            .ToListAsync(cancellationToken);
-        tokens.ForEach(token => token.RevokedAtUtc = revokedAt);
+        const int maxHops = 64;
+        var current = token;
+        for (var hop = 0; current is not null && hop < maxHops; hop++)
+        {
+            current.RevokedAtUtc ??= revokedAt;
+            current = current.ReplacedByTokenId is { } nextId
+                ? await dbContext.RefreshTokens.SingleOrDefaultAsync(next => next.Id == nextId, cancellationToken)
+                : null;
+        }
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 

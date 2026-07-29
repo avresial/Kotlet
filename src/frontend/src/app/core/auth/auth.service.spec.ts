@@ -26,9 +26,11 @@ describe('AuthService', () => {
     user,
     accessToken: 'access-token',
     accessTokenExpiresAtUtc: '2026-06-27T00:15:00Z',
+    refreshToken: 'refresh-token',
   };
 
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
@@ -36,7 +38,10 @@ describe('AuthService', () => {
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    localStorage.clear();
+  });
 
   it('stores the user after login', () => {
     service.login({ email: user.email, password: 'Password1!' }).subscribe();
@@ -48,6 +53,33 @@ describe('AuthService', () => {
 
     expect(service.currentUser()).toEqual(user);
     expect(service.isAuthenticated()).toBe(true);
+  });
+
+  it('keeps the refresh token for browsers that block the cross-site cookie', async () => {
+    service.login({ email: user.email, password: 'Password1!' }).subscribe();
+    http.expectOne('/api/auth/login').flush(authResponse);
+    expect(localStorage.getItem('kotlet.refreshToken')).toBe('refresh-token');
+
+    const restoration = service.restoreSession();
+    const refresh = http.expectOne('/api/auth/refresh');
+    expect(refresh.request.headers.get('X-Refresh-Token')).toBe('refresh-token');
+    refresh.flush({ ...authResponse, refreshToken: 'rotated-token' });
+    await restoration;
+
+    expect(localStorage.getItem('kotlet.refreshToken')).toBe('rotated-token');
+  });
+
+  it('drops the stored refresh token on logout', () => {
+    service.login({ email: user.email, password: 'Password1!' }).subscribe();
+    http.expectOne('/api/auth/login').flush(authResponse);
+
+    service.logout().subscribe();
+    const logout = http.expectOne('/api/auth/logout');
+    expect(logout.request.headers.get('X-Refresh-Token')).toBe('refresh-token');
+    logout.flush(null);
+
+    expect(localStorage.getItem('kotlet.refreshToken')).toBeNull();
+    expect(service.isAuthenticated()).toBe(false);
   });
 
   it('restores a session through the refresh cookie', async () => {

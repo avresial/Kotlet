@@ -21,6 +21,15 @@ import { TranslationService } from '../i18n/translation.service';
  */
 const wakeUpDelaysMs = [500, 1_000, 2_000, 4_000, 8_000, 8_000];
 
+/**
+ * Where the raw refresh token lives between visits. The API also sets it as an HttpOnly cookie,
+ * but that cookie is third-party to this origin (the SPA is on GitHub Pages, the API on Azure)
+ * and mobile browsers routinely refuse to store it — which used to sign the user out on every
+ * visit. The API accepts the token from the X-Refresh-Token header as an equal alternative.
+ */
+const refreshTokenStorageKey = 'kotlet.refreshToken';
+export const refreshTokenHeaderName = 'X-Refresh-Token';
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -119,7 +128,20 @@ export class AuthService {
 
   // Private on purpose: callers go through refreshSession so the rotation cannot be raced.
   private refresh() {
-    return this.http.post<AuthResponse>(apiUrl('/api/auth/refresh'), null, { withCredentials: true });
+    return this.http.post<AuthResponse>(apiUrl('/api/auth/refresh'), null, {
+      withCredentials: true,
+      headers: this.refreshTokenHeaders(),
+    });
+  }
+
+  /**
+   * Header carrying the stored refresh token, for the few endpoints that read it server-side
+   * (refresh, logout and the house-session updates). Empty when nothing is stored, so browsers
+   * that do keep the cookie simply keep using it.
+   */
+  refreshTokenHeaders(): Record<string, string> {
+    const token = this.readStoredRefreshToken();
+    return token ? { [refreshTokenHeaderName]: token } : {};
   }
 
   updateProfile(request: UpdateProfileRequest) {
@@ -146,13 +168,19 @@ export class AuthService {
 
   logout() {
     return this.http
-      .post<void>(apiUrl('/api/auth/logout'), null, { withCredentials: true })
+      .post<void>(apiUrl('/api/auth/logout'), null, {
+        withCredentials: true,
+        headers: this.refreshTokenHeaders(),
+      })
       .pipe(tap(() => this.clearSession()));
   }
 
   setSession(response: AuthResponse): void {
     this.currentUserState.set(response.user);
     this.accessTokenState.set(response.accessToken);
+    if (response.refreshToken) {
+      this.storeRefreshToken(response.refreshToken);
+    }
     if (response.user.preferredLanguage) {
       void this.translations.setLanguage(response.user.preferredLanguage);
     }
@@ -161,5 +189,28 @@ export class AuthService {
   private clearSession(): void {
     this.currentUserState.set(null);
     this.accessTokenState.set(null);
+    this.storeRefreshToken(null);
+  }
+
+  // localStorage can be unavailable (storage-restricted embedded views); the cookie flow still
+  // works there, so storage failures must not take the session down with them.
+  private readStoredRefreshToken(): string | null {
+    try {
+      return localStorage.getItem(refreshTokenStorageKey);
+    } catch {
+      return null;
+    }
+  }
+
+  private storeRefreshToken(token: string | null): void {
+    try {
+      if (token) {
+        localStorage.setItem(refreshTokenStorageKey, token);
+      } else {
+        localStorage.removeItem(refreshTokenStorageKey);
+      }
+    } catch {
+      // Ignored: see readStoredRefreshToken.
+    }
   }
 }
