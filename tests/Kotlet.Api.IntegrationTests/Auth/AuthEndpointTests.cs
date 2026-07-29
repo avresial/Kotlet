@@ -38,6 +38,29 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
         Assert.Contains("kotlet_refresh=", cookie);
         Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("accessToken", cookie, StringComparison.OrdinalIgnoreCase);
+        // The raw token is also in the body, for clients whose browser refuses the cross-site cookie.
+        Assert.False(string.IsNullOrWhiteSpace(body.GetProperty("refreshToken").GetString()));
+    }
+
+    [Fact]
+    public async Task Refresh_AcceptsTheTokenFromTheHeaderWithoutACookie()
+    {
+        var client = _factory.CreateClient();
+        var registration = await Register(client);
+        var issued = (await registration.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("refreshToken").GetString();
+
+        // A fresh client carries no cookie jar — exactly a mobile browser that blocked the
+        // third-party cookie and only has the stored copy.
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        request.Headers.Add("X-Refresh-Token", issued);
+        var response = await _factory.CreateClient().SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var rotated = body.GetProperty("refreshToken").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(rotated));
+        Assert.NotEqual(issued, rotated);
     }
 
     [Fact]
@@ -97,13 +120,16 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
         Assert.NotEqual(oldCookie, newCookie);
 
         // A second tab that started refreshing before the rotation landed still holds the old
-        // cookie. Inside the grace window that is answered with an access token, and crucially
-        // without rotating again or invalidating the cookie the browser now holds.
+        // cookie. Inside the grace window that is a benign race: it is answered with an access
+        // token plus a fresh rotation off the live end of the chain, so the caller does not end
+        // up holding a token that dies once the grace window closes.
         using var replay = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
         replay.Headers.Add("Cookie", oldCookie);
         var replayed = await _factory.CreateClient().SendAsync(replay);
         Assert.Equal(HttpStatusCode.OK, replayed.StatusCode);
-        Assert.False(replayed.Headers.Contains("Set-Cookie"));
+        var replayedCookie = Assert.Single(replayed.Headers.GetValues("Set-Cookie")).Split(';')[0];
+        Assert.NotEqual(oldCookie, replayedCookie);
+        Assert.NotEqual(newCookie, replayedCookie);
         var body = await replayed.Content.ReadFromJsonAsync<JsonElement>();
         Assert.False(string.IsNullOrWhiteSpace(body.GetProperty("accessToken").GetString()));
 
@@ -135,7 +161,7 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
     }
 
     [Fact]
-    public async Task Refresh_RevokesTheFamilyWhenARotatedTokenComesBackLate()
+    public async Task Refresh_RevokesTheChainWhenARotatedTokenComesBackLate()
     {
         // Grace of zero stands in for "long after the rotation": the replay is no longer
         // explainable as a concurrent refresh, so reuse detection has to fire.
@@ -156,10 +182,43 @@ public sealed class AuthEndpointTests(TestWebApplicationFactory factory) : IClas
         reuse.Headers.Add("Cookie", oldCookie);
         Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().SendAsync(reuse)).StatusCode);
 
-        // The whole family goes down with it, including the token issued by the rotation.
+        // The whole chain goes down with it, including the token issued by the rotation.
         using var survivor = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
         survivor.Headers.Add("Cookie", newCookie);
         Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().SendAsync(survivor)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Refresh_ReuseDetectionLeavesOtherDevicesSignedIn()
+    {
+        using var factory = _factory.WithWebHostBuilder(builder =>
+            builder.UseSetting("Auth:RefreshReuseGraceSeconds", "0"));
+        await factory.Services.GetRequiredService<MigrationReadySignal>()
+            .WaitAsync(new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token);
+
+        var phone = factory.CreateClient();
+        var email = $"cook-{Guid.NewGuid():N}@example.com";
+        var registration = await phone.PostAsJsonAsync("/api/auth/register", new
+        {
+            email,
+            password = "Password1!",
+            confirmPassword = "Password1!"
+        });
+        var phoneCookie = Assert.Single(registration.Headers.GetValues("Set-Cookie")).Split(';')[0];
+
+        // The same account signed in on a second device gets its own token chain.
+        var laptop = factory.CreateClient();
+        var laptopLogin = await laptop.PostAsJsonAsync("/api/auth/login", new { email, password = "Password1!" });
+        Assert.Equal(HttpStatusCode.OK, laptopLogin.StatusCode);
+
+        // The phone rotates, then replays the rotated token outside the grace window.
+        Assert.Equal(HttpStatusCode.OK, (await phone.PostAsync("/api/auth/refresh", null)).StatusCode);
+        using var reuse = new HttpRequestMessage(HttpMethod.Post, "/api/auth/refresh");
+        reuse.Headers.Add("Cookie", phoneCookie);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await factory.CreateClient().SendAsync(reuse)).StatusCode);
+
+        // Only the phone's chain is revoked; the laptop stays signed in.
+        Assert.Equal(HttpStatusCode.OK, (await laptop.PostAsync("/api/auth/refresh", null)).StatusCode);
     }
 
     [Fact]
