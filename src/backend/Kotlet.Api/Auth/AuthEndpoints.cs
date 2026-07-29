@@ -32,9 +32,10 @@ public static class AuthEndpoints
         if (result.Status == AccountOperationStatus.ValidationFailed) return Results.ValidationProblem(result.ValidationErrors!);
         if (result.Status == AccountOperationStatus.Conflict)
             return Results.Conflict(new { message = "An account with this email already exists." });
-        if (!await TryIssueTokens(result.User!, sessions, tokens, context, environment, cancellationToken))
+        var raw = await TryIssueTokens(result.User!, sessions, tokens, context, environment, cancellationToken);
+        if (raw is null)
             return Results.Conflict(new { message = "An account with this email already exists." });
-        return Results.Created("/api/auth/me", Response(result.User!, null, false, tokens));
+        return Results.Created("/api/auth/me", Response(result.User!, null, false, tokens, raw));
     }
 
     private static async Task<IResult> Login(LoginRequest request, AccountService accounts, IAuthSessionRepository sessions,
@@ -43,8 +44,8 @@ public static class AuthEndpoints
         var result = await accounts.LoginAsync(request, cancellationToken);
         if (result.Status == AccountOperationStatus.ValidationFailed) return Results.ValidationProblem(result.ValidationErrors!);
         if (result.Status == AccountOperationStatus.Unauthorized) return Results.Unauthorized();
-        await IssueTokens(result.User!, result.ActiveHouseId, sessions, tokens, context, environment, cancellationToken);
-        return Results.Ok(Response(result.User!, result.ActiveHouseId, result.HasHouse, tokens));
+        var raw = await IssueTokens(result.User!, result.ActiveHouseId, sessions, tokens, context, environment, cancellationToken);
+        return Results.Ok(Response(result.User!, result.ActiveHouseId, result.HasHouse, tokens, raw));
     }
 
     /// <summary>
@@ -83,7 +84,7 @@ public static class AuthEndpoints
         IOptions<AuthOptions> authOptions, IWebHostEnvironment environment, CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
-        var raw = tokens.ReadRefreshCookie(context.Request);
+        var raw = tokens.ReadRefreshToken(context.Request);
         if (string.IsNullOrEmpty(raw)) return Unauthorized(tokens, context, environment);
         var old = await sessions.GetRefreshTokenAsync(tokens.Hash(raw), cancellationToken);
         if (old is null || old.ExpiresAtUtc <= now) return Unauthorized(tokens, context, environment);
@@ -92,30 +93,31 @@ public static class AuthEndpoints
             var live = await Replay(old, revokedAt, now, sessions, authOptions.Value, cancellationToken);
             if (live is null)
             {
-                await sessions.RevokeFamilyAsync(old.UserId, now, cancellationToken);
+                // Reuse outside the grace window ends this device's session only. Revoking every
+                // token the user owned (the old behaviour) meant one stale replay — a phone waking
+                // up with a token whose rotation response never arrived — signed the user out on
+                // every other device and browser too.
+                await sessions.RevokeChainAsync(old, now, cancellationToken);
                 return Unauthorized(tokens, context, environment);
             }
-            // A benign race, not theft: hand out an access token off the live replacement and leave
-            // the cookie alone, because the browser already holds the one the winning call set.
+            // A benign race, not theft. Rotate off the live tail rather than answering with no
+            // token at all: the caller's stored copy is the rotated one, and without a fresh
+            // replacement it would expire out of the grace window and strand the device.
             var replayed = await ActiveHouse(live.HouseId, old.UserId, sessions, cancellationToken);
+            var replayRaw = await Rotate(live, old.User, replayed, sessions, tokens, context, environment, cancellationToken);
             return Results.Ok(Response(old.User, replayed,
-                await sessions.HasHouseAsync(old.UserId, cancellationToken), tokens));
+                await sessions.HasHouseAsync(old.UserId, cancellationToken), tokens, replayRaw));
         }
         var active = await ActiveHouse(old.HouseId, old.UserId, sessions, cancellationToken);
-        var (newRaw, replacement) = tokens.CreateRefreshToken(old.User, context, active);
-        old.RevokedAtUtc = now;
-        old.ReplacedByTokenId = replacement.Id;
-        sessions.Add(replacement);
-        await sessions.SaveChangesAsync(cancellationToken);
-        tokens.SetRefreshCookie(context.Response, newRaw, replacement.ExpiresAtUtc, IsSecure(environment));
+        var newRaw = await Rotate(old, old.User, active, sessions, tokens, context, environment, cancellationToken);
         var hasHome = await sessions.HasHouseAsync(old.UserId, cancellationToken);
-        return Results.Ok(Response(old.User, active, hasHome, tokens));
+        return Results.Ok(Response(old.User, active, hasHome, tokens, newRaw));
     }
 
     private static async Task<IResult> Logout(IAuthSessionRepository sessions, TokenService tokens, HttpContext context,
         IWebHostEnvironment environment, CancellationToken cancellationToken)
     {
-        var raw = tokens.ReadRefreshCookie(context.Request);
+        var raw = tokens.ReadRefreshToken(context.Request);
         if (!string.IsNullOrEmpty(raw))
         {
             var token = await sessions.GetRefreshTokenAsync(tokens.Hash(raw), cancellationToken);
@@ -188,29 +190,45 @@ public static class AuthEndpoints
         CancellationToken cancellationToken) =>
         houseId is { } value && await sessions.IsMemberAsync(userId, value, cancellationToken) ? houseId : null;
 
-    private static async Task IssueTokens(User user, Guid? activeHouseId, IAuthSessionRepository sessions,
+    // Retires the presented token and issues its successor, linking the two so replay detection
+    // can follow the line of succession later.
+    private static async Task<string> Rotate(RefreshToken current, User user, Guid? activeHouseId,
+        IAuthSessionRepository sessions, TokenService tokens, HttpContext context,
+        IWebHostEnvironment environment, CancellationToken cancellationToken)
+    {
+        var (raw, replacement) = tokens.CreateRefreshToken(user, context, activeHouseId);
+        current.RevokedAtUtc = DateTime.UtcNow;
+        current.ReplacedByTokenId = replacement.Id;
+        sessions.Add(replacement);
+        await sessions.SaveChangesAsync(cancellationToken);
+        tokens.SetRefreshCookie(context.Response, raw, replacement.ExpiresAtUtc, IsSecure(environment));
+        return raw;
+    }
+
+    private static async Task<string> IssueTokens(User user, Guid? activeHouseId, IAuthSessionRepository sessions,
         TokenService tokens, HttpContext context, IWebHostEnvironment environment, CancellationToken ct)
     {
         var (raw, refresh) = tokens.CreateRefreshToken(user, context, activeHouseId);
         sessions.Add(refresh);
         await sessions.SaveChangesAsync(ct);
         tokens.SetRefreshCookie(context.Response, raw, refresh.ExpiresAtUtc, IsSecure(environment));
+        return raw;
     }
 
-    private static async Task<bool> TryIssueTokens(User user, IAuthSessionRepository sessions,
+    private static async Task<string?> TryIssueTokens(User user, IAuthSessionRepository sessions,
         TokenService tokens, HttpContext context, IWebHostEnvironment environment, CancellationToken cancellationToken)
     {
         var (raw, refreshToken) = tokens.CreateRefreshToken(user, context, null);
         sessions.Add(refreshToken);
-        if (!await sessions.TrySaveChangesAsync(cancellationToken)) return false;
+        if (!await sessions.TrySaveChangesAsync(cancellationToken)) return null;
         tokens.SetRefreshCookie(context.Response, raw, refreshToken.ExpiresAtUtc, IsSecure(environment));
-        return true;
+        return raw;
     }
 
-    private static AuthResponse Response(User user, Guid? activeHouseId, bool hasHome, TokenService tokens)
+    private static AuthResponse Response(User user, Guid? activeHouseId, bool hasHome, TokenService tokens, string refreshToken)
     {
         var accessToken = tokens.CreateAccessToken(user, activeHouseId);
-        return new(ToResponse(user, activeHouseId, hasHome), accessToken.Token, accessToken.ExpiresAtUtc);
+        return new(ToResponse(user, activeHouseId, hasHome), accessToken.Token, accessToken.ExpiresAtUtc, refreshToken);
     }
 
     // The bridge only ever hands control back to the authorization endpoint on the API's own

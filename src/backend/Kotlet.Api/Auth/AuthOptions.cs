@@ -18,8 +18,9 @@ public sealed class AuthOptions
     /// <summary>
     /// How long after a refresh token has been rotated it may still be presented without being
     /// treated as theft. Two tabs waking up together, or a request retried after a timeout, both
-    /// send the pre-rotation cookie; without this window that benign race revokes every token the
-    /// user owns and signs them out everywhere.
+    /// send the pre-rotation token; without this window that benign race kills the session. Sized
+    /// to outlast a cold start of the API's sleep-when-idle hosting plan, during which a refresh
+    /// can succeed server-side long after the client gave up on the response.
     /// </summary>
-    public int RefreshReuseGraceSeconds { get; init; } = 30;
+    public int RefreshReuseGraceSeconds { get; init; } = 120;
 }

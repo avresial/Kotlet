@@ -11,7 +11,7 @@ public sealed class HouseSessionService(IAuthSessionRepository sessions, TokenSe
         var user = await sessions.GetUserAsync(userId, cancellationToken);
         if (user is null) return null;
 
-        var rawRefreshToken = tokens.ReadRefreshCookie(context.Request);
+        var rawRefreshToken = tokens.ReadRefreshToken(context.Request);
         if (!string.IsNullOrEmpty(rawRefreshToken))
         {
             var refreshToken = await sessions.GetRefreshTokenAsync(tokens.Hash(rawRefreshToken), cancellationToken);

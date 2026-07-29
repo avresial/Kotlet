@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Kotlet.Domain.Auth;
 using Kotlet.Infrastructure.Persistence;
@@ -66,8 +67,16 @@ public static class DiExtension
                 if (allowHttp)
                     options.AddDevelopmentEncryptionCertificate().AddDevelopmentSigningCertificate();
                 else
-                    // ponytail: ephemeral keys avoid Azure certificate-store writes; use a persistent certificate when sessions must survive restarts.
-                    options.AddEphemeralEncryptionKey().AddEphemeralSigningKey();
+                {
+                    // Keys are derived from the configured JWT secret instead of being generated at
+                    // startup: the hosting plan stops the site when idle, and ephemeral keys made
+                    // every restart unable to decrypt the refresh tokens it had issued before,
+                    // forcing MCP clients through interactive login again. Symmetric keys avoid
+                    // Azure certificate-store writes; signing stays symmetric-safe because only
+                    // access tokens are issued (no id_token / openid scope).
+                    options.AddEncryptionKey(new SymmetricSecurityKey(DeriveKey(jwt.SigningKey, "openiddict-encryption")));
+                    options.AddSigningKey(new SymmetricSecurityKey(DeriveKey(jwt.SigningKey, "openiddict-signing")));
+                }
                 var aspNetCore = options.UseAspNetCore().EnableAuthorizationEndpointPassthrough();
                 if (allowHttp)
                     aspNetCore.DisableTransportSecurityRequirement();
@@ -128,6 +137,12 @@ public static class DiExtension
         endpoints.MapOAuthRegistrationEndpoints();
         return endpoints;
     }
+
+    // Distinct labels keep the OpenIddict keys and the bearer-JWT key cryptographically
+    // independent even though they all stem from the one configured secret.
+    private static byte[] DeriveKey(string secret, string label) =>
+        HKDF.DeriveKey(HashAlgorithmName.SHA256, Encoding.UTF8.GetBytes(secret), outputLength: 32,
+            info: Encoding.UTF8.GetBytes(label));
 
     private static void Validate(JwtOptions jwt, OAuthOptions oauth, IWebHostEnvironment environment)
     {

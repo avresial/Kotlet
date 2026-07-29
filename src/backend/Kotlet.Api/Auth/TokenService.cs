@@ -85,6 +85,19 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions, IOptions<AuthO
 
     public string? ReadRefreshCookie(HttpRequest request) => request.Cookies[_auth.RefreshTokenCookieName];
 
+    /// <summary>
+    /// Reads the refresh token from the cookie, falling back to the <c>X-Refresh-Token</c> header.
+    /// The SPA is served from a different site (GitHub Pages) than the API, so the refresh cookie
+    /// is a third-party cookie that many mobile browsers refuse to store; those clients keep the
+    /// token themselves and present it in the header instead.
+    /// </summary>
+    public string? ReadRefreshToken(HttpRequest request) =>
+        ReadRefreshCookie(request) is { Length: > 0 } cookie
+            ? cookie
+            : request.Headers[RefreshTokenHeaderName].ToString() is { Length: > 0 } header ? header : null;
+
+    public const string RefreshTokenHeaderName = "X-Refresh-Token";
+
     private static CookieOptions CookieOptions(DateTime expires, bool secure) => new()
     {
         HttpOnly = true,

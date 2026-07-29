@@ -20,6 +20,13 @@ export class HomeService {
   private readonly auth = inject(AuthService);
   private readonly options = { withCredentials: true } as const;
 
+  // For calls that update the active-home pointer on the refresh token server-side: the refresh
+  // cookie is third-party on this origin and may be blocked, so the stored token rides along in
+  // the X-Refresh-Token header. Computed per call — the token rotates on every refresh.
+  private sessionOptions() {
+    return { withCredentials: true, headers: this.auth.refreshTokenHeaders() } as const;
+  }
+
   listHomes(): Observable<HomeSummary[]> {
     return this.http.get<HomeSummary[]>(apiUrl('/api/houses'), this.options);
   }
@@ -34,7 +41,7 @@ export class HomeService {
 
   create(name: string): Observable<CurrentUser> {
     return this.http
-      .post<HouseWithToken>(apiUrl('/api/houses'), { name }, this.options)
+      .post<HouseWithToken>(apiUrl('/api/houses'), { name }, this.sessionOptions())
       .pipe(switchMap((result) => this.applyAndReload(result.token)));
   }
 
@@ -44,13 +51,13 @@ export class HomeService {
 
   delete(id: string): Observable<CurrentUser> {
     return this.http
-      .delete<TokenResponse>(apiUrl(`/api/houses/${id}`), this.options)
+      .delete<TokenResponse>(apiUrl(`/api/houses/${id}`), this.sessionOptions())
       .pipe(switchMap((token) => this.applyAndReload(token)));
   }
 
   switch(id: string): Observable<CurrentUser> {
     return this.http
-      .post<TokenResponse>(apiUrl(`/api/houses/${id}/switch`), null, this.options)
+      .post<TokenResponse>(apiUrl(`/api/houses/${id}/switch`), null, this.sessionOptions())
       .pipe(switchMap((token) => this.applyAndReload(token)));
   }
 
@@ -72,7 +79,7 @@ export class HomeService {
 
   accept(invitationId: string): Observable<CurrentUser> {
     return this.http
-      .post<HouseWithToken>(apiUrl(`/api/houses/invitations/${invitationId}/accept`), null, this.options)
+      .post<HouseWithToken>(apiUrl(`/api/houses/invitations/${invitationId}/accept`), null, this.sessionOptions())
       .pipe(switchMap((result) => this.applyAndReload(result.token)));
   }
 
