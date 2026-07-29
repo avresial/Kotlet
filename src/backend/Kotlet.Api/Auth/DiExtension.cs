@@ -141,7 +141,8 @@ public static class DiExtension
     // Distinct labels keep the OpenIddict keys and the bearer-JWT key cryptographically
     // independent even though they all stem from the one configured secret.
     private static byte[] DeriveKey(string secret, string label) =>
-        SHA256.HashData(Encoding.UTF8.GetBytes($"{secret}:{label}"));
+        HKDF.DeriveKey(HashAlgorithmName.SHA256, Encoding.UTF8.GetBytes(secret), outputLength: 32,
+            info: Encoding.UTF8.GetBytes(label));
 
     private static void Validate(JwtOptions jwt, OAuthOptions oauth, IWebHostEnvironment environment)
     {
