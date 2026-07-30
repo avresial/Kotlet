@@ -1,3 +1,4 @@
+using System.Formats.Asn1;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -71,11 +72,14 @@ public static class DiExtension
                     // Keys are derived from the configured JWT secret instead of being generated at
                     // startup: the hosting plan stops the site when idle, and ephemeral keys made
                     // every restart unable to decrypt the refresh tokens it had issued before,
-                    // forcing MCP clients through interactive login again. Symmetric keys avoid
-                    // Azure certificate-store writes; signing stays symmetric-safe because only
-                    // access tokens are issued (no id_token / openid scope).
+                    // forcing MCP clients through interactive login again. Deriving them avoids
+                    // Azure certificate-store writes while still surviving a restart.
                     options.AddEncryptionKey(new SymmetricSecurityKey(DeriveKey(jwt.SigningKey, "openiddict-encryption")));
-                    options.AddSigningKey(new SymmetricSecurityKey(DeriveKey(jwt.SigningKey, "openiddict-signing")));
+                    // Signing has to be asymmetric: OpenIddict rejects a server that registers only
+                    // symmetric signing keys, and it checks that the first time the server options
+                    // are built — on an incoming request, not at startup — so a symmetric key here
+                    // leaves the host coming up healthy and then failing every single request.
+                    options.AddSigningKey(new ECDsaSecurityKey(DeriveSigningKey(jwt.SigningKey)));
                 }
                 var aspNetCore = options.UseAspNetCore().EnableAuthorizationEndpointPassthrough();
                 if (allowHttp)
@@ -143,6 +147,47 @@ public static class DiExtension
     private static byte[] DeriveKey(string secret, string label) =>
         HKDF.DeriveKey(HashAlgorithmName.SHA256, Encoding.UTF8.GetBytes(secret), outputLength: 32,
             info: Encoding.UTF8.GetBytes(label));
+
+    /// <summary>
+    /// Rebuilds the same P-256 signing key on every start from the configured secret: the derived
+    /// bytes are the private scalar, and the public point is recomputed from it on import. A scalar
+    /// is only rejected when it falls outside the curve order — vanishingly rare, and a different
+    /// label produces an independent candidate — so a handful of tries is more than enough.
+    /// </summary>
+    private static ECDsa DeriveSigningKey(string secret)
+    {
+        for (var attempt = 0; attempt < 8; attempt++)
+        {
+            var key = ECDsa.Create();
+            try
+            {
+                key.ImportECPrivateKey(Sec1PrivateKey(DeriveKey(secret, $"openiddict-signing-{attempt}")), out _);
+                return key;
+            }
+            catch (CryptographicException)
+            {
+                key.Dispose();
+            }
+        }
+        throw new InvalidOperationException("Unable to derive an OpenIddict signing key from Jwt:SigningKey.");
+    }
+
+    // SEC 1 ECPrivateKey holding just the scalar and the curve; the optional public key is left out
+    // because the import derives it.
+    private static byte[] Sec1PrivateKey(byte[] scalar)
+    {
+        var writer = new AsnWriter(AsnEncodingRules.DER);
+        using (writer.PushSequence())
+        {
+            writer.WriteInteger(1);
+            writer.WriteOctetString(scalar);
+            using (writer.PushSequence(new Asn1Tag(TagClass.ContextSpecific, 0)))
+                writer.WriteObjectIdentifier(NistP256Oid);
+        }
+        return writer.Encode();
+    }
+
+    private const string NistP256Oid = "1.2.840.10045.3.1.7";
 
     private static void Validate(JwtOptions jwt, OAuthOptions oauth, IWebHostEnvironment environment)
     {
