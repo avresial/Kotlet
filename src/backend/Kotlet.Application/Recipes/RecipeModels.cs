@@ -48,6 +48,19 @@ public sealed record RecipeSummaryResponse(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
 
+public sealed record RecipePlanningIngredientResponse(Guid Id, string Name);
+
+public sealed record RecipePlanningSummaryResponse(
+    Guid Id,
+    string Title,
+    int Servings,
+    string? MealType,
+    IReadOnlyList<RecipePlanningIngredientResponse> Ingredients);
+
+public sealed record RecipePlanningSearchResponse(
+    IReadOnlyList<RecipePlanningSummaryResponse> Recipes,
+    int TotalCount);
+
 public sealed record RecipeDetailResponse(
     Guid Id,
     string Title,

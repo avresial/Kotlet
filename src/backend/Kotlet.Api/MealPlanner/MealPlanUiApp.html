@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kotlet meal plan draft</title>
+<style>
+  :root {
+    --app-bg: #f6f1e8; --app-surface: #fffaf2; --app-surface-raised: #fffdf9;
+    --app-text: #29251f; --app-text-soft: #554e45; --app-text-muted: #746d63;
+    --app-border: #dcd2c4; --app-border-strong: #cfc3b4; --app-inset: #f4ead9;
+    --app-accent: #8e392b; --app-accent-bg: #f8e8e2; --app-success: #386c46;
+    --app-success-bg: #e9f4e9; --app-danger: #9a3022; --app-danger-bg: #fff0ec;
+    color: var(--app-text); background: var(--app-bg); font-family: Inter, system-ui, sans-serif;
+  }
+  .app-dark {
+    --app-bg: #171512; --app-surface: #211e1a; --app-surface-raised: #29251f;
+    --app-text: #f4eee5; --app-text-soft: #ded5c9; --app-text-muted: #b8aea1;
+    --app-border: #49423a; --app-border-strong: #5a5147; --app-inset: #2c2823;
+    --app-accent: #d98a6f; --app-accent-bg: #3a2620; --app-success: #9bc8a5;
+    --app-success-bg: #203126; --app-danger: #e2917f; --app-danger-bg: #33211d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-width: 17rem; }
+  body { padding: 1rem; background: var(--app-bg); color: var(--app-text); }
+  button { font: inherit; }
+  .shell { max-width: 76rem; margin: 0 auto; }
+  .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: .9rem; }
+  .eyebrow { margin: 0 0 .25rem; color: var(--app-accent); font-size: .7rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+  h1 { margin: 0; font: 500 clamp(1.35rem, 3vw, 2rem)/1.1 Georgia, serif; }
+  .subtitle { margin: .35rem 0 0; color: var(--app-text-muted); font-size: .88rem; }
+  .draft-badge { flex: none; padding: .35rem .65rem; border-radius: 999px; background: var(--app-accent-bg); color: var(--app-accent); font-size: .75rem; font-weight: 750; }
+  .shared {
+    display: flex; align-items: baseline; gap: .55rem; flex-wrap: wrap; margin: 0 0 1rem;
+    padding: .7rem .85rem; border: 1px solid var(--app-border); border-radius: .75rem; background: var(--app-surface);
+  }
+  .shared strong { font-size: .78rem; }
+  .chip { display: inline-flex; align-items: center; padding: .18rem .48rem; border-radius: 999px; background: var(--app-inset); color: var(--app-text-soft); font-size: .72rem; }
+  .week { display: grid; grid-template-columns: repeat(7, minmax(9.5rem, 1fr)); gap: .65rem; overflow-x: auto; padding-bottom: .35rem; }
+  .day { min-height: 12rem; border: 1px solid var(--app-border); border-radius: .85rem; background: var(--app-surface); overflow: hidden; }
+  .day-head { padding: .65rem .75rem; border-bottom: 1px solid var(--app-border); background: var(--app-surface-raised); }
+  .day-name { display: block; font: 600 1rem Georgia, serif; }
+  .day-date { display: block; margin-top: .1rem; color: var(--app-text-muted); font-size: .7rem; }
+  .meals { display: grid; gap: .45rem; padding: .55rem; }
+  .empty { margin: 1.7rem .6rem; color: var(--app-text-muted); font-size: .75rem; text-align: center; }
+  .meal { padding: .58rem; border: 1px solid var(--app-border); border-left: 3px solid var(--app-accent); border-radius: .6rem; background: var(--app-surface-raised); }
+  .slot { margin: 0 0 .18rem; color: var(--app-accent); font-size: .62rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+  .meal h2 { margin: 0; font: 600 .88rem/1.2 Georgia, serif; }
+  .meta { margin: .25rem 0 0; color: var(--app-text-muted); font-size: .67rem; line-height: 1.3; }
+  .kind { display: inline-block; margin-top: .35rem; padding: .12rem .38rem; border-radius: 999px; background: var(--app-inset); color: var(--app-text-soft); font-size: .6rem; }
+  .note { margin: .35rem 0 0; color: var(--app-text-soft); font-size: .68rem; font-style: italic; }
+  .footer {
+    position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    margin-top: 1rem; padding: .85rem 1rem; border: 1px solid var(--app-border-strong); border-radius: .85rem;
+    background: color-mix(in srgb, var(--app-surface) 94%, transparent); box-shadow: 0 .5rem 2rem rgb(60 44 28 / 10%);
+  }
+  .footer-copy { margin: 0; color: var(--app-text-muted); font-size: .78rem; }
+  .button { flex: none; padding: .62rem 1rem; border: 0; border-radius: .45rem; background: #963827; color: #fff; font-weight: 700; cursor: pointer; }
+  .button:hover { background: #842f20; }
+  .button:disabled { opacity: .55; cursor: wait; }
+  .message { margin: 0 0 1rem; padding: .7rem .85rem; border-radius: .65rem; font-size: .82rem; }
+  .message.error { color: var(--app-danger); background: var(--app-danger-bg); }
+  .message.success { color: var(--app-success); background: var(--app-success-bg); }
+  [hidden] { display: none !important; }
+  @media (max-width: 42rem) {
+    body { padding: .75rem; }
+    .hero { align-items: flex-start; }
+    .week { grid-template-columns: 1fr; overflow: visible; }
+    .day { min-height: 0; }
+    .day:has(.empty) { display: none; }
+    .footer { align-items: stretch; flex-direction: column; }
+    .button { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<main class="shell">
+  <p id="loading" class="subtitle">Building your meal plan preview…</p>
+  <p id="error" class="message error" role="alert" hidden></p>
+  <p id="success" class="message success" role="status" hidden></p>
+  <section id="content" hidden>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Kotlet weekly plan</p>
+        <h1 id="title">Meal plan draft</h1>
+        <p id="subtitle" class="subtitle"></p>
+      </div>
+      <span class="draft-badge">Draft · not saved</span>
+    </header>
+    <aside id="shared" class="shared" aria-label="Shared ingredients" hidden></aside>
+    <div id="week" class="week" aria-label="Seven-day meal plan"></div>
+    <footer class="footer">
+      <p class="footer-copy">Review the draft first. Existing identical meals are skipped; nothing is replaced.</p>
+      <button id="save" class="button" type="button">Add to Kotlet</button>
+    </footer>
+  </section>
+</main>
+<script>
+"use strict";
+const bridge = (() => {
+  const pending = new Map();
+  const handlers = new Map();
+  let nextId = 1;
+  const post = (message) => window.parent.postMessage(message, "*");
+  const request = (method, params) => new Promise((resolve, reject) => {
+    const id = nextId++;
+    pending.set(id, { resolve, reject });
+    post({ jsonrpc: "2.0", id, method, params });
+  });
+  window.addEventListener("message", (event) => {
+    const message = event.data;
+    if (!message || message.jsonrpc !== "2.0") return;
+    if (message.id !== undefined && message.method === undefined) {
+      const entry = pending.get(message.id);
+      if (!entry) return;
+      pending.delete(message.id);
+      if (message.error) entry.reject(new Error(message.error.message || "Host request failed."));
+      else entry.resolve(message.result);
+    } else if (message.id !== undefined && message.method !== undefined) {
+      post({ jsonrpc: "2.0", id: message.id, result: {} });
+    } else if (message.method !== undefined) {
+      const handler = handlers.get(message.method);
+      if (handler) handler(message.params);
+    }
+  });
+  return {
+    request,
+    notify: (method, params) => post({ jsonrpc: "2.0", method, params: params || {} }),
+    on: (method, handler) => handlers.set(method, handler),
+    callTool: (name, args) => request("tools/call", { name, arguments: args })
+  };
+})();
+
+const el = (id) => document.getElementById(id);
+const escapeHtml = (value) => String(value)
+  .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+const state = { saveRequest: null };
+const slots = ["breakfast", "second-breakfast", "dinner", "snack", "supper"];
+const slotLabel = (slot) => slot === "second-breakfast"
+  ? "Second breakfast"
+  : slot.charAt(0).toUpperCase() + slot.slice(1);
+const kindLabel = (kind) => ({
+  "recipe": "Recipe", "ingredient": "Ingredient", "prepared-meal": "Prepared meal"
+})[kind] || kind;
+
+function applyHostContext(context) {
+  const theme = context && context.theme;
+  const dark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.classList.toggle("app-dark", dark);
+}
+
+function showError(message) {
+  el("error").textContent = message;
+  el("error").hidden = false;
+}
+
+function localDate(iso) {
+  const date = new Date(iso + "T12:00:00");
+  return {
+    weekday: new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(date),
+    date: new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date)
+  };
+}
+
+function addDays(iso, offset) {
+  const date = new Date(iso + "T12:00:00Z");
+  date.setUTCDate(date.getUTCDate() + offset);
+  return date.toISOString().slice(0, 10);
+}
+
+function renderSharedIngredients(meals) {
+  const counts = new Map();
+  for (const meal of meals) {
+    for (const ingredient of new Set(meal.ingredients || [])) {
+      counts.set(ingredient, (counts.get(ingredient) || 0) + 1);
+    }
+  }
+  const shared = [...counts.entries()]
+    .filter(([, count]) => count > 1)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 8);
+  const box = el("shared");
+  if (!shared.length) {
+    box.hidden = true;
+    return;
+  }
+  box.innerHTML = "<strong>Ingredients reused</strong>" + shared
+    .map(([name, count]) => `<span class="chip">${escapeHtml(name)} · ${count} meals</span>`)
+    .join("");
+  box.hidden = false;
+}
+
+function render(data) {
+  if (!data || !data.preview || !data.saveRequest) {
+    showError("The host did not deliver a complete meal plan draft.");
+    return;
+  }
+  state.saveRequest = data.saveRequest;
+  const meals = data.preview.meals || [];
+  el("title").textContent = "Meal plan draft";
+  el("subtitle").textContent = `${meals.length} meal${meals.length === 1 ? "" : "s"} · week of ${localDate(data.preview.weekStart).date}`;
+  renderSharedIngredients(meals);
+
+  const week = el("week");
+  week.innerHTML = "";
+  for (let offset = 0; offset < 7; offset++) {
+    const date = addDays(data.preview.weekStart, offset);
+    const label = localDate(date);
+    const dayMeals = meals
+      .filter((meal) => meal.date === date)
+      .sort((a, b) => slots.indexOf(a.slot) - slots.indexOf(b.slot));
+    const day = document.createElement("section");
+    day.className = "day";
+    day.innerHTML =
+      `<header class="day-head"><span class="day-name">${escapeHtml(label.weekday)}</span><span class="day-date">${escapeHtml(label.date)}</span></header>` +
+      (dayMeals.length ? '<div class="meals"></div>' : '<p class="empty">No meals</p>');
+    const list = day.querySelector(".meals");
+    if (list) {
+      for (const meal of dayMeals) {
+        const ingredients = (meal.ingredients || []).slice(0, 4);
+        const card = document.createElement("article");
+        card.className = "meal";
+        card.innerHTML =
+          `<p class="slot">${escapeHtml(slotLabel(meal.slot))}</p>` +
+          `<h2>${escapeHtml(meal.title)}</h2>` +
+          (ingredients.length
+            ? `<p class="meta">${ingredients.map(escapeHtml).join(" · ")}${meal.ingredients.length > 4 ? " · …" : ""}</p>`
+            : "") +
+          (meal.servings ? `<p class="meta">${meal.servings} serving${meal.servings === 1 ? "" : "s"}${meal.caloriesPerServing != null ? ` · ${meal.caloriesPerServing} kcal` : ""}</p>` : "") +
+          `<span class="kind">${escapeHtml(kindLabel(meal.type))}</span>` +
+          (meal.note ? `<p class="note">${escapeHtml(meal.note)}</p>` : "");
+        list.appendChild(card);
+      }
+    }
+    week.appendChild(day);
+  }
+  el("loading").hidden = true;
+  el("content").hidden = false;
+}
+
+async function savePlan() {
+  const button = el("save");
+  el("error").hidden = true;
+  button.disabled = true;
+  button.textContent = "Adding…";
+  try {
+    const result = await bridge.callTool("add_weekly_meal_plan", { request: state.saveRequest });
+    if (result.isError) {
+      const text = (result.content || []).map((block) => block.text).join(" ");
+      throw new Error(text || "The plan could not be added.");
+    }
+    const payload = result.structuredContent || {};
+    const status = String(payload.status || "").toLowerCase();
+    if (status && status !== "success" && status !== "0")
+      throw new Error("Kotlet did not accept the plan. Please review it in chat.");
+    const added = payload.plan && payload.plan.added ? payload.plan.added.length : state.saveRequest.meals.length;
+    const skipped = payload.plan && payload.plan.skipped ? payload.plan.skipped : 0;
+    el("success").textContent = `Added ${added} meal${added === 1 ? "" : "s"} to Kotlet${skipped ? `; skipped ${skipped} already planned` : ""}.`;
+    el("success").hidden = false;
+    button.textContent = "Added to Kotlet";
+    button.disabled = true;
+  } catch (error) {
+    showError(error.message);
+    button.disabled = false;
+    button.textContent = "Try again";
+  }
+}
+
+el("save").addEventListener("click", savePlan);
+bridge.on("ui/notifications/tool-result", (params) => {
+  if (params && params.structuredContent) render(params.structuredContent);
+  else showError("The host did not deliver meal plan data to the app.");
+});
+bridge.on("ui/notifications/host-context-changed", (params) =>
+  applyHostContext((params && params.hostContext) || params));
+
+(async () => {
+  applyHostContext(null);
+  try {
+    const result = await bridge.request("ui/initialize", {
+      protocolVersion: "2026-01-26",
+      appInfo: { name: "kotlet-meal-plan", version: "1.0.0" },
+      appCapabilities: { availableDisplayModes: ["inline"] }
+    });
+    applyHostContext(result && result.hostContext);
+    bridge.notify("ui/notifications/initialized");
+  } catch (error) {
+    showError("MCP Apps initialization failed: " + error.message);
+  }
+})();
+</script>
+</body>
+</html>

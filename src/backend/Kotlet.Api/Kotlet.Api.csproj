@@ -33,6 +33,7 @@
     <EmbeddedResource Include="Recipes\RecipeUiApp.html" />
     <EmbeddedResource Include="MealPlanner\MealPlannerUiApp.html" />
     <EmbeddedResource Include="Mcp\DataUiApp.html" />
+    <EmbeddedResource Include="MealPlanner\MealPlanUiApp.html" />
   </ItemGroup>
 
   <ItemGroup>

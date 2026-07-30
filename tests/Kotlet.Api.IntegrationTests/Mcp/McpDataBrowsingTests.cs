@@ -73,7 +73,9 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         var preparedMealId = ExtractGuidAfter(addedBody, "\"id\":\"");
 
         var list = await CallTool(client, accessToken, "get_prepared_meals", new { });
-        Assert.Contains(name, await list.Content.ReadAsStringAsync());
+        var listBody = await list.Content.ReadAsStringAsync();
+        Assert.Contains(name, listBody);
+        Assert.DoesNotContain("Heat for 8 minutes.", listBody);
 
         var updatedName = $"Updated {name}";
         var updated = await CallTool(client, accessToken, "update_prepared_meal", new

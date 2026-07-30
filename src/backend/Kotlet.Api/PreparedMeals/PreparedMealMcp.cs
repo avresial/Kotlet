@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Kotlet.Api.Auth;
+using Kotlet.Api.Mcp;
 using Kotlet.Application.PreparedMeals;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
@@ -13,14 +14,28 @@ namespace Kotlet.Api.PreparedMeals;
 public sealed class PreparedMealMcp
 {
     [McpServerTool(Name = "get_prepared_meals", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Returns the household's prepared meals, including package details, nutrition, " +
-                 "instructions, and add-ons.")]
-    public static Task<IReadOnlyList<PreparedMealResponse>> GetPreparedMeals(
+     Description("Returns compact prepared-meal candidates for planning: ID, name, category, servings, calories, price, and only required/default add-ons. Use get_prepared_meal for full package and preparation details.")]
+    public static async Task<IReadOnlyList<McpPreparedMealSummary>> GetPreparedMeals(
         PreparedMealService service,
         ICurrentUser currentUser,
-        CancellationToken cancellationToken,
-        [Description("Whether to include archived prepared meals.")] bool includeArchived = false) =>
-        service.ListAsync(RequireHouse(currentUser), includeArchived, cancellationToken);
+        [Description("Whether to include archived prepared meals.")] bool includeArchived = false,
+        [Description("Optional case-insensitive name, brand, or category search.")] string? search = null,
+        [Description("Maximum compact results, from 1 to 20. Default 10.")] int limit = 10,
+        CancellationToken cancellationToken = default)
+    {
+        limit = Math.Clamp(limit, 1, 20);
+        var meals = await service.ListAsync(RequireHouse(currentUser), includeArchived, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            meals = meals.Where(meal =>
+                    meal.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                    || (meal.Brand?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                    || (meal.Category?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false))
+                .ToList();
+        }
+        return meals.Take(limit).Select(McpPreparedMealSummary.From).ToList();
+    }
 
     [McpServerTool(Name = "get_prepared_meal", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
      Description("Returns one active prepared meal with its package details, nutrition, instructions, and add-ons.")]

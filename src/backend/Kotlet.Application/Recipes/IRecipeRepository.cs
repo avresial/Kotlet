@@ -11,6 +11,17 @@ public interface IRecipeRepository
     Task<IReadOnlyList<Recipe>> GetRecentAsync(
         Guid ownerUserId, int limit, CancellationToken cancellationToken);
     Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken);
+    async Task<IReadOnlyDictionary<Guid, Recipe>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids, Guid houseId, CancellationToken cancellationToken)
+    {
+        var recipes = new Dictionary<Guid, Recipe>();
+        foreach (var id in ids.Distinct())
+        {
+            if (await GetByIdAsync(id, houseId, tracked: false, cancellationToken) is { } recipe)
+                recipes[id] = recipe;
+        }
+        return recipes;
+    }
     Task<Recipe?> GetPublicByIdAsync(Guid id, CancellationToken cancellationToken);
     /// <summary>Lightweight recipe list (no ingredients/images) for duplicate detection.</summary>
     Task<IReadOnlyList<Recipe>> GetAllForDuplicateCheckAsync(Guid ownerUserId, CancellationToken cancellationToken);

@@ -39,6 +39,11 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains("Loading recipes...", showRecipes);
         Assert.Contains("openai/toolInvocation/invoked", showRecipes);
         Assert.Contains("Recipes ready", showRecipes);
+        Assert.Contains("\"preview_meal_plan\"", body);
+        var preview = body[body.IndexOf("\"preview_meal_plan\"", StringComparison.Ordinal)..];
+        Assert.Contains("ui://kotlet/meal-plan-preview-v1", preview);
+        Assert.Contains("openai/outputTemplate", preview);
+        Assert.Contains("Draft meal plan ready", preview);
     }
 
     [Fact]
@@ -63,6 +68,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains("openai/widgetDescription", body);
         Assert.Contains("prefersBorder", body);
         Assert.Contains("openai/widgetPrefersBorder", body);
+        Assert.Contains("ui://kotlet/meal-plan-preview-v1", body);
 
         var dataLine = body.Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .Single(line => line.StartsWith("data: ", StringComparison.Ordinal));
@@ -102,6 +108,25 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         // The UI must stay self-contained: no external scripts, styles, or REST calls.
         Assert.DoesNotContain("src=\\\"http", body);
         Assert.DoesNotContain("fetch(", body);
+    }
+
+    [Fact]
+    public async Task MealPlanUiResource_IsSelfContainedAndConfirmsBeforeSaving()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+
+        var response = await SendMcp(
+            client, accessToken, "resources/read", new { uri = "ui://kotlet/meal-plan-preview-v1" });
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("text/html;profile=mcp-app", body);
+        Assert.Contains("Ingredients reused", body);
+        Assert.Contains("Add to Kotlet", body);
+        Assert.Contains("add_weekly_meal_plan", body);
+        Assert.Contains("ui/initialize", body);
+        Assert.Contains("appInfo", body);
+        Assert.DoesNotContain("fetch(", body);
+        Assert.DoesNotContain("src=\\\"http", body);
     }
 
     [Fact]
@@ -168,7 +193,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         });
         // show_recipes and show_meal_plan carry their own MCP Apps UI; every other tool falls back
         // to the shared data renderer.
-        string[] dedicatedUiTools = ["show_recipes", "show_meal_plan"];
+        string[] dedicatedUiTools = ["show_recipes", "show_meal_plan", "preview_meal_plan"];
         Assert.All(tools.Where(tool => !dedicatedUiTools.Contains(tool.GetProperty("name").GetString())), tool =>
             Assert.Equal("ui://kotlet/data-v2", tool.GetProperty("_meta").GetProperty("openai/outputTemplate").GetString()));
     }
@@ -196,6 +221,75 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains(".tag{", body);
         Assert.DoesNotContain("src=\"http", body);
         Assert.DoesNotContain("fetch(", body);
+    }
+
+    [Fact]
+    public async Task CompactRecipeSearch_AndMealPlanPreview_SupportOneRequestFromDraftToSave()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+        var ingredientName = $"Tomato {Guid.NewGuid():N}";
+        var ingredient = await CallTool(client, accessToken, "create_ingredient", new
+        {
+            request = new { name = ingredientName, measurementUnit = "g", caloriesPer100BaseUnits = 18 }
+        });
+        var ingredientId = ExtractGuidAfter(await ingredient.Content.ReadAsStringAsync(), "\"id\":\"");
+        var title = $"Fast tomato soup {Guid.NewGuid():N}";
+        var recipe = await CallTool(client, accessToken, "add_recipe", new
+        {
+            request = new
+            {
+                title,
+                servings = 4,
+                mealType = "dinner",
+                descriptionMarkdown = "METHOD_SHOULD_ONLY_APPEAR_IN_DETAIL",
+                ingredients = new[] { new { ingredientId, quantity = 500, unit = "g" } }
+            }
+        });
+        var recipeId = ExtractGuidAfter(await recipe.Content.ReadAsStringAsync(), "\"id\":\"");
+
+        var candidates = await CallTool(client, accessToken, "get_recipes", new
+        {
+            ingredientIds = new[] { ingredientId },
+            mealType = "dinner",
+            pageSize = 5
+        });
+        var candidatesBody = await candidates.Content.ReadAsStringAsync();
+        Assert.Contains(title, candidatesBody);
+        Assert.Contains(ingredientName, candidatesBody);
+        Assert.Contains($"kotlet://recipes/{recipeId}", candidatesBody);
+        Assert.DoesNotContain("METHOD_SHOULD_ONLY_APPEAR_IN_DETAIL", candidatesBody);
+
+        var request = new
+        {
+            weekStart = "2027-02-01",
+            meals = new[]
+            {
+                new { date = "2027-02-01", slot = "dinner", recipeId },
+                new { date = "2027-02-03", slot = "dinner", recipeId }
+            }
+        };
+        var preview = await CallTool(client, accessToken, "preview_meal_plan", new { request });
+        var previewBody = await preview.Content.ReadAsStringAsync();
+        Assert.Contains("structuredContent", previewBody);
+        Assert.Contains("\"saveRequest\"", previewBody);
+        Assert.Contains(title, previewBody);
+        Assert.Contains(ingredientName, previewBody);
+        Assert.Contains("not saved", previewBody);
+
+        var beforeSave = await CallTool(
+            client, accessToken, "get_meal_plan", new { from = "2027-02-01", days = 3 });
+        Assert.DoesNotContain(title, await beforeSave.Content.ReadAsStringAsync());
+
+        var saved = await CallTool(client, accessToken, "add_weekly_meal_plan", new { request });
+        var savedBody = await saved.Content.ReadAsStringAsync();
+        Assert.Contains("\"Success\"", savedBody);
+        Assert.Contains(title, savedBody);
+        var afterSave = await CallTool(
+            client, accessToken, "get_meal_plan", new { from = "2027-02-01", days = 3 });
+        var afterSaveBody = await afterSave.Content.ReadAsStringAsync();
+        Assert.Contains("2027-02-01", afterSaveBody);
+        Assert.Contains("2027-02-03", afterSaveBody);
+        Assert.Contains(title, afterSaveBody);
     }
 
     /// <summary>Registers a user with a home and runs the OAuth PKCE flow for an MCP-scoped token.</summary>

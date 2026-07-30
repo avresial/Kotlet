@@ -17,20 +17,19 @@ namespace Kotlet.Api.Recipes;
 [McpServerPromptType]
 public sealed class RecipeMcp
 {
-    [McpServerTool(Name = "get_recipes", ReadOnly = true, OpenWorld = false),
-     Description("Searches household recipes and returns links to their complete MCP resources.")]
-    public static async Task<IReadOnlyList<ResourceLinkBlock>> GetRecipes(
+    [McpServerTool(Name = "get_recipes", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Returns compact recipe candidates for meal planning. Each result includes its ID, servings, meal type, ingredient IDs/names, and full-detail resource URI. Filter by title, meal type, and/or ingredients; ingredientIds means the recipe must contain every supplied ingredient.")]
+    public static async Task<McpRecipeSearchResponse> GetRecipes(
         RecipeService service,
         ICurrentUser currentUser,
         [Description("Page number, starting at 1.")] int page = 1,
-        [Description("Recipes per page, from 1 to 100.")] int pageSize = 20,
-        [Description("Optional text to search for in recipes.")] string? search = null,
+        [Description("Compact results per page, from 1 to 20. Keep this small; default 10.")] int pageSize = 10,
+        [Description("Optional recipe-title search.")] string? search = null,
+        [Description("Optional slot: breakfast, second-breakfast, dinner, snack, or supper.")] string? mealType = null,
+        [Description("Optional ingredient IDs from get_ingredients. Results contain every supplied ingredient.")] IReadOnlyList<Guid>? ingredientIds = null,
         CancellationToken cancellationToken = default) =>
-        (await service.ListAsync(RequireHouse(currentUser), page, pageSize, search, null, null, cancellationToken)).Items
-        .Select(recipe => Link(
-            $"kotlet://recipes/{recipe.Id}", recipe.Title,
-            $"Recipe for {recipe.Servings} serving(s) with {recipe.IngredientCount} ingredient(s)."))
-        .ToList();
+        McpRecipeSearchResponse.From(await service.ListForPlanningAsync(
+            RequireHouse(currentUser), page, pageSize, search, mealType, ingredientIds, cancellationToken));
 
     [McpServerTool(Name = "get_recipe", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
      Description("Returns one complete household recipe: Markdown description with preparation steps, servings, and the full ingredient list with quantities.")]

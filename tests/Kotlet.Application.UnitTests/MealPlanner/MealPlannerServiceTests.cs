@@ -198,6 +198,46 @@ public sealed class MealPlannerServiceTests
     }
 
     [Fact]
+    public async Task PreviewWeek_ResolvesMealsInBatchesWithoutSaving()
+    {
+        var meals = new FakeMealPlanRepository();
+        var recipes = new FakeRecipeRepository(SoupRecipe);
+        var service = new MealPlannerService(
+            meals, recipes, new FakeIngredientRepository(Bread));
+        var request = new AddWeeklyMealPlanRequest(Today,
+        [
+            new(Today, "dinner", SoupRecipe.Id, null, "Make extra"),
+            new(Today.AddDays(1), "breakfast", null, Bread.Id, null),
+            new(Today.AddDays(2), "dinner", SoupRecipe.Id, null, null)
+        ]);
+
+        var result = await service.PreviewWeekAsync(HouseId, request, CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        Assert.Equal(3, result.Preview!.Meals.Count);
+        Assert.Equal("Tomato Soup", result.Preview.Meals[0].Title);
+        Assert.Equal("Bread", result.Preview.Meals[1].Title);
+        Assert.Equal(1, recipes.GetByIdsCount);
+        Assert.Empty(meals.Items);
+        Assert.Equal(0, meals.SaveChangesCount);
+    }
+
+    [Fact]
+    public async Task PreviewWeek_WithInvalidReference_ReturnsIndexedValidationError()
+    {
+        var (service, _) = CreateService();
+
+        var result = await service.PreviewWeekAsync(
+            HouseId,
+            new(Today, [new(Today, "dinner", Guid.NewGuid(), null, null)]),
+            CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
+        Assert.Contains("meals[0].recipeId", result.ValidationErrors!.Keys);
+        Assert.Null(result.Preview);
+    }
+
+    [Fact]
     public async Task CopyDay_CopiesAllItemStateAndRejectsNonEmptyTarget()
     {
         var (service, meals) = CreateService();
@@ -631,6 +671,8 @@ public sealed class MealPlannerServiceTests
 
     private sealed class FakeRecipeRepository(params Recipe[] recipes) : IRecipeRepository
     {
+        public int GetByIdsCount { get; private set; }
+
         public Task<(IReadOnlyList<Recipe> Items, int TotalCount)> GetPagedAsync(
             Guid ownerUserId, int page, int pageSize, string? search, MealSlot? mealType,
             IReadOnlyCollection<Guid>? ingredientIds, CancellationToken cancellationToken) =>
@@ -641,6 +683,14 @@ public sealed class MealPlannerServiceTests
 
         public Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken) =>
             Task.FromResult(recipes.SingleOrDefault(r => r.Id == id));
+
+        public Task<IReadOnlyDictionary<Guid, Recipe>> GetByIdsAsync(
+            IReadOnlyCollection<Guid> ids, Guid houseId, CancellationToken cancellationToken)
+        {
+            GetByIdsCount++;
+            return Task.FromResult<IReadOnlyDictionary<Guid, Recipe>>(
+                recipes.Where(recipe => ids.Contains(recipe.Id)).ToDictionary(recipe => recipe.Id));
+        }
 
         public Task<Recipe?> GetPublicByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(recipes.SingleOrDefault(r => r.Id == id));
