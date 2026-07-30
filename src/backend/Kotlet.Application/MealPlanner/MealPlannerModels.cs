@@ -19,6 +19,29 @@ public sealed record AddWeeklyMealPlanResponse(
     IReadOnlyList<MealPlanItemResponse> Added,
     int Skipped);
 
+public sealed record MealPlanPreviewItem(
+    string Date,
+    string Slot,
+    string Type,
+    Guid? RecipeId,
+    Guid? IngredientId,
+    Guid? PreparedMealId,
+    string Title,
+    int? Servings,
+    decimal? CaloriesPerServing,
+    IReadOnlyList<string> Ingredients,
+    string? Note,
+    string ResourceUri);
+
+public sealed record MealPlanPreviewResponse(
+    string WeekStart,
+    IReadOnlyList<MealPlanPreviewItem> Meals);
+
+public sealed record MealPlanPreviewResult(
+    MealPlannerOperationStatus Status,
+    MealPlanPreviewResponse? Preview = null,
+    IReadOnlyDictionary<string, string[]>? ValidationErrors = null);
+
 public sealed record CopyMealPlanDayRequest(DateOnly SourceDate, DateOnly TargetDate);
 public sealed record CopyMealPlanWeekRequest(DateOnly SourceWeekStart, DateOnly TargetWeekStart);
 

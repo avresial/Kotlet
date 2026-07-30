@@ -12,11 +12,12 @@ resources (resources are additionally available for clients that do).
 
 | Area | Browse | Change |
 | --- | --- | --- |
-| Recipes | `get_recipes` (search), `get_recipe` (full detail), `check_recipe_exists` (duplicate check) | `add_recipe` |
+| Recipes | `get_recipes` (compact planning search with ingredients), `get_recipe` (full detail), `check_recipe_exists` | `add_recipe` |
 | Ingredients | `get_ingredients` (closest batch search across all languages, with similarity and measurement metadata) | `create_ingredient` |
+| Prepared meals | `get_prepared_meals` (compact planning search), `get_prepared_meal` (full detail) | `add_prepared_meal`, `update_prepared_meal`, `remove_prepared_meal` |
 | Shopping list | `get_shopping_list` | `add_shopping_list_item`, `update_shopping_list_item`, `remove_shopping_list_item`, `clear_purchased_shopping_items` |
 | Pantry | `get_pantry` | `add_pantry_item`, `update_pantry_item`, `remove_pantry_item` |
-| Meal planner | `get_meal_plan_overview`, `get_meal_plan` | `add_weekly_meal_plan` |
+| Meal planner | `get_meal_plan_overview`, `get_meal_plan`, `preview_meal_plan` (read-only UI draft) | `add_weekly_meal_plan` |
 
 A typical flow: ask your agent to find a recipe on the internet (a website or a
 video), review it together, and say "add it to Kotlet". The agent first checks
@@ -27,6 +28,14 @@ description. The server publishes
 this workflow to agents through its MCP server instructions, the
 `kotlet://recipes/new-recipe-guide` resource, and the `create_recipe_flow`
 prompt, so well-behaved clients follow it without extra prompting.
+
+For conversational meal planning, the agent resolves ingredient names once,
+searches compact recipe/prepared-meal candidates, and calls
+`preview_meal_plan` with the complete week. The preview does not write data and
+uses the exact same payload as `add_weekly_meal_plan`; after approval, no
+reconstruction is needed. MCP Apps hosts show a Kotlet-style weekly draft with
+an explicit **Add to Kotlet** button. See
+[Fast MCP meal planning](./mcp-meal-planning.md).
 
 ## In-app onboarding page
 

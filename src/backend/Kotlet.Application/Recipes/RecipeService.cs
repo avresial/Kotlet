@@ -41,6 +41,34 @@ public sealed class RecipeService(
         return recipes.Select(r => responseMapper.ToSummaryResponse(r, firstImageIds)).ToList();
     }
 
+    public async Task<RecipePlanningSearchResponse> ListForPlanningAsync(
+        Guid houseId,
+        int page,
+        int limit,
+        string? search,
+        string? mealType,
+        IReadOnlyCollection<Guid>? ingredientIds,
+        CancellationToken cancellationToken)
+    {
+        page = Math.Max(1, page);
+        limit = Math.Clamp(limit, 1, 20);
+        var (recipes, total) = await repository.GetPagedAsync(
+            houseId, page, limit, search, ParseMealType(mealType), ingredientIds, cancellationToken);
+        return new(
+            recipes.Select(recipe => new RecipePlanningSummaryResponse(
+                recipe.Id,
+                recipe.Title,
+                recipe.Servings.Value,
+                recipe.MealType?.ToApiValue(),
+                recipe.Ingredients
+                    .OrderBy(item => item.SortOrder)
+                    .Select(item => new RecipePlanningIngredientResponse(
+                        item.IngredientId, item.Ingredient.Name))
+                    .ToList()))
+                .ToList(),
+            total);
+    }
+
     public async Task<RecipeDetailResponse?> GetByIdAsync(
         Guid id, Guid houseId, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {

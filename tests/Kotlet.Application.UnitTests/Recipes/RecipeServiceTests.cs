@@ -38,6 +38,26 @@ public sealed class RecipeServiceTests
         Assert.Equal(expectedSlug, RecipeService.GenerateSlug(title));
     }
 
+    [Fact]
+    public async Task ListForPlanning_ReturnsCompactIngredientAwareCandidates()
+    {
+        var repo = new FakeRecipeRepository();
+        var service = CreateService(repo);
+        await service.CreateAsync(
+            OwnerId,
+            OwnerId,
+            ValidCreateRequest() with { MealType = "dinner", Servings = 4 },
+            CancellationToken.None);
+
+        var result = await service.ListForPlanningAsync(
+            OwnerId, 1, 10, null, "dinner", [Tomatoes.Id], CancellationToken.None);
+
+        var recipe = Assert.Single(result.Recipes);
+        Assert.Equal(("Tomato Soup", 4, "dinner"), (recipe.Title, recipe.Servings, recipe.MealType));
+        Assert.Equal(["Tomatoes", "Garlic"], recipe.Ingredients.Select(item => item.Name));
+        Assert.Equal(1, result.TotalCount);
+    }
+
     // ---- Create ----
 
     [Fact]
