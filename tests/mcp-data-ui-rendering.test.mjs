@@ -66,3 +66,36 @@ test("meal operation result prioritizes useful content and hides identifiers", (
   assert.equal(dom.window.document.querySelector("details.technical").open, false);
   dom.window.close();
 });
+
+test("shared MCP app renders complete UI data from result metadata", () => {
+  const dom = new JSDOM(html, {
+    runScripts: "dangerously",
+    url: "https://widget.test/",
+    beforeParse(window) {
+      window.matchMedia = () => ({ matches: false });
+    },
+  });
+  dom.window.dispatchEvent(new dom.window.MessageEvent("message", {
+    data: {
+      jsonrpc: "2.0",
+      method: "ui/notifications/tool-result",
+      params: {
+        structuredContent: { matches: [{ inputName: "Tomto", matchedName: "Tomato" }] },
+        _meta: {
+          "kotlet/uiData": [{
+            inputName: "Tomto",
+            matchedName: "Tomato",
+            matchedLanguage: "en",
+            measurementUnit: "g",
+            exactMatch: false,
+            similarity: 0.83,
+          }],
+        },
+      },
+    },
+  }));
+
+  assert.equal(dom.window.document.getElementById("title").textContent, "Ingredient matches");
+  assert.match(dom.window.document.getElementById("content").textContent, /83%/);
+  dom.window.close();
+});

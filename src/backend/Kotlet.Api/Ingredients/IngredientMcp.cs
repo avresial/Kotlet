@@ -15,7 +15,7 @@ namespace Kotlet.Api.Ingredients;
 public sealed class IngredientMcp
 {
     [McpServerTool(Name = "get_ingredients", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Finds the closest catalog ingredient for each supplied name across every supported language. Returns the matched language, measurement unit, resource URI, exact-match status, edit distance, and normalized similarity from 0 to 1.")]
+     Description("Finds the closest catalog ingredient for each supplied name across every supported language. Returns one compact match per input with the ingredient id, name, measurement unit, exact-match status, similarity, and detail resource URI.")]
     public static async Task<IReadOnlyList<McpIngredientSearchResult>> GetIngredients(
         [Description("Ingredient names to search for, at most 100 per call.")]
         IReadOnlyList<string> names,
