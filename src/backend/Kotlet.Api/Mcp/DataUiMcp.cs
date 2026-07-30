@@ -7,7 +7,7 @@ namespace Kotlet.Api.Mcp;
 /// <summary>Shared MCP App with tailored views for rich data and a generic fallback for every other tool result.</summary>
 public static class DataUiMcp
 {
-    public const string ResourceUri = "ui://kotlet/data-v2";
+    public const string ResourceUri = "ui://kotlet/data-v3";
     public const string ResourceMimeType = "text/html;profile=mcp-app";
 
     private static readonly Lazy<string> AppHtml = new(() =>

@@ -195,7 +195,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         // to the shared data renderer.
         string[] dedicatedUiTools = ["show_recipes", "show_meal_plan", "preview_meal_plan"];
         Assert.All(tools.Where(tool => !dedicatedUiTools.Contains(tool.GetProperty("name").GetString())), tool =>
-            Assert.Equal("ui://kotlet/data-v2", tool.GetProperty("_meta").GetProperty("openai/outputTemplate").GetString()));
+            Assert.Equal("ui://kotlet/data-v3", tool.GetProperty("_meta").GetProperty("openai/outputTemplate").GetString()));
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
     {
         var (client, accessToken) = await AuthorizeMcpClientAsync();
 
-        var response = await SendMcp(client, accessToken, "resources/read", new { uri = "ui://kotlet/data-v2" });
+        var response = await SendMcp(client, accessToken, "resources/read", new { uri = "ui://kotlet/data-v3" });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
