@@ -10,19 +10,32 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
     {
         var items = await repository.GetAllAsync(houseId, cancellationToken);
         var dictionary = await LoadTranslationsAsync(languageCode, cancellationToken);
-        return items.Select(item => ToDto(item, ResolveName(item.IngredientId, item.Ingredient.Name, languageCode, dictionary))).ToArray();
+        return items.Select(item => ToDto(item, ResolveName(item, languageCode, dictionary))).ToArray();
     }
 
     public async Task<ShoppingListOperationResult> CreateAsync(Guid houseId, CreateShoppingListItemCommand command, string languageCode, CancellationToken cancellationToken)
     {
         if (!ValidQuantity(command.Quantity)) return InvalidQuantity();
         if (!ValidNote(command.Note)) return InvalidNote();
-        if (!await repository.IngredientExistsAsync(command.IngredientId, cancellationToken))
+        if ((command.IngredientId is null) == (command.PreparedMealId is null))
+            return new(ShoppingListOperationStatus.ValidationFailed, ValidationErrors:
+                new Dictionary<string, string[]> { ["item"] = ["Choose either an ingredient or a ready meal."] });
+        if (command.IngredientId is { } ingredientId && !await repository.IngredientExistsAsync(ingredientId, cancellationToken))
             return new(ShoppingListOperationStatus.NotFound);
-        if (await repository.ItemExistsAsync(houseId, command.IngredientId, cancellationToken))
-            return new(ShoppingListOperationStatus.Conflict, Message: "This ingredient is already on the shopping list.");
+        if (command.PreparedMealId is { } preparedMealId && !await repository.PreparedMealExistsAsync(preparedMealId, houseId, cancellationToken))
+            return new(ShoppingListOperationStatus.NotFound);
+        if (await repository.ItemExistsAsync(houseId, command.IngredientId, command.PreparedMealId, cancellationToken))
+            return new(ShoppingListOperationStatus.Conflict, Message: "This product is already on the shopping list.");
 
-        var item = new ShoppingListItem { Id = Guid.NewGuid(), HouseId = houseId, IngredientId = command.IngredientId, Quantity = Quantity.FromAmount(command.Quantity), Note = NormalizeNote(command.Note) };
+        var item = new ShoppingListItem
+        {
+            Id = Guid.NewGuid(),
+            HouseId = houseId,
+            IngredientId = command.IngredientId,
+            PreparedMealId = command.PreparedMealId,
+            Quantity = Quantity.FromAmount(command.Quantity),
+            Note = NormalizeNote(command.Note)
+        };
         repository.Add(item);
         await repository.SaveChangesAsync(cancellationToken);
         return new(ShoppingListOperationStatus.Success, await ToLocalizedDtoAsync((await repository.GetByIdAsync(item.Id, houseId, cancellationToken))!, languageCode, cancellationToken));
@@ -63,7 +76,9 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
                 new Dictionary<string, string[]> { ["to"] = ["Date range must contain between 1 and 32 days."] });
 
         var planned = await repository.GetPlannedIngredientsAsync(houseId, command.From, command.To, cancellationToken);
-        var existing = (await repository.GetAllTrackedAsync(houseId, cancellationToken)).ToDictionary(item => item.IngredientId);
+        var existing = (await repository.GetAllTrackedAsync(houseId, cancellationToken))
+            .Where(item => item.IngredientId is not null)
+            .ToDictionary(item => item.IngredientId!.Value);
         foreach (var ingredient in planned.Where(item => item.Quantity > 0))
         {
             if (existing.TryGetValue(ingredient.IngredientId, out var item))
@@ -99,7 +114,7 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
     private async Task<ShoppingListItemDto> ToLocalizedDtoAsync(ShoppingListItem item, string languageCode, CancellationToken cancellationToken)
     {
         var dictionary = await LoadTranslationsAsync(languageCode, cancellationToken);
-        return ToDto(item, ResolveName(item.IngredientId, item.Ingredient.Name, languageCode, dictionary));
+        return ToDto(item, ResolveName(item, languageCode, dictionary));
     }
 
     private Task<IReadOnlyDictionary<string, string>> LoadTranslationsAsync(string languageCode, CancellationToken cancellationToken) =>
@@ -107,14 +122,31 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
             ? Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>())
             : translations.GetAllAsync(cancellationToken);
 
-    private static string ResolveName(Guid ingredientId, string fallback, string languageCode, IReadOnlyDictionary<string, string> dictionary) =>
-        !TranslationKeys.IsDefaultLanguage(languageCode)
-        && dictionary.TryGetValue(TranslationKeys.Ingredient(ingredientId, languageCode), out var translated)
-        && !string.IsNullOrWhiteSpace(translated) ? translated : fallback;
+    private static string ResolveName(ShoppingListItem item, string languageCode, IReadOnlyDictionary<string, string> dictionary)
+    {
+        if (item.PreparedMeal is not null) return item.PreparedMeal.Name;
+        var ingredient = item.Ingredient!;
+        return !TranslationKeys.IsDefaultLanguage(languageCode)
+               && dictionary.TryGetValue(TranslationKeys.Ingredient(ingredient.Id, languageCode), out var translated)
+               && !string.IsNullOrWhiteSpace(translated)
+            ? translated
+            : ingredient.Name;
+    }
 
-    private static ShoppingListItemDto ToDto(ShoppingListItem item, string ingredientName) => new(
-        item.Id, item.IngredientId, ingredientName, item.Ingredient.MeasurementUnit,
-        item.Quantity.Amount, item.Ingredient.PricePer100BaseUnits.Amount,
-        (item.Quantity.Amount / 100m * item.Ingredient.PricePer100BaseUnits).RoundedToCents().Amount, item.IsPurchased,
-        item.Ingredient.Category, item.Note);
+    private static ShoppingListItemDto ToDto(ShoppingListItem item, string name)
+    {
+        if (item.PreparedMeal is { } meal)
+        {
+            var unitPrice = meal.Price ?? 0m;
+            return new(item.Id, null, meal.Id, name, "package", item.Quantity.Amount, unitPrice,
+                decimal.Round(item.Quantity.Amount * unitPrice, 2, MidpointRounding.AwayFromZero),
+                item.IsPurchased, Kotlet.Domain.Ingredients.FoodCategory.Unknown, item.Note);
+        }
+
+        var ingredient = item.Ingredient!;
+        return new(item.Id, ingredient.Id, null, name, ingredient.MeasurementUnit,
+            item.Quantity.Amount, ingredient.PricePer100BaseUnits.Amount,
+            (item.Quantity.Amount / 100m * ingredient.PricePer100BaseUnits).RoundedToCents().Amount, item.IsPurchased,
+            ingredient.Category, item.Note);
+    }
 }

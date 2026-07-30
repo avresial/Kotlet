@@ -75,6 +75,32 @@ public sealed class ShoppingListEndpointTests(TestWebApplicationFactory factory)
         Assert.Equal("ml", created.GetProperty("measurementUnit").GetString());
     }
 
+    [Fact]
+    public async Task ReadyMeal_CanBeAddedAsPackagesAndPriced()
+    {
+        var client = await CreateAuthenticatedClient();
+        var mealResponse = await client.PostAsJsonAsync("/api/prepared-meals", new
+        {
+            name = "Pierożki gioza",
+            servings = 2,
+            caloriesPerServing = 240m,
+            price = 12.50m,
+            addons = Array.Empty<object>()
+        });
+        Assert.Equal(HttpStatusCode.Created, mealResponse.StatusCode);
+        var meal = await mealResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var preparedMealId = meal.GetProperty("id").GetGuid();
+
+        var createResponse = await client.PostAsJsonAsync("/api/shopping-list", new { preparedMealId, quantity = 2m });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(preparedMealId, created.GetProperty("preparedMealId").GetGuid());
+        Assert.Equal("Pierożki gioza", created.GetProperty("ingredientName").GetString());
+        Assert.Equal("package", created.GetProperty("measurementUnit").GetString());
+        Assert.Equal(25m, created.GetProperty("totalPrice").GetDecimal());
+    }
+
     private static async Task<Guid> CreateIngredient(HttpClient client, decimal price)
     {
         var response = await client.PostAsJsonAsync("/api/ingredients", new

@@ -6,6 +6,7 @@ import { IngredientService } from '../../../ingredients/ingredient.service';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
+import { PreparedMealService } from '../../../prepared-meals/prepared-meal.service';
 import { groupShoppingItems, ShoppingListPage } from './shopping-list-page';
 
 const item = (id: string, category: number, note: string | null = null): ShoppingListItem => ({
@@ -60,6 +61,7 @@ describe('ShoppingListPage notes', () => {
         ShoppingListPage,
         { provide: ShoppingListService, useValue: shoppingListService },
         { provide: IngredientService, useValue: { getAll: vi.fn().mockReturnValue(of([ingredient])) } },
+        { provide: PreparedMealService, useValue: { list: vi.fn().mockReturnValue(of([])) } },
         { provide: TranslationService, useValue: { translate: (key: string) => key } },
       ],
     });
@@ -123,6 +125,7 @@ describe('ShoppingListPage re-adding a bought item', () => {
         ShoppingListPage,
         { provide: ShoppingListService, useValue: shoppingListService },
         { provide: IngredientService, useValue: { getAll: vi.fn().mockReturnValue(of([ingredient])) } },
+        { provide: PreparedMealService, useValue: { list: vi.fn().mockReturnValue(of([])) } },
         { provide: TranslationService, useValue: { translate: (key: string) => key } },
       ],
     });
@@ -164,5 +167,12 @@ describe('ShoppingListPage re-adding a bought item', () => {
     expect(shoppingListService.update).not.toHaveBeenCalled();
     expect(shoppingListService.create).toHaveBeenCalledWith('pasta', expect.any(Number), null);
     expect(page.items()).toHaveLength(1);
+  });
+
+  it('puts ready meals in their own group', () => {
+    const readyMeal = { ...item('gyoza', 0), ingredientId: null, preparedMealId: 'gyoza' };
+
+    expect(groupShoppingItems([readyMeal]).map(group => [group.key, group.items[0].id]))
+      .toEqual([['ready-meals', 'gyoza']]);
   });
 });

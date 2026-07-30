@@ -2,6 +2,7 @@ using Kotlet.Application.Shopping;
 using Kotlet.Application.Translations;
 using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
+using Kotlet.Domain.PreparedMeals;
 using Kotlet.Domain.Shopping;
 using Xunit;
 
@@ -66,7 +67,7 @@ public sealed class ShoppingListServiceTests
         var repo = new FakeRepository(Apples);
         var service = new ShoppingListService(repo, new FakeTranslationRepository());
 
-        var result = await service.CreateAsync(HouseId, new CreateShoppingListItemCommand(Apples.Id, 5m), English, CancellationToken.None);
+        var result = await service.CreateAsync(HouseId, new CreateShoppingListItemCommand(Apples.Id, null, 5m), English, CancellationToken.None);
 
         Assert.Equal(ShoppingListOperationStatus.Success, result.Status);
         Assert.NotNull(result.Item);
@@ -83,7 +84,7 @@ public sealed class ShoppingListServiceTests
         var repo = new FakeRepository(Apples);
         var service = new ShoppingListService(repo, new FakeTranslationRepository());
 
-        var result = await service.CreateAsync(HouseId, new CreateShoppingListItemCommand(Apples.Id, (decimal)quantity), English, CancellationToken.None);
+        var result = await service.CreateAsync(HouseId, new CreateShoppingListItemCommand(Apples.Id, null, (decimal)quantity), English, CancellationToken.None);
 
         Assert.Equal(ShoppingListOperationStatus.ValidationFailed, result.Status);
         Assert.True(result.ValidationErrors!.ContainsKey("quantity"));
@@ -96,7 +97,7 @@ public sealed class ShoppingListServiceTests
         var repo = new FakeRepository(Apples);
         var service = new ShoppingListService(repo, new FakeTranslationRepository());
 
-        var result = await service.CreateAsync(HouseId, new CreateShoppingListItemCommand(Guid.NewGuid(), 5m), English, CancellationToken.None);
+        var result = await service.CreateAsync(HouseId, new CreateShoppingListItemCommand(Guid.NewGuid(), null, 5m), English, CancellationToken.None);
 
         Assert.Equal(ShoppingListOperationStatus.NotFound, result.Status);
     }
@@ -108,10 +109,31 @@ public sealed class ShoppingListServiceTests
         repo.SeedItem(HouseId, Apples, 5m);
         var service = new ShoppingListService(repo, new FakeTranslationRepository());
 
-        var result = await service.CreateAsync(HouseId, new CreateShoppingListItemCommand(Apples.Id, 5m), English, CancellationToken.None);
+        var result = await service.CreateAsync(HouseId, new CreateShoppingListItemCommand(Apples.Id, null, 5m), English, CancellationToken.None);
 
         Assert.Equal(ShoppingListOperationStatus.Conflict, result.Status);
         Assert.NotNull(result.Message);
+    }
+
+    [Fact]
+    public async Task Create_AddsReadyMealAndUsesPackagePrice()
+    {
+        var meal = new PreparedMeal
+        {
+            Id = Guid.NewGuid(), HouseId = HouseId, Name = "Pierożki gioza", Servings = 2,
+            CaloriesPerServing = 250m, Price = 12.50m
+        };
+        var repo = new FakeRepository(Apples);
+        repo.PreparedMeals.Add(meal);
+        var service = new ShoppingListService(repo, new FakeTranslationRepository());
+
+        var result = await service.CreateAsync(HouseId,
+            new CreateShoppingListItemCommand(null, meal.Id, 2m), English, CancellationToken.None);
+
+        Assert.Equal(ShoppingListOperationStatus.Success, result.Status);
+        Assert.Equal(meal.Id, result.Item!.PreparedMealId);
+        Assert.Equal("Pierożki gioza", result.Item.IngredientName);
+        Assert.Equal(25m, result.Item.TotalPrice);
     }
 
     // ---- Update ----
@@ -232,6 +254,7 @@ public sealed class ShoppingListServiceTests
     private sealed class FakeRepository(params Ingredient[] ingredients) : IShoppingListRepository
     {
         public List<ShoppingListItem> Items { get; } = [];
+        public List<PreparedMeal> PreparedMeals { get; } = [];
         public int SaveCount { get; private set; }
         public List<PlannedIngredient> PlannedIngredients { get; } = [];
 
@@ -261,8 +284,12 @@ public sealed class ShoppingListServiceTests
         public Task<bool> IngredientExistsAsync(Guid ingredientId, CancellationToken cancellationToken) =>
             Task.FromResult(ingredients.Any(x => x.Id == ingredientId));
 
-        public Task<bool> ItemExistsAsync(Guid houseId, Guid ingredientId, CancellationToken cancellationToken) =>
-            Task.FromResult(Items.Any(i => i.HouseId == houseId && i.IngredientId == ingredientId));
+        public Task<bool> PreparedMealExistsAsync(Guid preparedMealId, Guid houseId, CancellationToken cancellationToken) =>
+            Task.FromResult(PreparedMeals.Any(x => x.Id == preparedMealId && x.HouseId == houseId && !x.IsArchived));
+
+        public Task<bool> ItemExistsAsync(Guid houseId, Guid? ingredientId, Guid? preparedMealId, CancellationToken cancellationToken) =>
+            Task.FromResult(Items.Any(i => i.HouseId == houseId
+                && (ingredientId is not null ? i.IngredientId == ingredientId : i.PreparedMealId == preparedMealId)));
 
         public Task<IReadOnlyList<PlannedIngredient>> GetPlannedIngredientsAsync(Guid houseId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<PlannedIngredient>>(PlannedIngredients);
@@ -281,7 +308,10 @@ public sealed class ShoppingListServiceTests
 
         private ShoppingListItem Hydrate(ShoppingListItem item)
         {
-            item.Ingredient = ingredients.Single(x => x.Id == item.IngredientId);
+            if (item.IngredientId is { } ingredientId)
+                item.Ingredient = ingredients.Single(x => x.Id == ingredientId);
+            else if (item.PreparedMealId is { } preparedMealId)
+                item.PreparedMeal = PreparedMeals.Single(x => x.Id == preparedMealId);
             return item;
         }
     }

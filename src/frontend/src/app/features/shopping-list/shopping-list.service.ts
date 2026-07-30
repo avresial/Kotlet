@@ -8,6 +8,9 @@ export class ShoppingListService {
   private readonly http = inject(HttpClient);
   getAll() { return this.http.get<ShoppingListItem[]>(apiUrl('/api/shopping-list')); }
   create(ingredientId: string, quantity: number, note?: string | null) { return this.http.post<ShoppingListItem>(apiUrl('/api/shopping-list'), { ingredientId, quantity, note: note ?? null }); }
+  createPreparedMeal(preparedMealId: string, quantity: number) {
+    return this.http.post<ShoppingListItem>(apiUrl('/api/shopping-list'), { preparedMealId, quantity });
+  }
   update(item: ShoppingListItem, changes: Partial<Pick<ShoppingListItem, 'quantity' | 'isPurchased' | 'note'>>) {
     return this.http.put<ShoppingListItem>(apiUrl(`/api/shopping-list/${item.id}`), {
       quantity: changes.quantity ?? item.quantity,
