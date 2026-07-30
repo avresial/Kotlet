@@ -363,6 +363,106 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         Assert.Contains("false", (await afterRemoval.Content.ReadAsStringAsync()).ToLowerInvariant());
     }
 
+    [Fact]
+    public async Task PlanningTools_ReturnCompactAgentResultsAndKeepFullDataInUiMetadata()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+        var ingredientName = $"Compact tomato {Guid.NewGuid():N}";
+
+        var created = ToolResult(await CallTool(client, accessToken, "create_ingredient", new
+        {
+            request = new { name = ingredientName, measurementUnit = "g", caloriesPer100BaseUnits = 18 }
+        }));
+        AssertShortText(created, "Created ingredient");
+        var createdCompact = created.GetProperty("structuredContent");
+        var ingredientId = createdCompact.GetProperty("ingredientId").GetGuid();
+        Assert.False(createdCompact.TryGetProperty("ingredient", out _));
+        Assert.Equal(18, created.GetProperty("_meta").GetProperty("kotlet/uiData")
+            .GetProperty("ingredient").GetProperty("caloriesPer100BaseUnits").GetDecimal());
+
+        var matches = ToolResult(await CallTool(client, accessToken, "get_ingredients", new
+        {
+            names = new[] { ingredientName }
+        }));
+        AssertShortText(matches, "Matched 1 ingredient");
+        var compactMatch = matches.GetProperty("structuredContent").GetProperty("matches")[0];
+        Assert.Equal(ingredientId, compactMatch.GetProperty("ingredientId").GetGuid());
+        Assert.False(compactMatch.TryGetProperty("distance", out _));
+        Assert.True(matches.GetProperty("_meta").GetProperty("kotlet/uiData")[0]
+            .TryGetProperty("distance", out _));
+
+        var members = ToolResult(await CallTool(client, accessToken, "get_meal_plan_members", new { }));
+        AssertShortText(members, "Found 1 household member");
+        var memberId = members.GetProperty("structuredContent").GetProperty("members")[0]
+            .GetProperty("userId").GetGuid();
+        Assert.Equal(JsonValueKind.Array,
+            members.GetProperty("_meta").GetProperty("kotlet/uiData").ValueKind);
+
+        var request = new
+        {
+            weekStart = "2027-04-05",
+            meals = new[]
+            {
+                new { date = "2027-04-05", slot = "breakfast", ingredientId }
+            }
+        };
+        var added = ToolResult(await CallTool(client, accessToken, "add_weekly_meal_plan", new { request }));
+        AssertShortText(added, "Added 1 meal");
+        var addedCompact = added.GetProperty("structuredContent");
+        var mealId = addedCompact.GetProperty("mealIds")[0].GetGuid();
+        Assert.Equal(1, addedCompact.GetProperty("addedCount").GetInt32());
+        Assert.False(addedCompact.TryGetProperty("plan", out _));
+        Assert.True(added.GetProperty("_meta").GetProperty("kotlet/uiData")
+            .GetProperty("plan").TryGetProperty("added", out _));
+
+        var assigned = ToolResult(await CallTool(client, accessToken, "set_meal_participants", new
+        {
+            mealId,
+            userIds = new[] { memberId }
+        }));
+        AssertShortText(assigned, "Updated meal participants");
+        var assignedCompact = assigned.GetProperty("structuredContent");
+        Assert.Equal(1, assignedCompact.GetProperty("participantCount").GetInt32());
+        Assert.False(assignedCompact.TryGetProperty("item", out _));
+        Assert.Single(assigned.GetProperty("_meta").GetProperty("kotlet/uiData")
+            .GetProperty("item").GetProperty("participants").EnumerateArray());
+
+        var plan = ToolResult(await CallTool(
+            client, accessToken, "get_meal_plan", new { from = "2027-04-05", days = 1 }));
+        AssertShortText(plan, "Retrieved 1 meal-plan day");
+        var compactMeal = plan.GetProperty("structuredContent").GetProperty("days")[0]
+            .GetProperty("meals")[0];
+        Assert.Equal(mealId, compactMeal.GetProperty("id").GetGuid());
+        Assert.False(compactMeal.TryGetProperty("sortOrder", out _));
+        Assert.True(plan.GetProperty("_meta").GetProperty("kotlet/uiData")[0]
+            .GetProperty("meals").GetProperty("breakfast")[0].TryGetProperty("sortOrder", out _));
+    }
+
+    [Fact]
+    public async Task ToolsList_DeclaresCompactOutputSchemas()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+        var response = await SendMcp(client, accessToken, "tools/list", new { });
+        var result = ToolResult(response, "result");
+        var compactNames = new HashSet<string>
+        {
+            "get_ingredients", "create_ingredient", "get_meal_plan_members",
+            "get_meal_plan", "add_weekly_meal_plan", "set_meal_participants"
+        };
+        var tools = result.GetProperty("tools").EnumerateArray()
+            .Where(tool => compactNames.Contains(tool.GetProperty("name").GetString()!))
+            .ToDictionary(
+            tool => tool.GetProperty("name").GetString()!,
+            tool => tool.GetProperty("outputSchema"));
+
+        Assert.True(tools["get_ingredients"].GetProperty("properties").TryGetProperty("matches", out _));
+        Assert.True(tools["create_ingredient"].GetProperty("properties").TryGetProperty("ingredientId", out _));
+        Assert.True(tools["get_meal_plan_members"].GetProperty("properties").TryGetProperty("members", out _));
+        Assert.True(tools["get_meal_plan"].GetProperty("properties").TryGetProperty("days", out _));
+        Assert.True(tools["add_weekly_meal_plan"].GetProperty("properties").TryGetProperty("mealIds", out _));
+        Assert.True(tools["set_meal_participants"].GetProperty("properties").TryGetProperty("participantCount", out _));
+    }
+
     /// <summary>Registers a user with a home and runs the OAuth PKCE flow for an MCP-scoped token.</summary>
     private async Task<(HttpClient Client, string AccessToken)> AuthorizeMcpClientAsync()
     {
@@ -424,6 +524,24 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
 
     private static Task<HttpResponseMessage> CallTool(HttpClient client, string accessToken, string name, object arguments)
         => SendMcp(client, accessToken, "tools/call", new { name, arguments });
+
+    private static JsonElement ToolResult(HttpResponseMessage response, string property = "result")
+    {
+        using var reader = new StreamReader(response.Content.ReadAsStream());
+        var body = reader.ReadToEnd();
+        var json = body.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .First(line => line.StartsWith("data:", StringComparison.Ordinal))[5..].Trim();
+        return JsonDocument.Parse(json).RootElement.GetProperty(property).Clone();
+    }
+
+    private static void AssertShortText(JsonElement result, string expected)
+    {
+        var content = Assert.Single(result.GetProperty("content").EnumerateArray());
+        var text = content.GetProperty("text").GetString();
+        Assert.Contains(expected, text!);
+        Assert.True(text!.Length < 120);
+        Assert.DoesNotContain('{', text);
+    }
 
     private static Task<HttpResponseMessage> SendMcp(
         HttpClient client, string accessToken, string method, object parameters)
