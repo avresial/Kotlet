@@ -21,6 +21,8 @@ internal static class McpToolResultAdapter
         "set_meal_participants"
     ];
 
+    private static readonly IReadOnlyDictionary<string, JsonElement> OutputSchemas = CreateOutputSchemas();
+
     public static void Apply(string toolName, CallToolResult result)
     {
         if (result.StructuredContent is not { } fullResult || result.IsError is true)
@@ -44,33 +46,36 @@ internal static class McpToolResultAdapter
         ];
     }
 
-    public static JsonElement? OutputSchema(string toolName) => toolName switch
+    public static JsonElement? OutputSchema(string toolName) =>
+        OutputSchemas.TryGetValue(toolName, out var schema) ? schema : null;
+
+    private static IReadOnlyDictionary<string, JsonElement> CreateOutputSchemas() =>
+        new Dictionary<string, JsonElement>
     {
-        "get_ingredients" => Schema(
+        ["get_ingredients"] = Schema(
             """
             {"type":"object","properties":{"matches":{"type":"array","items":{"type":"object","properties":{"inputName":{"type":"string"},"ingredientId":{"type":["string","null"],"format":"uuid"},"matchedName":{"type":["string","null"]},"measurementUnit":{"type":["string","null"]},"exactMatch":{"type":"boolean"},"similarity":{"type":["number","null"]},"resourceUri":{"type":["string","null"]}},"required":["inputName","ingredientId","matchedName","measurementUnit","exactMatch","similarity","resourceUri"],"additionalProperties":false}}},"required":["matches"],"additionalProperties":false}
             """),
-        "create_ingredient" => OperationSchema(
+        ["create_ingredient"] = OperationSchema(
             """
             "ingredientId":{"type":["string","null"],"format":"uuid"},"name":{"type":["string","null"]},"measurementUnit":{"type":["string","null"]},"resourceUri":{"type":["string","null"]}
             """),
-        "get_meal_plan_members" => Schema(
+        ["get_meal_plan_members"] = Schema(
             """
             {"type":"object","properties":{"members":{"type":"array","items":{"type":"object","properties":{"userId":{"type":"string","format":"uuid"},"displayName":{"type":"string"}},"required":["userId","displayName"],"additionalProperties":false}}},"required":["members"],"additionalProperties":false}
             """),
-        "get_meal_plan" => Schema(
+        ["get_meal_plan"] = Schema(
             """
             {"type":"object","properties":{"days":{"type":"array","items":{"type":"object","properties":{"date":{"type":"string"},"meals":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string","format":"uuid"},"slot":{"type":"string"},"type":{"type":"string"},"recipeId":{"type":["string","null"],"format":"uuid"},"ingredientId":{"type":["string","null"],"format":"uuid"},"preparedMealId":{"type":["string","null"],"format":"uuid"},"displayName":{"type":"string"},"note":{"type":["string","null"]},"participants":{"type":"array","items":{"type":"object","properties":{"userId":{"type":"string","format":"uuid"},"displayName":{"type":"string"},"portionPercent":{"type":"integer"}},"required":["userId","displayName","portionPercent"],"additionalProperties":false}},"guests":{"type":"integer"},"servings":{"type":"number"}},"required":["id","slot","type","recipeId","ingredientId","preparedMealId","displayName","note","participants","guests","servings"],"additionalProperties":false}}},"required":["date","meals"],"additionalProperties":false}}},"required":["days"],"additionalProperties":false}
             """),
-        "add_weekly_meal_plan" => OperationSchema(
+        ["add_weekly_meal_plan"] = OperationSchema(
             """
             "addedCount":{"type":"integer"},"skippedCount":{"type":"integer"},"mealIds":{"type":"array","items":{"type":"string","format":"uuid"}}
             """),
-        "set_meal_participants" => OperationSchema(
+        ["set_meal_participants"] = OperationSchema(
             """
             "mealId":{"type":["string","null"],"format":"uuid"},"participantCount":{"type":"integer"},"servings":{"type":["number","null"]}
-            """),
-        _ => null
+            """)
     };
 
     private static JsonNode Compact(string toolName, JsonNode? fullData) => toolName switch
@@ -216,6 +221,9 @@ internal static class McpToolResultAdapter
         + fields
         + ""","validationErrors":{"type":["object","null"],"additionalProperties":{"type":"array","items":{"type":"string"}}},"message":{"type":["string","null"]}},"required":["status"],"additionalProperties":false}""");
 
-    private static JsonElement Schema(string json) =>
-        JsonDocument.Parse(json).RootElement.Clone();
+    private static JsonElement Schema(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.Clone();
+    }
 }

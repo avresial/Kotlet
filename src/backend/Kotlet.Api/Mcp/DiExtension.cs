@@ -99,6 +99,9 @@ public static class DiExtension
                 {
                     var result = await next(request, cancellationToken);
                     DataUiMcp.AttachTo(result.Tools);
+                    // Keep discovery compact for every generated tool. Compact-result tools publish
+                    // precise schemas; the generic object fallback intentionally avoids restoring the
+                    // large SDK-generated schemas trimmed in 036e6da.
                     foreach (var tool in result.Tools.Where(tool => tool.OutputSchema is not null && !tool.Name.StartsWith("show_")))
                         tool.OutputSchema = McpToolResultAdapter.OutputSchema(tool.Name)
                             ?? JsonSerializer.SerializeToElement(new { type = "object" });
