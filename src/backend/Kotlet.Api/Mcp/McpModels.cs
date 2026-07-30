@@ -101,7 +101,8 @@ public sealed record McpRecipeExistenceResult(bool Exists, IReadOnlyList<McpReci
 
 public sealed record McpShoppingListItem(
     Guid Id,
-    Guid IngredientId,
+    Guid? IngredientId,
+    Guid? PreparedMealId,
     string IngredientName,
     string MeasurementUnit,
     decimal Quantity,
@@ -111,7 +112,7 @@ public sealed record McpShoppingListItem(
     string? Note)
 {
     public static McpShoppingListItem From(ShoppingListItemDto dto) => new(
-        dto.Id, dto.IngredientId, dto.IngredientName, dto.MeasurementUnit,
+        dto.Id, dto.IngredientId, dto.PreparedMealId, dto.IngredientName, dto.MeasurementUnit,
         dto.Quantity, dto.TotalPrice, dto.IsPurchased, dto.Category.ToString(), dto.Note);
 }
 
