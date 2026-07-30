@@ -99,17 +99,19 @@ public static class DiExtension
                 {
                     var result = await next(request, cancellationToken);
                     DataUiMcp.AttachTo(result.Tools);
+                    // Keep discovery compact for every generated tool. Compact-result tools publish
+                    // precise schemas; the generic object fallback intentionally avoids restoring the
+                    // large SDK-generated schemas trimmed in 036e6da.
                     foreach (var tool in result.Tools.Where(tool => tool.OutputSchema is not null && !tool.Name.StartsWith("show_")))
-                        tool.OutputSchema = JsonSerializer.SerializeToElement(new { type = "object" });
+                        tool.OutputSchema = McpToolResultAdapter.OutputSchema(tool.Name)
+                            ?? JsonSerializer.SerializeToElement(new { type = "object" });
                     return result;
                 })
                 .AddCallToolFilter(next => async (request, cancellationToken) =>
             {
                 var result = await next(request, cancellationToken);
-                if (result.StructuredContent is not null && result.IsError is not true
-                    && !request.Params.Name.StartsWith("show_")
-                    && request.Params.Name != MealPlanUiMcp.ToolName)
-                    result.Content = [];
+                if (!request.Params.Name.StartsWith("show_") && request.Params.Name != MealPlanUiMcp.ToolName)
+                    McpToolResultAdapter.Apply(request.Params.Name, result);
                 return result;
             }));
         // The MCP Apps (SEP-1865) recipe UI primitives carry dynamic _meta.ui metadata, which

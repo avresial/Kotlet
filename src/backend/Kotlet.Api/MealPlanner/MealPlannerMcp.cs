@@ -47,7 +47,7 @@ public sealed class MealPlannerMcp
         await service.GetHouseMembersAsync(RequireHouse(currentUser), cancellationToken);
 
     [McpServerTool(Name = "get_meal_plan", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Returns the household's complete meal plan for a range of days: every planned meal per slot with participants and servings. Use get_meal_plan_overview first when only checking which days have meals.")]
+     Description("Returns a compact household meal plan for a range of days: planned meals, references, participants, guests, and servings. Use get_meal_plan_overview first when only checking which days have meals, or show_meal_plan when the user asks to see the plan.")]
     public static async Task<IReadOnlyList<DailyMealPlanResponse>> GetMealPlan(
         [Description("First date in yyyy-MM-dd format.")] string from,
         [Description("Number of days to return, from 1 to 31.")] int days,
@@ -67,7 +67,7 @@ public sealed class MealPlannerMcp
 
     [McpServerTool(Name = "add_weekly_meal_plan", ReadOnly = false, Destructive = false,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Adds up to 35 meals within one seven-day period. Existing identical meals are skipped; existing meals are never replaced.")]
+     Description("Adds up to 35 meals within one seven-day period. Existing identical meals are skipped; existing meals are never replaced. Returns status, added/skipped counts, and the new meal ids.")]
     public static Task<WeeklyMealPlannerOperationResult> AddWeeklyMealPlan(
         [Description("The week start and meals to add. Every meal date must fall within the seven-day period.")]
         AddWeeklyMealPlanRequest request,
@@ -115,7 +115,8 @@ public sealed class MealPlannerMcp
     [McpServerTool(Name = "set_meal_participants", ReadOnly = false, Destructive = false,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
      Description("Replaces all household members assigned to a planned meal. Pass an empty userIds list to remove " +
-                "every participant. Obtain mealId from get_meal_plan and userIds from get_meal_plan_members.")]
+                "every participant. Obtain mealId from get_meal_plan and userIds from get_meal_plan_members. " +
+                "Returns status, meal id, assigned count, and resulting servings.")]
     public static Task<MealPlannerOperationResult> SetMealParticipants(
         [Description("Meal-plan item id from get_meal_plan.")] Guid mealId,
         [Description("Complete replacement list of household member ids, or an empty list.")] IReadOnlyList<Guid> userIds,
