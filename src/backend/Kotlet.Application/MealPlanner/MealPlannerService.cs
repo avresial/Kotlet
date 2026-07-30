@@ -1,7 +1,10 @@
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.Recipes;
 using Kotlet.Application.PreparedMeals;
+using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.MealPlanner;
+using Kotlet.Domain.PreparedMeals;
+using Kotlet.Domain.Recipes;
 
 namespace Kotlet.Application.MealPlanner;
 
@@ -137,19 +140,9 @@ public sealed class MealPlannerService(
     public async Task<WeeklyMealPlannerOperationResult> AddWeekAsync(
         Guid userId, Guid houseId, AddWeeklyMealPlanRequest request, CancellationToken cancellationToken)
     {
-        if (request.Meals.Count > 35)
-            return WeeklyValidation("meals", "A weekly plan cannot contain more than 35 meals.");
-
-        var errors = new Dictionary<string, string[]>();
-        for (var index = 0; index < request.Meals.Count; index++)
-        {
-            var meal = request.Meals[index];
-            if (meal.Date < request.WeekStart || meal.Date > request.WeekStart.AddDays(6))
-                errors[$"meals[{index}].date"] = ["Date must be within the seven-day week starting at weekStart."];
-
-            foreach (var (field, messages) in await ValidateAddAsync(houseId, meal, cancellationToken))
-                errors[$"meals[{index}].{field}"] = messages;
-        }
+        var validation = await ValidateWeekAsync(
+            houseId, request, requireMeals: false, cancellationToken);
+        var errors = validation.Errors;
         if (errors.Count > 0)
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: errors);
 
@@ -215,10 +208,32 @@ public sealed class MealPlannerService(
             await repository.SaveChangesAsync(cancellationToken);
 
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
-        var responses = new List<MealPlanItemResponse>(added.Count);
-        foreach (var item in added)
-            responses.Add(await ToResponseAsync(item, userId, houseId, members, cancellationToken));
+        var responses = added
+            .Select(item => ToResponse(
+                item,
+                userId,
+                members,
+                ResolveDisplay(item, validation.Context)))
+            .ToList();
         return new(MealPlannerOperationStatus.Success, new(responses, skipped));
+    }
+
+    public async Task<MealPlanPreviewResult> PreviewWeekAsync(
+        Guid houseId, AddWeeklyMealPlanRequest request, CancellationToken cancellationToken)
+    {
+        var validation = await ValidateWeekAsync(
+            houseId, request, requireMeals: true, cancellationToken);
+        if (validation.Errors.Count > 0)
+            return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: validation.Errors);
+
+        var meals = request.Meals
+            .OrderBy(meal => meal.Date)
+            .ThenBy(meal => ParseSlot(meal.Slot))
+            .Select(meal => ToPreview(meal, validation.Context))
+            .ToList();
+        return new(
+            MealPlannerOperationStatus.Success,
+            new(request.WeekStart.ToString("yyyy-MM-dd"), meals));
     }
 
     public async Task<CopyMealPlanDayResult> CopyDayAsync(
@@ -493,6 +508,170 @@ public sealed class MealPlannerService(
         return errors;
     }
 
+    private async Task<WeekValidation> ValidateWeekAsync(
+        Guid houseId,
+        AddWeeklyMealPlanRequest request,
+        bool requireMeals,
+        CancellationToken cancellationToken)
+    {
+        var errors = new Dictionary<string, string[]>();
+        if (requireMeals && request.Meals.Count == 0)
+            errors["meals"] = ["Add at least one meal to the weekly plan."];
+        else if (request.Meals.Count > 35)
+            errors["meals"] = ["A weekly plan cannot contain more than 35 meals."];
+
+        var recipeIds = request.Meals
+            .Where(meal => meal.RecipeId.HasValue)
+            .Select(meal => meal.RecipeId!.Value)
+            .Distinct()
+            .ToArray();
+        var ingredientIds = request.Meals
+            .Where(meal => meal.IngredientId.HasValue)
+            .Select(meal => meal.IngredientId!.Value)
+            .Distinct()
+            .ToArray();
+        var preparedMealIds = request.Meals
+            .Where(meal => meal.PreparedMealId.HasValue)
+            .Select(meal => meal.PreparedMealId!.Value)
+            .Distinct()
+            .ToArray();
+
+        var recipes = await recipeRepository.GetByIdsAsync(recipeIds, houseId, cancellationToken);
+        var ingredients = await ingredientRepository.GetByIdsAsync(ingredientIds, cancellationToken);
+        var preparedMeals = preparedMealRepository is null
+            ? new Dictionary<Guid, PreparedMeal>()
+            : await preparedMealRepository.GetByIdsAsync(preparedMealIds, houseId, cancellationToken);
+        var context = new WeekLookupContext(recipes, ingredients, preparedMeals);
+
+        for (var index = 0; index < request.Meals.Count; index++)
+        {
+            var meal = request.Meals[index];
+            if (meal.Date < request.WeekStart || meal.Date > request.WeekStart.AddDays(6))
+                errors[$"meals[{index}].date"] = ["Date must be within the seven-day week starting at weekStart."];
+            if (SlotError(meal.Slot) is { } slotError)
+                errors[$"meals[{index}].slot"] = slotError["slot"];
+
+            var hasRecipe = meal.RecipeId.HasValue;
+            var hasIngredient = meal.IngredientId.HasValue;
+            var hasPreparedMeal = meal.PreparedMealId.HasValue;
+            if ((hasRecipe ? 1 : 0) + (hasIngredient ? 1 : 0) + (hasPreparedMeal ? 1 : 0) != 1)
+            {
+                errors[$"meals[{index}].item"] =
+                    ["Exactly one of recipeId, ingredientId or preparedMealId must be provided."];
+                continue;
+            }
+
+            if (hasRecipe && !recipes.ContainsKey(meal.RecipeId!.Value))
+                errors[$"meals[{index}].recipeId"] = ["Recipe not found."];
+            else if (hasIngredient && !ingredients.ContainsKey(meal.IngredientId!.Value))
+                errors[$"meals[{index}].ingredientId"] = ["Ingredient not found."];
+            else if (hasPreparedMeal)
+                ValidatePreparedMeal(index, meal, preparedMeals, errors);
+        }
+
+        return new(errors, context);
+    }
+
+    private static void ValidatePreparedMeal(
+        int index,
+        AddMealPlanItemRequest request,
+        IReadOnlyDictionary<Guid, PreparedMeal> preparedMeals,
+        IDictionary<string, string[]> errors)
+    {
+        if (!preparedMeals.TryGetValue(request.PreparedMealId!.Value, out var meal) || meal.IsArchived)
+        {
+            errors[$"meals[{index}].preparedMealId"] = ["Prepared meal not found or archived."];
+            return;
+        }
+
+        var selected = request.Addons ?? [];
+        if (selected.GroupBy(addon => addon.IngredientId).Any(group => group.Count() > 1))
+            errors[$"meals[{index}].addons"] = ["Duplicate add-ons are not allowed."];
+        if (meal.Addons.Where(addon => addon.IsRequired)
+            .Any(required => selected.All(addon => addon.IngredientId != required.IngredientId)))
+            errors[$"meals[{index}].addons"] = ["Required add-ons must be selected."];
+        foreach (var addon in selected)
+        {
+            if (addon.Quantity <= 0 || string.IsNullOrWhiteSpace(addon.Unit))
+                errors[$"meals[{index}].addons"] = ["Add-on quantity and unit are required."];
+            if (meal.Addons.All(configured => configured.IngredientId != addon.IngredientId))
+                errors[$"meals[{index}].addons"] = ["Selected add-on is not configured for this prepared meal."];
+        }
+    }
+
+    private static MealPlanPreviewItem ToPreview(
+        AddMealPlanItemRequest request, WeekLookupContext context)
+    {
+        if (request.RecipeId is { } recipeId)
+        {
+            var recipe = context.Recipes[recipeId];
+            return new(
+                request.Date.ToString("yyyy-MM-dd"),
+                request.Slot,
+                "recipe",
+                recipeId,
+                null,
+                null,
+                recipe.Title,
+                recipe.Servings.Value,
+                null,
+                recipe.Ingredients.OrderBy(item => item.SortOrder)
+                    .Select(item => item.Ingredient.Name)
+                    .ToList(),
+                request.Note?.Trim(),
+                $"kotlet://recipes/{recipeId}");
+        }
+
+        if (request.IngredientId is { } ingredientId)
+        {
+            var ingredient = context.Ingredients[ingredientId];
+            return new(
+                request.Date.ToString("yyyy-MM-dd"),
+                request.Slot,
+                "ingredient",
+                null,
+                ingredientId,
+                null,
+                ingredient.Name,
+                null,
+                null,
+                [ingredient.Name],
+                request.Note?.Trim(),
+                $"kotlet://ingredients/{ingredientId}");
+        }
+
+        var preparedMealId = request.PreparedMealId!.Value;
+        var preparedMeal = context.PreparedMeals[preparedMealId];
+        var selectedIds = (request.Addons ?? []).Select(addon => addon.IngredientId).ToHashSet();
+        return new(
+            request.Date.ToString("yyyy-MM-dd"),
+            request.Slot,
+            "prepared-meal",
+            null,
+            null,
+            preparedMealId,
+            preparedMeal.Name,
+            preparedMeal.Servings,
+            preparedMeal.CaloriesPerServing,
+            preparedMeal.Addons
+                .Where(addon => selectedIds.Contains(addon.IngredientId))
+                .OrderBy(addon => addon.SortOrder)
+                .Select(addon => addon.Ingredient?.Name ?? "Unknown ingredient")
+                .ToList(),
+            request.Note?.Trim(),
+            $"kotlet://prepared-meals/{preparedMealId}");
+    }
+
+    private static (string DisplayName, string Type) ResolveDisplay(
+        MealPlanItem item, WeekLookupContext context)
+    {
+        if (item.RecipeId is { } recipeId)
+            return (context.Recipes[recipeId].Title, "recipe");
+        if (item.IngredientId is { } ingredientId)
+            return (context.Ingredients[ingredientId].Name, "ingredient");
+        return (context.PreparedMeals[item.PreparedMealId!.Value].Name, "prepared-meal");
+    }
+
     private async Task<Dictionary<Guid, string>> GetMemberNamesAsync(Guid houseId, CancellationToken cancellationToken)
     {
         var members = await repository.GetHouseMembersAsync(houseId, cancellationToken);
@@ -524,11 +703,22 @@ public sealed class MealPlannerService(
             type = "prepared-meal";
         }
 
-        return ToResponse(item, userId, memberNames, displayName, type);
+        return ToResponse(item, userId, memberNames, (displayName, type));
     }
 
     private static MealPlanItemResponse ToResponse(
-        MealPlanItem item, Guid userId, IReadOnlyDictionary<Guid, string> memberNames, string displayName, string type)
+        MealPlanItem item,
+        Guid userId,
+        IReadOnlyDictionary<Guid, string> memberNames,
+        string displayName,
+        string type) =>
+        ToResponse(item, userId, memberNames, (displayName, type));
+
+    private static MealPlanItemResponse ToResponse(
+        MealPlanItem item,
+        Guid userId,
+        IReadOnlyDictionary<Guid, string> memberNames,
+        (string DisplayName, string Type) display)
     {
         var participants = item.Participants
             .Select(p => new MealParticipantResponse(
@@ -543,14 +733,14 @@ public sealed class MealPlannerService(
         return new MealPlanItemResponse(
             item.Id,
             SlotToString(item.Slot),
-            type,
+            display.Type,
             item.RecipeId,
             item.IngredientId,
             item.PreparedMealId,
             item.ParentMealPlanItemId,
             item.IngredientQuantity,
             item.IngredientUnit,
-            displayName,
+            display.DisplayName,
             item.Note,
             item.SortOrder,
             participants,
@@ -558,6 +748,15 @@ public sealed class MealPlannerService(
             item.EffectiveServings,
             item.Servings.HasValue);
     }
+
+    private sealed record WeekLookupContext(
+        IReadOnlyDictionary<Guid, Recipe> Recipes,
+        IReadOnlyDictionary<Guid, Ingredient> Ingredients,
+        IReadOnlyDictionary<Guid, PreparedMeal> PreparedMeals);
+
+    private sealed record WeekValidation(
+        Dictionary<string, string[]> Errors,
+        WeekLookupContext Context);
 
     /// <summary>
     /// Validates a slot name, returning the slot validation error dictionary when it is
@@ -624,8 +823,4 @@ public sealed class MealPlannerService(
             repository.Add(copy);
         }
     }
-
-    private static WeeklyMealPlannerOperationResult WeeklyValidation(string field, string message) =>
-        new(MealPlannerOperationStatus.ValidationFailed,
-            ValidationErrors: new Dictionary<string, string[]> { [field] = [message] });
 }

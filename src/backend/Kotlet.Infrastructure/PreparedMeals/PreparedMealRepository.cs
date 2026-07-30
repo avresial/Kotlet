@@ -25,6 +25,21 @@ internal sealed class PreparedMealRepository(KotletDbContext db) : IPreparedMeal
             .ThenInclude(addon => addon.Ingredient)
             .SingleOrDefaultAsync(meal => meal.Id == id && meal.HouseId == houseId, ct);
 
+    public async Task<IReadOnlyDictionary<Guid, PreparedMeal>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids, Guid houseId, CancellationToken ct)
+    {
+        var requested = ids.Distinct().ToArray();
+        if (requested.Length == 0)
+            return new Dictionary<Guid, PreparedMeal>();
+
+        return await db.PreparedMeals
+            .AsNoTracking()
+            .Include(meal => meal.Addons)
+            .ThenInclude(addon => addon.Ingredient)
+            .Where(meal => meal.HouseId == houseId && requested.Contains(meal.Id))
+            .ToDictionaryAsync(meal => meal.Id, ct);
+    }
+
     public void Add(PreparedMeal meal) => db.PreparedMeals.Add(meal);
     public void Remove(PreparedMeal meal) => db.PreparedMeals.Remove(meal);
     public Task SaveChangesAsync(CancellationToken ct) => db.SaveChangesAsync(ct);

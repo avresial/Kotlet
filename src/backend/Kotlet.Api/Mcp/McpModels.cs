@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using Kotlet.Application.Ingredients;
 using Kotlet.Application.Pantry;
+using Kotlet.Application.PreparedMeals;
+using Kotlet.Application.Recipes;
 using Kotlet.Application.Shopping;
 using Kotlet.Domain.Ingredients;
 
@@ -85,6 +87,34 @@ public sealed record CreateIngredientMcpRequest(
 
 public sealed record McpRecipeMatch(Guid RecipeId, string Title, string? SourceUrl, string MatchType);
 
+public sealed record McpRecipePlanningIngredient(Guid Id, string Name);
+
+public sealed record McpRecipeSummary(
+    Guid Id,
+    string Title,
+    int Servings,
+    string? MealType,
+    IReadOnlyList<McpRecipePlanningIngredient> Ingredients,
+    string ResourceUri);
+
+public sealed record McpRecipeSearchResponse(
+    IReadOnlyList<McpRecipeSummary> Recipes,
+    int TotalCount)
+{
+    public static McpRecipeSearchResponse From(RecipePlanningSearchResponse response) => new(
+        response.Recipes.Select(recipe => new McpRecipeSummary(
+            recipe.Id,
+            recipe.Title,
+            recipe.Servings,
+            recipe.MealType,
+            recipe.Ingredients
+                .Select(ingredient => new McpRecipePlanningIngredient(ingredient.Id, ingredient.Name))
+                .ToList(),
+            $"kotlet://recipes/{recipe.Id}"))
+            .ToList(),
+        response.TotalCount);
+}
+
 public sealed record McpRecipeExistenceResult(bool Exists, IReadOnlyList<McpRecipeMatch> Matches)
 {
     public static McpRecipeExistenceResult From(Kotlet.Application.Recipes.RecipeExistenceResult result) => new(
@@ -99,9 +129,48 @@ public sealed record McpRecipeExistenceResult(bool Exists, IReadOnlyList<McpReci
             .ToList());
 }
 
+public sealed record McpPreparedMealAddon(
+    Guid IngredientId,
+    string IngredientName,
+    decimal Quantity,
+    string Unit,
+    bool Required);
+
+public sealed record McpPreparedMealSummary(
+    Guid Id,
+    string Name,
+    string? Category,
+    int Servings,
+    decimal CaloriesPerServing,
+    decimal? Price,
+    bool IsArchived,
+    IReadOnlyList<McpPreparedMealAddon> SuggestedAddons,
+    string ResourceUri)
+{
+    public static McpPreparedMealSummary From(PreparedMealResponse meal) => new(
+        meal.Id,
+        meal.Name,
+        meal.Category,
+        meal.Servings,
+        meal.CaloriesPerServing,
+        meal.Price,
+        meal.IsArchived,
+        meal.Addons
+            .Where(addon => addon.IsRequired || addon.IsSelectedByDefault)
+            .Select(addon => new McpPreparedMealAddon(
+                addon.IngredientId,
+                addon.IngredientName,
+                addon.Quantity,
+                addon.Unit,
+                addon.IsRequired))
+            .ToList(),
+        $"kotlet://prepared-meals/{meal.Id}");
+}
+
 public sealed record McpShoppingListItem(
     Guid Id,
-    Guid IngredientId,
+    Guid? IngredientId,
+    Guid? PreparedMealId,
     string IngredientName,
     string MeasurementUnit,
     decimal Quantity,
@@ -111,7 +180,7 @@ public sealed record McpShoppingListItem(
     string? Note)
 {
     public static McpShoppingListItem From(ShoppingListItemDto dto) => new(
-        dto.Id, dto.IngredientId, dto.IngredientName, dto.MeasurementUnit,
+        dto.Id, dto.IngredientId, dto.PreparedMealId, dto.IngredientName, dto.MeasurementUnit,
         dto.Quantity, dto.TotalPrice, dto.IsPurchased, dto.Category.ToString(), dto.Note);
 }
 

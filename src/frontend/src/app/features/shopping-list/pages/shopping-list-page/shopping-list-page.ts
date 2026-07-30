@@ -11,6 +11,8 @@ import { IngredientPicker } from '../../../ingredients/components/ingredient-pic
 import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
 import { DisplayUnit, displayMeasurement, toBaseQuantity, unitsForIngredient } from '../../../ingredients/display-units';
+import { PreparedMeal } from '../../../prepared-meals/prepared-meal.models';
+import { PreparedMealService } from '../../../prepared-meals/prepared-meal.service';
 
 export interface ShoppingListGroup {
   key: string;
@@ -23,10 +25,17 @@ export interface ShoppingListGroup {
     single group at the bottom, so the list always opens on what is left to pick up. */
 export function groupShoppingItems(items: ShoppingListItem[]): ShoppingListGroup[] {
   const byCategory = (include: (item: ShoppingListItem) => boolean) => foodCategories
-    .map(category => ({ key: `category-${category.value}`, label: category.label as string, isBought: false, items: items.filter(item => item.category === category.value && include(item)) }))
+    .map(category => ({ key: `category-${category.value}`, label: category.label as string, isBought: false, items: items.filter(item => !item.preparedMealId && item.category === category.value && include(item)) }))
     .filter(group => group.items.length);
-  const remaining = byCategory(item => !item.isPurchased);
-  const bought = byCategory(item => item.isPurchased).flatMap(group => group.items);
+  const groups = (include: (item: ShoppingListItem) => boolean) => {
+    const ingredientGroups = byCategory(include);
+    const readyMeals = items.filter(item => !!item.preparedMealId && include(item));
+    return readyMeals.length
+      ? [...ingredientGroups, { key: 'ready-meals', label: 'shopping.readyMeals', isBought: false, items: readyMeals }]
+      : ingredientGroups;
+  };
+  const remaining = groups(item => !item.isPurchased);
+  const bought = groups(item => item.isPurchased).flatMap(group => group.items);
   return bought.length ? [...remaining, { key: 'bought', label: 'shopping.alreadyBought', isBought: true, items: bought }] : remaining;
 }
 
@@ -40,10 +49,12 @@ export function groupShoppingItems(items: ShoppingListItem[]): ShoppingListGroup
 export class ShoppingListPage implements OnInit {
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly ingredientService = inject(IngredientService);
+  private readonly preparedMealService = inject(PreparedMealService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly translations = inject(TranslationService);
   readonly items = signal<ShoppingListItem[]>([]);
   readonly ingredients = signal<Ingredient[]>([]);
+  readonly preparedMeals = signal<PreparedMeal[]>([]);
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
   readonly generateFrom = signal(this.dateString(this.monday(new Date())));
@@ -53,6 +64,8 @@ export class ShoppingListPage implements OnInit {
   /** Something already ticked off stays pickable so the shopper can restart that line — see add(). */
   readonly availableIngredients = computed(() => this.ingredients().filter(ingredient =>
     !this.items().some(item => item.ingredientId === ingredient.id && !item.isPurchased)));
+  readonly availablePreparedMeals = computed(() => this.preparedMeals().filter(meal =>
+    !this.items().some(item => item.preparedMealId === meal.id && !item.isPurchased)));
   readonly purchasedCount = computed(() => this.items().filter(item => item.isPurchased).length);
   readonly totalPrice = computed(() => this.items().reduce((sum, item) => sum + item.totalPrice, 0));
   readonly groups = computed(() => groupShoppingItems(this.items()));
@@ -62,13 +75,42 @@ export class ShoppingListPage implements OnInit {
     unit: ['g', Validators.required],
     note: ['', Validators.maxLength(500)],
   });
+  readonly preparedMealForm = this.formBuilder.nonNullable.group({
+    preparedMealId: ['', Validators.required],
+    quantity: [1, [Validators.required, Validators.min(0.001)]],
+  });
 
   ngOnInit(): void {
-    forkJoin({ items: this.shoppingListService.getAll(), ingredients: this.ingredientService.getAll() })
+    forkJoin({
+      items: this.shoppingListService.getAll(),
+      ingredients: this.ingredientService.getAll(),
+      preparedMeals: this.preparedMealService.list(),
+    })
       .pipe(finalize(() => this.isLoading.set(false))).subscribe({
-        next: ({ items, ingredients }) => { this.items.set(items); this.ingredients.set(ingredients); },
+        next: ({ items, ingredients, preparedMeals }) => {
+          this.items.set(items); this.ingredients.set(ingredients); this.preparedMeals.set(preparedMeals);
+        },
         error: error => this.error.set(getApiError(error, this.translations.translate('shopping.loadError'))),
       });
+  }
+
+  addPreparedMeal(): void {
+    if (this.preparedMealForm.invalid || this.isSaving()) { this.preparedMealForm.markAllAsTouched(); return; }
+    this.isSaving.set(true); this.error.set(null);
+    const { preparedMealId, quantity } = this.preparedMealForm.getRawValue();
+    const purchased = this.items().find(item => item.preparedMealId === preparedMealId && item.isPurchased);
+    const saveItem = purchased
+      ? this.shoppingListService.update(purchased, { quantity, isPurchased: false })
+      : this.shoppingListService.createPreparedMeal(preparedMealId, quantity);
+    saveItem.pipe(finalize(() => this.isSaving.set(false))).subscribe({
+      next: item => {
+        this.items.update(items => items.some(current => current.id === item.id)
+          ? items.map(current => current.id === item.id ? item : current)
+          : [...items, item]);
+        this.preparedMealForm.reset({ preparedMealId: '', quantity: 1 });
+      },
+      error: error => this.error.set(getApiError(error, this.translations.translate('shopping.addError'))),
+    });
   }
 
   add(): void {
@@ -135,12 +177,14 @@ export class ShoppingListPage implements OnInit {
   selectIngredient(ingredient: Ingredient): void { this.form.controls.unit.setValue(ingredient.measurementUnit); }
   selectedUnits(): DisplayUnit[] { return this.selectedIngredient() ? unitsForIngredient(this.selectedIngredient()!) : ['g']; }
   display(item: ShoppingListItem) {
+    if (item.preparedMealId) return { quantity: item.quantity, unit: 'package' as const };
     const ingredient = this.ingredients().find(value => value.id === item.ingredientId);
     return ingredient ? displayMeasurement(item.quantity, ingredient) : { quantity: item.quantity, unit: item.measurementUnit as DisplayUnit };
   }
   updateDisplayQuantity(item: ShoppingListItem, quantity: number): void {
+    if (item.preparedMealId) { this.update(item, { quantity }); return; }
     const ingredient = this.ingredients().find(value => value.id === item.ingredientId);
-    if (ingredient) this.update(item, { quantity: toBaseQuantity(quantity, this.display(item).unit, ingredient) });
+    if (ingredient) this.update(item, { quantity: toBaseQuantity(quantity, this.display(item).unit as DisplayUnit, ingredient) });
   }
   updateNote(item: ShoppingListItem, note: string): void {
     // Send the (possibly empty) trimmed string so the backend clears the note on blank

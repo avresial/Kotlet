@@ -76,5 +76,6 @@ not a good fit for embedded MCP Apps under current host CSP rules.
 
 ## Out of scope (per the issue)
 
-Creating/editing/deleting recipes, meal-planner and shopping-list integration, search/pagination UI
-beyond the first page, and production-ready accessibility/styling.
+Creating/editing/deleting recipes, shopping-list integration, search/pagination UI beyond the first
+page, and production-ready accessibility/styling. Meal-plan drafting now has its own MCP App; see
+[Fast MCP meal planning](./mcp-meal-planning.md).

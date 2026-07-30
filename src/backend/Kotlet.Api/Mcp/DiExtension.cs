@@ -54,10 +54,19 @@ public static class DiExtension
                 All data is scoped to the authenticated user's household; ingredients live in a catalog
                 shared by every household.
 
-                Browsing data: use get_recipes/get_recipe, get_ingredients,
-                get_prepared_meals/get_prepared_meal, get_shopping_list, get_pantry, and
-                get_meal_plan_overview/get_meal_plan. Search tools return resource links; the singular
-                get_* tools and kotlet:// resources return full data.
+                Meal-planning flow:
+                1. Resolve all user-supplied ingredient names in one get_ingredients call.
+                2. Use get_recipes for compact recipe candidates; filter by ingredientIds to favor
+                   shared ingredients. Use get_prepared_meals for compact ready-meal candidates.
+                   These compact tools are for reasoning; singular get_* tools/resources return detail.
+                3. Compose up to seven days in one add-week request. Repeats are allowed when the user
+                   wants them. Prefer candidates sharing ingredients when requested.
+                4. Call preview_meal_plan before saving. It validates and renders the draft without
+                   changing data. Its request is identical to add_weekly_meal_plan.
+                5. Save only after approval by calling add_weekly_meal_plan with the unchanged request.
+                   In MCP Apps hosts the preview offers an explicit Add to Kotlet button.
+
+                Other browsing: get_shopping_list, get_pantry, get_meal_plan_overview/get_meal_plan.
 
                 Adding a recipe (e.g. one found on the internet): follow the
                 kotlet://recipes/new-recipe-guide resource. In short: check for duplicates first with
@@ -74,6 +83,9 @@ public static class DiExtension
                 In hosts that support MCP Apps, show_recipes renders household recipes as interactive
                 cards and show_meal_plan renders a read-only day view of the meal plan; other hosts
                 receive a plain text list from them.
+                UI-only tools: show_recipes renders recipe cards; show_meal_plan renders a read-only
+                day view; preview_meal_plan renders a weekly draft. Use compact get_* tools when UI
+                presentation was not requested.
                 """;
             })
             .WithHttpTransport(options => options.Stateless = true)
@@ -95,7 +107,8 @@ public static class DiExtension
             {
                 var result = await next(request, cancellationToken);
                 if (result.StructuredContent is not null && result.IsError is not true
-                    && !request.Params.Name.StartsWith("show_"))
+                    && !request.Params.Name.StartsWith("show_")
+                    && request.Params.Name != MealPlanUiMcp.ToolName)
                     result.Content = [];
                 return result;
             }));
@@ -109,6 +122,9 @@ public static class DiExtension
             MealPlannerUiMcp.CreateMealPlanUiResource(MealPlannerUiMcp.ApiOrigin(oauth)));
         services.AddSingleton<McpServerResource>(_ =>
             DataUiMcp.CreateResource(RecipeUiMcp.ApiOrigin(oauth)));
+        services.AddSingleton(MealPlanUiMcp.CreatePreviewTool);
+        services.AddSingleton<McpServerResource>(_ =>
+            MealPlanUiMcp.CreateUiResource(RecipeUiMcp.ApiOrigin(oauth)));
         return services;
     }
 

@@ -82,6 +82,20 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
             cancellationToken);
     }
 
+    public async Task<IReadOnlyDictionary<Guid, Recipe>> GetByIdsAsync(
+        IReadOnlyCollection<Guid> ids, Guid houseId, CancellationToken cancellationToken)
+    {
+        var requested = ids.Distinct().ToArray();
+        if (requested.Length == 0)
+            return new Dictionary<Guid, Recipe>();
+
+        return await dbContext.Recipes
+            .AsNoTracking()
+            .Include(r => r.Ingredients).ThenInclude(i => i.Ingredient)
+            .Where(r => r.HouseId == houseId && requested.Contains(r.Id))
+            .ToDictionaryAsync(r => r.Id, cancellationToken);
+    }
+
     public Task<Recipe?> GetPublicByIdAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Recipes
             .AsNoTracking()
