@@ -148,6 +148,18 @@ describe('ShoppingListPage re-adding a bought item', () => {
     expect(page.availableIngredients()).toEqual([]);
   });
 
+  it('reports a hidden ingredient as already on the list, with how much of it is down', () => {
+    const page = loadPage([{ ...item('pasta', 0), quantity: 1500 }]);
+
+    expect(page.listedProducts()).toEqual([{ id: 'pasta', name: 'pasta', quantity: 1.5, unit: 'kg' }]);
+  });
+
+  it('leaves a bought ingredient off the already-on-the-list answer, since it can be re-added', () => {
+    const page = loadPage([boughtPasta]);
+
+    expect(page.listedProducts()).toEqual([]);
+  });
+
   it('resets the bought line instead of creating a duplicate', () => {
     const page = loadPage([boughtPasta]);
 
@@ -229,6 +241,12 @@ describe('ShoppingListPage background adds', () => {
     page.add(addIngredient(200, ''));
 
     expect(page.availableIngredients()).toEqual([]);
+  });
+
+  it('reports a product in flight as already on the list', () => {
+    page.add(addIngredient(200, ''));
+
+    expect(page.listedProducts()).toEqual([{ id: 'pasta', name: 'Pasta', quantity: 200, unit: 'g' }]);
   });
 
   it('keeps a ready meal in flight out of the picker too', () => {

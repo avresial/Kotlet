@@ -9,6 +9,15 @@ export type ShoppingAddOption =
   | { kind: 'ingredient'; id: string; name: string; hint: string; ingredient: Ingredient }
   | { kind: 'preparedMeal'; id: string; name: string; hint: string; meal: PreparedMeal };
 
+/** A product the page keeps out of the pickable results because it is already waiting on the
+    list — searched all the same, so a repeat search says how much is there. */
+export interface ShoppingAddListedProduct {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: DisplayUnit | 'package';
+}
+
 /** What the page has to save: a quantity already converted to the base unit the API stores. */
 export interface ShoppingAddRequest {
   option: ShoppingAddOption;
@@ -27,6 +36,18 @@ function stepFor(unit: DisplayUnit | typeof packageUnit): number {
   return unit === 'g' || unit === 'ml' ? 50 : unit === 'kg' || unit === 'l' ? 0.5 : 1;
 }
 
+/** One ranking for both result lists: prefix matches first, the rest alphabetical. */
+function matching<T extends { name: string }>(products: readonly T[], query: string, limit: number): T[] {
+  return products
+    .filter(product => product.name.toLocaleLowerCase().includes(query))
+    .sort((a, b) => {
+      const aStarts = a.name.toLocaleLowerCase().startsWith(query);
+      const bStarts = b.name.toLocaleLowerCase().startsWith(query);
+      return Number(bStarts) - Number(aStarts) || a.name.localeCompare(b.name);
+    })
+    .slice(0, limit);
+}
+
 @Component({
   selector: 'app-shopping-add',
   imports: [TranslatePipe],
@@ -37,6 +58,7 @@ function stepFor(unit: DisplayUnit | typeof packageUnit): number {
 export class ShoppingAdd {
   readonly ingredients = input.required<readonly Ingredient[]>();
   readonly preparedMeals = input.required<readonly PreparedMeal[]>();
+  readonly onList = input<readonly ShoppingAddListedProduct[]>([]);
   readonly add = output<ShoppingAddRequest>();
 
   readonly query = signal('');
@@ -64,15 +86,14 @@ export class ShoppingAdd {
   /** Ingredients and ready meals share one result list, best prefix matches first. */
   readonly suggestions = computed(() => {
     const query = this.query().trim().toLocaleLowerCase();
-    if (!query) return [];
-    return this.options()
-      .filter(option => option.name.toLocaleLowerCase().includes(query))
-      .sort((a, b) => {
-        const aStarts = a.name.toLocaleLowerCase().startsWith(query);
-        const bStarts = b.name.toLocaleLowerCase().startsWith(query);
-        return Number(bStarts) - Number(aStarts) || a.name.localeCompare(b.name);
-      })
-      .slice(0, 8);
+    return query ? matching(this.options(), query, 8) : [];
+  });
+
+  /** Matches among what is already on the list — shown under the pickable results so a product
+      the page holds back is answered with "already there", never with "no matching products". */
+  readonly listedMatches = computed(() => {
+    const query = this.query().trim().toLocaleLowerCase();
+    return query ? matching(this.onList(), query, 4) : [];
   });
 
   readonly units = computed<(DisplayUnit | typeof packageUnit)[]>(() => {

@@ -7,7 +7,7 @@
 
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
-  <app-shopping-add [ingredients]="availableIngredients()" [preparedMeals]="availablePreparedMeals()" (add)="add($event)" />
+  <app-shopping-add [ingredients]="availableIngredients()" [preparedMeals]="availablePreparedMeals()" [onList]="listedProducts()" (add)="add($event)" />
 
   <section class="receipt" aria-labelledby="receipt-title">
     <div class="receipt-heading">
