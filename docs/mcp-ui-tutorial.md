@@ -242,9 +242,15 @@ Three signals can tell it which:
 | `hostContext.locale` | `ui/initialize` result and `ui/notifications/host-context-changed` | the host's UI language; present only if the host sends it |
 | `navigator.language` | the iframe | last resort |
 
-Kotlet applies them in that order. The server writes the meta key **only when the client
-actually negotiated a language**, so a host that sends no `Accept-Language` does not get pinned
-to the server default and the host's own locale wins instead:
+Kotlet applies them in that order, normalizing each candidate to its language subtag (`pl-PL` →
+`pl`) and skipping any tag it has no dictionary for, so an unsupported `fr-FR` falls through to
+the next signal and finally to English rather than rendering blank strings.
+
+The server writes the meta key **only when the client actually negotiated a language**, so a host
+that sends no `Accept-Language` does not get pinned to the server default and the host's own
+locale wins instead. For the same reason the app clears its stored server locale when a later
+result carries no meta key — otherwise one negotiated result would keep overriding the host for
+the rest of the session:
 
 ```csharp
 // Mcp/McpUiLocale.cs, called from the CallTool filter for every result
@@ -255,10 +261,15 @@ result.Meta["kotlet/locale"] = language;
 ```
 
 Inside the document, keep it to a dictionary and three helpers — `t()` for messages, `tp()` for
-plurals via `Intl.PluralRules` (Polish needs 1 / 2-4 / 5+, so `count === 1 ? "" : "s"` does not
-survive translation), and `tv()` for values that arrive from the API (enum members, meal slots)
-with the humanized value as the fallback so a new enum member still renders. Re-render on
-language change: the host can send a context update after the first paint.
+plurals, and `tv()` for values that arrive from the API (enum members, meal slots) with the
+humanized value as the fallback so a new enum member still renders. Re-render on language change:
+the host can send a context update after the first paint, and it must not move the user off the
+view they are on.
+
+Store plurals as a table keyed by CLDR category and let `Intl.PluralRules` pick the form —
+`count === 1 ? "" : "s"` does not survive translation, and neither does any hand-written numeric
+rule. Polish alone needs `one` / `few` / `many`, and its boundaries are not the intuitive ones:
+12 is `many` (`12 pozycji`) while 22 is `few` (`22 pozycje`).
 
 Two things are easy to miss:
 

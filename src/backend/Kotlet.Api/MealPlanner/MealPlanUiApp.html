@@ -218,7 +218,8 @@ const el = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value)
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
-const state = { saveRequest: null, data: null };
+// saveState is idle | saving | saved | failed; it drives the button label across language changes.
+const state = { saveRequest: null, data: null, saveState: "idle" };
 const slots = ["breakfast", "second-breakfast", "dinner", "snack", "supper"];
 
 /* Re-picks the dictionary from the known locale sources and, when it changed, re-renders the
@@ -236,7 +237,7 @@ function applyLanguage() {
   el("footer-copy").textContent = t("footerCopy");
   el("shared").setAttribute("aria-label", t("sharedLabel"));
   el("week").setAttribute("aria-label", t("weekLabel"));
-  if (!el("save").disabled) el("save").textContent = t("save");
+  el("save").textContent = t({ saving: "saving", saved: "saved", failed: "retry" }[state.saveState] || "save");
   if (changed && state.data) render(state.data);
 }
 
@@ -345,6 +346,7 @@ async function savePlan() {
   const button = el("save");
   el("error").hidden = true;
   button.disabled = true;
+  state.saveState = "saving";
   button.textContent = t("saving");
   try {
     const result = await bridge.callTool("add_weekly_meal_plan", { request: state.saveRequest });
@@ -361,10 +363,12 @@ async function savePlan() {
     el("success").textContent = tp("addedMeals", added)
       + (skipped ? t("skipped", { count: skipped }) : "") + t("sentenceEnd");
     el("success").hidden = false;
+    state.saveState = "saved";
     button.textContent = t("saved");
     button.disabled = true;
   } catch (error) {
     showError(error.message);
+    state.saveState = "failed";
     button.disabled = false;
     button.textContent = t("retry");
   }
@@ -373,7 +377,8 @@ async function savePlan() {
 el("save").addEventListener("click", savePlan);
 bridge.on("ui/notifications/tool-result", (params) => {
   // The server reports the language it served the call in; it wins over the host/browser locale.
-  locale.server = (params && params._meta && params._meta["kotlet/locale"]) || locale.server;
+  // A result without the key means nothing was negotiated, so an earlier one must not linger.
+  locale.server = (params && params._meta && params._meta["kotlet/locale"]) || null;
   applyLanguage();
   if (params && params.structuredContent) render(params.structuredContent);
   else showError(t("errorNoData"));

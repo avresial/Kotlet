@@ -395,7 +395,8 @@ el("next-day").addEventListener("click", () => { if (state.date) void loadDay(sh
 
 bridge.on("ui/notifications/tool-result", (params) => {
   // The server reports the language it served the call in; it wins over the host/browser locale.
-  locale.server = (params && params._meta && params._meta["kotlet/locale"]) || locale.server;
+  // A result without the key means nothing was negotiated, so an earlier one must not linger.
+  locale.server = (params && params._meta && params._meta["kotlet/locale"]) || null;
   applyLanguage();
   if (params && params.structuredContent) renderPlan(params.structuredContent);
   else {

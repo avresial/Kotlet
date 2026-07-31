@@ -237,9 +237,11 @@ function applyLanguage() {
   el("back").textContent = t("back");
   el("loading").textContent = t("loading");
   if (!changed) return;
+  // renderList/renderDetail navigate to what they render, so remember where the user actually is.
+  const activeView = state.view;
   if (state.listData) renderList(state.listData);
   if (state.detail) renderDetail(state.detail);
-  if (state.view) show(state.view);
+  if (activeView) show(activeView);
 }
 
 function applyHostContext(context) {
@@ -389,7 +391,8 @@ el("back").addEventListener("click", () => {
 
 bridge.on("ui/notifications/tool-result", (params) => {
   // The server reports the language it served the call in; it wins over the host/browser locale.
-  locale.server = (params && params._meta && params._meta["kotlet/locale"]) || locale.server;
+  // A result without the key means nothing was negotiated, so an earlier one must not linger.
+  locale.server = (params && params._meta && params._meta["kotlet/locale"]) || null;
   applyLanguage();
   if (params && params.structuredContent) renderList(params.structuredContent);
   else {

@@ -15,7 +15,10 @@ const apps = {
 const html = Object.fromEntries(Object.entries(apps)
   .map(([name, path]) => [name, readFileSync(new URL(path, import.meta.url), "utf8")]));
 
-/** Loads an app, optionally announcing a host locale, then delivers a tool result. */
+/**
+ * Loads an app, optionally announcing a host locale, then delivers a tool result. The returned
+ * DOM carries `notify`, so a test can push further notifications after the first render.
+ */
 function open(app, { serverLocale, hostLocale, structuredContent, meta } = {}) {
   const dom = new JSDOM(html[app], {
     runScripts: "dangerously",
@@ -33,8 +36,16 @@ function open(app, { serverLocale, hostLocale, structuredContent, meta } = {}) {
       _meta: Object.assign(serverLocale ? { "kotlet/locale": serverLocale } : {}, meta),
     });
   }
+  dom.notify = notify;
   return dom;
 }
+
+const hostLocaleChange = (dom, locale) =>
+  dom.notify("ui/notifications/host-context-changed", { hostContext: { locale } });
+const toolResult = (dom, structuredContent, serverLocale) => dom.notify("ui/notifications/tool-result", {
+  structuredContent,
+  _meta: serverLocale ? { "kotlet/locale": serverLocale } : {},
+});
 
 const text = (dom, selector) => dom.window.document.querySelector(selector).textContent.replace(/\s+/g, " ").trim();
 const body = (dom) => dom.window.document.body.textContent.replace(/\s+/g, " ").trim();
@@ -126,8 +137,10 @@ test("the server locale localizes the shared data app", () => {
   meal.window.close();
 });
 
-test("Polish plural forms follow the one/few/many split", () => {
-  for (const [count, expected] of [[1, "1 pozycja"], [3, "3 pozycje"], [5, "5 pozycji"]]) {
+test("Polish plural forms follow the CLDR categories, including the teens and the twenties", () => {
+  // 12-14 are "many" while 22-24 are "few", which a 1 / 2-4 / 5+ rule of thumb gets wrong.
+  const cases = [[1, "1 pozycja"], [3, "3 pozycje"], [5, "5 pozycji"], [12, "12 pozycji"], [22, "22 pozycje"]];
+  for (const [count, expected] of cases) {
     const dom = open("data", { serverLocale: "pl", structuredContent: pantry(count) });
     assert.equal(text(dom, "#summary"), expected);
     dom.window.close();
@@ -142,6 +155,69 @@ test("the host locale is used when the server negotiated none, and loses to it o
   const server = open("data", { hostLocale: "pl-PL", serverLocale: "en", structuredContent: shoppingList(1) });
   assert.equal(text(server, "#title"), "Shopping list");
   server.window.close();
+});
+
+test("a host locale announced after the first render re-renders the view", () => {
+  const dom = open("data", { structuredContent: shoppingList(2) });
+  assert.equal(text(dom, "#title"), "Shopping list");
+
+  hostLocaleChange(dom, "pl-PL");
+  assert.equal(dom.window.document.documentElement.lang, "pl");
+  assert.equal(text(dom, "#title"), "Lista zakupów");
+  assert.equal(text(dom, ".section h2"), "Nabiał");
+
+  // A later result that names its own language still wins over the host.
+  toolResult(dom, shoppingList(1), "en");
+  assert.equal(dom.window.document.documentElement.lang, "en");
+  assert.equal(text(dom, "#title"), "Shopping list");
+
+  // ...and once the server stops naming one, the host locale applies again.
+  toolResult(dom, shoppingList(1));
+  assert.equal(text(dom, "#title"), "Lista zakupów");
+  dom.window.close();
+});
+
+test("the recipe app keeps the open view when the language changes", () => {
+  const dom = open("recipes", { structuredContent: recipeList });
+  dom.window.eval(`renderDetail(${JSON.stringify({
+    id: recipeList.recipes[0].id, title: "Zupa", mealType: "dinner", servings: 4,
+    ingredients: [{ name: "Woda", quantity: 1, unit: "l" }], descriptionMarkdown: "Gotuj.",
+  })}); show("list");`);
+
+  hostLocaleChange(dom, "pl");
+  assert.equal(dom.window.eval("state.view"), "list");
+  assert.equal(dom.window.document.getElementById("detail-view").hidden, true);
+  assert.equal(text(dom, "#list-eyebrow"), "Kotlet · Przepisy");
+  // The detail view was re-rendered in the new language even though it stayed hidden.
+  assert.ok(dom.window.document.getElementById("detail-view").textContent.includes("Składniki"));
+  dom.window.close();
+});
+
+test("the draft app keeps the retry label when a later result re-applies the language", async () => {
+  const dom = open("planDraft", { serverLocale: "pl", structuredContent: planDraft });
+  const save = dom.window.document.getElementById("save");
+  assert.equal(save.textContent, "Dodaj do Kotleta");
+
+  dom.window.eval('bridge.callTool = () => Promise.reject(new Error("nope"));');
+  save.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(save.textContent, "Spróbuj ponownie");
+
+  // A new preview must not relabel a button that still retries the failed save.
+  toolResult(dom, planDraft, "pl");
+  assert.equal(save.textContent, "Spróbuj ponownie");
+  dom.window.close();
+});
+
+test("dates render in the chosen language", () => {
+  const plan = [{ date: "2026-02-02", meals: { dinner: [{ displayName: "Zupa", servings: 2 }] } }];
+  const english = open("data", { structuredContent: plan });
+  assert.equal(text(english, ".day h2"), "February 2, 2026");
+  english.window.close();
+
+  const polish = open("data", { serverLocale: "pl", structuredContent: plan });
+  assert.equal(text(polish, ".day h2"), "2 lutego 2026");
+  polish.window.close();
 });
 
 test("an unsupported locale falls back to English", () => {

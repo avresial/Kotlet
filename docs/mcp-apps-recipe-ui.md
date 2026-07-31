@@ -53,7 +53,9 @@ mirrors `recipe-list-page` and `recipe-detail-page` class-for-class. The host's 
 
 Language works the same way: English and Polish both ship inside the document, and the app picks
 one from the tool result's `_meta["kotlet/locale"]` (the language the server negotiated from
-`Accept-Language`), then `hostContext.locale`, then the browser. See
+`Accept-Language`), then `hostContext.locale`, then the browser. Each candidate is normalized to
+its language subtag, so `pl-PL` selects `pl`; a tag with no dictionary (`fr-FR`) is skipped in
+favour of the next signal, and English is the final fallback. See
 [§8 of the MCP UI tutorial](./mcp-ui-tutorial.md#8-localizing-the-ui).
 
 ## PoC decision point: Blazor WASM vs. lightweight HTML/JS
