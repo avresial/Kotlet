@@ -357,16 +357,44 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   .receipt-rail { position: static; }
 }
 
+// The drawer trigger is a fixed chip in the top-left corner below this width, and the
+// strip beside it is empty — park the back link there instead of spending a page row on it.
+@media (max-width: 48rem) {
+  .back {
+    position: fixed;
+    z-index: 20;
+    top: .75rem;
+    left: 3.9rem;
+    height: 2.75rem;
+    max-width: calc(100vw - 5.25rem);
+    box-sizing: border-box;
+    padding: 0 .7rem;
+    display: inline-flex;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid var(--app-border);
+    border-radius: .65rem;
+    background: var(--app-surface);
+    box-shadow: 0 .25rem .8rem rgb(65 49 35 / 12%);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 42rem) {
   .meal-planner-page { width: min(100% - 1.5rem, 72rem); padding: 1rem 0 2.5rem; }
-  header { align-items: stretch; flex-direction: column; margin: .9rem 0 1.1rem; }
-  h1 { margin: .25rem 0; font-size: 1.9rem; }
+  header { flex-wrap: nowrap; align-items: center; gap: .6rem; margin: .25rem 0 .75rem; }
+  header > div:first-child { flex: 1 1 auto; min-width: 0; }
+  .eyebrow { display: none; }
+  h1 { margin: 0; font-size: 1.65rem; }
   h2 { font-size: 1.2rem; }
 
-  .plan-toolbar { justify-content: space-between; }
-  .date-field { flex: 1; }
-  .date-field input { flex: 1; min-width: 0; }
-  .date-field input, .copy-trigger, .copy-field input, .copy-field button { padding: .45rem .6rem; font-size: .88rem; }
+  // Date picker rides beside the title; copying a plan stays a desktop action.
+  .plan-toolbar { flex: 0 0 auto; }
+  .date-field label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .date-field input { min-width: 0; }
+  .date-field input, .copy-field input, .copy-field button { padding: .45rem .6rem; font-size: .88rem; }
+  .copy-trigger { display: none; }
   .copy-panel { width: 100%; }
 
   .overview-heading { align-items: start; flex-direction: column; }
@@ -393,12 +421,22 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   .receipt-total { margin-top: .7rem; padding-top: .6rem; }
 
   .mobile-day-nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .4rem;
-    margin-bottom: 1rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .3rem;
+    margin-bottom: .75rem;
 
-    button { padding: .45rem .6rem; border: 1px solid var(--app-border-strong); border-radius: .45rem; color: var(--app-text); background: var(--app-surface-raised); }
-    span { align-self: center; color: var(--app-text-muted); font-size: .78rem; }
+    button {
+      overflow: hidden;
+      padding: .3rem .25rem;
+      border: 1px solid var(--app-border-strong);
+      border-radius: .45rem;
+      color: var(--app-text);
+      background: var(--app-surface-raised);
+      font-size: .72rem;
+      font-weight: 650;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 }

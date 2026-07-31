@@ -81,22 +81,105 @@
   <section id="content" hidden>
     <header class="hero">
       <div>
-        <p class="eyebrow">Kotlet weekly plan</p>
+        <p id="eyebrow" class="eyebrow">Kotlet weekly plan</p>
         <h1 id="title">Meal plan draft</h1>
         <p id="subtitle" class="subtitle"></p>
       </div>
-      <span class="draft-badge">Draft · not saved</span>
+      <span id="draft-badge" class="draft-badge">Draft · not saved</span>
     </header>
     <aside id="shared" class="shared" aria-label="Shared ingredients" hidden></aside>
     <div id="week" class="week" aria-label="Seven-day meal plan"></div>
     <footer class="footer">
-      <p class="footer-copy">Review the draft first. Existing identical meals are skipped; nothing is replaced.</p>
+      <p id="footer-copy" class="footer-copy">Review the draft first. Existing identical meals are skipped; nothing is replaced.</p>
       <button id="save" class="button" type="button">Add to Kotlet</button>
     </footer>
   </section>
 </main>
 <script>
 "use strict";
+/* Localization. The app is a static document, so both languages ship inline and the dictionary is
+ * chosen at runtime. Precedence: the language the server negotiated for the tool call
+ * (_meta["kotlet/locale"], resolved from Accept-Language), then the host's UI locale, then the
+ * browser's. Plural forms go through Intl.PluralRules, which Polish needs (1 / 2-4 / 5+). */
+const FALLBACK_LANGUAGE = "en";
+const STRINGS = {
+  en: {
+    loading: "Building your meal plan preview…", eyebrow: "Kotlet weekly plan", title: "Meal plan draft",
+    draftBadge: "Draft · not saved", sharedLabel: "Shared ingredients", weekLabel: "Seven-day meal plan",
+    footerCopy: "Review the draft first. Existing identical meals are skipped; nothing is replaced.",
+    save: "Add to Kotlet", saving: "Adding…", saved: "Added to Kotlet", retry: "Try again",
+    subtitle: "{meals} · week of {date}", noMeals: "No meals", reused: "Ingredients reused",
+    meals: { one: "{count} meal", other: "{count} meals" },
+    servings: { one: "{count} serving", other: "{count} servings" },
+    calories: "{count} kcal",
+    addedMeals: { one: "Added {count} meal to Kotlet", other: "Added {count} meals to Kotlet" },
+    skipped: "; skipped {count} already planned", sentenceEnd: ".",
+    errorDraft: "The host did not deliver a complete meal plan draft.",
+    errorNoData: "The host did not deliver meal plan data to the app.",
+    errorSave: "The plan could not be added.",
+    errorRejected: "Kotlet did not accept the plan. Please review it in chat.",
+    errorHost: "Host request failed.", initFailed: "MCP Apps initialization failed: {message}",
+    "slot.breakfast": "Breakfast", "slot.second-breakfast": "Second breakfast", "slot.dinner": "Lunch",
+    "slot.snack": "Snack", "slot.supper": "Dinner",
+    "type.recipe": "Recipe", "type.ingredient": "Ingredient", "type.prepared-meal": "Prepared meal"
+  },
+  pl: {
+    loading: "Przygotowywanie podglądu planu posiłków…", eyebrow: "Tygodniowy plan Kotlet", title: "Szkic planu posiłków",
+    draftBadge: "Szkic · niezapisany", sharedLabel: "Wspólne składniki", weekLabel: "Plan posiłków na siedem dni",
+    footerCopy: "Najpierw sprawdź szkic. Identyczne zaplanowane posiłki są pomijane; nic nie zostanie zastąpione.",
+    save: "Dodaj do Kotleta", saving: "Dodawanie…", saved: "Dodano do Kotleta", retry: "Spróbuj ponownie",
+    subtitle: "{meals} · tydzień od {date}", noMeals: "Brak posiłków", reused: "Powtarzające się składniki",
+    meals: { one: "{count} posiłek", few: "{count} posiłki", many: "{count} posiłków", other: "{count} posiłków" },
+    servings: { one: "{count} porcja", few: "{count} porcje", many: "{count} porcji", other: "{count} porcji" },
+    calories: "{count} kcal",
+    addedMeals: {
+      one: "Dodano {count} posiłek do Kotleta", few: "Dodano {count} posiłki do Kotleta",
+      many: "Dodano {count} posiłków do Kotleta", other: "Dodano {count} posiłków do Kotleta"
+    },
+    skipped: "; pominięto {count} już zaplanowanych", sentenceEnd: ".",
+    errorDraft: "Host nie przekazał kompletnego szkicu planu posiłków.",
+    errorNoData: "Host nie przekazał danych planu posiłków do aplikacji.",
+    errorSave: "Nie udało się dodać planu.",
+    errorRejected: "Kotlet nie przyjął planu. Sprawdź go w czacie.",
+    errorHost: "Żądanie do hosta nie powiodło się.", initFailed: "Inicjalizacja MCP Apps nie powiodła się: {message}",
+    "slot.breakfast": "Śniadanie", "slot.second-breakfast": "II śniadanie", "slot.dinner": "Obiad",
+    "slot.snack": "Przekąska", "slot.supper": "Kolacja",
+    "type.recipe": "Przepis", "type.ingredient": "Składnik", "type.prepared-meal": "Gotowe danie"
+  }
+};
+const locale = { server: null, host: null, browser: navigator.language };
+let lang = FALLBACK_LANGUAGE;
+const pluralRules = {};
+const supportedLanguage = (value) => {
+  const code = String(value || "").trim().slice(0, 2).toLowerCase();
+  return Object.hasOwn(STRINGS, code) ? code : null;
+};
+const entry = (key) => {
+  const value = STRINGS[lang][key];
+  return value === undefined ? STRINGS[FALLBACK_LANGUAGE][key] : value;
+};
+const fill = (template, values) => values
+  ? String(template).replace(/\{(\w+)\}/g, (match, name) => (name in values ? String(values[name]) : match))
+  : String(template);
+const t = (key, values) => {
+  const found = entry(key);
+  return found === undefined ? key : fill(found, values);
+};
+/* Plural-aware lookup: the value is a form table keyed by Intl.PluralRules categories. */
+const tp = (key, count, values) => {
+  const forms = entry(key);
+  if (!forms) return String(count);
+  const rules = pluralRules[lang] || (pluralRules[lang] = new Intl.PluralRules(lang));
+  return fill(forms[rules.select(count)] || forms.other, Object.assign({ count: count.toLocaleString(lang) }, values));
+};
+/* Translates a value that arrives from the API (slots, meal kinds), humanizing unknown members. */
+const tv = (prefix, value) => {
+  if (!value) return "";
+  const found = entry(prefix + "." + String(value).toLowerCase());
+  return found === undefined
+    ? String(value).replaceAll("-", " ").replace(/^./, (c) => c.toUpperCase())
+    : String(found);
+};
 const bridge = (() => {
   const pending = new Map();
   const handlers = new Map();
@@ -114,7 +197,7 @@ const bridge = (() => {
       const entry = pending.get(message.id);
       if (!entry) return;
       pending.delete(message.id);
-      if (message.error) entry.reject(new Error(message.error.message || "Host request failed."));
+      if (message.error) entry.reject(new Error(message.error.message || t("errorHost")));
       else entry.resolve(message.result);
     } else if (message.id !== undefined && message.method !== undefined) {
       post({ jsonrpc: "2.0", id: message.id, result: {} });
@@ -135,19 +218,35 @@ const el = (id) => document.getElementById(id);
 const escapeHtml = (value) => String(value)
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
-const state = { saveRequest: null };
+// saveState is idle | saving | saved | failed; it drives the button label across language changes.
+const state = { saveRequest: null, data: null, saveState: "idle" };
 const slots = ["breakfast", "second-breakfast", "dinner", "snack", "supper"];
-const slotLabel = (slot) => slot === "second-breakfast"
-  ? "Second breakfast"
-  : slot.charAt(0).toUpperCase() + slot.slice(1);
-const kindLabel = (kind) => ({
-  "recipe": "Recipe", "ingredient": "Ingredient", "prepared-meal": "Prepared meal"
-})[kind] || kind;
+
+/* Re-picks the dictionary from the known locale sources and, when it changed, re-renders the
+ * static chrome and the draft. */
+function applyLanguage() {
+  const next = supportedLanguage(locale.server) || supportedLanguage(locale.host)
+    || supportedLanguage(locale.browser) || FALLBACK_LANGUAGE;
+  const changed = next !== lang;
+  lang = next;
+  document.documentElement.lang = lang;
+  el("loading").textContent = t("loading");
+  el("eyebrow").textContent = t("eyebrow");
+  el("title").textContent = t("title");
+  el("draft-badge").textContent = t("draftBadge");
+  el("footer-copy").textContent = t("footerCopy");
+  el("shared").setAttribute("aria-label", t("sharedLabel"));
+  el("week").setAttribute("aria-label", t("weekLabel"));
+  el("save").textContent = t({ saving: "saving", saved: "saved", failed: "retry" }[state.saveState] || "save");
+  if (changed && state.data) render(state.data);
+}
 
 function applyHostContext(context) {
   const theme = context && context.theme;
   const dark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   document.documentElement.classList.toggle("app-dark", dark);
+  locale.host = (context && (context.locale || context.language)) || locale.host;
+  applyLanguage();
 }
 
 function showError(message) {
@@ -158,8 +257,8 @@ function showError(message) {
 function localDate(iso) {
   const date = new Date(iso + "T12:00:00");
   return {
-    weekday: new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(date),
-    date: new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date)
+    weekday: new Intl.DateTimeFormat(lang, { weekday: "long" }).format(date),
+    date: new Intl.DateTimeFormat(lang, { month: "short", day: "numeric" }).format(date)
   };
 }
 
@@ -185,21 +284,25 @@ function renderSharedIngredients(meals) {
     box.hidden = true;
     return;
   }
-  box.innerHTML = "<strong>Ingredients reused</strong>" + shared
-    .map(([name, count]) => `<span class="chip">${escapeHtml(name)} · ${count} meals</span>`)
+  box.innerHTML = `<strong>${escapeHtml(t("reused"))}</strong>` + shared
+    .map(([name, count]) => `<span class="chip">${escapeHtml(name)} · ${escapeHtml(tp("meals", count))}</span>`)
     .join("");
   box.hidden = false;
 }
 
 function render(data) {
   if (!data || !data.preview || !data.saveRequest) {
-    showError("The host did not deliver a complete meal plan draft.");
+    showError(t("errorDraft"));
     return;
   }
+  state.data = data;
   state.saveRequest = data.saveRequest;
   const meals = data.preview.meals || [];
-  el("title").textContent = "Meal plan draft";
-  el("subtitle").textContent = `${meals.length} meal${meals.length === 1 ? "" : "s"} · week of ${localDate(data.preview.weekStart).date}`;
+  el("title").textContent = t("title");
+  el("subtitle").textContent = t("subtitle", {
+    meals: tp("meals", meals.length),
+    date: localDate(data.preview.weekStart).date
+  });
   renderSharedIngredients(meals);
 
   const week = el("week");
@@ -214,7 +317,7 @@ function render(data) {
     day.className = "day";
     day.innerHTML =
       `<header class="day-head"><span class="day-name">${escapeHtml(label.weekday)}</span><span class="day-date">${escapeHtml(label.date)}</span></header>` +
-      (dayMeals.length ? '<div class="meals"></div>' : '<p class="empty">No meals</p>');
+      (dayMeals.length ? '<div class="meals"></div>' : `<p class="empty">${escapeHtml(t("noMeals"))}</p>`);
     const list = day.querySelector(".meals");
     if (list) {
       for (const meal of dayMeals) {
@@ -222,13 +325,13 @@ function render(data) {
         const card = document.createElement("article");
         card.className = "meal";
         card.innerHTML =
-          `<p class="slot">${escapeHtml(slotLabel(meal.slot))}</p>` +
+          `<p class="slot">${escapeHtml(tv("slot", meal.slot))}</p>` +
           `<h2>${escapeHtml(meal.title)}</h2>` +
           (ingredients.length
             ? `<p class="meta">${ingredients.map(escapeHtml).join(" · ")}${meal.ingredients.length > 4 ? " · …" : ""}</p>`
             : "") +
-          (meal.servings ? `<p class="meta">${meal.servings} serving${meal.servings === 1 ? "" : "s"}${meal.caloriesPerServing != null ? ` · ${meal.caloriesPerServing} kcal` : ""}</p>` : "") +
-          `<span class="kind">${escapeHtml(kindLabel(meal.type))}</span>` +
+          (meal.servings ? `<p class="meta">${escapeHtml(tp("servings", meal.servings))}${meal.caloriesPerServing != null ? " · " + escapeHtml(t("calories", { count: meal.caloriesPerServing })) : ""}</p>` : "") +
+          `<span class="kind">${escapeHtml(tv("type", meal.type))}</span>` +
           (meal.note ? `<p class="note">${escapeHtml(meal.note)}</p>` : "");
         list.appendChild(card);
       }
@@ -243,34 +346,42 @@ async function savePlan() {
   const button = el("save");
   el("error").hidden = true;
   button.disabled = true;
-  button.textContent = "Adding…";
+  state.saveState = "saving";
+  button.textContent = t("saving");
   try {
     const result = await bridge.callTool("add_weekly_meal_plan", { request: state.saveRequest });
     if (result.isError) {
       const text = (result.content || []).map((block) => block.text).join(" ");
-      throw new Error(text || "The plan could not be added.");
+      throw new Error(text || t("errorSave"));
     }
     const payload = result.structuredContent || {};
     const status = String(payload.status || "").toLowerCase();
     if (status && status !== "success" && status !== "0")
-      throw new Error("Kotlet did not accept the plan. Please review it in chat.");
+      throw new Error(t("errorRejected"));
     const added = payload.plan && payload.plan.added ? payload.plan.added.length : state.saveRequest.meals.length;
     const skipped = payload.plan && payload.plan.skipped ? payload.plan.skipped : 0;
-    el("success").textContent = `Added ${added} meal${added === 1 ? "" : "s"} to Kotlet${skipped ? `; skipped ${skipped} already planned` : ""}.`;
+    el("success").textContent = tp("addedMeals", added)
+      + (skipped ? t("skipped", { count: skipped }) : "") + t("sentenceEnd");
     el("success").hidden = false;
-    button.textContent = "Added to Kotlet";
+    state.saveState = "saved";
+    button.textContent = t("saved");
     button.disabled = true;
   } catch (error) {
     showError(error.message);
+    state.saveState = "failed";
     button.disabled = false;
-    button.textContent = "Try again";
+    button.textContent = t("retry");
   }
 }
 
 el("save").addEventListener("click", savePlan);
 bridge.on("ui/notifications/tool-result", (params) => {
+  // The server reports the language it served the call in; it wins over the host/browser locale.
+  // A result without the key means nothing was negotiated, so an earlier one must not linger.
+  locale.server = (params && params._meta && params._meta["kotlet/locale"]) || null;
+  applyLanguage();
   if (params && params.structuredContent) render(params.structuredContent);
-  else showError("The host did not deliver meal plan data to the app.");
+  else showError(t("errorNoData"));
 });
 bridge.on("ui/notifications/host-context-changed", (params) =>
   applyHostContext((params && params.hostContext) || params));
@@ -286,7 +397,7 @@ bridge.on("ui/notifications/host-context-changed", (params) =>
     applyHostContext(result && result.hostContext);
     bridge.notify("ui/notifications/initialized");
   } catch (error) {
-    showError("MCP Apps initialization failed: " + error.message);
+    showError(t("initFailed", { message: error.message }));
   }
 })();
 </script>

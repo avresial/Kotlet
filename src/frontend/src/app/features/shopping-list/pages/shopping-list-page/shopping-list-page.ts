@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
@@ -7,10 +6,10 @@ import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { foodCategories, Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
-import { IngredientPicker } from '../../../ingredients/components/ingredient-picker/ingredient-picker';
+import { ShoppingAdd, ShoppingAddRequest } from '../../components/shopping-add/shopping-add';
 import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
-import { DisplayUnit, displayMeasurement, toBaseQuantity, unitsForIngredient } from '../../../ingredients/display-units';
+import { DisplayUnit, displayMeasurement, shortUnitLabel, toBaseQuantity } from '../../../ingredients/display-units';
 import { PreparedMeal } from '../../../prepared-meals/prepared-meal.models';
 import { PreparedMealService } from '../../../prepared-meals/prepared-meal.service';
 
@@ -39,9 +38,19 @@ export function groupShoppingItems(items: ShoppingListItem[]): ShoppingListGroup
   return bought.length ? [...remaining, { key: 'bought', label: 'shopping.alreadyBought', isBought: true, items: bought }] : remaining;
 }
 
+/** A line the shopper has already handed over, still waiting for the API to confirm it. */
+export interface PendingAddition {
+  key: string;
+  name: string;
+  quantity: number;
+  unit: DisplayUnit | 'package';
+  ingredientId: string | null;
+  preparedMealId: string | null;
+}
+
 @Component({
   selector: 'app-shopping-list-page',
-  imports: [ReactiveFormsModule, RouterLink, IngredientPicker, TranslatePipe],
+  imports: [RouterLink, ShoppingAdd, TranslatePipe],
   templateUrl: './shopping-list-page.html',
   styleUrl: './shopping-list-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -50,35 +59,29 @@ export class ShoppingListPage implements OnInit {
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly ingredientService = inject(IngredientService);
   private readonly preparedMealService = inject(PreparedMealService);
-  private readonly formBuilder = inject(FormBuilder);
   private readonly translations = inject(TranslationService);
   readonly items = signal<ShoppingListItem[]>([]);
   readonly ingredients = signal<Ingredient[]>([]);
   readonly preparedMeals = signal<PreparedMeal[]>([]);
+  readonly pending = signal<PendingAddition[]>([]);
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
+  private pendingCounter = 0;
   readonly generateFrom = signal(this.dateString(this.monday(new Date())));
   readonly generateTo = signal(this.dateString(new Date(this.monday(new Date()).getTime() + 6 * 86400000)));
   readonly showGenerate = signal(false);
   readonly error = signal<string | null>(null);
-  /** Something already ticked off stays pickable so the shopper can restart that line — see add(). */
+  /** Something already ticked off stays pickable so the shopper can restart that line — see add().
+      Anything still in flight is held back so a fast typist cannot queue the same product twice. */
   readonly availableIngredients = computed(() => this.ingredients().filter(ingredient =>
-    !this.items().some(item => item.ingredientId === ingredient.id && !item.isPurchased)));
+    !this.items().some(item => item.ingredientId === ingredient.id && !item.isPurchased)
+    && !this.pending().some(addition => addition.ingredientId === ingredient.id)));
   readonly availablePreparedMeals = computed(() => this.preparedMeals().filter(meal =>
-    !this.items().some(item => item.preparedMealId === meal.id && !item.isPurchased)));
+    !this.items().some(item => item.preparedMealId === meal.id && !item.isPurchased)
+    && !this.pending().some(addition => addition.preparedMealId === meal.id)));
   readonly purchasedCount = computed(() => this.items().filter(item => item.isPurchased).length);
   readonly totalPrice = computed(() => this.items().reduce((sum, item) => sum + item.totalPrice, 0));
   readonly groups = computed(() => groupShoppingItems(this.items()));
-  readonly form = this.formBuilder.nonNullable.group({
-    ingredientId: ['', Validators.required],
-    quantity: [1, [Validators.required, Validators.min(0.001)]],
-    unit: ['g', Validators.required],
-    note: ['', Validators.maxLength(500)],
-  });
-  readonly preparedMealForm = this.formBuilder.nonNullable.group({
-    preparedMealId: ['', Validators.required],
-    quantity: [1, [Validators.required, Validators.min(0.001)]],
-  });
 
   ngOnInit(): void {
     forkJoin({
@@ -94,47 +97,35 @@ export class ShoppingListPage implements OnInit {
       });
   }
 
-  addPreparedMeal(): void {
-    if (this.preparedMealForm.invalid || this.isSaving()) { this.preparedMealForm.markAllAsTouched(); return; }
-    this.isSaving.set(true); this.error.set(null);
-    const { preparedMealId, quantity } = this.preparedMealForm.getRawValue();
-    const purchased = this.items().find(item => item.preparedMealId === preparedMealId && item.isPurchased);
-    const saveItem = purchased
-      ? this.shoppingListService.update(purchased, { quantity, isPurchased: false })
-      : this.shoppingListService.createPreparedMeal(preparedMealId, quantity);
-    saveItem.pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: item => {
-        this.items.update(items => items.some(current => current.id === item.id)
-          ? items.map(current => current.id === item.id ? item : current)
-          : [...items, item]);
-        this.preparedMealForm.reset({ preparedMealId: '', quantity: 1 });
-      },
-      error: error => this.error.set(getApiError(error, this.translations.translate('shopping.addError'))),
-    });
-  }
-
-  add(): void {
-    if (this.form.invalid || this.isSaving()) { this.form.markAllAsTouched(); return; }
-    this.isSaving.set(true); this.error.set(null);
-    const { ingredientId, quantity, unit, note } = this.form.getRawValue();
-    const ingredient = this.selectedIngredient()!;
-    const baseQuantity = toBaseQuantity(quantity, unit as DisplayUnit, ingredient);
-    const trimmedNote = note.trim();
+  /** The add panel hands over and resets immediately; the save runs here in the background so the
+      shopper can keep typing. Until the API answers, the line shows up as a pending row. */
+  add(request: ShoppingAddRequest): void {
+    this.error.set(null);
+    const { option, baseQuantity, displayQuantity, displayUnit, note } = request;
+    const ingredientId = option.kind === 'ingredient' ? option.id : null;
+    const preparedMealId = option.kind === 'preparedMeal' ? option.id : null;
+    const addition: PendingAddition = {
+      key: `pending-${++this.pendingCounter}`, name: option.name,
+      quantity: displayQuantity, unit: displayUnit, ingredientId, preparedMealId,
+    };
+    this.pending.update(additions => [...additions, addition]);
     // Re-adding something already bought restarts that line instead of stacking a duplicate: the tick,
     // the quantity and the note all reset to what was just entered rather than keeping the old shop's values.
-    const purchased = this.items().find(item => item.ingredientId === ingredientId && item.isPurchased);
+    const purchased = this.items().find(item => item.isPurchased
+      && (ingredientId ? item.ingredientId === ingredientId : item.preparedMealId === preparedMealId));
     const saveItem = purchased
-      ? this.shoppingListService.update(purchased, { quantity: baseQuantity, isPurchased: false, note: trimmedNote })
-      : this.shoppingListService.create(ingredientId, baseQuantity, trimmedNote || null);
-    saveItem.pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: item => {
-        this.items.update(items => items.some(current => current.id === item.id)
+      ? this.shoppingListService.update(purchased, { quantity: baseQuantity, isPurchased: false, note })
+      : ingredientId
+        ? this.shoppingListService.create(ingredientId, baseQuantity, note || null)
+        : this.shoppingListService.createPreparedMeal(preparedMealId!, baseQuantity, note || null);
+    saveItem
+      .pipe(finalize(() => this.pending.update(additions => additions.filter(current => current.key !== addition.key))))
+      .subscribe({
+        next: item => this.items.update(items => items.some(current => current.id === item.id)
           ? items.map(current => current.id === item.id ? item : current)
-          : [...items, item]);
-        this.form.reset({ ingredientId: '', quantity: 1, unit: 'g', note: '' });
-      },
-      error: error => this.error.set(getApiError(error, this.translations.translate('shopping.addError'))),
-    });
+          : [...items, item]),
+        error: error => this.error.set(getApiError(error, this.translations.translate('shopping.addError'))),
+      });
   }
 
   update(item: ShoppingListItem, changes: Partial<Pick<ShoppingListItem, 'quantity' | 'isPurchased' | 'note'>>): void {
@@ -156,7 +147,8 @@ export class ShoppingListPage implements OnInit {
   }
 
   clearChecked(): void {
-    if (this.isSaving() || this.purchasedCount() === 0) return;
+    // A bulk action while an add is still in flight would fight over the same list, so both wait.
+    if (this.isSaving() || this.pending().length || this.purchasedCount() === 0) return;
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.clearChecked().pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: () => this.items.update(items => items.filter(item => !item.isPurchased)),
@@ -165,7 +157,7 @@ export class ShoppingListPage implements OnInit {
   }
 
   generate(): void {
-    if (this.isSaving() || this.generateTo() < this.generateFrom()) return;
+    if (this.isSaving() || this.pending().length || this.generateTo() < this.generateFrom()) return;
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.generate(this.generateFrom(), this.generateTo()).pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: items => this.items.set(items),
@@ -173,9 +165,7 @@ export class ShoppingListPage implements OnInit {
     });
   }
 
-  selectedIngredient(): Ingredient | undefined { return this.ingredients().find(value => value.id === this.form.controls.ingredientId.value); }
-  selectIngredient(ingredient: Ingredient): void { this.form.controls.unit.setValue(ingredient.measurementUnit); }
-  selectedUnits(): DisplayUnit[] { return this.selectedIngredient() ? unitsForIngredient(this.selectedIngredient()!) : ['g']; }
+  unitLabel(unit: DisplayUnit | 'package'): string { return shortUnitLabel(unit); }
   display(item: ShoppingListItem) {
     if (item.preparedMealId) return { quantity: item.quantity, unit: 'package' as const };
     const ingredient = this.ingredients().find(value => value.id === item.ingredientId);

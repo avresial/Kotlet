@@ -81,9 +81,6 @@ export class MealPlannerPage implements OnInit {
   readonly selectedDate = signal(this.initialDate);
   readonly overviewFrom = signal(weekStart(this.initialDate));
   readonly overview = signal<MealPlanOverviewDay[]>([]);
-  readonly selectedDayHasMeals = computed(() =>
-    !!this.overview().find((day) => day.date === this.selectedDate())?.plannedSlots.length
-  );
   readonly overviewLabel = computed(() => {
     const from = this.overviewFrom();
     const to = this.addDays(from, this.overviewDays - 1);

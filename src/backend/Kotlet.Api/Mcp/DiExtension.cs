@@ -112,6 +112,8 @@ public static class DiExtension
                 var result = await next(request, cancellationToken);
                 if (!request.Params.Name.StartsWith("show_") && request.Params.Name != MealPlanUiMcp.ToolName)
                     McpToolResultAdapter.Apply(request.Params.Name, result);
+                // Every result may end up in an MCP App, so all of them carry the negotiated language.
+                McpUiLocale.Apply(request.Services, result);
                 return result;
             }));
         // The MCP Apps (SEP-1865) recipe UI primitives carry dynamic _meta.ui metadata, which

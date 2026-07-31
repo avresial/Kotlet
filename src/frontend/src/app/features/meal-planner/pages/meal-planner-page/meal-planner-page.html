@@ -115,7 +115,6 @@
     <button type="button" (click)="goToPreviousDay()">{{ 'meal.previousDay' | t }}</button>
     <button type="button" (click)="goToToday()">{{ 'meal.today' | t }}</button>
     <button type="button" (click)="goToNextDay()">{{ 'meal.nextDay' | t }}</button>
-    @if (selectedDayHasMeals()) { <span>{{ 'meal.plannedToday' | t }}</span> }
   </nav>
 
   @if (planError()) {
