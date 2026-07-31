@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
@@ -7,6 +7,8 @@ import { TranslationService } from '../../../../core/i18n/translation.service';
 import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
 import { PreparedMealService } from '../../../prepared-meals/prepared-meal.service';
+import { PreparedMeal } from '../../../prepared-meals/prepared-meal.models';
+import { ShoppingAddRequest } from '../../components/shopping-add/shopping-add';
 import { groupShoppingItems, ShoppingListPage } from './shopping-list-page';
 
 const item = (id: string, category: number, note: string | null = null): ShoppingListItem => ({
@@ -46,6 +48,11 @@ const ingredient: Ingredient = {
   suitability: 0, isAiModified: false, createdAtUtc: '2026-01-01T00:00:00Z',
 };
 
+const addIngredient = (quantity: number, note: string): ShoppingAddRequest => ({
+  option: { kind: 'ingredient', id: ingredient.id, name: ingredient.name, hint: 'g', ingredient },
+  baseQuantity: quantity, displayQuantity: quantity, displayUnit: 'g', note,
+});
+
 describe('ShoppingListPage notes', () => {
   let page: ShoppingListPage;
   let shoppingListService: { getAll: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
@@ -69,16 +76,14 @@ describe('ShoppingListPage notes', () => {
     page.ngOnInit();
   });
 
-  it('trims the note when creating an item', () => {
-    page.form.setValue({ ingredientId: ingredient.id, quantity: 1, unit: 'g', note: '  buy the fresh one  ' });
-    page.add();
-    expect(shoppingListService.create).toHaveBeenCalledWith(ingredient.id, expect.any(Number), 'buy the fresh one');
+  it('creates the item with the note the add panel handed over', () => {
+    page.add(addIngredient(1, 'buy the fresh one'));
+    expect(shoppingListService.create).toHaveBeenCalledWith(ingredient.id, 1, 'buy the fresh one');
   });
 
-  it('creates with a null note when the note is only whitespace', () => {
-    page.form.setValue({ ingredientId: ingredient.id, quantity: 1, unit: 'g', note: '   ' });
-    page.add();
-    expect(shoppingListService.create).toHaveBeenCalledWith(ingredient.id, expect.any(Number), null);
+  it('creates with a null note when no note was entered', () => {
+    page.add(addIngredient(1, ''));
+    expect(shoppingListService.create).toHaveBeenCalledWith(ingredient.id, 1, null);
   });
 
   it('updates the note with the trimmed value', () => {
@@ -146,8 +151,7 @@ describe('ShoppingListPage re-adding a bought item', () => {
   it('resets the bought line instead of creating a duplicate', () => {
     const page = loadPage([boughtPasta]);
 
-    page.form.setValue({ ingredientId: 'pasta', quantity: 200, unit: 'g', note: '' });
-    page.add();
+    page.add(addIngredient(200, ''));
 
     expect(shoppingListService.create).not.toHaveBeenCalled();
     expect(shoppingListService.update).toHaveBeenCalledWith(
@@ -161,11 +165,10 @@ describe('ShoppingListPage re-adding a bought item', () => {
   it('still creates a new item when nothing matching is on the list', () => {
     const page = loadPage([]);
 
-    page.form.setValue({ ingredientId: 'pasta', quantity: 1, unit: 'g', note: '' });
-    page.add();
+    page.add(addIngredient(1, ''));
 
     expect(shoppingListService.update).not.toHaveBeenCalled();
-    expect(shoppingListService.create).toHaveBeenCalledWith('pasta', expect.any(Number), null);
+    expect(shoppingListService.create).toHaveBeenCalledWith('pasta', 1, null);
     expect(page.items()).toHaveLength(1);
   });
 
@@ -174,5 +177,87 @@ describe('ShoppingListPage re-adding a bought item', () => {
 
     expect(groupShoppingItems([readyMeal]).map(group => [group.key, group.items[0].id]))
       .toEqual([['ready-meals', 'gyoza']]);
+  });
+});
+
+describe('ShoppingListPage background adds', () => {
+  let page: ShoppingListPage;
+  let created: Subject<ShoppingListItem>;
+  let shoppingListService: {
+    getAll: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>;
+    createPreparedMeal: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>;
+  };
+  const meal = { id: 'gyoza', name: 'Gyoza', servings: 2, caloriesPerServing: 300, isArchived: false, addons: [] } as PreparedMeal;
+  const addMeal = (quantity: number, note = ''): ShoppingAddRequest => ({
+    option: { kind: 'preparedMeal', id: meal.id, name: meal.name, hint: 'shopping.readyMeal', meal },
+    baseQuantity: quantity, displayQuantity: quantity, displayUnit: 'package', note,
+  });
+
+  beforeEach(() => {
+    created = new Subject<ShoppingListItem>();
+    shoppingListService = {
+      getAll: vi.fn().mockReturnValue(of([])),
+      create: vi.fn().mockReturnValue(created),
+      createPreparedMeal: vi.fn().mockReturnValue(created),
+      update: vi.fn(),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        ShoppingListPage,
+        { provide: ShoppingListService, useValue: shoppingListService },
+        { provide: IngredientService, useValue: { getAll: vi.fn().mockReturnValue(of([ingredient])) } },
+        { provide: PreparedMealService, useValue: { list: vi.fn().mockReturnValue(of([meal])) } },
+        { provide: TranslationService, useValue: { translate: (key: string) => key } },
+      ],
+    });
+    page = TestBed.inject(ShoppingListPage);
+    page.ngOnInit();
+  });
+
+  it('shows the product as a pending line while the save is still in flight', () => {
+    page.add(addIngredient(200, ''));
+
+    expect(page.pending().map(addition => [addition.name, addition.quantity, addition.unit]))
+      .toEqual([['Pasta', 200, 'g']]);
+    expect(page.items()).toEqual([]);
+  });
+
+  it('keeps a product in flight out of the picker so it cannot be queued twice', () => {
+    page.add(addIngredient(200, ''));
+
+    expect(page.availableIngredients()).toEqual([]);
+  });
+
+  it('swaps the pending line for the saved item once the API answers', () => {
+    page.add(addIngredient(200, ''));
+    created.next(item('pasta', 0));
+    created.complete();
+
+    expect(page.pending()).toEqual([]);
+    expect(page.items().map(value => value.id)).toEqual(['pasta']);
+  });
+
+  it('clears the pending line and reports the failure when the save fails', () => {
+    page.add(addIngredient(200, ''));
+    created.error(new Error('offline'));
+
+    expect(page.pending()).toEqual([]);
+    expect(page.items()).toEqual([]);
+    expect(page.error()).toBe('shopping.addError');
+  });
+
+  it('never blocks on a save, so a second product can be added right away', () => {
+    page.add(addIngredient(200, ''));
+    page.add(addMeal(2));
+
+    expect(page.pending()).toHaveLength(2);
+    expect(shoppingListService.createPreparedMeal).toHaveBeenCalledWith('gyoza', 2, null);
+    expect(page.isSaving()).toBe(false);
+  });
+
+  it('passes a ready meal note through to the API', () => {
+    page.add(addMeal(1, 'the spicy ones'));
+
+    expect(shoppingListService.createPreparedMeal).toHaveBeenCalledWith('gyoza', 1, 'the spicy ones');
   });
 });

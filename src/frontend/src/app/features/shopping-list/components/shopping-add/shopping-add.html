@@ -1,0 +1,82 @@
+<section class="add-card" aria-labelledby="shopping-add-title">
+  <div class="intro">
+    <h2 id="shopping-add-title">{{ 'shopping.addTitle' | t }}</h2>
+    <p>{{ 'shopping.addHelp' | t }}</p>
+  </div>
+
+  <div class="workbench">
+    @if (selected(); as option) {
+      <div class="picked">
+        <div class="chip">
+          <span class="chip-name">{{ option.name }}</span>
+          <button class="chip-clear" type="button" (click)="clearSelection()" [attr.aria-label]="'shopping.changeProduct' | t" [title]="'shopping.changeProduct' | t">×</button>
+        </div>
+
+        <div class="quantity" role="group" [attr.aria-label]="'common.quantity' | t">
+          <button type="button" class="step" (click)="step(-1)" [attr.aria-label]="'shopping.decreaseQuantity' | t">−</button>
+          <input
+            #quantityInput
+            type="number"
+            min="0.001"
+            step="0.001"
+            inputmode="decimal"
+            [value]="quantity()"
+            [attr.aria-label]="'common.quantity' | t"
+            (input)="setQuantity(+$any($event.target).value)"
+            (keydown.enter)="$event.preventDefault(); submit()"
+          />
+          <button type="button" class="step" (click)="step(1)" [attr.aria-label]="'shopping.increaseQuantity' | t">+</button>
+        </div>
+
+        <div class="units" role="group" [attr.aria-label]="'ingredients.unit' | t">
+          @for (available of units(); track available) {
+            <button type="button" class="unit" [class.is-active]="unit() === available" [attr.aria-pressed]="unit() === available" (click)="setUnit(available)">{{ unitLabel(available) | t }}</button>
+          }
+        </div>
+
+        <button class="primary" type="button" [disabled]="!canSubmit()" (click)="submit()">{{ 'shopping.addToList' | t }}</button>
+
+        @if (showNote()) {
+          <input class="note" type="text" maxlength="500" [value]="note()" [placeholder]="'shopping.notePlaceholder' | t" [attr.aria-label]="'shopping.note' | t" (input)="note.set($any($event.target).value)" (keydown.enter)="$event.preventDefault(); submit()" />
+        } @else {
+          <button class="note-toggle" type="button" (click)="showNote.set(true)">+ {{ 'shopping.addNote' | t }}</button>
+        }
+      </div>
+    } @else {
+      <div class="search">
+        <input
+          #search
+          type="text"
+          role="combobox"
+          autocomplete="off"
+          [attr.aria-expanded]="suggestions().length > 0"
+          [attr.aria-controls]="suggestions().length ? 'shopping-add-suggestions' : null"
+          [attr.aria-activedescendant]="suggestions().length ? 'shopping-add-option-' + activeIndex() : null"
+          [attr.aria-label]="'shopping.searchProduct' | t"
+          [placeholder]="'shopping.searchPlaceholder' | t"
+          [value]="query()"
+          (input)="onInput($any($event.target).value)"
+          (keydown)="onSearchKeydown($event)"
+        />
+        @if (query().trim()) {
+          <ul id="shopping-add-suggestions" role="listbox">
+            @for (option of suggestions(); track option.kind + option.id; let index = $index) {
+              <li
+                id="shopping-add-option-{{ index }}"
+                role="option"
+                [attr.aria-selected]="index === activeIndex()"
+                [class.active]="index === activeIndex()"
+                (mousedown)="$event.preventDefault(); select(option)"
+              >
+                <span>{{ option.name }}</span>
+                <small>{{ option.kind === 'preparedMeal' ? (option.hint | t) : option.hint }}</small>
+              </li>
+            } @empty {
+              <li class="empty">{{ 'shopping.noMatches' | t }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </div>
+</section>
