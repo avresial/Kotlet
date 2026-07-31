@@ -10,6 +10,16 @@ export const displayUnitOptions = [
   { value: 'piece', label: 'units.piece' },
 ] as const;
 
+/** Translation key for the short unit label used on tight rows — quantity chips, receipt lines. */
+export function shortUnitLabel(unit: DisplayUnit | 'package'): string {
+  return unit === 'g' ? 'units.gramsShort'
+    : unit === 'kg' ? 'units.kilogramsShort'
+      : unit === 'ml' ? 'units.millilitresShort'
+        : unit === 'l' ? 'units.litresShort'
+          : unit === 'piece' ? 'units.pieceShort'
+            : 'shopping.packageShort';
+}
+
 export function unitsForIngredient(ingredient: Ingredient): DisplayUnit[] {
   return ingredient.measurementUnit === 'g'
     ? ['g', 'kg', ...(ingredient.isCountable ? ['piece' as const] : [])]

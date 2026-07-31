@@ -7,34 +7,7 @@
 
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
-  <section class="add-panel" aria-labelledby="add-title">
-    <div><h2 id="add-title">{{ 'common.addIngredient' | t }}</h2><p>{{ 'shopping.priceHelp' | t }}</p></div>
-    <form [formGroup]="form" (ngSubmit)="add()">
-      <label>{{ 'common.ingredient' | t }}<app-ingredient-picker formControlName="ingredientId" [ingredients]="availableIngredients()" (ingredientSelected)="selectIngredient($event)" /></label>
-      <label>{{ 'common.quantity' | t }}<input type="number" min="0.001" step="0.001" formControlName="quantity" /></label>
-      <label>{{ 'ingredients.unit' | t }}<select formControlName="unit">@for (unit of selectedUnits(); track unit) { <option [value]="unit">{{ ('units.' + (unit === 'g' ? 'grams' : unit === 'kg' ? 'kilograms' : unit === 'ml' ? 'millilitres' : unit === 'l' ? 'litres' : 'piece')) | t }}</option> }</select></label>
-      <label class="note-field">{{ 'shopping.note' | t }}<input type="text" maxlength="500" formControlName="note" [placeholder]="'shopping.notePlaceholder' | t" /></label>
-      <button class="primary" type="submit" [disabled]="isSaving() || availableIngredients().length === 0">{{ (isSaving() ? 'common.adding' : 'shopping.addToList') | t }}</button>
-    </form>
-  </section>
-
-  @if (preparedMeals().length > 0) {
-    <section class="add-panel" aria-labelledby="add-ready-meal-title">
-      <div><h2 id="add-ready-meal-title">{{ 'shopping.addReadyMeal' | t }}</h2><p>{{ 'shopping.readyMealHelp' | t }}</p></div>
-      <form [formGroup]="preparedMealForm" (ngSubmit)="addPreparedMeal()">
-        <label>{{ 'shopping.readyMeal' | t }}
-          <select formControlName="preparedMealId">
-            <option value="">{{ 'shopping.chooseReadyMeal' | t }}</option>
-            @for (meal of availablePreparedMeals(); track meal.id) {
-              <option [value]="meal.id">{{ meal.name }}@if (meal.brand) { — {{ meal.brand }}}</option>
-            }
-          </select>
-        </label>
-        <label>{{ 'shopping.packages' | t }}<input type="number" min="0.001" step="0.001" formControlName="quantity" /></label>
-        <button class="primary" type="submit" [disabled]="isSaving() || availablePreparedMeals().length === 0">{{ (isSaving() ? 'common.adding' : 'shopping.addToList') | t }}</button>
-      </form>
-    </section>
-  }
+  <app-shopping-add [ingredients]="availableIngredients()" [preparedMeals]="availablePreparedMeals()" (add)="add($event)" />
 
   <section class="receipt" aria-labelledby="receipt-title">
     <div class="receipt-heading">
@@ -51,7 +24,7 @@
       </div>
     </div>
     @if (isLoading()) { <p class="empty">{{ 'shopping.loading' | t }}</p> }
-    @else if (items().length === 0) { <p class="empty">{{ 'shopping.empty' | t }}</p> }
+    @else if (items().length === 0 && pending().length === 0) { <p class="empty">{{ 'shopping.empty' | t }}</p> }
     @else {
       <div class="receipt-lines">
         @for (group of groups(); track group.key) {
@@ -64,7 +37,7 @@
             <span class="price-per">@if (item.preparedMealId) { {{ item.pricePer100BaseUnits.toFixed(2) }} zł / {{ 'shopping.package' | t }} } @else { {{ item.pricePer100BaseUnits.toFixed(2) }} zł / 100 {{ item.measurementUnit }} }</span>
             <div class="qty">
               <input type="number" min="0.001" step="0.001" [value]="display(item).quantity" [disabled]="isSaving()" (change)="updateDisplayQuantity(item, +$any($event.target).value)" [attr.aria-label]="('common.quantity' | t) + ': ' + item.ingredientName" />
-              <span class="unit">{{ item.preparedMealId ? ('shopping.packageShort' | t) : display(item).unit }}</span>
+              <span class="unit">{{ unitLabel(item.preparedMealId ? 'package' : display(item).unit) | t }}</span>
             </div>
             <strong class="line-price">{{ item.totalPrice.toFixed(2) }} zł</strong>
             @if (item.note) {
@@ -75,6 +48,21 @@
         }
       </div>
     }
+    <!-- Always in the DOM so screen readers treat it as a live region: one that arrives together with
+         its content is not announced. -->
+    <div class="pending-lines" aria-live="polite">
+      @for (addition of pending(); track addition.key) {
+        <article class="receipt-line is-pending">
+          <span class="check" aria-hidden="true">◌</span>
+          <strong class="name">{{ addition.name }}</strong>
+          <span class="price-per">{{ 'common.adding' | t }}</span>
+          <div class="qty">
+            <span>{{ addition.quantity }}</span>
+            <span class="unit">{{ unitLabel(addition.unit) | t }}</span>
+          </div>
+        </article>
+      }
+    </div>
     <div class="total"><span>{{ 'common.total' | t }}</span><strong>{{ totalPrice().toFixed(2) }} zł</strong></div>
   </section>
 

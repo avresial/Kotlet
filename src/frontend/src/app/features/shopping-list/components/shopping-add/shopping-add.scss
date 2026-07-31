@@ -1,0 +1,54 @@
+:host { display: block; }
+.add-card { display: grid; grid-template-columns: minmax(13rem, 1fr) 2fr; align-items: center; gap: 2rem; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--app-border); border-radius: 1rem; background: var(--app-surface); box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%); }
+h2 { margin: 0 0 .3rem; font: 500 clamp(1.35rem, 5cqi, 1.5rem)/1.15 Georgia, serif; }
+.intro p { margin: 0; color: var(--app-text-muted); }
+/* Keeps the one input from stretching into a letterbox on wide screens. */
+.workbench { min-width: 0; max-width: 44rem; }
+
+.search { position: relative; }
+.search input { width: 100%; min-height: 3rem; box-sizing: border-box; padding: .6rem .8rem; border: 1px solid var(--app-border-strong); border-radius: .6rem; color: var(--app-text); background: var(--app-input); font: inherit; }
+.search input:focus { outline: 2px solid #b96554; outline-offset: 1px; }
+ul { position: absolute; z-index: 20; top: calc(100% + .25rem); left: 0; right: 0; max-height: 18rem; overflow-y: auto; margin: 0; padding: .3rem; border: 1px solid var(--app-border-strong); border-radius: .55rem; background: var(--app-surface-raised); box-shadow: 0 .7rem 1.6rem rgb(70 52 31 / 16%); list-style: none; }
+li { display: flex; justify-content: space-between; gap: 1rem; padding: .6rem .65rem; border-radius: .35rem; color: var(--app-text); cursor: pointer; }
+li.active { background: var(--app-inset-strong); }
+li small { color: var(--app-text-muted); }
+li.empty { color: var(--app-text-muted); cursor: default; }
+
+/* The picked product and everything that only matters once something is picked share one row,
+   so the panel grows by a single line rather than switching to a different-looking form. */
+.picked { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.chip { display: flex; align-items: center; gap: .4rem; min-height: 3rem; padding: .35rem .35rem .35rem .85rem; border: 1px solid var(--app-border-strong); border-radius: 2rem; background: var(--app-inset); }
+.chip-name { font-family: Georgia, serif; font-weight: 500; }
+.chip-clear { display: grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; color: #9a3024; font-size: 1.2rem; line-height: 1; }
+.chip-clear:hover { background: var(--app-inset-strong); }
+
+.quantity { display: flex; align-items: center; border: 1px solid var(--app-border-strong); border-radius: .6rem; background: var(--app-input); overflow: hidden; }
+.quantity input { width: 4.5rem; min-height: 2.9rem; padding: .4rem .3rem; border: 0; background: transparent; color: var(--app-text); font: inherit; text-align: center; -moz-appearance: textfield; appearance: textfield; }
+.quantity input::-webkit-outer-spin-button, .quantity input::-webkit-inner-spin-button { appearance: none; margin: 0; }
+.quantity input:focus { outline: 0; }
+.quantity:focus-within { outline: 2px solid #b96554; outline-offset: 1px; }
+.step { width: 2.4rem; min-height: 2.9rem; color: #8e392b; font-size: 1.15rem; }
+.step:hover { background: var(--app-inset-strong); }
+
+.units { display: flex; gap: .3rem; }
+.unit { min-height: 3rem; padding: .4rem .8rem; border: 1px solid var(--app-border-strong); border-radius: .6rem; color: var(--app-text-soft); background: var(--app-input); font-size: .85rem; }
+.unit.is-active { border-color: #963827; color: #fff; background: #963827; }
+
+button { border: 0; color: #5d554c; background: transparent; font: inherit; font-weight: 750; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible { outline: 2px solid #b96554; outline-offset: 1px; }
+.primary { min-height: 3rem; padding: .55rem 1.1rem; border-radius: .6rem; color: #fff; background: #963827; white-space: nowrap; }
+.note-toggle { padding: .4rem .2rem; color: #8e392b; font-size: .82rem; }
+.note { flex: 1 1 12rem; min-height: 2.6rem; box-sizing: border-box; padding: .5rem .7rem; border: 1px solid var(--app-border-strong); border-radius: .55rem; color: var(--app-text); background: var(--app-input); font: inherit; }
+.note:focus { outline: 2px solid #b96554; outline-offset: 1px; }
+
+@container page (max-width: 60rem) {
+  .add-card { grid-template-columns: 1fr; align-items: start; gap: 1rem; }
+}
+@media (max-width: 34rem) {
+  .picked { gap: .45rem; }
+  .chip { flex: 1 1 100%; }
+  .primary { flex: 1 1 auto; }
+  .note { flex: 1 1 100%; }
+}
+@media print { .add-card { display: none; } }
