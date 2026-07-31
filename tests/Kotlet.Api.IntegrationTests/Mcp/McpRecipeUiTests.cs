@@ -292,6 +292,48 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains(title, afterSaveBody);
     }
 
+    [Fact]
+    public async Task ToolResults_ReportTheNegotiatedLanguageSoTheUiCanLocalizeItself()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+
+        var polish = await CallTool(client, accessToken, "get_pantry", new { }, "pl-PL,pl;q=0.9,en;q=0.5");
+        Assert.Contains("\"kotlet/locale\":\"pl\"", await polish.Content.ReadAsStringAsync());
+
+        var english = await CallTool(client, accessToken, "show_recipes", new { }, "en-GB");
+        Assert.Contains("\"kotlet/locale\":\"en\"", await english.Content.ReadAsStringAsync());
+
+        // Without a usable Accept-Language the server stays silent, leaving the app free to fall
+        // back to the host's own UI locale instead of being pinned to the server default.
+        var unspecified = await CallTool(client, accessToken, "get_pantry", new { });
+        Assert.DoesNotContain("kotlet/locale", await unspecified.Content.ReadAsStringAsync());
+
+        var unsupported = await CallTool(client, accessToken, "get_pantry", new { }, "fr-FR");
+        Assert.DoesNotContain("kotlet/locale", await unsupported.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task UiResources_ShipEverySupportedLanguageInline()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+
+        foreach (var (uri, english, polish) in new[]
+                 {
+                     ("ui://kotlet/data-v3", "Shopping list", "Lista zakupów"),
+                     ("ui://kotlet/recipes-v2", "View recipe", "Zobacz przepis"),
+                     ("ui://kotlet/meal-plan-v1", "Read-only", "Tylko do odczytu"),
+                     ("ui://kotlet/meal-plan-preview-v1", "Add to Kotlet", "Dodaj do Kotleta")
+                 })
+        {
+            var response = await SendMcp(client, accessToken, "resources/read", new { uri });
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.Contains(english, body);
+            // JSON-encoded in the SSE payload, so compare against the escaped form the client sees.
+            Assert.Contains(JsonEncodedText.Encode(polish).ToString(), body);
+            Assert.Contains("kotlet/locale", body);
+        }
+    }
+
     /// <summary>Registers a user with a home and runs the OAuth PKCE flow for an MCP-scoped token.</summary>
     private async Task<(HttpClient Client, string AccessToken)> AuthorizeMcpClientAsync()
     {
@@ -351,17 +393,20 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         return Guid.Parse(body.Substring(start, 36));
     }
 
-    private static Task<HttpResponseMessage> CallTool(HttpClient client, string accessToken, string name, object arguments)
-        => SendMcp(client, accessToken, "tools/call", new { name, arguments });
+    private static Task<HttpResponseMessage> CallTool(
+        HttpClient client, string accessToken, string name, object arguments, string? language = null)
+        => SendMcp(client, accessToken, "tools/call", new { name, arguments }, language);
 
     private static Task<HttpResponseMessage> SendMcp(
-        HttpClient client, string accessToken, string method, object parameters)
+        HttpClient client, string accessToken, string method, object parameters, string? language = null)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/mcp");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         request.Headers.Accept.ParseAdd("application/json");
         request.Headers.Accept.ParseAdd("text/event-stream");
         request.Headers.Add("MCP-Protocol-Version", "2025-11-25");
+        if (language is not null)
+            request.Headers.AcceptLanguage.ParseAdd(language);
         request.Content = JsonContent.Create(new { jsonrpc = "2.0", id = 1, method, @params = parameters });
         return client.SendAsync(request);
     }

@@ -11,6 +11,13 @@ namespace Kotlet.Api.Localization;
 public interface ILanguageContext
 {
     string Language { get; }
+
+    /// <summary>
+    /// The language the client actually asked for, or <c>null</c> when it sent no usable
+    /// <c>Accept-Language</c> header. Callers that must distinguish "the client wants English"
+    /// from "the client said nothing, so English it is" use this instead of <see cref="Language"/>.
+    /// </summary>
+    string? RequestedLanguage { get; }
 }
 
 public sealed class LanguageContext(IHttpContextAccessor accessor) : ILanguageContext
@@ -18,13 +25,15 @@ public sealed class LanguageContext(IHttpContextAccessor accessor) : ILanguageCo
     private static readonly HashSet<string> Supported =
         new(TranslationKeys.SupportedLanguages, StringComparer.OrdinalIgnoreCase);
 
-    public string Language
+    public string Language => RequestedLanguage ?? TranslationKeys.DefaultLanguage;
+
+    public string? RequestedLanguage
     {
         get
         {
             var header = accessor.HttpContext?.Request.Headers.AcceptLanguage.ToString();
             if (string.IsNullOrWhiteSpace(header))
-                return TranslationKeys.DefaultLanguage;
+                return null;
 
             string? best = null;
             var bestQuality = double.NegativeInfinity;
@@ -45,7 +54,7 @@ public sealed class LanguageContext(IHttpContextAccessor accessor) : ILanguageCo
                 }
             }
 
-            return best ?? TranslationKeys.DefaultLanguage;
+            return best;
         }
     }
 

@@ -51,6 +51,11 @@ are copied from `src/frontend/src/styles.scss` (light and dark palettes), and th
 mirrors `recipe-list-page` and `recipe-detail-page` class-for-class. The host's reported theme
 (`hostContext.theme`) switches the palette, falling back to `prefers-color-scheme`.
 
+Language works the same way: English and Polish both ship inside the document, and the app picks
+one from the tool result's `_meta["kotlet/locale"]` (the language the server negotiated from
+`Accept-Language`), then `hostContext.locale`, then the browser. See
+[§8 of the MCP UI tutorial](./mcp-ui-tutorial.md#8-localizing-the-ui).
+
 ## PoC decision point: Blazor WASM vs. lightweight HTML/JS
 
 The issue proposed a Blazor WebAssembly PoC. While evaluating the hosting constraints, the PoC was

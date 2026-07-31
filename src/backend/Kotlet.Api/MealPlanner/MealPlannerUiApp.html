@@ -114,8 +114,8 @@
 <section id="plan-view" hidden>
   <div class="plan-header">
     <div>
-      <p class="eyebrow">Kotlet · Meal planner</p>
-      <h1>Meal plan <span class="readonly-tag">Read-only</span></h1>
+      <p id="eyebrow" class="eyebrow">Kotlet · Meal planner</p>
+      <h1><span id="plan-title">Meal plan</span> <span id="readonly-tag" class="readonly-tag">Read-only</span></h1>
     </div>
     <div class="day-nav">
       <button type="button" id="prev-day" aria-label="Previous day" title="Previous day">‹</button>
@@ -131,6 +131,73 @@
 
 <script>
 "use strict";
+/* Localization. The app is a static document, so both languages ship inline and the dictionary is
+ * chosen at runtime. Precedence: the language the server negotiated for the tool call
+ * (_meta["kotlet/locale"], resolved from Accept-Language), then the host's UI locale, then the
+ * browser's. Plural forms go through Intl.PluralRules, which Polish needs (1 / 2-4 / 5+). */
+const FALLBACK_LANGUAGE = "en";
+const STRINGS = {
+  en: {
+    eyebrow: "Kotlet · Meal planner", planTitle: "Meal plan", readOnly: "Read-only",
+    previousDay: "Previous day", nextDay: "Next day", loading: "Loading meal plan…",
+    meals: { one: "{count} meal", other: "{count} meals" },
+    emptySlot: "No items yet.", nothingPlanned: "Nothing planned for this day yet.",
+    planned: "{meals} planned.", people: "People", guest: "Guest", noPeople: "No people assigned.",
+    columnUser: "User", columnQuantity: "Quantity", columnServing: "Serving",
+    peopleServed: "People served", guests: "Guests",
+    errorLoad: "The meal plan could not be loaded.", errorNoData: "The host returned no meal-plan data.",
+    errorNoResult: "The host did not deliver meal-plan data to the app.", errorHost: "Host request failed.",
+    initFailed: "MCP Apps initialization failed: {message}",
+    "slot.breakfast": "Breakfast", "slot.second-breakfast": "Second breakfast", "slot.dinner": "Lunch",
+    "slot.snack": "Snack", "slot.supper": "Dinner"
+  },
+  pl: {
+    eyebrow: "Kotlet · Planer posiłków", planTitle: "Plan posiłków", readOnly: "Tylko do odczytu",
+    previousDay: "Poprzedni dzień", nextDay: "Następny dzień", loading: "Ładowanie planu posiłków…",
+    meals: { one: "{count} posiłek", few: "{count} posiłki", many: "{count} posiłków", other: "{count} posiłków" },
+    emptySlot: "Brak pozycji.", nothingPlanned: "Na ten dzień nic jeszcze nie zaplanowano.",
+    planned: "Zaplanowano: {meals}.", people: "Osoby", guest: "Gość", noPeople: "Nie przypisano osób.",
+    columnUser: "Osoba", columnQuantity: "Ilość", columnServing: "Porcja",
+    peopleServed: "Liczba osób", guests: "Goście",
+    errorLoad: "Nie udało się załadować planu posiłków.", errorNoData: "Host nie zwrócił danych planu posiłków.",
+    errorNoResult: "Host nie przekazał danych planu posiłków do aplikacji.",
+    errorHost: "Żądanie do hosta nie powiodło się.",
+    initFailed: "Inicjalizacja MCP Apps nie powiodła się: {message}",
+    "slot.breakfast": "Śniadanie", "slot.second-breakfast": "II śniadanie", "slot.dinner": "Obiad",
+    "slot.snack": "Przekąska", "slot.supper": "Kolacja"
+  }
+};
+const locale = { server: null, host: null, browser: navigator.language };
+let lang = FALLBACK_LANGUAGE;
+const pluralRules = {};
+const supportedLanguage = (value) => {
+  const code = String(value || "").trim().slice(0, 2).toLowerCase();
+  return Object.hasOwn(STRINGS, code) ? code : null;
+};
+const entry = (key) => {
+  const value = STRINGS[lang][key];
+  return value === undefined ? STRINGS[FALLBACK_LANGUAGE][key] : value;
+};
+const fill = (template, values) => values
+  ? String(template).replace(/\{(\w+)\}/g, (match, name) => (name in values ? String(values[name]) : match))
+  : String(template);
+const t = (key, values) => {
+  const found = entry(key);
+  return found === undefined ? key : fill(found, values);
+};
+/* Plural-aware lookup: the value is a form table keyed by Intl.PluralRules categories. */
+const tp = (key, count, values) => {
+  const forms = entry(key);
+  if (!forms) return String(count);
+  const rules = pluralRules[lang] || (pluralRules[lang] = new Intl.PluralRules(lang));
+  return fill(forms[rules.select(count)] || forms.other, Object.assign({ count: count.toLocaleString(lang) }, values));
+};
+/* Slot headings arrive pre-labelled from the server; the dictionary translates them by key and
+ * falls back to whatever the server sent for a slot this app does not know yet. */
+const slotLabel = (slot) => {
+  const found = entry("slot." + String(slot.slot || "").toLowerCase());
+  return found === undefined ? String(slot.label || slot.slot || "") : String(found);
+};
 /* Minimal MCP Apps (SEP-1865) bridge.
  * Hand-rolled equivalent of @modelcontextprotocol/ext-apps: JSON-RPC 2.0 over
  * window.parent.postMessage. Kept dependency-free so the UI stays a single HTML
@@ -154,7 +221,7 @@ const bridge = (() => {
       const entry = pending.get(message.id);
       if (!entry) return;
       pending.delete(message.id);
-      if (message.error) entry.reject(new Error(message.error.message || "Host request failed."));
+      if (message.error) entry.reject(new Error(message.error.message || t("errorHost")));
       else entry.resolve(message.result);
     } else if (message.method !== undefined && message.id !== undefined) {
       // Host-initiated request (e.g. ui/resource-teardown): acknowledge with an empty result.
@@ -174,12 +241,33 @@ const bridge = (() => {
 })();
 
 const el = (id) => document.getElementById(id);
-const state = { date: null, loading: false };
+const state = { date: null, loading: false, plan: null };
+
+/* Re-picks the dictionary from the known locale sources and, when it changed, re-renders the
+ * static chrome and the day that is on screen. */
+function applyLanguage() {
+  const next = supportedLanguage(locale.server) || supportedLanguage(locale.host)
+    || supportedLanguage(locale.browser) || FALLBACK_LANGUAGE;
+  const changed = next !== lang;
+  lang = next;
+  document.documentElement.lang = lang;
+  el("eyebrow").textContent = t("eyebrow");
+  el("plan-title").textContent = t("planTitle");
+  el("readonly-tag").textContent = t("readOnly");
+  el("loading").textContent = t("loading");
+  for (const [id, key] of [["prev-day", "previousDay"], ["next-day", "nextDay"]]) {
+    el(id).setAttribute("aria-label", t(key));
+    el(id).setAttribute("title", t(key));
+  }
+  if (changed && state.plan) renderPlan(state.plan);
+}
 
 function applyHostContext(context) {
   const theme = context && context.theme;
   const dark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   document.documentElement.classList.toggle("app-dark", dark);
+  locale.host = (context && (context.locale || context.language)) || locale.host;
+  applyLanguage();
 }
 
 function showError(message) {
@@ -192,7 +280,6 @@ const escapeHtml = (text) => String(text)
   .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
   .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 
-const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
 const trimNumber = (value) => Number(value).toFixed(2).replace(/\.?0+$/, "");
 
 /* yyyy-MM-dd only, formatted without timezone drift (parse the parts directly). */
@@ -200,7 +287,7 @@ function formatDay(iso) {
   const [y, m, d] = String(iso).split("-").map(Number);
   if (!y || !m || !d) return String(iso);
   const date = new Date(Date.UTC(y, m - 1, d));
-  return date.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  return date.toLocaleDateString(lang, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 }
 function shiftDay(iso, days) {
   const [y, m, d] = String(iso).split("-").map(Number);
@@ -227,19 +314,19 @@ function renderParticipants(item) {
       "</tr>";
   }).join("");
   return '<div class="portion-table-wrap"><table class="portion-table"><thead><tr>' +
-    "<th scope=\"col\">User</th>" +
-    (showQuantity ? "<th scope=\"col\">Quantity</th>" : "") +
-    "<th scope=\"col\">Serving</th>" +
+    `<th scope="col">${escapeHtml(t("columnUser"))}</th>` +
+    (showQuantity ? `<th scope="col">${escapeHtml(t("columnQuantity"))}</th>` : "") +
+    `<th scope="col">${escapeHtml(t("columnServing"))}</th>` +
     "</tr></thead><tbody>" + rows + "</tbody></table></div>";
 }
 
 function renderPeople(item) {
   const chips = item.participants.map((person) =>
     `<span class="chip${person.isCurrentUser ? " is-me" : ""}">${escapeHtml(person.displayName)}</span>`);
-  for (let i = 0; i < item.guests; i++) chips.push('<span class="chip is-guest">Guest</span>');
+  for (let i = 0; i < item.guests; i++) chips.push(`<span class="chip is-guest">${escapeHtml(t("guest"))}</span>`);
   const body = chips.length
-    ? `<span class="row-label">People</span>${chips.join("")}`
-    : '<span class="no-people">No people assigned.</span>';
+    ? `<span class="row-label">${escapeHtml(t("people"))}</span>${chips.join("")}`
+    : `<span class="no-people">${escapeHtml(t("noPeople"))}</span>`;
   return `<div class="people-row">${body}</div>`;
 }
 
@@ -254,27 +341,30 @@ function renderItem(item) {
     renderParticipants(item) +
     renderPeople(item) +
     '<dl class="meal-summary">' +
-    `<div><dt>People served</dt><dd>${escapeHtml(trimNumber(item.servings))}</dd></div>` +
-    (item.guests ? `<div><dt>Guests</dt><dd>${item.guests}</dd></div>` : "") +
+    `<div><dt>${escapeHtml(t("peopleServed"))}</dt><dd>${escapeHtml(trimNumber(item.servings))}</dd></div>` +
+    (item.guests ? `<div><dt>${escapeHtml(t("guests"))}</dt><dd>${item.guests}</dd></div>` : "") +
     "</dl></li>";
 }
 
 function renderPlan(data) {
   state.date = data.date;
+  state.plan = data;
   el("day-label").textContent = formatDay(data.date);
   const container = el("slots");
   container.innerHTML = data.slots.map((slot) => {
     const items = slot.items.length
       ? slot.items.map(renderItem).join("")
-      : '<li class="empty-slot">No items yet.</li>';
-    const count = slot.items.length ? `<span class="slot-count">${plural(slot.items.length, "meal")}</span>` : "";
+      : `<li class="empty-slot">${escapeHtml(t("emptySlot"))}</li>`;
+    const count = slot.items.length
+      ? `<span class="slot-count">${escapeHtml(tp("meals", slot.items.length))}</span>`
+      : "";
     return '<section class="slot-section"><div class="slot-heading">' +
-      `<h2>${escapeHtml(slot.label)}</h2>${count}</div>` +
+      `<h2>${escapeHtml(slotLabel(slot))}</h2>${count}</div>` +
       `<ul class="item-list">${items}</ul></section>`;
   }).join("");
   el("plan-footer").textContent = data.mealCount === 0
-    ? "Nothing planned for this day yet."
-    : `${plural(data.mealCount, "meal")} planned.`;
+    ? t("nothingPlanned")
+    : t("planned", { meals: tp("meals", data.mealCount) });
   el("loading").hidden = true;
   el("plan-view").hidden = false;
 }
@@ -288,9 +378,9 @@ async function loadDay(date) {
     const result = await bridge.callTool("show_meal_plan", date ? { date } : {});
     if (result.isError) {
       const text = (result.content || []).map((block) => block.text).join(" ");
-      throw new Error(text || "The meal plan could not be loaded.");
+      throw new Error(text || t("errorLoad"));
     }
-    if (!result.structuredContent) throw new Error("The host returned no meal-plan data.");
+    if (!result.structuredContent) throw new Error(t("errorNoData"));
     renderPlan(result.structuredContent);
   } catch (error) {
     showError(error.message);
@@ -304,10 +394,13 @@ el("prev-day").addEventListener("click", () => { if (state.date) void loadDay(sh
 el("next-day").addEventListener("click", () => { if (state.date) void loadDay(shiftDay(state.date, 1)); });
 
 bridge.on("ui/notifications/tool-result", (params) => {
+  // The server reports the language it served the call in; it wins over the host/browser locale.
+  locale.server = (params && params._meta && params._meta["kotlet/locale"]) || locale.server;
+  applyLanguage();
   if (params && params.structuredContent) renderPlan(params.structuredContent);
   else {
     el("loading").hidden = true;
-    showError("The host did not deliver meal-plan data to the app.");
+    showError(t("errorNoResult"));
   }
 });
 bridge.on("ui/notifications/host-context-changed", (params) =>
@@ -325,7 +418,7 @@ bridge.on("ui/notifications/host-context-changed", (params) =>
     applyHostContext(result && result.hostContext);
     bridge.notify("ui/notifications/initialized");
   } catch (error) {
-    showError("MCP Apps initialization failed: " + error.message);
+    showError(t("initFailed", { message: error.message }));
   }
 })();
 </script>

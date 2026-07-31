@@ -99,7 +99,7 @@
 <div id="error" class="error" hidden></div>
 
 <section id="list-view" hidden>
-  <p class="eyebrow">Kotlet · Recipes</p>
+  <p id="list-eyebrow" class="eyebrow">Kotlet · Recipes</p>
   <div id="recipe-grid" class="recipe-grid" role="list"></div>
   <p id="list-footer" class="list-footer" hidden></p>
 </section>
@@ -113,6 +113,73 @@
 
 <script>
 "use strict";
+/* Localization. The app is a static document, so both languages ship inline and the dictionary is
+ * chosen at runtime. Precedence: the language the server negotiated for the tool call
+ * (_meta["kotlet/locale"], resolved from Accept-Language), then the host's UI locale, then the
+ * browser's. Plural forms go through Intl.PluralRules, which Polish needs (1 / 2-4 / 5+). */
+const FALLBACK_LANGUAGE = "en";
+const STRINGS = {
+  en: {
+    listEyebrow: "Kotlet · Recipes", back: "← Recipes", loading: "Loading recipes…", loadingShort: "Loading…",
+    empty: "No recipes yet.", view: "View recipe", showing: "Showing {shown} of {total}.",
+    recipes: { one: "{count} recipe", other: "{count} recipes" },
+    servings: { one: "{count} serving", other: "{count} servings" },
+    ingredients: { one: "{count} ingredient", other: "{count} ingredients" },
+    detailEyebrow: "Recipe", ingredientsHeading: "Ingredients", methodHeading: "Method", aiTitle: "AI-assisted",
+    errorRecipe: "The recipe could not be loaded.", errorNoData: "The host returned no recipe data.",
+    errorNoList: "The host did not deliver recipe data to the app.", errorHost: "Host request failed.",
+    initFailed: "MCP Apps initialization failed: {message}",
+    "slot.breakfast": "Breakfast", "slot.second-breakfast": "Second breakfast", "slot.dinner": "Lunch",
+    "slot.snack": "Snack", "slot.supper": "Dinner"
+  },
+  pl: {
+    listEyebrow: "Kotlet · Przepisy", back: "← Przepisy", loading: "Ładowanie przepisów…", loadingShort: "Ładowanie…",
+    empty: "Nie ma jeszcze przepisów.", view: "Zobacz przepis", showing: "Pokazano {shown} z {total}.",
+    recipes: { one: "{count} przepis", few: "{count} przepisy", many: "{count} przepisów", other: "{count} przepisów" },
+    servings: { one: "{count} porcja", few: "{count} porcje", many: "{count} porcji", other: "{count} porcji" },
+    ingredients: { one: "{count} składnik", few: "{count} składniki", many: "{count} składników", other: "{count} składników" },
+    detailEyebrow: "Przepis", ingredientsHeading: "Składniki", methodHeading: "Przygotowanie",
+    aiTitle: "Utworzone z pomocą AI",
+    errorRecipe: "Nie udało się załadować przepisu.", errorNoData: "Host nie zwrócił danych przepisu.",
+    errorNoList: "Host nie przekazał danych przepisów do aplikacji.", errorHost: "Żądanie do hosta nie powiodło się.",
+    initFailed: "Inicjalizacja MCP Apps nie powiodła się: {message}",
+    "slot.breakfast": "Śniadanie", "slot.second-breakfast": "II śniadanie", "slot.dinner": "Obiad",
+    "slot.snack": "Przekąska", "slot.supper": "Kolacja"
+  }
+};
+const locale = { server: null, host: null, browser: navigator.language };
+let lang = FALLBACK_LANGUAGE;
+const pluralRules = {};
+const supportedLanguage = (value) => {
+  const code = String(value || "").trim().slice(0, 2).toLowerCase();
+  return Object.hasOwn(STRINGS, code) ? code : null;
+};
+const entry = (key) => {
+  const value = STRINGS[lang][key];
+  return value === undefined ? STRINGS[FALLBACK_LANGUAGE][key] : value;
+};
+const fill = (template, values) => values
+  ? String(template).replace(/\{(\w+)\}/g, (match, name) => (name in values ? String(values[name]) : match))
+  : String(template);
+const t = (key, values) => {
+  const found = entry(key);
+  return found === undefined ? key : fill(found, values);
+};
+/* Plural-aware lookup: the value is a form table keyed by Intl.PluralRules categories. */
+const tp = (key, count, values) => {
+  const forms = entry(key);
+  if (!forms) return String(count);
+  const rules = pluralRules[lang] || (pluralRules[lang] = new Intl.PluralRules(lang));
+  return fill(forms[rules.select(count)] || forms.other, Object.assign({ count: count.toLocaleString(lang) }, values));
+};
+/* Translates a value that arrives from the API (here: meal slots), humanizing unknown members. */
+const tv = (prefix, value) => {
+  if (!value) return "";
+  const found = entry(prefix + "." + String(value).toLowerCase());
+  return found === undefined
+    ? String(value).replaceAll("-", " ").replace(/^./, (c) => c.toUpperCase())
+    : String(found);
+};
 /* Minimal MCP Apps (SEP-1865) bridge.
  * Hand-rolled equivalent of @modelcontextprotocol/ext-apps: JSON-RPC 2.0 over
  * window.parent.postMessage. Kept dependency-free so the UI stays a single HTML
@@ -136,7 +203,7 @@ const bridge = (() => {
       const entry = pending.get(message.id);
       if (!entry) return;
       pending.delete(message.id);
-      if (message.error) entry.reject(new Error(message.error.message || "Host request failed."));
+      if (message.error) entry.reject(new Error(message.error.message || t("errorHost")));
       else entry.resolve(message.result);
     } else if (message.method !== undefined && message.id !== undefined) {
       // Host-initiated request (e.g. ui/resource-teardown): acknowledge with an empty result.
@@ -156,12 +223,31 @@ const bridge = (() => {
 })();
 
 const el = (id) => document.getElementById(id);
-const state = { apiOrigin: "", listData: null };
+const state = { apiOrigin: "", listData: null, detail: null, view: null };
+
+/* Re-picks the dictionary from the known locale sources and, when it changed, re-renders the
+ * static chrome and whichever view is on screen. */
+function applyLanguage() {
+  const next = supportedLanguage(locale.server) || supportedLanguage(locale.host)
+    || supportedLanguage(locale.browser) || FALLBACK_LANGUAGE;
+  const changed = next !== lang;
+  lang = next;
+  document.documentElement.lang = lang;
+  el("list-eyebrow").textContent = t("listEyebrow");
+  el("back").textContent = t("back");
+  el("loading").textContent = t("loading");
+  if (!changed) return;
+  if (state.listData) renderList(state.listData);
+  if (state.detail) renderDetail(state.detail);
+  if (state.view) show(state.view);
+}
 
 function applyHostContext(context) {
   const theme = context && context.theme;
   const dark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   document.documentElement.classList.toggle("app-dark", dark);
+  locale.host = (context && (context.locale || context.language)) || locale.host;
+  applyLanguage();
 }
 
 function showError(message) {
@@ -171,6 +257,7 @@ function showError(message) {
 }
 
 function show(view) {
+  state.view = view;
   el("loading").hidden = true;
   el("list-view").hidden = view !== "list";
   el("detail-view").hidden = view !== "detail";
@@ -215,9 +302,6 @@ function renderMarkdown(markdown) {
   return blocks.join("");
 }
 
-const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
-const mealTypeLabel = (mealType) =>
-  mealType ? mealType.charAt(0).toUpperCase() + mealType.slice(1) : null;
 const absoluteUrl = (url) =>
   url && url.startsWith("/") ? state.apiOrigin + url : url;
 
@@ -227,7 +311,7 @@ function renderList(data) {
   const grid = el("recipe-grid");
   grid.innerHTML = "";
   if (!data.recipes || data.recipes.length === 0) {
-    grid.innerHTML = '<p class="empty">No recipes yet.</p>';
+    grid.innerHTML = `<p class="empty">${escapeHtml(t("empty"))}</p>`;
     show("list");
     return;
   }
@@ -238,18 +322,18 @@ function renderList(data) {
     card.innerHTML =
       (recipe.imageUrl ? `<img class="recipe-image" src="${escapeHtml(recipe.imageUrl)}" alt="${escapeHtml(recipe.title)}" onerror="this.remove()" />` : "") +
       '<div class="card-body">' +
-      `<h2>${escapeHtml(recipe.title)}${recipe.isAiAssisted ? ' <span class="ai-badge" title="AI-assisted">AI</span>' : ""}</h2>` +
-      (recipe.mealType ? `<p class="meta">${escapeHtml(mealTypeLabel(recipe.mealType))}</p>` : "") +
-      `<p class="meta">${plural(recipe.servings, "serving")} · ${plural(recipe.ingredientCount, "ingredient")}</p>` +
+      `<h2>${escapeHtml(recipe.title)}${recipe.isAiAssisted ? ` <span class="ai-badge" title="${escapeHtml(t("aiTitle"))}">AI</span>` : ""}</h2>` +
+      (recipe.mealType ? `<p class="meta">${escapeHtml(tv("slot", recipe.mealType))}</p>` : "") +
+      `<p class="meta">${escapeHtml(tp("servings", recipe.servings))} · ${escapeHtml(tp("ingredients", recipe.ingredientCount))}</p>` +
       "</div>" +
-      '<div class="card-actions"><button type="button" class="button primary">View recipe</button></div>';
+      `<div class="card-actions"><button type="button" class="button primary">${escapeHtml(t("view"))}</button></div>`;
     const viewButton = card.querySelector("button");
     viewButton.addEventListener("click", () => openRecipe(recipe.id, viewButton));
     grid.appendChild(card);
   }
   const footer = el("list-footer");
   footer.hidden = data.totalCount <= data.recipes.length;
-  footer.textContent = `Showing ${data.recipes.length} of ${plural(data.totalCount, "recipe")}.`;
+  footer.textContent = t("showing", { shown: data.recipes.length, total: tp("recipes", data.totalCount) });
   show("list");
   if (data.totalCount === 1 && data.recipes.length === 1) {
     void openRecipe(data.recipes[0].id);
@@ -257,6 +341,7 @@ function renderList(data) {
 }
 
 function renderDetail(recipe) {
+  state.detail = recipe;
   const image = (recipe.images || [])[0];
   const ingredients = (recipe.ingredients || []).map((ing) => {
     const wholeQuantity = Number.isInteger(ing.quantity);
@@ -270,30 +355,30 @@ function renderDetail(recipe) {
   el("detail-card").innerHTML =
     (image ? `<img class="detail-image" src="${escapeHtml(absoluteUrl(image.contentUrl))}" alt="${escapeHtml(image.altText || recipe.title)}" onerror="this.remove()" />` : "") +
     '<div class="detail-body">' +
-    `<p class="eyebrow">Recipe · ${plural(recipe.servings, "serving")}${recipe.mealType ? " · " + escapeHtml(mealTypeLabel(recipe.mealType)) : ""}</p>` +
-    `<h1>${escapeHtml(recipe.title)}${recipe.isAiAssisted ? ' <span class="ai-badge" title="AI-assisted">AI</span>' : ""}</h1>` +
-    `<p class="detail-meta">♧ ${plural((recipe.ingredients || []).length, "ingredient")}</p>` +
-    (ingredients ? `<h2>Ingredients</h2><ul class="ingredient-list">${ingredients}</ul>` : "") +
-    (recipe.descriptionMarkdown ? `<h2>Method</h2><div class="markdown-body">${renderMarkdown(recipe.descriptionMarkdown)}</div>` : "") +
+    `<p class="eyebrow">${escapeHtml(t("detailEyebrow"))} · ${escapeHtml(tp("servings", recipe.servings))}${recipe.mealType ? " · " + escapeHtml(tv("slot", recipe.mealType)) : ""}</p>` +
+    `<h1>${escapeHtml(recipe.title)}${recipe.isAiAssisted ? ` <span class="ai-badge" title="${escapeHtml(t("aiTitle"))}">AI</span>` : ""}</h1>` +
+    `<p class="detail-meta">♧ ${escapeHtml(tp("ingredients", (recipe.ingredients || []).length))}</p>` +
+    (ingredients ? `<h2>${escapeHtml(t("ingredientsHeading"))}</h2><ul class="ingredient-list">${ingredients}</ul>` : "") +
+    (recipe.descriptionMarkdown ? `<h2>${escapeHtml(t("methodHeading"))}</h2><div class="markdown-body">${renderMarkdown(recipe.descriptionMarkdown)}</div>` : "") +
     "</div>";
   show("detail");
 }
 
 async function openRecipe(recipeId, button) {
   el("error").hidden = true;
-  if (button) { button.disabled = true; button.textContent = "Loading…"; }
+  if (button) { button.disabled = true; button.textContent = t("loadingShort"); }
   try {
     const result = await bridge.callTool("get_recipe", { recipeId });
     if (result.isError) {
       const text = (result.content || []).map((block) => block.text).join(" ");
-      throw new Error(text || "The recipe could not be loaded.");
+      throw new Error(text || t("errorRecipe"));
     }
-    if (!result.structuredContent) throw new Error("The host returned no recipe data.");
+    if (!result.structuredContent) throw new Error(t("errorNoData"));
     renderDetail(result.structuredContent);
   } catch (error) {
     showError(error.message);
   } finally {
-    if (button) { button.disabled = false; button.textContent = "View recipe"; }
+    if (button) { button.disabled = false; button.textContent = t("view"); }
   }
 }
 
@@ -303,10 +388,13 @@ el("back").addEventListener("click", () => {
 });
 
 bridge.on("ui/notifications/tool-result", (params) => {
+  // The server reports the language it served the call in; it wins over the host/browser locale.
+  locale.server = (params && params._meta && params._meta["kotlet/locale"]) || locale.server;
+  applyLanguage();
   if (params && params.structuredContent) renderList(params.structuredContent);
   else {
     el("loading").hidden = true;
-    showError("The host did not deliver recipe data to the app.");
+    showError(t("errorNoList"));
   }
 });
 bridge.on("ui/notifications/host-context-changed", (params) =>
@@ -324,7 +412,7 @@ bridge.on("ui/notifications/host-context-changed", (params) =>
     applyHostContext(result && result.hostContext);
     bridge.notify("ui/notifications/initialized");
   } catch (error) {
-    showError("MCP Apps initialization failed: " + error.message);
+    showError(t("initFailed", { message: error.message }));
   }
 })();
 </script>

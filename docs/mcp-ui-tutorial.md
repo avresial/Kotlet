@@ -227,7 +227,51 @@ In Kotlet the OAuth server is OpenIddict, exposed via config (`OAuthOptions`: `I
 OAuth2/OIDC provider that supports Auth-Code + PKCE and (ideally) Dynamic Client Registration
 works the same way — the MCP spec is provider-agnostic.
 
-## 8. Putting it together — a checklist
+## 8. Localizing the UI
+
+Your tool payloads can be translated server-side (Kotlet serves ingredient names in the
+request's `Accept-Language`), but the UI document itself cannot: it is one static resource that
+hosts fetch once and cache. So the **app carries every language inline and picks one at
+runtime**.
+
+Three signals can tell it which:
+
+| Signal | Where it comes from | Reliability |
+| --- | --- | --- |
+| `_meta["kotlet/locale"]` on the tool result | your server, from `Accept-Language` | authoritative when present — the data in the same result is in that language |
+| `hostContext.locale` | `ui/initialize` result and `ui/notifications/host-context-changed` | the host's UI language; present only if the host sends it |
+| `navigator.language` | the iframe | last resort |
+
+Kotlet applies them in that order. The server writes the meta key **only when the client
+actually negotiated a language**, so a host that sends no `Accept-Language` does not get pinned
+to the server default and the host's own locale wins instead:
+
+```csharp
+// Mcp/McpUiLocale.cs, called from the CallTool filter for every result
+if (requestServices?.GetService<ILanguageContext>()?.RequestedLanguage is not { } language)
+    return;                                  // said nothing → let the app decide
+result.Meta ??= [];
+result.Meta["kotlet/locale"] = language;
+```
+
+Inside the document, keep it to a dictionary and three helpers — `t()` for messages, `tp()` for
+plurals via `Intl.PluralRules` (Polish needs 1 / 2-4 / 5+, so `count === 1 ? "" : "s"` does not
+survive translation), and `tv()` for values that arrive from the API (enum members, meal slots)
+with the humanized value as the fallback so a new enum member still renders. Re-render on
+language change: the host can send a context update after the first paint.
+
+Two things are easy to miss:
+
+- **Numbers and dates**: pass the chosen language to `toLocaleString` / `Intl.DateTimeFormat`
+  instead of `undefined`, which follows the iframe's locale rather than the user's.
+- **Server-rendered labels** in the payload (Kotlet's `slot.label`): translate them in the app
+  by their stable key (`slot.slot`) and fall back to the server's label, rather than
+  translating them server-side where the header may be missing.
+
+Tool titles, descriptions and `openai/toolInvocation/*` strings stay English: they are read by
+the model and are registered once at startup, not per request.
+
+## 9. Putting it together — a checklist
 
 1. Write the MCP tool that returns structured content **and** a text fallback; add
    `_meta.ui.resourceUri`.
@@ -236,8 +280,10 @@ works the same way — the MCP spec is provider-agnostic.
 4. Implement the `postMessage`/JSON-RPC bridge: `ui/initialize`, consume
    `ui/notifications/tool-result`, `tools/call` for interactions.
 5. Protect `/mcp` with OAuth (Auth-Code + PKCE) and publish the discovery/well-known docs.
-6. Bump your server version when the UI/tool surface changes so caching hosts re-fetch.
-7. Add integration tests over the protocol surface (tool metadata, resource MIME, structured
+6. Ship every language inline and pick one from the tool result's locale, the host context, then
+   the browser.
+7. Bump your server version when the UI/tool surface changes so caching hosts re-fetch.
+8. Add integration tests over the protocol surface (tool metadata, resource MIME, structured
    content, fallback text) so the UI can be exercised without a live host.
 
 ## Reference files in this repo
@@ -247,6 +293,8 @@ works the same way — the MCP spec is provider-agnostic.
 | Tool + resource (dynamic `_meta.ui`) | `src/backend/Kotlet.Api/Recipes/RecipeUiMcp.cs` |
 | The UI document + bridge | `src/backend/Kotlet.Api/Recipes/RecipeUiApp.html` |
 | Reusable UI for any tool result | `src/backend/Kotlet.Api/Mcp/DataUiMcp.cs` |
+| Locale handed to the apps | `src/backend/Kotlet.Api/Mcp/McpUiLocale.cs` |
+| UI localization tests (JSDOM) | `tests/mcp-ui-localization.test.mjs` |
 | MCP server + auth wiring | `src/backend/Kotlet.Api/Mcp/DiExtension.cs` |
 | Discovery `/.well-known/mcp.json` | `src/backend/Kotlet.Api/Mcp/McpEndpoints.cs` |
 | Client onboarding & auth flow | `docs/mcp-onboarding.md` |
