@@ -6,7 +6,7 @@ import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { foodCategories, Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
-import { ShoppingAdd, ShoppingAddRequest } from '../../components/shopping-add/shopping-add';
+import { ShoppingAdd, ShoppingAddListedProduct, ShoppingAddRequest } from '../../components/shopping-add/shopping-add';
 import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
 import { DisplayUnit, displayMeasurement, shortUnitLabel, toBaseQuantity } from '../../../ingredients/display-units';
@@ -79,6 +79,21 @@ export class ShoppingListPage implements OnInit {
   readonly availablePreparedMeals = computed(() => this.preparedMeals().filter(meal =>
     !this.items().some(item => item.preparedMealId === meal.id && !item.isPurchased)
     && !this.pending().some(addition => addition.preparedMealId === meal.id)));
+  /** The other half of the filtering above: what was held back, and how much of it is already
+      down, so searching for it again gets an answer instead of "no matching products". */
+  readonly listedProducts = computed<ShoppingAddListedProduct[]>(() => {
+    // Keyed by product so a line that is on the list and in flight at once is only listed once.
+    const listed = new Map<string, ShoppingAddListedProduct>();
+    const put = (id: string, name: string, quantity: number, unit: DisplayUnit | 'package') => listed.set(id, { id, name, quantity, unit });
+    for (const item of this.items())
+      if (!item.isPurchased) {
+        const measure = this.display(item);
+        put(item.preparedMealId ?? item.ingredientId ?? item.id, item.ingredientName, measure.quantity, measure.unit);
+      }
+    for (const addition of this.pending())
+      put(addition.preparedMealId ?? addition.ingredientId ?? addition.key, addition.name, addition.quantity, addition.unit);
+    return [...listed.values()];
+  });
   readonly purchasedCount = computed(() => this.items().filter(item => item.isPurchased).length);
   readonly totalPrice = computed(() => this.items().reduce((sum, item) => sum + item.totalPrice, 0));
   readonly groups = computed(() => groupShoppingItems(this.items()));

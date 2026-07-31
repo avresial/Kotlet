@@ -50,8 +50,8 @@
           role="combobox"
           autocomplete="off"
           aria-autocomplete="list"
-          [attr.aria-expanded]="suggestions().length > 0"
-          [attr.aria-controls]="suggestions().length ? 'shopping-add-suggestions' : null"
+          [attr.aria-expanded]="!!query().trim()"
+          [attr.aria-controls]="query().trim() ? 'shopping-add-suggestions' : null"
           [attr.aria-activedescendant]="suggestions().length ? 'shopping-add-option-' + activeIndex() : null"
           [attr.aria-label]="'shopping.searchProduct' | t"
           [placeholder]="'shopping.searchPlaceholder' | t"
@@ -72,7 +72,14 @@
                 <span>{{ option.name }}</span>
                 <small>{{ option.kind === 'preparedMeal' ? (option.hint | t) : option.hint }}</small>
               </li>
-            } @empty {
+            }
+            @for (product of listedMatches(); track product.id) {
+              <li class="listed" role="presentation">
+                <span>{{ product.name }}</span>
+                <small>{{ 'shopping.alreadyOnList' | t }} — {{ product.quantity }} {{ unitLabel(product.unit) | t }}</small>
+              </li>
+            }
+            @if (!suggestions().length && !listedMatches().length) {
               <li class="empty" role="presentation">{{ 'shopping.noMatches' | t }}</li>
             }
           </ul>

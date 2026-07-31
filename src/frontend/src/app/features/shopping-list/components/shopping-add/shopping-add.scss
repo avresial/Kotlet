@@ -13,6 +13,8 @@ li { display: flex; justify-content: space-between; gap: 1rem; padding: .6rem .6
 li.active { background: var(--app-inset-strong); }
 li small { color: var(--app-text-muted); }
 li.empty { color: var(--app-text-muted); cursor: default; }
+/* Already on the list: readable, but plainly not one of the things that can be picked. */
+li.listed { color: var(--app-text-muted); cursor: default; }
 
 /* The picked product and everything that only matters once something is picked share one row,
    so the panel grows by a single line rather than switching to a different-looking form. */
