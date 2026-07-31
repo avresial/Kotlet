@@ -9,7 +9,7 @@ import { IngredientService } from '../../../ingredients/ingredient.service';
 import { ShoppingAdd, ShoppingAddRequest } from '../../components/shopping-add/shopping-add';
 import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
-import { DisplayUnit, displayMeasurement, toBaseQuantity } from '../../../ingredients/display-units';
+import { DisplayUnit, displayMeasurement, shortUnitLabel, toBaseQuantity } from '../../../ingredients/display-units';
 import { PreparedMeal } from '../../../prepared-meals/prepared-meal.models';
 import { PreparedMealService } from '../../../prepared-meals/prepared-meal.service';
 
@@ -43,7 +43,7 @@ export interface PendingAddition {
   key: string;
   name: string;
   quantity: number;
-  unit: string;
+  unit: DisplayUnit | 'package';
   ingredientId: string | null;
   preparedMealId: string | null;
 }
@@ -147,7 +147,8 @@ export class ShoppingListPage implements OnInit {
   }
 
   clearChecked(): void {
-    if (this.isSaving() || this.purchasedCount() === 0) return;
+    // A bulk action while an add is still in flight would fight over the same list, so both wait.
+    if (this.isSaving() || this.pending().length || this.purchasedCount() === 0) return;
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.clearChecked().pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: () => this.items.update(items => items.filter(item => !item.isPurchased)),
@@ -156,7 +157,7 @@ export class ShoppingListPage implements OnInit {
   }
 
   generate(): void {
-    if (this.isSaving() || this.generateTo() < this.generateFrom()) return;
+    if (this.isSaving() || this.pending().length || this.generateTo() < this.generateFrom()) return;
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.generate(this.generateFrom(), this.generateTo()).pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: items => this.items.set(items),
@@ -164,6 +165,7 @@ export class ShoppingListPage implements OnInit {
     });
   }
 
+  unitLabel(unit: DisplayUnit | 'package'): string { return shortUnitLabel(unit); }
   display(item: ShoppingListItem) {
     if (item.preparedMealId) return { quantity: item.quantity, unit: 'package' as const };
     const ingredient = this.ingredients().find(value => value.id === item.ingredientId);

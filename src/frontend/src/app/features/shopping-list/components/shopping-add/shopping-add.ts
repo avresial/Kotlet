@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, input, output, signal, viewChild } from '@angular/core';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { Ingredient } from '../../../ingredients/ingredient.models';
-import { DisplayUnit, toBaseQuantity, unitsForIngredient } from '../../../ingredients/display-units';
+import { DisplayUnit, shortUnitLabel, toBaseQuantity, unitsForIngredient } from '../../../ingredients/display-units';
 import { PreparedMeal } from '../../../prepared-meals/prepared-meal.models';
 
 /** A searchable product: either a catalogue ingredient or a ready meal sold by the package. */
@@ -84,7 +84,12 @@ export class ShoppingAdd {
 
   constructor() {
     // Landing straight in the quantity box means a pick can be finished without reaching for the mouse.
-    effect(() => this.quantityBox()?.nativeElement.select());
+    effect(() => {
+      const quantity = this.quantityBox()?.nativeElement;
+      if (!quantity) return;
+      quantity.focus();
+      quantity.select();
+    });
     effect(() => {
       const search = this.searchBox();
       if (search && this.refocusSearch()) {
@@ -119,7 +124,9 @@ export class ShoppingAdd {
   step(direction: 1 | -1): void {
     const step = stepFor(this.unit());
     const next = Math.round((this.quantity() + direction * step) * 1000) / 1000;
-    this.quantity.set(Math.max(next, step));
+    // One step is the floor, except below it, where the floor is what is already there — otherwise
+    // the minus button would raise a hand-typed 20 g up to 50 g.
+    this.quantity.set(Math.max(next, Math.min(step, this.quantity())));
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
@@ -158,12 +165,5 @@ export class ShoppingAdd {
     this.refocusSearch.set(true);
   }
 
-  unitLabel(unit: DisplayUnit | typeof packageUnit): string {
-    return unit === 'g' ? 'units.gramsShort'
-      : unit === 'kg' ? 'units.kilogramsShort'
-        : unit === 'ml' ? 'units.millilitresShort'
-          : unit === 'l' ? 'units.litresShort'
-            : unit === 'piece' ? 'units.pieceShort'
-              : 'shopping.packageShort';
-  }
+  unitLabel(unit: DisplayUnit | typeof packageUnit): string { return shortUnitLabel(unit); }
 }

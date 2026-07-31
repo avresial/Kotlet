@@ -79,9 +79,47 @@ describe('ShoppingAdd', () => {
     component.step(1);
     expect(component.quantity()).toBe(51);
 
-    component.setQuantity(20);
+    component.setQuantity(120);
+    component.step(-1);
+    expect(component.quantity()).toBe(70);
+
     component.step(-1);
     expect(component.quantity()).toBe(50);
+  });
+
+  it('leaves a quantity already below one step alone rather than raising it', () => {
+    component.onInput('pas');
+    component.select(component.suggestions()[0]);
+    component.setQuantity(20);
+
+    component.step(-1);
+
+    expect(component.quantity()).toBe(20);
+  });
+
+  it('walks the suggestions with the arrow keys and picks the active one with Enter', () => {
+    const key = (name: string) => component.onSearchKeydown(new KeyboardEvent('keydown', { key: name }));
+    component.onInput('pa');
+
+    key('ArrowDown');
+    expect(component.activeIndex()).toBe(1);
+    key('ArrowDown');
+    expect(component.activeIndex()).toBe(1);
+    key('ArrowUp');
+    key('ArrowUp');
+    expect(component.activeIndex()).toBe(0);
+    key('Enter');
+
+    expect(component.selected()!.name).toBe('Parmesan');
+  });
+
+  it('drops the query on Escape without picking anything', () => {
+    component.onInput('pa');
+
+    component.onSearchKeydown(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    expect(component.query()).toBe('');
+    expect(component.selected()).toBeNull();
   });
 
   it('converts the quantity to the base unit when emitting', () => {

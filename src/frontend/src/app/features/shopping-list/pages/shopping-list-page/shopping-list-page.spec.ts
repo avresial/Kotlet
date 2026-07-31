@@ -186,6 +186,7 @@ describe('ShoppingListPage background adds', () => {
   let shoppingListService: {
     getAll: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>;
     createPreparedMeal: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>;
+    generate: ReturnType<typeof vi.fn>; clearChecked: ReturnType<typeof vi.fn>;
   };
   const meal = { id: 'gyoza', name: 'Gyoza', servings: 2, caloriesPerServing: 300, isArchived: false, addons: [] } as PreparedMeal;
   const addMeal = (quantity: number, note = ''): ShoppingAddRequest => ({
@@ -200,6 +201,8 @@ describe('ShoppingListPage background adds', () => {
       create: vi.fn().mockReturnValue(created),
       createPreparedMeal: vi.fn().mockReturnValue(created),
       update: vi.fn(),
+      generate: vi.fn().mockReturnValue(of([])),
+      clearChecked: vi.fn().mockReturnValue(of({ removed: 0 })),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -226,6 +229,22 @@ describe('ShoppingListPage background adds', () => {
     page.add(addIngredient(200, ''));
 
     expect(page.availableIngredients()).toEqual([]);
+  });
+
+  it('keeps a ready meal in flight out of the picker too', () => {
+    page.add(addMeal(2));
+
+    expect(page.availablePreparedMeals()).toEqual([]);
+  });
+
+  it('holds bulk actions back while an add is still in flight', () => {
+    page.add(addIngredient(200, ''));
+
+    page.generate();
+    page.clearChecked();
+
+    expect(shoppingListService.generate).not.toHaveBeenCalled();
+    expect(shoppingListService.clearChecked).not.toHaveBeenCalled();
   });
 
   it('swaps the pending line for the saved item once the API answers', () => {

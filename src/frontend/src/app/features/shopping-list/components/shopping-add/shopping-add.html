@@ -49,6 +49,7 @@
           type="text"
           role="combobox"
           autocomplete="off"
+          aria-autocomplete="list"
           [attr.aria-expanded]="suggestions().length > 0"
           [attr.aria-controls]="suggestions().length ? 'shopping-add-suggestions' : null"
           [attr.aria-activedescendant]="suggestions().length ? 'shopping-add-option-' + activeIndex() : null"
@@ -72,7 +73,7 @@
                 <small>{{ option.kind === 'preparedMeal' ? (option.hint | t) : option.hint }}</small>
               </li>
             } @empty {
-              <li class="empty">{{ 'shopping.noMatches' | t }}</li>
+              <li class="empty" role="presentation">{{ 'shopping.noMatches' | t }}</li>
             }
           </ul>
         }
