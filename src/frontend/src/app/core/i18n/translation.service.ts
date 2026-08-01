@@ -14,7 +14,11 @@ export class TranslationService {
   readonly language = signal<Language>(this.initialLanguage());
 
   initialize(): Promise<void> {
-    return this.load(this.language()).catch(() => undefined);
+    // Startup must not block on translations, but a failed load leaves every key rendering as
+    // itself, so make the cause visible instead of failing silently.
+    return this.load(this.language()).catch((error: unknown) => {
+      console.error(`Unable to load ${this.language()} translations.`, error);
+    });
   }
 
   async setLanguage(language: Language): Promise<void> {
