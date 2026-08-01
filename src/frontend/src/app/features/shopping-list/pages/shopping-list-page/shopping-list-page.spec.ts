@@ -1,11 +1,15 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
+import { ShoppingListMutation, ShoppingListOfflineService, ShoppingListOfflineState, shoppingListCacheKey } from '../../shopping-list-offline.service';
 import { PreparedMealService } from '../../../prepared-meals/prepared-meal.service';
 import { PreparedMeal } from '../../../prepared-meals/prepared-meal.models';
 import { ShoppingAddRequest } from '../../components/shopping-add/shopping-add';
@@ -372,5 +376,153 @@ describe('ShoppingListPage optimistic updates', () => {
     updateResponse.next({ ...pasta, isPurchased: false });
     expect(page.items()[0].isPurchased).toBe(false);
     expect(page.isItemUpdating('pasta')).toBe(false);
+  });
+});
+
+describe('ShoppingListPage offline shopping list', () => {
+  let page: ShoppingListPage;
+  let cacheState: ShoppingListOfflineState;
+  let offlineStore: {
+    load: ReturnType<typeof vi.fn>; saveSnapshot: ReturnType<typeof vi.fn>;
+    queueMutation: ReturnType<typeof vi.fn>; removeMutation: ReturnType<typeof vi.fn>;
+    markMutationFailed: ReturnType<typeof vi.fn>; clearUser: ReturnType<typeof vi.fn>;
+  };
+  let shoppingListService: {
+    getAll: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>;
+    createPreparedMeal: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>;
+    generate: ReturnType<typeof vi.fn>; clearChecked: ReturnType<typeof vi.fn>;
+  };
+  const user = { id: 'user-1', activeHouseId: 'house-1' };
+  const cachedPasta = { ...item('pasta', 0), isPurchased: false };
+  const checkedPasta = { ...cachedPasta, isPurchased: true };
+  const snapshot = () => ({ items: [cachedPasta], ingredients: [ingredient], preparedMeals: [], savedAt: Date.now() });
+  const networkError = () => new HttpErrorResponse({ status: 0, statusText: 'Offline' });
+  const permanentError = () => new HttpErrorResponse({ status: 500, statusText: 'Server error' });
+  const waitForPage = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+
+  const mutation = (overrides: Partial<ShoppingListMutation> = {}): ShoppingListMutation => ({
+    itemId: 'pasta', operationId: 'operation-1', quantity: 1, isPurchased: true, note: null,
+    confirmed: cachedPasta, queuedAt: Date.now(), status: 'pending', ...overrides,
+  });
+
+  beforeEach(() => {
+    cacheState = { snapshot: snapshot(), mutations: [] };
+    offlineStore = {
+      load: vi.fn().mockImplementation(async () => ({
+        snapshot: cacheState.snapshot && { ...cacheState.snapshot, items: [...cacheState.snapshot.items] },
+        mutations: cacheState.mutations.map(value => ({ ...value })),
+      })),
+      saveSnapshot: vi.fn().mockImplementation(async (_key: string, value: Omit<NonNullable<ShoppingListOfflineState['snapshot']>, 'savedAt'>) => {
+        cacheState.snapshot = { ...value, savedAt: Date.now() };
+      }),
+      queueMutation: vi.fn().mockImplementation(async (_key: string, value: ShoppingListMutation) => {
+        cacheState.mutations = [...cacheState.mutations.filter(current => current.itemId !== value.itemId), value];
+      }),
+      removeMutation: vi.fn().mockImplementation(async (_key: string, operationId: string) => {
+        cacheState.mutations = cacheState.mutations.filter(value => value.operationId !== operationId);
+      }),
+      markMutationFailed: vi.fn().mockImplementation(async (_key: string, operationId: string, error: string) => {
+        cacheState.mutations = cacheState.mutations.map(value => value.operationId === operationId ? { ...value, status: 'failed', error } : value);
+      }),
+      clearUser: vi.fn().mockResolvedValue(undefined),
+    };
+    shoppingListService = {
+      getAll: vi.fn().mockReturnValue(throwError(networkError)),
+      create: vi.fn(), createPreparedMeal: vi.fn(), update: vi.fn(),
+      generate: vi.fn(), clearChecked: vi.fn(),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        ShoppingListPage,
+        { provide: ShoppingListService, useValue: shoppingListService },
+        { provide: ShoppingListOfflineService, useValue: offlineStore },
+        { provide: IngredientService, useValue: { getAll: vi.fn().mockReturnValue(of([ingredient])) } },
+        { provide: PreparedMealService, useValue: { list: vi.fn().mockReturnValue(of([])) } },
+        { provide: TranslationService, useValue: { translate: (key: string) => key } },
+        { provide: AuthService, useValue: { currentUser: signal(user) } },
+      ],
+    });
+  });
+
+  const loadPage = async (): Promise<ShoppingListPage> => {
+    page = TestBed.inject(ShoppingListPage);
+    page.ngOnInit();
+    await waitForPage();
+    return page;
+  };
+
+  it('scopes cache keys to both user and active household', () => {
+    expect(shoppingListCacheKey(user)).toBe('user-1:house-1');
+    expect(shoppingListCacheKey({ ...user, activeHouseId: 'house-2' })).not.toBe(shoppingListCacheKey(user));
+    expect(shoppingListCacheKey({ ...user, id: 'user-2' })).not.toBe(shoppingListCacheKey(user));
+  });
+
+  it('renders the cached snapshot when the initial API request is unavailable', async () => {
+    const loaded = await loadPage();
+
+    expect(loaded.items()).toEqual([cachedPasta]);
+    expect(loaded.syncState()).toBe('offline');
+    expect(loaded.isLoading()).toBe(false);
+  });
+
+  it('restores a pending mutation after a page reload without losing the optimistic state', async () => {
+    cacheState.mutations = [mutation()];
+    const loaded = await loadPage();
+
+    expect(loaded.items()[0].isPurchased).toBe(true);
+    expect(loaded.pendingUpdateCount()).toBe(1);
+    expect(loaded.syncState()).toBe('offline');
+  });
+
+  it('compacts rapid offline mutations to the final set-state command', async () => {
+    const update = vi.fn().mockReturnValue(throwError(networkError));
+    shoppingListService.update = update;
+    const loaded = await loadPage();
+
+    loaded.update(cachedPasta, { isPurchased: true });
+    loaded.update(loaded.items()[0], { isPurchased: false });
+    await waitForPage();
+
+    expect(cacheState.mutations).toHaveLength(1);
+    expect(cacheState.mutations[0]).toMatchObject({ itemId: 'pasta', isPurchased: false });
+  });
+
+  it('retries queued mutations on reconnection and refreshes the server snapshot', async () => {
+    cacheState.mutations = [mutation()];
+    shoppingListService.getAll
+      .mockReturnValueOnce(throwError(networkError))
+      .mockReturnValueOnce(of([checkedPasta]));
+    const response = new Subject<ShoppingListItem>();
+    shoppingListService.update.mockReturnValue(response);
+    const loaded = await loadPage();
+
+    loaded.onOnline();
+    expect(shoppingListService.update).toHaveBeenCalledTimes(1);
+    response.next(checkedPasta);
+    await waitForPage();
+
+    expect(loaded.items()).toEqual([checkedPasta]);
+    expect(loaded.syncState()).toBe('synced');
+    expect(cacheState.mutations).toEqual([]);
+  });
+
+  it('keeps a permanent failure visible and retries it explicitly', async () => {
+    shoppingListService.getAll = vi.fn().mockReturnValue(of([cachedPasta]));
+    shoppingListService.update
+      .mockReturnValueOnce(throwError(permanentError))
+      .mockReturnValueOnce(of(checkedPasta));
+    const loaded = await loadPage();
+
+    loaded.update(cachedPasta, { isPurchased: true });
+    await waitForPage();
+    expect(loaded.items()[0].isPurchased).toBe(false);
+    expect(loaded.failedUpdateCount()).toBe(1);
+    expect(loaded.syncState()).toBe('failed');
+
+    loaded.retryFailed();
+    await waitForPage();
+    expect(loaded.items()[0].isPurchased).toBe(true);
+    expect(loaded.failedUpdateCount()).toBe(0);
+    expect(loaded.syncState()).toBe('synced');
   });
 });

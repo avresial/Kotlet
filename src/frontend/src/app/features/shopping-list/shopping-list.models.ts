@@ -11,3 +11,5 @@ export interface ShoppingListItem {
   category: number;
   note: string | null;
 }
+
+export type ShoppingListUpdate = Pick<ShoppingListItem, 'quantity' | 'isPurchased' | 'note'>;

@@ -10,6 +10,7 @@ import { HomeService } from '../../features/home/home.service';
 import { HomeSummary, IncomingInvitation } from '../../features/home/home.models';
 import { InvitationInbox } from '../../features/home/components/invitation-inbox/invitation-inbox';
 import { AiProviderService } from '../../features/settings/ai-provider.service';
+import { ShoppingListOfflineService } from '../../features/shopping-list/shopping-list-offline.service';
 
 @Component({
   selector: 'app-header',
@@ -24,6 +25,7 @@ export class AppHeader {
   private readonly translations = inject(TranslationService);
   private readonly homeService = inject(HomeService);
   private readonly aiProviderService = inject(AiProviderService);
+  private readonly shoppingListOffline = inject(ShoppingListOfflineService);
   readonly agentAvailable = signal(false);
   readonly isLoggingOut = signal(false);
   readonly logoutError = signal<string | null>(null);
@@ -143,8 +145,12 @@ export class AppHeader {
     this.isLoggingOut.set(true);
     this.closeDrawer();
     this.logoutError.set(null);
+    const userId = this.auth.currentUser()?.id;
     this.auth.logout().pipe(finalize(() => this.isLoggingOut.set(false))).subscribe({
-      next: () => void this.router.navigateByUrl('/login'),
+      next: () => {
+        const clear = userId ? this.shoppingListOffline.clearUser(userId) : Promise.resolve();
+        void clear.catch(() => undefined).finally(() => this.router.navigateByUrl('/login'));
+      },
       error: (error) => this.logoutError.set(getApiError(error, this.translations.translate('auth.logout.error'))),
     });
   }
