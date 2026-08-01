@@ -305,7 +305,7 @@ describe('ShoppingListPage background adds', () => {
 
 describe('ShoppingListPage optimistic updates', () => {
   let page: ShoppingListPage;
-  let updateResponse: Subject<ShoppingListItem>;
+  let updateResponses: Subject<ShoppingListItem>[];
   let shoppingListService: {
     getAll: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>;
     createPreparedMeal: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>;
@@ -314,11 +314,15 @@ describe('ShoppingListPage optimistic updates', () => {
   const pasta = item('pasta', 0);
 
   beforeEach(() => {
-    updateResponse = new Subject<ShoppingListItem>();
+    updateResponses = [];
     shoppingListService = {
       getAll: vi.fn().mockReturnValue(of([pasta])),
       create: vi.fn(), createPreparedMeal: vi.fn(),
-      update: vi.fn().mockReturnValue(updateResponse),
+      update: vi.fn().mockImplementation(() => {
+        const response = new Subject<ShoppingListItem>();
+        updateResponses.push(response);
+        return response;
+      }),
       generate: vi.fn().mockReturnValue(of([])), clearChecked: vi.fn().mockReturnValue(of({ removed: 0 })),
     };
     TestBed.configureTestingModule({
@@ -347,7 +351,7 @@ describe('ShoppingListPage optimistic updates', () => {
 
   it('uses the confirmed server response after a successful update', () => {
     page.update(pasta, { isPurchased: true });
-    updateResponse.next({ ...pasta, isPurchased: true, totalPrice: 2 });
+    updateResponses[0].next({ ...pasta, isPurchased: true, totalPrice: 2 });
 
     expect(page.items()[0]).toMatchObject({ isPurchased: true, totalPrice: 2 });
     expect(page.isItemUpdating('pasta')).toBe(false);
@@ -355,7 +359,7 @@ describe('ShoppingListPage optimistic updates', () => {
 
   it('restores the last confirmed value when an update fails', () => {
     page.update(pasta, { isPurchased: true });
-    updateResponse.error(new Error('failed'));
+    updateResponses[0].error(new Error('failed'));
 
     expect(page.items()[0]).toEqual(pasta);
     expect(page.isItemUpdating('pasta')).toBe(false);
@@ -367,15 +371,28 @@ describe('ShoppingListPage optimistic updates', () => {
     page.update(page.items()[0], { isPurchased: false });
 
     expect(shoppingListService.update).toHaveBeenCalledTimes(1);
-    updateResponse.next({ ...pasta, isPurchased: true });
+    updateResponses[0].next({ ...pasta, isPurchased: true });
     expect(shoppingListService.update).toHaveBeenCalledTimes(2);
     expect(shoppingListService.update).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'pasta' }), {
       quantity: 1, isPurchased: false, note: null,
     });
 
-    updateResponse.next({ ...pasta, isPurchased: false });
+    updateResponses[1].next({ ...pasta, isPurchased: false });
     expect(page.items()[0].isPurchased).toBe(false);
     expect(page.isItemUpdating('pasta')).toBe(false);
+  });
+
+  it('retries the latest desired state when an earlier update fails', () => {
+    page.update(pasta, { isPurchased: true });
+    page.update(page.items()[0], { isPurchased: false });
+
+    updateResponses[0].error(new Error('failed'));
+
+    expect(shoppingListService.update).toHaveBeenCalledTimes(2);
+    updateResponses[1].next({ ...pasta, isPurchased: false });
+    expect(page.items()[0].isPurchased).toBe(false);
+    expect(page.isItemUpdating('pasta')).toBe(false);
+    expect(page.error()).toBeNull();
   });
 });
 
@@ -398,8 +415,6 @@ describe('ShoppingListPage offline shopping list', () => {
   const snapshot = () => ({ items: [cachedPasta], ingredients: [ingredient], preparedMeals: [], savedAt: Date.now() });
   const networkError = () => new HttpErrorResponse({ status: 0, statusText: 'Offline' });
   const permanentError = () => new HttpErrorResponse({ status: 500, statusText: 'Server error' });
-  const waitForPage = () => new Promise<void>(resolve => setTimeout(resolve, 0));
-
   const mutation = (overrides: Partial<ShoppingListMutation> = {}): ShoppingListMutation => ({
     itemId: 'pasta', operationId: 'operation-1', quantity: 1, isPurchased: true, note: null,
     confirmed: cachedPasta, queuedAt: Date.now(), status: 'pending', ...overrides,
@@ -447,7 +462,7 @@ describe('ShoppingListPage offline shopping list', () => {
   const loadPage = async (): Promise<ShoppingListPage> => {
     page = TestBed.inject(ShoppingListPage);
     page.ngOnInit();
-    await waitForPage();
+    await vi.waitFor(() => expect(page.isLoading()).toBe(false));
     return page;
   };
 
@@ -481,7 +496,7 @@ describe('ShoppingListPage offline shopping list', () => {
 
     loaded.update(cachedPasta, { isPurchased: true });
     loaded.update(loaded.items()[0], { isPurchased: false });
-    await waitForPage();
+    await vi.waitFor(() => expect(cacheState.mutations).toHaveLength(1));
 
     expect(cacheState.mutations).toHaveLength(1);
     expect(cacheState.mutations[0]).toMatchObject({ itemId: 'pasta', isPurchased: false });
@@ -499,7 +514,7 @@ describe('ShoppingListPage offline shopping list', () => {
     loaded.onOnline();
     expect(shoppingListService.update).toHaveBeenCalledTimes(1);
     response.next(checkedPasta);
-    await waitForPage();
+    await vi.waitFor(() => expect(cacheState.mutations).toEqual([]));
 
     expect(loaded.items()).toEqual([checkedPasta]);
     expect(loaded.syncState()).toBe('synced');
@@ -514,13 +529,13 @@ describe('ShoppingListPage offline shopping list', () => {
     const loaded = await loadPage();
 
     loaded.update(cachedPasta, { isPurchased: true });
-    await waitForPage();
+    await vi.waitFor(() => expect(loaded.failedUpdateCount()).toBe(1));
     expect(loaded.items()[0].isPurchased).toBe(false);
     expect(loaded.failedUpdateCount()).toBe(1);
     expect(loaded.syncState()).toBe('failed');
 
     loaded.retryFailed();
-    await waitForPage();
+    await vi.waitFor(() => expect(loaded.syncState()).toBe('synced'));
     expect(loaded.items()[0].isPurchased).toBe(true);
     expect(loaded.failedUpdateCount()).toBe(0);
     expect(loaded.syncState()).toBe('synced');

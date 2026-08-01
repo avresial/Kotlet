@@ -49,7 +49,8 @@ export class ShoppingListOfflineService {
       const snapshot = record.snapshot && Date.now() - record.snapshot.savedAt <= snapshotTtlMs
         ? record.snapshot
         : null;
-      return { snapshot, mutations: record.mutations ?? [] };
+      const mutations = (record.mutations ?? []).filter(mutation => Date.now() - mutation.queuedAt <= snapshotTtlMs);
+      return { snapshot, mutations };
     });
   }
 
