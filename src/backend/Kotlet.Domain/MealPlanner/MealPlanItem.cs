@@ -12,6 +12,7 @@ public sealed class MealPlanItem
     public Guid? RecipeId { get; set; }
     public Guid? IngredientId { get; set; }
     public Guid? PreparedMealId { get; set; }
+    public string? FreeText { get; set; }
     public PreparedMeal? PreparedMeal { get; set; }
     // MVP: prepared-meal add-ons are stored as regular ingredient meal-plan items
     // linked to their prepared-meal item. Introduce PlannedMealAddon only if add-ons
@@ -38,6 +39,8 @@ public sealed class MealPlanItem
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+    public long Version { get; set; } = 1;
+    public string? LastMutationKey { get; set; }
 
     public ICollection<MealPlanItemParticipant> Participants { get; set; } = [];
 

@@ -11,7 +11,7 @@ internal sealed class MealPlanItemConfiguration : IEntityTypeConfiguration<MealP
     {
         builder.ToTable("meal_plan_items", table => table.HasCheckConstraint(
             "CK_meal_plan_items_one_source",
-            "(CASE WHEN recipe_id IS NULL THEN 0 ELSE 1 END + CASE WHEN ingredient_id IS NULL THEN 0 ELSE 1 END + CASE WHEN prepared_meal_id IS NULL THEN 0 ELSE 1 END) = 1"));
+            "(CASE WHEN recipe_id IS NULL THEN 0 ELSE 1 END + CASE WHEN ingredient_id IS NULL THEN 0 ELSE 1 END + CASE WHEN prepared_meal_id IS NULL THEN 0 ELSE 1 END + CASE WHEN free_text IS NULL THEN 0 ELSE 1 END) = 1"));
         builder.HasKey(m => m.Id);
         builder.Property(m => m.Id).HasColumnName("id");
         builder.Property(m => m.HouseId).HasColumnName("house_id").IsRequired();
@@ -21,6 +21,7 @@ internal sealed class MealPlanItemConfiguration : IEntityTypeConfiguration<MealP
         builder.Property(m => m.RecipeId).HasColumnName("recipe_id");
         builder.Property(m => m.IngredientId).HasColumnName("ingredient_id");
         builder.Property(m => m.PreparedMealId).HasColumnName("prepared_meal_id");
+        builder.Property(m => m.FreeText).HasColumnName("free_text").HasMaxLength(500);
         builder.Property(m => m.ParentMealPlanItemId).HasColumnName("parent_meal_plan_item_id");
         builder.Property(m => m.IngredientQuantity).HasColumnName("ingredient_quantity");
         builder.Property(m => m.IngredientUnit).HasColumnName("ingredient_unit").HasMaxLength(32);
@@ -30,6 +31,8 @@ internal sealed class MealPlanItemConfiguration : IEntityTypeConfiguration<MealP
         builder.Property(m => m.Guests).HasColumnName("guests").IsRequired().HasDefaultValue(0);
         builder.Property(m => m.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(m => m.UpdatedAt).HasColumnName("updated_at").IsRequired();
+        builder.Property(m => m.Version).HasColumnName("version").IsConcurrencyToken().IsRequired();
+        builder.Property(m => m.LastMutationKey).HasColumnName("last_mutation_key").HasMaxLength(200);
 
         builder.Ignore(m => m.EffectiveServings);
 

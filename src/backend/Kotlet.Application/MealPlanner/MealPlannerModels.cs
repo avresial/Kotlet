@@ -7,7 +7,8 @@ public sealed record AddMealPlanItemRequest(
     Guid? IngredientId,
     string? Note,
     Guid? PreparedMealId = null,
-    IReadOnlyList<SelectedPreparedMealAddon>? Addons = null);
+    IReadOnlyList<SelectedPreparedMealAddon>? Addons = null,
+    string? FreeText = null);
 
 public sealed record SelectedPreparedMealAddon(Guid IngredientId, decimal Quantity, string Unit);
 
@@ -31,7 +32,8 @@ public sealed record MealPlanPreviewItem(
     decimal? CaloriesPerServing,
     IReadOnlyList<string> Ingredients,
     string? Note,
-    string ResourceUri);
+    string ResourceUri,
+    string? FreeText = null);
 
 public sealed record MealPlanPreviewResponse(
     string WeekStart,
@@ -46,6 +48,83 @@ public sealed record CopyMealPlanDayRequest(DateOnly SourceDate, DateOnly Target
 public sealed record CopyMealPlanWeekRequest(DateOnly SourceWeekStart, DateOnly TargetWeekStart);
 
 public sealed record MoveMealPlanItemRequest(DateOnly Date, string Slot);
+
+public sealed record MealPlanSourceRequest(
+    Guid? RecipeId = null,
+    Guid? IngredientId = null,
+    Guid? PreparedMealId = null,
+    string? FreeText = null,
+    string? Note = null,
+    IReadOnlyList<SelectedPreparedMealAddon>? Addons = null);
+
+public sealed record ReplaceMealPlanRequest(
+    Guid? MealId,
+    DateOnly? Date,
+    string? Slot,
+    MealPlanSourceRequest Source,
+    long? ExpectedVersion = null,
+    string? IdempotencyKey = null,
+    bool CreateIfMissing = false);
+
+public sealed record MoveMealPlanMutationRequest(
+    Guid MealId,
+    DateOnly Date,
+    string Slot,
+    string DestinationBehavior = "reject",
+    long? ExpectedVersion = null,
+    long? DestinationExpectedVersion = null,
+    string? IdempotencyKey = null);
+
+public sealed record SwapMealPlanRequest(
+    Guid FirstMealId,
+    Guid SecondMealId,
+    long? FirstExpectedVersion = null,
+    long? SecondExpectedVersion = null,
+    string? IdempotencyKey = null);
+
+public sealed record ClearMealPlanSlotRequest(
+    DateOnly Date,
+    string Slot,
+    string? IdempotencyKey = null);
+
+public sealed record ApplyMealPlanReplacementRequest(
+    Guid MealId,
+    MealPlanSourceRequest Source,
+    long? ExpectedVersion = null,
+    string? IdempotencyKey = null);
+
+public sealed record MealPlanRecommendation(
+    string Type,
+    Guid? RecipeId,
+    Guid? IngredientId,
+    Guid? PreparedMealId,
+    string? FreeText,
+    string Title,
+    string Reason,
+    string ResourceUri);
+
+public sealed record MealPlanRecommendationResponse(
+    DateOnly Date,
+    string Slot,
+    IReadOnlyList<MealPlanRecommendation> Recommendations,
+    bool SlotIsEmpty);
+
+public sealed record MealPlanCandidate(
+    Guid Id,
+    string Date,
+    string Slot,
+    string Type,
+    string Title,
+    long Version);
+
+public sealed record MealPlanMutationResponse(
+    string Status,
+    MealPlanItemResponse? Item = null,
+    IReadOnlyList<MealPlanItemResponse>? Items = null,
+    IReadOnlyList<string>? ShoppingImpact = null,
+    IReadOnlyDictionary<string, string[]>? ValidationErrors = null,
+    string? Message = null,
+    IReadOnlyList<MealPlanCandidate>? Candidates = null);
 
 public sealed record SetParticipantsRequest(IReadOnlyList<Guid> UserIds);
 
@@ -77,7 +156,9 @@ public sealed record MealPlanItemResponse(
     IReadOnlyList<MealParticipantResponse> Participants,
     int Guests,
     decimal Servings,
-    bool ServingsOverridden);
+    bool ServingsOverridden,
+    string? FreeText = null,
+    long Version = 1);
 
 public sealed record DailyMealPlanResponse(
     string Date,

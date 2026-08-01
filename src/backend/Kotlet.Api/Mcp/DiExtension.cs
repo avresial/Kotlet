@@ -68,6 +68,12 @@ public static class DiExtension
 
                 Other browsing: get_shopping_list, get_pantry, get_meal_plan_overview/get_meal_plan.
 
+                Direct meal-plan changes: use meal_plan_get_range first, then meal_plan_replace for a single entry,
+                meal_plan_move or meal_plan_swap for atomic movement, meal_plan_clear_slot to empty a slot, and
+                meal_plan_recommend_replacement followed by meal_plan_apply_replacement when the user wants a
+                suggestion. These tools require absolute yyyy-MM-dd dates, return conflicts and ambiguous candidates
+                explicitly, support expectedVersion/idempotencyKey, and never silently change the shopping list.
+
                 Adding a recipe (e.g. one found on the internet): follow the
                 kotlet://recipes/new-recipe-guide resource. In short: check for duplicates first with
                 check_recipe_exists (source URL and/or title), find every ingredient in one call
