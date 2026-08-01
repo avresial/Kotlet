@@ -211,6 +211,11 @@ export class ShoppingListPage implements OnInit {
     this.flushQueued();
   }
 
+  @HostListener('window:offline')
+  onOffline(): void {
+    if (this.loaded) this.syncState.set('offline');
+  }
+
   private applyPendingUpdates(items: ShoppingListItem[], mutations: ShoppingListMutation[]): ShoppingListItem[] {
     return mutations.reduce((current, mutation) => mutation.status === 'pending'
       ? current.map(item => item.id === mutation.itemId ? this.optimisticItem(item, this.updateFromMutation(mutation)) : item)
@@ -240,7 +245,7 @@ export class ShoppingListPage implements OnInit {
   }
 
   private isNetworkFailure(error: unknown): boolean {
-    return !this.networkAvailable() || error instanceof HttpErrorResponse && error.status === 0;
+    return error instanceof HttpErrorResponse && error.status === 0;
   }
 
   /** The add panel hands over and resets immediately; the save runs here in the background so the
@@ -275,6 +280,7 @@ export class ShoppingListPage implements OnInit {
   }
 
   update(item: ShoppingListItem, changes: Partial<ShoppingListUpdate>): void {
+    if (this.isSaving()) return;
     if (changes.quantity !== undefined && (!Number.isFinite(changes.quantity) || changes.quantity <= 0)) return;
     const current = this.items().find(value => value.id === item.id) ?? item;
     const pending = this.pendingUpdates().get(item.id);
@@ -326,7 +332,7 @@ export class ShoppingListPage implements OnInit {
           if (this.flushingQueue) {
             if (this.pendingUpdateCount() === 0) this.refreshAfterSync();
           } else {
-            this.syncState.set('synced');
+            this.syncState.set(this.failedUpdateCount() ? 'failed' : this.pendingUpdateCount() ? 'syncing' : 'synced');
             this.persistSnapshot();
           }
           return;
@@ -346,11 +352,18 @@ export class ShoppingListPage implements OnInit {
           this.persistSnapshot();
           return;
         }
+        if (!this.sameUpdate(current.desired, pending.desired)) {
+          this.setPendingUpdate(id, { ...current, inFlight: false });
+          this.items.update(items => items.map(item => item.id === id ? this.optimisticItem(current.confirmed ?? item, current.desired) : item));
+          this.startUpdate(id);
+          return;
+        }
         if (current.confirmed) this.items.update(items => items.map(item => item.id === id ? current.confirmed! : item));
         this.setPendingUpdate(id, { ...current, status: 'failed', inFlight: false, persisted: true });
         if (this.cacheKey) void this.offline.markMutationFailed(this.cacheKey, current.operationId, 'shopping.updateError').catch(() => undefined);
         this.syncState.set('failed');
         this.persistSnapshot();
+        if (this.flushingQueue && this.pendingUpdateCount() === 0) this.flushingQueue = false;
         this.error.set(getApiError(error, this.translations.translate('shopping.updateError')));
       },
     });
@@ -376,7 +389,7 @@ export class ShoppingListPage implements OnInit {
       const current = this.pendingUpdates().get(id);
       if (!current || current.operationId !== pending.operationId) return;
       this.setPendingUpdate(id, { ...current, persisted: true });
-      this.syncState.set('failed');
+      this.syncState.set(this.networkAvailable() ? 'syncing' : 'offline');
       this.startUpdate(id);
     });
   }
@@ -416,9 +429,10 @@ export class ShoppingListPage implements OnInit {
     this.flushingQueue = false;
     this.shoppingListService.getAll().subscribe({
       next: items => {
-        this.items.set(items);
-        this.syncState.set('synced');
+        this.items.set(this.overlayPendingUpdates(items));
+        this.syncState.set(this.failedUpdateCount() ? 'failed' : this.pendingUpdateCount() ? 'syncing' : 'synced');
         this.persistSnapshot();
+        if (this.pendingUpdateCount()) this.flushQueued();
       },
       error: error => {
         this.syncState.set(this.isNetworkFailure(error) ? 'offline' : 'failed');
@@ -443,7 +457,17 @@ export class ShoppingListPage implements OnInit {
     const totalPrice = item.preparedMealId
       ? update.quantity * item.pricePer100BaseUnits
       : (update.quantity / 100) * item.pricePer100BaseUnits;
-    return { ...item, ...update, totalPrice: Math.round((totalPrice + Number.EPSILON) * 100) / 100 };
+    return { ...item, ...update, totalPrice: this.roundToCents(totalPrice) };
+  }
+
+  private roundToCents(value: number): number {
+    const cents = value * 100;
+    const lower = Math.floor(cents);
+    const fraction = cents - lower;
+    const rounded = fraction > .5 || (Math.abs(fraction - .5) < 1e-9 && lower % 2 !== 0)
+      ? lower + 1
+      : lower;
+    return rounded / 100;
   }
 
   remove(item: ShoppingListItem): void {

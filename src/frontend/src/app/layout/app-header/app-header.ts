@@ -148,8 +148,8 @@ export class AppHeader {
     const userId = this.auth.currentUser()?.id;
     this.auth.logout().pipe(finalize(() => this.isLoggingOut.set(false))).subscribe({
       next: () => {
-        const clear = userId ? this.shoppingListOffline.clearUser(userId) : Promise.resolve();
-        void clear.catch(() => undefined).finally(() => this.router.navigateByUrl('/login'));
+        void this.router.navigateByUrl('/login');
+        if (userId) void this.shoppingListOffline.clearUser(userId).catch(() => undefined);
       },
       error: (error) => this.logoutError.set(getApiError(error, this.translations.translate('auth.logout.error'))),
     });
