@@ -15,10 +15,11 @@
         <p class="eyebrow">{{ 'shopping.receipt' | t }}</p>
         <h2 id="receipt-title">{{ 'shopping.itemsToBuy' | t }}</h2>
         <p class="receipt-count">{{ items().length }} {{ 'common.items' | t }}</p>
+        <p class="sync-status" [class.sync-offline]="syncState() === 'offline'" [class.sync-syncing]="syncState() === 'syncing'" [class.sync-failed]="syncState() === 'failed'" role="status" aria-live="polite"><span aria-hidden="true">●</span>{{ syncLabel() | t }} @if (failedUpdateCount() > 0) { <button type="button" class="retry-sync" (click)="retryFailed()">{{ 'shopping.retrySync' | t }}</button> }</p>
       </div>
       <div class="receipt-actions">
         <button class="pill" type="button" [disabled]="items().length === 0" (click)="print()">{{ 'shopping.print' | t }}</button>
-        <button class="icon-button clear-checked" type="button" [disabled]="isSaving() || pendingUpdateCount() > 0 || purchasedCount() === 0" (click)="clearChecked()" [attr.aria-label]="'shopping.clearChecked' | t" [title]="'shopping.clearChecked' | t">
+        <button class="icon-button clear-checked" type="button" [disabled]="isSaving() || pendingUpdateCount() > 0 || failedUpdateCount() > 0 || purchasedCount() === 0" (click)="clearChecked()" [attr.aria-label]="'shopping.clearChecked' | t" [title]="'shopping.clearChecked' | t">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V3h8v3M19 6l-1 15H6L5 6M10 10v7M14 10v7"/></svg>
         </button>
       </div>

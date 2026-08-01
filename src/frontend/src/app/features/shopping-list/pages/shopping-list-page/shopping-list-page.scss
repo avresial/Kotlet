@@ -25,6 +25,12 @@ button:disabled { opacity: .5; cursor: default; }
 .receipt-title { display: grid; gap: .15rem; min-width: 0; }
 .receipt-title h2 { margin: 0; }
 .receipt-count { margin: 0; color: var(--app-text-muted); font-size: .8rem; }
+.sync-status { display: flex; align-items: center; gap: .35rem; margin: .15rem 0 0; color: var(--app-text-muted); font-size: .75rem; }
+.sync-status span { color: #66806c; font-size: .6rem; }
+.sync-offline span, .sync-syncing span { color: #b16d2e; }
+.sync-failed span { color: var(--app-danger); }
+.sync-syncing span { animation: pending-pulse 1.2s ease-in-out infinite; }
+.retry-sync { padding: 0; color: #963827; font-size: .75rem; text-decoration: underline; }
 .receipt-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 .receipt-actions .pill { flex: 1 1 6.5rem; min-height: 2.5rem; padding: .4rem .8rem; border: 1px solid var(--app-border-strong); border-radius: 2rem; color: #8e392b; font-size: .78rem; }
 .receipt-actions .icon-button { flex: none; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border: 1px solid var(--app-border-strong); border-radius: 50%; color: #8e392b; }
@@ -64,7 +70,7 @@ button:disabled { opacity: .5; cursor: default; }
 .is-pending .check { animation: pending-pulse 1.2s ease-in-out infinite; }
 .is-pending .qty { font-variant-numeric: tabular-nums; }
 @keyframes pending-pulse { 50% { opacity: .3; } }
-@media (prefers-reduced-motion: reduce) { .is-pending .check, .check.is-syncing { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .is-pending .check, .check.is-syncing, .sync-syncing span { animation: none; } }
 .is-purchased .name, .is-purchased .line-price { text-decoration: line-through; }
 .is-purchased .check { color: #567451; }
 .is-purchased .check.is-syncing { color: #963827; }
