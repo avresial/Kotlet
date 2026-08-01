@@ -592,7 +592,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.Property<long>("Version")
-                        .IsConcurrencyToken()
                         .HasColumnType("bigint")
                         .HasColumnName("version");
 

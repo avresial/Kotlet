@@ -357,13 +357,12 @@ public sealed class MealPlannerService(
 
                 var now = DateTimeOffset.UtcNow;
                 item = NewItem(userId, houseId, request.Date.Value, ParseSlot(request.Slot!), candidates.Count, request.Source, now);
-                item.LastMutationKey = request.IdempotencyKey?.Trim();
+                SetMutationKey(item, request.IdempotencyKey);
                 repository.Add(item);
                 AddSelectedAddons(item, request.Source.Addons, now);
                 await repository.SaveChangesAsync(cancellationToken);
                 return new("Success", await ToResponseAsync(item, userId, houseId,
-                    await GetMemberNamesAsync(houseId, cancellationToken), cancellationToken),
-                    ShoppingImpact: []);
+                    await GetMemberNamesAsync(houseId, cancellationToken), cancellationToken));
             }
         }
 
@@ -376,20 +375,20 @@ public sealed class MealPlannerService(
             return VersionConflict(item.Version);
         if (SourceMatches(item, request.Source))
             return new("Success", await ToResponseAsync(item, userId, houseId,
-                await GetMemberNamesAsync(houseId, cancellationToken), cancellationToken), ShoppingImpact: []);
+                await GetMemberNamesAsync(houseId, cancellationToken), cancellationToken));
 
         foreach (var addon in item.AddonItems.ToList())
             repository.Remove(addon);
         item.AddonItems.Clear();
         ApplySource(item, request.Source);
         item.Version++;
-        item.LastMutationKey = request.IdempotencyKey?.Trim();
+        SetMutationKey(item, request.IdempotencyKey);
         item.UpdatedAt = DateTimeOffset.UtcNow;
         AddSelectedAddons(item, request.Source.Addons, item.UpdatedAt);
         await repository.SaveChangesAsync(cancellationToken);
 
         return new("Success", await ToResponseAsync(item, userId, houseId,
-            await GetMemberNamesAsync(houseId, cancellationToken), cancellationToken), ShoppingImpact: []);
+            await GetMemberNamesAsync(houseId, cancellationToken), cancellationToken));
     }
 
     public async Task<MealPlanMutationResponse> MoveAsync(
@@ -397,21 +396,33 @@ public sealed class MealPlannerService(
     {
         if (SlotError(request.Slot) is { } slotError)
             return ValidationMutation(slotError);
+        var targetSlot = ParseSlot(request.Slot);
+        var behavior = (request.DestinationBehavior ?? "reject").Trim().ToLowerInvariant();
+        if (behavior is not ("reject" or "replace" or "swap"))
+            return ValidationMutation(new Dictionary<string, string[]> { ["destinationBehavior"] = ["Destination behavior must be reject, replace, or swap."] });
+        var mutationKey = request.IdempotencyKey?.Trim();
 
         var item = await repository.GetByIdAsync(request.MealId, houseId, cancellationToken);
         if (item is null) return new("NotFound");
         if (item.ParentMealPlanItemId.HasValue)
             return ValidationMutation(new Dictionary<string, string[]> { ["mealId"] = ["Meal-plan add-ons cannot be moved directly."] });
-        if (!string.IsNullOrWhiteSpace(request.IdempotencyKey) &&
-            string.Equals(item.LastMutationKey, request.IdempotencyKey.Trim(), StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(mutationKey) &&
+            string.Equals(item.LastMutationKey, mutationKey, StringComparison.Ordinal))
+        {
+            if (behavior == "swap")
+            {
+                var pairedItem = (await repository.GetByDateRangeAsync(
+                        houseId, DateOnly.MinValue, DateOnly.MaxValue, cancellationToken))
+                    .FirstOrDefault(candidate => candidate.Id != item.Id &&
+                        candidate.ParentMealPlanItemId is null &&
+                        string.Equals(candidate.LastMutationKey, mutationKey, StringComparison.Ordinal));
+                if (pairedItem is not null)
+                    return await SuccessPairMutationAsync(userId, houseId, item, pairedItem, cancellationToken);
+            }
             return await SuccessMutationAsync(userId, houseId, item, cancellationToken);
+        }
         if (request.ExpectedVersion is { } expectedVersion && item.Version != expectedVersion)
             return VersionConflict(item.Version);
-
-        var targetSlot = ParseSlot(request.Slot);
-        var behavior = (request.DestinationBehavior ?? "reject").Trim().ToLowerInvariant();
-        if (behavior is not ("reject" or "replace" or "swap"))
-            return ValidationMutation(new Dictionary<string, string[]> { ["destinationBehavior"] = ["Destination behavior must be reject, replace, or swap."] });
 
         if (item.Date == request.Date && item.Slot == targetSlot)
             return await SuccessMutationAsync(userId, houseId, item, cancellationToken);
@@ -442,8 +453,8 @@ public sealed class MealPlannerService(
             UpdateAddonLocation(item);
             UpdateAddonLocation(destination);
             item.Version++;
-            item.LastMutationKey = request.IdempotencyKey?.Trim();
-            destination.LastMutationKey = request.IdempotencyKey?.Trim();
+            SetMutationKey(item, mutationKey);
+            SetMutationKey(destination, mutationKey);
             destination.Version++;
             item.UpdatedAt = DateTimeOffset.UtcNow;
             destination.UpdatedAt = item.UpdatedAt;
@@ -452,7 +463,7 @@ public sealed class MealPlannerService(
             return new("Success", Items: [
                 await ToResponseAsync(item, userId, houseId, members, cancellationToken),
                 await ToResponseAsync(destination, userId, houseId, members, cancellationToken)
-            ], ShoppingImpact: []);
+            ]);
         }
 
         if (candidates.Count > 0)
@@ -471,7 +482,7 @@ public sealed class MealPlannerService(
         item.Slot = targetSlot;
         item.SortOrder = 0;
         item.Version++;
-        item.LastMutationKey = request.IdempotencyKey?.Trim();
+        SetMutationKey(item, mutationKey);
         item.UpdatedAt = DateTimeOffset.UtcNow;
         UpdateAddonLocation(item);
         await repository.SaveChangesAsync(cancellationToken);
@@ -498,6 +509,8 @@ public sealed class MealPlannerService(
             return VersionConflict(first.Version);
         if (request.SecondExpectedVersion is { } secondVersion && second.Version != secondVersion)
             return VersionConflict(second.Version);
+        if (first.Date == second.Date && first.Slot == second.Slot)
+            return await SuccessPairMutationAsync(userId, houseId, first, second, cancellationToken);
 
         (first.Date, second.Date) = (second.Date, first.Date);
         (first.Slot, second.Slot) = (second.Slot, first.Slot);
@@ -506,8 +519,8 @@ public sealed class MealPlannerService(
         UpdateAddonLocation(second);
         first.Version++;
         second.Version++;
-        first.LastMutationKey = mutationKey;
-        second.LastMutationKey = mutationKey;
+        SetMutationKey(first, mutationKey);
+        SetMutationKey(second, mutationKey);
         first.UpdatedAt = DateTimeOffset.UtcNow;
         second.UpdatedAt = first.UpdatedAt;
         await repository.SaveChangesAsync(cancellationToken);
@@ -515,7 +528,7 @@ public sealed class MealPlannerService(
         return new("Success", Items: [
             await ToResponseAsync(first, userId, houseId, members, cancellationToken),
             await ToResponseAsync(second, userId, houseId, members, cancellationToken)
-        ], ShoppingImpact: []);
+        ]);
     }
 
     public async Task<MealPlanMutationResponse> ClearSlotAsync(
@@ -526,7 +539,7 @@ public sealed class MealPlannerService(
 
         var candidates = await GetSlotItemsAsync(houseId, request.Date, ParseSlot(request.Slot), cancellationToken);
         if (candidates.Count == 0)
-            return new("Success", Items: [], ShoppingImpact: [], Message: "The meal-plan slot is already empty.");
+            return new("Success", Items: [], Message: "The meal-plan slot is already empty.");
 
         var tracked = new List<MealPlanItem>();
         foreach (var candidate in candidates)
@@ -541,7 +554,7 @@ public sealed class MealPlannerService(
             RemoveWithAddons(item);
         }
         await repository.SaveChangesAsync(cancellationToken);
-        return new("Success", Items: responses, ShoppingImpact: []);
+        return new("Success", Items: responses);
     }
 
     public async Task<MealPlanRecommendationResponse> RecommendReplacementAsync(
@@ -554,13 +567,15 @@ public sealed class MealPlannerService(
         var recommendations = (await recipeRepository.GetAllForDuplicateCheckAsync(houseId, cancellationToken))
             .Take(5)
             .Select(recipe => new MealPlanRecommendation(
-                "recipe", recipe.Id, null, null, null, recipe.Title, "Household recipe", $"kotlet://recipes/{recipe.Id}"))
+                "recipe", recipe.Id, null, null, null, recipe.Title,
+                "Household recipe; options are not ranked by preferences.", $"kotlet://recipes/{recipe.Id}"))
             .ToList();
         if (preparedMealRepository is not null && recommendations.Count < 5)
             recommendations.AddRange((await preparedMealRepository.ListAsync(houseId, includeArchived: false, cancellationToken))
                 .Take(5 - recommendations.Count)
                 .Select(meal => new MealPlanRecommendation(
-                    "prepared-meal", null, null, meal.Id, null, meal.Name, "Prepared household meal",
+                    "prepared-meal", null, null, meal.Id, null, meal.Name,
+                    "Prepared household meal; options are not ranked by preferences.",
                     $"kotlet://prepared-meals/{meal.Id}")));
 
         return new(date, slot.ToLowerInvariant(), recommendations, candidates.Count == 0);
@@ -745,7 +760,7 @@ public sealed class MealPlannerService(
             source.PreparedMealId,
             source.Addons,
             source.FreeText);
-        return await ValidateAddAsync(houseId, request, cancellationToken);
+        return await ValidateAddAsync(houseId, request, cancellationToken, validateSlot: false);
     }
 
     private async Task<List<MealPlanItem>> GetSlotItemsAsync(
@@ -850,8 +865,7 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, MealPlanItem item, CancellationToken cancellationToken)
     {
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
-        return new("Success", await ToResponseAsync(item, userId, houseId, members, cancellationToken),
-            ShoppingImpact: []);
+        return new("Success", await ToResponseAsync(item, userId, houseId, members, cancellationToken));
     }
 
     private async Task<MealPlanMutationResponse> SuccessPairMutationAsync(
@@ -861,7 +875,7 @@ public sealed class MealPlannerService(
         return new("Success", Items: [
             await ToResponseAsync(first, userId, houseId, members, cancellationToken),
             await ToResponseAsync(second, userId, houseId, members, cancellationToken)
-        ], ShoppingImpact: []);
+        ]);
     }
 
     private async Task<MealPlanMutationResponse> AmbiguousMutationAsync(
@@ -872,10 +886,14 @@ public sealed class MealPlannerService(
     private async Task<MealPlanMutationResponse> AmbiguousDestinationAsync(
         Guid userId, Guid houseId, IReadOnlyList<MealPlanItem> candidates,
         DateOnly date, string slot, CancellationToken cancellationToken) =>
-        candidates.Count == 0
-            ? new("Conflict", Message: "The destination slot is empty; swap requires exactly one destination meal.")
-            : new("Conflict", Candidates: await ToCandidatesAsync(userId, houseId, candidates, cancellationToken),
-                Message: $"The destination slot {date:yyyy-MM-dd} {slot} is ambiguous; choose a destination meal.");
+        candidates.Count switch
+        {
+            0 => new("Conflict", Message: "The destination slot is empty; swap requires exactly one destination meal."),
+            1 => new("Conflict", Candidates: await ToCandidatesAsync(userId, houseId, candidates, cancellationToken),
+                Message: "The destination slot is occupied; choose replace or swap."),
+            _ => new("Conflict", Candidates: await ToCandidatesAsync(userId, houseId, candidates, cancellationToken),
+                Message: $"The destination slot {date:yyyy-MM-dd} {slot} is ambiguous; choose a destination meal.")
+        };
 
     private async Task<IReadOnlyList<MealPlanCandidate>> ToCandidatesAsync(
         Guid userId, Guid houseId, IReadOnlyList<MealPlanItem> items, CancellationToken cancellationToken)
@@ -900,12 +918,18 @@ public sealed class MealPlannerService(
             ["version"] = [$"The meal has changed. Reload it and retry with version {actualVersion}."]
         });
 
+    private static void SetMutationKey(MealPlanItem item, string? mutationKey)
+    {
+        if (!string.IsNullOrWhiteSpace(mutationKey))
+            item.LastMutationKey = mutationKey.Trim();
+    }
+
     private async Task<Dictionary<string, string[]>> ValidateAddAsync(
-        Guid houseId, AddMealPlanItemRequest request, CancellationToken cancellationToken)
+        Guid houseId, AddMealPlanItemRequest request, CancellationToken cancellationToken, bool validateSlot = true)
     {
         var errors = new Dictionary<string, string[]>();
 
-        if (SlotError(request.Slot) is { } slotError)
+        if (validateSlot && SlotError(request.Slot) is { } slotError)
             errors["slot"] = slotError["slot"];
 
         var hasRecipe = request.RecipeId.HasValue;

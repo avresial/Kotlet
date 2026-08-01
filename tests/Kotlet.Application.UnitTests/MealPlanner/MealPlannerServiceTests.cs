@@ -114,6 +114,28 @@ public sealed class MealPlannerServiceTests
     }
 
     [Fact]
+    public async Task Move_SwapRetryReturnsBothItems()
+    {
+        var (service, _) = CreateService();
+        var first = await service.AddItemAsync(CurrentUserId, HouseId,
+            new AddMealPlanItemRequest(Today, "breakfast", SoupRecipe.Id, null, null), CancellationToken.None);
+        var second = await service.AddItemAsync(CurrentUserId, HouseId,
+            new AddMealPlanItemRequest(Today.AddDays(1), "dinner", null, Bread.Id, null), CancellationToken.None);
+        var request = new MoveMealPlanMutationRequest(
+            first.Item!.Id, Today.AddDays(1), "dinner", "swap", 1, 1, "move-swap-1");
+
+        var result = await service.MoveAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var retry = await service.MoveAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+
+        Assert.Equal("Success", result.Status);
+        Assert.Equal(2, result.Items!.Count);
+        Assert.Null(result.Item);
+        Assert.Equal("Success", retry.Status);
+        Assert.Equal(2, retry.Items!.Count);
+        Assert.Null(retry.Item);
+    }
+
+    [Fact]
     public async Task AddItem_WithPreparedMeal_PersistsSelectedAddonsAsLinkedIngredientItems()
     {
         var meals = new FakeMealPlanRepository();

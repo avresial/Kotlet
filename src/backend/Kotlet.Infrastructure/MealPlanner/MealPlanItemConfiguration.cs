@@ -31,7 +31,7 @@ internal sealed class MealPlanItemConfiguration : IEntityTypeConfiguration<MealP
         builder.Property(m => m.Guests).HasColumnName("guests").IsRequired().HasDefaultValue(0);
         builder.Property(m => m.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(m => m.UpdatedAt).HasColumnName("updated_at").IsRequired();
-        builder.Property(m => m.Version).HasColumnName("version").IsConcurrencyToken().IsRequired();
+        builder.Property(m => m.Version).HasColumnName("version").IsRequired();
         builder.Property(m => m.LastMutationKey).HasColumnName("last_mutation_key").HasMaxLength(200);
 
         builder.Ignore(m => m.EffectiveServings);

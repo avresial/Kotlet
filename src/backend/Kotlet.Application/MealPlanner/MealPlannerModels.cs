@@ -84,8 +84,7 @@ public sealed record SwapMealPlanRequest(
 
 public sealed record ClearMealPlanSlotRequest(
     DateOnly Date,
-    string Slot,
-    string? IdempotencyKey = null);
+    string Slot);
 
 public sealed record ApplyMealPlanReplacementRequest(
     Guid MealId,
@@ -121,7 +120,6 @@ public sealed record MealPlanMutationResponse(
     string Status,
     MealPlanItemResponse? Item = null,
     IReadOnlyList<MealPlanItemResponse>? Items = null,
-    IReadOnlyList<string>? ShoppingImpact = null,
     IReadOnlyDictionary<string, string[]>? ValidationErrors = null,
     string? Message = null,
     IReadOnlyList<MealPlanCandidate>? Candidates = null);
