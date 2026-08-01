@@ -1,7 +1,9 @@
 using Kotlet.Infrastructure.Admin;
+using Kotlet.Infrastructure.AgentMemory;
 using Kotlet.Infrastructure.Ai;
 using Kotlet.Infrastructure.FoodSettings;
 using Kotlet.Application.FoodSettings;
+using Kotlet.Application.AgentMemory;
 using Kotlet.Infrastructure.Auth;
 using Kotlet.Application.Images;
 using Kotlet.Infrastructure.Houses;
@@ -26,6 +28,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services, IConfiguration configuration) => services
         .AddAdminInfrastructure()
+        .AddScoped<IAgentMemoryRepository, AgentMemoryRepository>()
         .AddAiInfrastructure()
         .AddScoped<IUserFoodSettingsRepository, UserFoodSettingsRepository>()
         .AddAuthInfrastructure()

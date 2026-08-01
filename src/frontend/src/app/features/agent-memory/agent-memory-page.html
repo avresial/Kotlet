@@ -1,0 +1,47 @@
+<main class="memory-page">
+  <a class="back" routerLink="/dashboard">← {{ 'memory.back' | t }}</a>
+  <header>
+    <p class="eyebrow">{{ 'memory.eyebrow' | t }}</p>
+    <h1>{{ 'memory.title' | t }}</h1>
+    <p>{{ 'memory.intro' | t }}</p>
+  </header>
+
+  <section class="card editor" aria-labelledby="editor-title">
+    <div class="section-heading"><h2 id="editor-title">{{ editingId() ? ('memory.edit' | t) : ('memory.create' | t) }}</h2><p>{{ 'memory.editorHelp' | t }}</p></div>
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <label>{{ 'memory.titleField' | t }}<input pInputText formControlName="title" maxlength="200" /></label>
+      <label>{{ 'memory.content' | t }}<textarea formControlName="content" rows="4" maxlength="10000" required></textarea></label>
+      @if (form.controls.content.touched && form.controls.content.hasError('required')) { <p-message severity="error" size="small" variant="simple">{{ 'memory.contentRequired' | t }}</p-message> }
+      <div class="form-grid">
+        <label>{{ 'memory.category' | t }}<input pInputText formControlName="category" maxlength="100" placeholder="food, household, workflow" /></label>
+        <label>{{ 'memory.source' | t }}<select formControlName="source"><option value="ExplicitRequest">Explicit request</option><option value="UserCorrection">User correction</option><option value="UserProvidedFact">User-provided fact</option><option value="AgentInference">Agent inference</option></select></label>
+        <label>{{ 'memory.reviewStatus' | t }}<select formControlName="reviewStatus"><option value="Confirmed">Confirmed</option><option value="Inferred">Inferred</option><option value="NeedsReview">Needs review</option></select></label>
+        <label>{{ 'memory.expiresAt' | t }}<input type="date" formControlName="expiresAt" /></label>
+      </div>
+      <div class="actions"><p-button type="submit" [label]="'common.save' | t" [loading]="saving()" /><p-button type="button" severity="secondary" [outlined]="true" [label]="'common.cancel' | t" (onClick)="cancelEdit()" /></div>
+    </form>
+  </section>
+
+  <section class="toolbar" aria-label="Memory actions">
+    <input pInputText type="search" [ngModel]="search()" (ngModelChange)="search.set($event)" [placeholder]="'memory.search' | t" />
+    <p-button type="button" [label]="'memory.new' | t" (onClick)="beginCreate()" />
+    <p-button type="button" severity="secondary" [outlined]="true" [label]="'memory.export' | t" (onClick)="exportMarkdown()" />
+  </section>
+
+  @if (error()) { <p-message severity="error" role="alert">{{ error() }}</p-message> }
+  @if (loading()) { <p class="empty">{{ 'common.loading' | t }}</p> }
+  @else if (visibleMemories().length === 0) { <p class="empty">{{ 'memory.empty' | t }}</p> }
+  @else {
+    <section class="memory-list" aria-label="Memories">
+      @for (memory of visibleMemories(); track memory.id) {
+        <article class="card memory-card" [class.needs-review]="memory.reviewStatus === 'NeedsReview'">
+          <div class="memory-heading"><div><h2>{{ memory.title || ('memory.untitled' | t) }}</h2><p class="meta">{{ memory.category || ('memory.uncategorized' | t) }} · {{ memory.source }} · v{{ memory.version }}</p></div><span class="status">{{ memory.reviewStatus }}</span></div>
+          <p class="content">{{ memory.content }}</p>
+          <p class="dates">{{ memory.updatedAt | date: 'mediumDate' }} @if (memory.expiresAt) { · {{ 'memory.expires' | t }} {{ memory.expiresAt | date: 'mediumDate' }} }</p>
+          <div class="actions"><p-button type="button" size="small" [outlined]="true" [label]="'common.edit' | t" (onClick)="beginEdit(memory)" /><p-button type="button" size="small" severity="success" [outlined]="true" [label]="'memory.confirm' | t" (onClick)="setReviewStatus(memory, 'Confirmed')" [disabled]="memory.reviewStatus === 'Confirmed'" /><p-button type="button" size="small" severity="secondary" [outlined]="true" [label]="'memory.needsReview' | t" (onClick)="setReviewStatus(memory, 'NeedsReview')" [disabled]="memory.reviewStatus === 'NeedsReview'" /><p-button type="button" size="small" severity="danger" [text]="true" [label]="'common.delete' | t" (onClick)="remove(memory)" /></div>
+        </article>
+      }
+    </section>
+  }
+  @if (markdown(); as exported) { <section class="card export" aria-labelledby="export-title"><h2 id="export-title">{{ 'memory.exportPreview' | t }}</h2><pre>{{ exported }}</pre></section> }
+</main>
