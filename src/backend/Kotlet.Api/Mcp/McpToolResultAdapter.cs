@@ -17,6 +17,7 @@ internal static class McpToolResultAdapter
         "create_ingredient",
         "get_meal_plan_members",
         "get_meal_plan",
+        "meal_plan_get_range",
         "add_weekly_meal_plan",
         "set_meal_participants"
     ];
@@ -49,9 +50,10 @@ internal static class McpToolResultAdapter
     public static JsonElement? OutputSchema(string toolName) =>
         OutputSchemas.TryGetValue(toolName, out var schema) ? schema : null;
 
-    private static IReadOnlyDictionary<string, JsonElement> CreateOutputSchemas() =>
-        new Dictionary<string, JsonElement>
+    private static IReadOnlyDictionary<string, JsonElement> CreateOutputSchemas()
     {
+        var schemas = new Dictionary<string, JsonElement>
+        {
         ["get_ingredients"] = Schema(
             """
             {"type":"object","properties":{"matches":{"type":"array","items":{"type":"object","properties":{"inputName":{"type":"string"},"ingredientId":{"type":["string","null"],"format":"uuid"},"matchedName":{"type":["string","null"]},"measurementUnit":{"type":["string","null"]},"exactMatch":{"type":"boolean"},"similarity":{"type":["number","null"]},"resourceUri":{"type":["string","null"]}},"required":["inputName","ingredientId","matchedName","measurementUnit","exactMatch","similarity","resourceUri"],"additionalProperties":false}}},"required":["matches"],"additionalProperties":false}
@@ -66,7 +68,7 @@ internal static class McpToolResultAdapter
             """),
         ["get_meal_plan"] = Schema(
             """
-            {"type":"object","properties":{"days":{"type":"array","items":{"type":"object","properties":{"date":{"type":"string"},"meals":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string","format":"uuid"},"slot":{"type":"string"},"type":{"type":"string"},"recipeId":{"type":["string","null"],"format":"uuid"},"ingredientId":{"type":["string","null"],"format":"uuid"},"preparedMealId":{"type":["string","null"],"format":"uuid"},"displayName":{"type":"string"},"note":{"type":["string","null"]},"participants":{"type":"array","items":{"type":"object","properties":{"userId":{"type":"string","format":"uuid"},"displayName":{"type":"string"},"portionPercent":{"type":"integer"}},"required":["userId","displayName","portionPercent"],"additionalProperties":false}},"guests":{"type":"integer"},"servings":{"type":"number"}},"required":["id","slot","type","recipeId","ingredientId","preparedMealId","displayName","note","participants","guests","servings"],"additionalProperties":false}}},"required":["date","meals"],"additionalProperties":false}}},"required":["days"],"additionalProperties":false}
+            {"type":"object","properties":{"days":{"type":"array","items":{"type":"object","properties":{"date":{"type":"string"},"meals":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string","format":"uuid"},"slot":{"type":"string"},"type":{"type":"string"},"recipeId":{"type":["string","null"],"format":"uuid"},"ingredientId":{"type":["string","null"],"format":"uuid"},"preparedMealId":{"type":["string","null"],"format":"uuid"},"freeText":{"type":["string","null"]},"displayName":{"type":"string"},"note":{"type":["string","null"]},"participants":{"type":"array","items":{"type":"object","properties":{"userId":{"type":"string","format":"uuid"},"displayName":{"type":"string"},"portionPercent":{"type":"integer"}},"required":["userId","displayName","portionPercent"],"additionalProperties":false}},"guests":{"type":"integer"},"servings":{"type":"number"},"version":{"type":"integer"}},"required":["id","slot","type","recipeId","ingredientId","preparedMealId","freeText","displayName","note","participants","guests","servings","version"],"additionalProperties":false}}},"required":["date","meals"],"additionalProperties":false}}},"required":["days"],"additionalProperties":false}
             """),
         ["add_weekly_meal_plan"] = OperationSchema(
             """
@@ -76,7 +78,10 @@ internal static class McpToolResultAdapter
             """
             "mealId":{"type":["string","null"],"format":"uuid"},"participantCount":{"type":"integer"},"servings":{"type":["number","null"]}
             """)
-    };
+        };
+        schemas["meal_plan_get_range"] = schemas["get_meal_plan"];
+        return schemas;
+    }
 
     private static JsonNode Compact(string toolName, JsonNode? fullData) => toolName switch
     {
@@ -89,7 +94,7 @@ internal static class McpToolResultAdapter
         {
             ["members"] = MapArray(fullData, member => Pick(member, "userId", "displayName"))
         },
-        "get_meal_plan" => new JsonObject
+        "get_meal_plan" or "meal_plan_get_range" => new JsonObject
         {
             ["days"] = MapArray(fullData, CompactDay)
         },
@@ -158,7 +163,7 @@ internal static class McpToolResultAdapter
                 foreach (var meal in slotMeals as JsonArray ?? [])
                 {
                     var compactMeal = Pick(meal, "id", "slot", "type", "recipeId", "ingredientId",
-                        "preparedMealId", "displayName", "note", "guests", "servings");
+                        "preparedMealId", "freeText", "displayName", "note", "guests", "servings", "version");
                     compactMeal["participants"] = MapArray(meal?["participants"],
                         participant => Pick(participant, "userId", "displayName", "portionPercent"));
                     meals.Add(compactMeal);
@@ -205,7 +210,7 @@ internal static class McpToolResultAdapter
                 : $"Ingredient creation returned {compact["status"]}.",
         "get_meal_plan_members" =>
             $"Found {(compact["members"] as JsonArray)?.Count ?? 0} household member(s).",
-        "get_meal_plan" =>
+        "get_meal_plan" or "meal_plan_get_range" =>
             $"Retrieved {(compact["days"] as JsonArray)?.Count ?? 0} meal-plan day(s).",
         "add_weekly_meal_plan" =>
             $"Added {compact["addedCount"] ?? 0} meal(s); skipped {compact["skippedCount"] ?? 0}.",

@@ -32,6 +32,8 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
                      "get_prepared_meals", "get_prepared_meal", "get_shopping_list", "get_pantry",
                      "get_meal_plan_overview", "get_meal_plan",
                      "get_meal_plan_members", "add_recipe", "create_ingredient",
+                     "meal_plan_get_range", "meal_plan_replace", "meal_plan_move", "meal_plan_swap",
+                     "meal_plan_clear_slot", "meal_plan_recommend_replacement", "meal_plan_apply_replacement",
                      "check_recipe_exists",
                      "add_prepared_meal", "update_prepared_meal", "remove_prepared_meal",
                      "add_pantry_item", "update_pantry_item", "remove_pantry_item",

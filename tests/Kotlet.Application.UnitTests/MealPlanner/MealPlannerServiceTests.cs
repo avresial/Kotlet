@@ -52,6 +52,90 @@ public sealed class MealPlannerServiceTests
     }
 
     [Fact]
+    public async Task AddItem_WithFreeText_AddsUncataloguedEntry()
+    {
+        var (service, meals) = CreateService();
+
+        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+            new AddMealPlanItemRequest(Today, "dinner", null, null, null, FreeText: "Pizza night"),
+            CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
+        Assert.Equal("free-text", result.Item!.Type);
+        Assert.Equal("Pizza night", result.Item.FreeText);
+        Assert.Equal("Pizza night", Assert.Single(meals.Items).FreeText);
+    }
+
+    [Fact]
+    public async Task ReplaceAndMove_UseVersionsAndPreserveFreeText()
+    {
+        var (service, meals) = CreateService();
+        var added = await service.AddItemAsync(CurrentUserId, HouseId,
+            new AddMealPlanItemRequest(Today, "dinner", null, null, null, FreeText: "Pizza night"),
+            CancellationToken.None);
+        var mealId = added.Item!.Id;
+
+        var replaced = await service.ReplaceAsync(CurrentUserId, HouseId,
+            new ReplaceMealPlanRequest(mealId, null, null, new MealPlanSourceRequest(FreeText: "Soup night"), 1),
+            CancellationToken.None);
+        Assert.Equal("Success", replaced.Status);
+        Assert.Equal(2, replaced.Item!.Version);
+
+        var moved = await service.MoveAsync(CurrentUserId, HouseId,
+            new MoveMealPlanMutationRequest(mealId, Today.AddDays(1), "breakfast", ExpectedVersion: 2),
+            CancellationToken.None);
+        Assert.Equal("Success", moved.Status);
+        Assert.Equal(Today.AddDays(1), Assert.Single(meals.Items).Date);
+        Assert.Equal("Soup night", moved.Item!.FreeText);
+
+        var stale = await service.MoveAsync(CurrentUserId, HouseId,
+            new MoveMealPlanMutationRequest(mealId, Today.AddDays(2), "breakfast", ExpectedVersion: 2),
+            CancellationToken.None);
+        Assert.Equal("Conflict", stale.Status);
+    }
+
+    [Fact]
+    public async Task Swap_WithSameIdempotencyKeyDoesNotSwapBack()
+    {
+        var (service, meals) = CreateService();
+        var first = await service.AddItemAsync(CurrentUserId, HouseId,
+            new AddMealPlanItemRequest(Today, "breakfast", SoupRecipe.Id, null, null), CancellationToken.None);
+        var second = await service.AddItemAsync(CurrentUserId, HouseId,
+            new AddMealPlanItemRequest(Today.AddDays(1), "dinner", null, Bread.Id, null), CancellationToken.None);
+
+        var request = new SwapMealPlanRequest(first.Item!.Id, second.Item!.Id, 1, 1, "swap-1");
+        var result = await service.SwapAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var retry = await service.SwapAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+
+        Assert.Equal("Success", result.Status);
+        Assert.Equal("Success", retry.Status);
+        Assert.Equal(Today.AddDays(1), meals.Items.Single(item => item.Id == first.Item.Id).Date);
+        Assert.Equal(Today, meals.Items.Single(item => item.Id == second.Item.Id).Date);
+    }
+
+    [Fact]
+    public async Task Move_SwapRetryReturnsBothItems()
+    {
+        var (service, _) = CreateService();
+        var first = await service.AddItemAsync(CurrentUserId, HouseId,
+            new AddMealPlanItemRequest(Today, "breakfast", SoupRecipe.Id, null, null), CancellationToken.None);
+        var second = await service.AddItemAsync(CurrentUserId, HouseId,
+            new AddMealPlanItemRequest(Today.AddDays(1), "dinner", null, Bread.Id, null), CancellationToken.None);
+        var request = new MoveMealPlanMutationRequest(
+            first.Item!.Id, Today.AddDays(1), "dinner", "swap", 1, 1, "move-swap-1");
+
+        var result = await service.MoveAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var retry = await service.MoveAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+
+        Assert.Equal("Success", result.Status);
+        Assert.Equal(2, result.Items!.Count);
+        Assert.Null(result.Item);
+        Assert.Equal("Success", retry.Status);
+        Assert.Equal(2, retry.Items!.Count);
+        Assert.Null(retry.Item);
+    }
+
+    [Fact]
     public async Task AddItem_WithPreparedMeal_PersistsSelectedAddonsAsLinkedIngredientItems()
     {
         var meals = new FakeMealPlanRepository();
