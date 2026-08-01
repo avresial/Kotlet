@@ -30,23 +30,23 @@ public sealed class AgentMemoryMcp
 
     [McpServerTool(Name = "memory_search", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
      Description("Searches the current user's household memories by text and optional category/source/review filters. Deleted and expired memories are omitted by default.")]
-    public static Task<AgentMemoryListResponse> Search(
+    public static async Task<AgentMemoryListResponse> Search(
         [Description("Natural-language or exact text to search in memory titles and content.")] string query,
         [Description("Optional category filter.")] string? category,
         [Description("Optional source filter: ExplicitRequest, UserCorrection, UserProvidedFact, AgentInference.")] string? source,
         [Description("Optional review filter: Confirmed, Inferred, NeedsReview.")] string? reviewStatus,
         AgentMemoryService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
-        service.ListAsync(RequireUser(currentUser), RequireHouse(currentUser), query, category, source, reviewStatus, false, cancellationToken);
+        RequireValidList(await service.ListAsync(RequireUser(currentUser), RequireHouse(currentUser), query, category, source, reviewStatus, false, cancellationToken));
 
     [McpServerTool(Name = "memory_list", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
      Description("Lists all current memories with stable ids, metadata, versions, expiry, and revision. Use memory_search for routine context retrieval.")]
-    public static Task<AgentMemoryListResponse> List(
+    public static async Task<AgentMemoryListResponse> List(
         [Description("Optional category filter.")] string? category,
         [Description("Optional source filter: ExplicitRequest, UserCorrection, UserProvidedFact, AgentInference.")] string? source,
         [Description("Optional review filter: Confirmed, Inferred, NeedsReview.")] string? reviewStatus,
         [Description("Include expired memories when true.")] bool includeExpired,
         AgentMemoryService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
-        service.ListAsync(RequireUser(currentUser), RequireHouse(currentUser), null, category, source, reviewStatus, includeExpired, cancellationToken);
+        RequireValidList(await service.ListAsync(RequireUser(currentUser), RequireHouse(currentUser), null, category, source, reviewStatus, includeExpired, cancellationToken));
 
     [McpServerTool(Name = "memory_get", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
      Description("Returns one memory by its stable id.")]
@@ -111,4 +111,11 @@ public sealed class AgentMemoryMcp
     public static async Task<string> Resource(
         AgentMemoryService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
         McpHelpers.Json(await service.BootstrapAsync(RequireUser(currentUser), RequireHouse(currentUser), cancellationToken));
+
+    private static AgentMemoryListResponse RequireValidList(AgentMemoryListResponse result)
+    {
+        if (result.ValidationErrors is { Count: > 0 })
+            throw new McpException(string.Join(" ", result.ValidationErrors.SelectMany(error => error.Value)));
+        return result;
+    }
 }

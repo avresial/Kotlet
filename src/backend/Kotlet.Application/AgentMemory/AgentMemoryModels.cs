@@ -22,7 +22,7 @@ public sealed record AgentMemoryResponse(
 {
     public static AgentMemoryResponse From(AgentMemoryEntity memory) => new(
         memory.Id,
-        memory.Title,
+        memory.IsDeleted ? null : memory.Title,
         memory.IsDeleted ? string.Empty : memory.Content,
         memory.IsDeleted ? null : memory.Category,
         memory.Source.ToString(),
@@ -59,7 +59,10 @@ public sealed record UpdateAgentMemoryRequest(
     DateTimeOffset? ExpiresAt = null,
     string? ClientId = null);
 
-public sealed record AgentMemoryListResponse(long Revision, IReadOnlyList<AgentMemoryResponse> Memories);
+public sealed record AgentMemoryListResponse(
+    long Revision,
+    IReadOnlyList<AgentMemoryResponse> Memories,
+    IReadOnlyDictionary<string, string[]>? ValidationErrors = null);
 
 public sealed record AgentMemoryChangesResponse(long Revision, IReadOnlyList<AgentMemoryResponse> Changes);
 

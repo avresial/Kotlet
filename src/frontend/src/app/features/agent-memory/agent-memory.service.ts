@@ -68,9 +68,9 @@ export class AgentMemoryService {
   }
 
   delete(id: string, expectedVersion: number): Observable<AgentMemoryOperation> {
-    return this.http.request<AgentMemoryOperation>('DELETE', apiUrl(`/api/agent-memory/${id}`), {
+    return this.http.delete<AgentMemoryOperation>(apiUrl(`/api/agent-memory/${id}`), {
       ...this.options,
-      body: { expectedVersion, clientId: 'web' },
+      params: new HttpParams().set('expectedVersion', expectedVersion).set('clientId', 'web'),
     });
   }
 

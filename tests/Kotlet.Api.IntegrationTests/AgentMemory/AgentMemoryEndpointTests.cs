@@ -18,6 +18,9 @@ public sealed class AgentMemoryEndpointTests(TestWebApplicationFactory factory) 
     public async Task Memory_CanBeCreatedVersionedUpdatedDeletedAndExported()
     {
         var (client, _) = await TestAuth.WithHomeAsync(factory, "memory-crud");
+        var invalidFilter = await client.GetAsync("/api/agent-memory?source=Explicit");
+        Assert.Equal(HttpStatusCode.BadRequest, invalidFilter.StatusCode);
+
         var create = await client.PostAsJsonAsync("/api/agent-memory", new
         {
             content = "User prefers vegetarian dinners.",
@@ -55,10 +58,8 @@ public sealed class AgentMemoryEndpointTests(TestWebApplicationFactory factory) 
 
         var delete = await client.DeleteAsync($"/api/agent-memory/{id}");
         Assert.Equal(HttpStatusCode.BadRequest, delete.StatusCode);
-        var deleteWithVersion = new HttpRequestMessage(HttpMethod.Delete, $"/api/agent-memory/{id}")
-        {
-            Content = JsonContent.Create(new { expectedVersion = 2, clientId = "test" })
-        };
+        var deleteWithVersion = new HttpRequestMessage(HttpMethod.Delete,
+            $"/api/agent-memory/{id}?expectedVersion=2&clientId=test");
         var deleted = await client.SendAsync(deleteWithVersion);
         Assert.Equal(HttpStatusCode.OK, deleted.StatusCode);
 

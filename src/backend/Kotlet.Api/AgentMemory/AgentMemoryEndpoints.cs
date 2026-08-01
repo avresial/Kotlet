@@ -12,9 +12,11 @@ public static class AgentMemoryEndpoints
         group.MapGet("", async (
             ICurrentUser user, AgentMemoryService service, CancellationToken ct,
             string? q, string? category, string? source, string? reviewStatus, bool includeExpired = false) =>
-            user.UserId is not { } userId || user.HouseId is not { } houseId
-                ? Results.Unauthorized()
-                : Results.Ok(await service.ListAsync(userId, houseId, q, category, source, reviewStatus, includeExpired, ct)));
+        {
+            if (user.UserId is not { } userId || user.HouseId is not { } houseId) return Results.Unauthorized();
+            var result = await service.ListAsync(userId, houseId, q, category, source, reviewStatus, includeExpired, ct);
+            return result.ValidationErrors is null ? Results.Ok(result) : Results.ValidationProblem(result.ValidationErrors);
+        });
         group.MapGet("/changes", async (long since, ICurrentUser user, AgentMemoryService service, CancellationToken ct) =>
             user.UserId is not { } userId || user.HouseId is not { } houseId
                 ? Results.Unauthorized()
@@ -39,22 +41,20 @@ public static class AgentMemoryEndpoints
             user.UserId is not { } userId || user.HouseId is not { } houseId
                 ? Results.Unauthorized()
                 : ToHttpResult(await service.UpdateAsync(id, userId, houseId, request, ct), false));
-        group.MapDelete("/{id:guid}", async (Guid id, [FromBody] DeleteAgentMemoryRequest request, ICurrentUser user, AgentMemoryService service, CancellationToken ct) =>
+        group.MapDelete("/{id:guid}", async (Guid id, long expectedVersion, string? clientId, ICurrentUser user, AgentMemoryService service, CancellationToken ct) =>
             user.UserId is not { } userId || user.HouseId is not { } houseId
                 ? Results.Unauthorized()
-                : ToHttpResult(await service.DeleteAsync(id, userId, houseId, request.ExpectedVersion, request.ClientId, ct), false));
+                : ToHttpResult(await service.DeleteAsync(id, userId, houseId, expectedVersion, clientId, ct), false));
         return endpoints;
     }
 
     private static IResult ToHttpResult(AgentMemoryOperationResult result, bool created) => result.Status switch
     {
-        "Success" when created => Results.Created($"/api/agent-memory/{result.Memory!.Id}", result),
-        "Success" => Results.Ok(result),
-        "NotFound" => Results.NotFound(),
-        "Conflict" => Results.Conflict(result),
-        "ValidationFailed" => Results.ValidationProblem(result.ValidationErrors!),
+        nameof(AgentMemoryOperationStatus.Success) when created => Results.Created($"/api/agent-memory/{result.Memory!.Id}", result),
+        nameof(AgentMemoryOperationStatus.Success) => Results.Ok(result),
+        nameof(AgentMemoryOperationStatus.NotFound) => Results.NotFound(),
+        nameof(AgentMemoryOperationStatus.Conflict) => Results.Conflict(result),
+        nameof(AgentMemoryOperationStatus.ValidationFailed) => Results.ValidationProblem(result.ValidationErrors!),
         _ => Results.BadRequest(result)
     };
 }
-
-public sealed record DeleteAgentMemoryRequest(long ExpectedVersion, string? ClientId = null);
