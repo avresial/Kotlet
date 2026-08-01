@@ -57,16 +57,17 @@ button:disabled { opacity: .5; cursor: default; }
 .note-input { grid-area: note; display: block; width: 100%; min-height: 1.9rem; field-sizing: content; resize: none; overflow: hidden; margin-top: .15rem; padding: .3rem .55rem; border: 0; border-left: 2px solid var(--app-border-strong); border-radius: 0 .3rem .3rem 0; color: var(--app-text-soft); background: transparent; font: italic .78rem/1.35 inherit; white-space: pre-wrap; word-break: break-word; }
 .note-input:focus { font-style: normal; color: var(--app-text); border-left-color: #b96554; background: var(--app-surface-raised); }
 .is-purchased { opacity: .58; }
-.check.is-pending { color: #963827; animation: pending-pulse 1.2s ease-in-out infinite; }
+.check.is-syncing { color: #963827; animation: pending-pulse 1.2s ease-in-out infinite; }
 /* A line handed to the API but not confirmed yet: shown straight away so the shopper sees the pick
    landed, greyed out so it does not read as a saved line. */
 .is-pending { opacity: .6; }
 .is-pending .check { animation: pending-pulse 1.2s ease-in-out infinite; }
 .is-pending .qty { font-variant-numeric: tabular-nums; }
 @keyframes pending-pulse { 50% { opacity: .3; } }
-@media (prefers-reduced-motion: reduce) { .is-pending .check, .check.is-pending { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .is-pending .check, .check.is-syncing { animation: none; } }
 .is-purchased .name, .is-purchased .line-price { text-decoration: line-through; }
 .is-purchased .check { color: #567451; }
+.is-purchased .check.is-syncing { color: #963827; }
 .empty { margin: 2rem 0; color: #756d62; text-align: center; }
 .total { margin-top: 1.1rem; padding-top: 1rem; border-top: 2px dashed #cbb9a2; display: flex; justify-content: space-between; font-family: ui-monospace, monospace; font-size: 1.05rem; letter-spacing: .08em; }
 

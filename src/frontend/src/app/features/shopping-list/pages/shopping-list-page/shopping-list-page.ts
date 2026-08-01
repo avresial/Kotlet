@@ -154,6 +154,7 @@ export class ShoppingListPage implements OnInit {
   }
 
   update(item: ShoppingListItem, changes: Partial<ShoppingListUpdate>): void {
+    if (this.isSaving()) return;
     if (changes.quantity !== undefined && (!Number.isFinite(changes.quantity) || changes.quantity <= 0)) return;
     const current = this.items().find(value => value.id === item.id) ?? item;
     const pending = this.pendingUpdates().get(item.id);
@@ -199,6 +200,12 @@ export class ShoppingListPage implements OnInit {
       error: error => {
         const current = this.pendingUpdates().get(id);
         if (!current) return;
+        if (!this.sameUpdate(current.desired, pending.desired)) {
+          this.setPendingUpdate(id, { confirmed: current.confirmed, desired: current.desired, inFlight: false });
+          this.items.update(items => items.map(item => item.id === id ? this.optimisticItem(current.confirmed, current.desired) : item));
+          this.startUpdate(id);
+          return;
+        }
         this.pendingUpdates.update(updates => {
           const next = new Map(updates);
           next.delete(id);
@@ -222,7 +229,17 @@ export class ShoppingListPage implements OnInit {
     const totalPrice = item.preparedMealId
       ? update.quantity * item.pricePer100BaseUnits
       : (update.quantity / 100) * item.pricePer100BaseUnits;
-    return { ...item, ...update, totalPrice: Math.round((totalPrice + Number.EPSILON) * 100) / 100 };
+    return { ...item, ...update, totalPrice: this.roundToCents(totalPrice) };
+  }
+
+  private roundToCents(value: number): number {
+    const cents = value * 100;
+    const lower = Math.floor(cents);
+    const fraction = cents - lower;
+    const rounded = fraction > .5 || (Math.abs(fraction - .5) < 1e-9 && lower % 2 !== 0)
+      ? lower + 1
+      : lower;
+    return rounded / 100;
   }
 
   remove(item: ShoppingListItem): void {
