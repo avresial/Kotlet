@@ -48,6 +48,14 @@ export interface PendingAddition {
   preparedMealId: string | null;
 }
 
+type ShoppingListUpdate = Pick<ShoppingListItem, 'quantity' | 'isPurchased' | 'note'>;
+
+interface PendingUpdate {
+  confirmed: ShoppingListItem;
+  desired: ShoppingListUpdate;
+  inFlight: boolean;
+}
+
 @Component({
   selector: 'app-shopping-list-page',
   imports: [RouterLink, ShoppingAdd, TranslatePipe],
@@ -64,6 +72,7 @@ export class ShoppingListPage implements OnInit {
   readonly ingredients = signal<Ingredient[]>([]);
   readonly preparedMeals = signal<PreparedMeal[]>([]);
   readonly pending = signal<PendingAddition[]>([]);
+  private readonly pendingUpdates = signal(new Map<string, PendingUpdate>());
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
   private pendingCounter = 0;
@@ -97,6 +106,7 @@ export class ShoppingListPage implements OnInit {
   readonly purchasedCount = computed(() => this.items().filter(item => item.isPurchased).length);
   readonly totalPrice = computed(() => this.items().reduce((sum, item) => sum + item.totalPrice, 0));
   readonly groups = computed(() => groupShoppingItems(this.items()));
+  readonly pendingUpdateCount = computed(() => this.pendingUpdates().size);
 
   ngOnInit(): void {
     forkJoin({
@@ -143,17 +153,97 @@ export class ShoppingListPage implements OnInit {
       });
   }
 
-  update(item: ShoppingListItem, changes: Partial<Pick<ShoppingListItem, 'quantity' | 'isPurchased' | 'note'>>): void {
+  update(item: ShoppingListItem, changes: Partial<ShoppingListUpdate>): void {
+    if (this.isSaving()) return;
     if (changes.quantity !== undefined && (!Number.isFinite(changes.quantity) || changes.quantity <= 0)) return;
-    this.isSaving.set(true); this.error.set(null);
-    this.shoppingListService.update(item, changes).pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: updated => this.items.update(items => items.map(current => current.id === updated.id ? updated : current)),
-      error: error => this.error.set(getApiError(error, this.translations.translate('shopping.updateError'))),
+    const current = this.items().find(value => value.id === item.id) ?? item;
+    const pending = this.pendingUpdates().get(item.id);
+    const desired: ShoppingListUpdate = {
+      quantity: changes.quantity ?? current.quantity,
+      isPurchased: changes.isPurchased ?? current.isPurchased,
+      note: changes.note !== undefined ? changes.note : current.note,
+    };
+    this.error.set(null);
+    this.items.update(items => items.map(value => value.id === item.id ? this.optimisticItem(value, desired) : value));
+    this.pendingUpdates.update(updates => {
+      const next = new Map(updates);
+      next.set(item.id, { confirmed: pending?.confirmed ?? current, desired, inFlight: pending?.inFlight ?? false });
+      return next;
+    });
+    this.startUpdate(item.id);
+  }
+
+  isItemUpdating(id: string): boolean { return this.pendingUpdates().has(id); }
+
+  private startUpdate(id: string): void {
+    const pending = this.pendingUpdates().get(id);
+    if (!pending || pending.inFlight) return;
+    this.setPendingUpdate(id, { ...pending, inFlight: true });
+    const requestItem = this.items().find(item => item.id === id) ?? pending.confirmed;
+    this.shoppingListService.update(requestItem, pending.desired).subscribe({
+      next: updated => {
+        const current = this.pendingUpdates().get(id);
+        if (!current) return;
+        if (this.sameUpdate(current.desired, pending.desired)) {
+          this.pendingUpdates.update(updates => {
+            const next = new Map(updates);
+            next.delete(id);
+            return next;
+          });
+          this.items.update(items => items.map(item => item.id === updated.id ? updated : item));
+          return;
+        }
+        this.setPendingUpdate(id, { confirmed: updated, desired: current.desired, inFlight: false });
+        this.items.update(items => items.map(item => item.id === updated.id ? this.optimisticItem(updated, current.desired) : item));
+        this.startUpdate(id);
+      },
+      error: error => {
+        const current = this.pendingUpdates().get(id);
+        if (!current) return;
+        if (!this.sameUpdate(current.desired, pending.desired)) {
+          this.setPendingUpdate(id, { confirmed: current.confirmed, desired: current.desired, inFlight: false });
+          this.items.update(items => items.map(item => item.id === id ? this.optimisticItem(current.confirmed, current.desired) : item));
+          this.startUpdate(id);
+          return;
+        }
+        this.pendingUpdates.update(updates => {
+          const next = new Map(updates);
+          next.delete(id);
+          return next;
+        });
+        this.items.update(items => items.map(item => item.id === id ? current.confirmed : item));
+        this.error.set(getApiError(error, this.translations.translate('shopping.updateError')));
+      },
     });
   }
 
+  private setPendingUpdate(id: string, value: PendingUpdate): void {
+    this.pendingUpdates.update(updates => new Map(updates).set(id, value));
+  }
+
+  private sameUpdate(left: ShoppingListUpdate, right: ShoppingListUpdate): boolean {
+    return left.quantity === right.quantity && left.isPurchased === right.isPurchased && left.note === right.note;
+  }
+
+  private optimisticItem(item: ShoppingListItem, update: ShoppingListUpdate): ShoppingListItem {
+    const totalPrice = item.preparedMealId
+      ? update.quantity * item.pricePer100BaseUnits
+      : (update.quantity / 100) * item.pricePer100BaseUnits;
+    return { ...item, ...update, totalPrice: this.roundToCents(totalPrice) };
+  }
+
+  private roundToCents(value: number): number {
+    const cents = value * 100;
+    const lower = Math.floor(cents);
+    const fraction = cents - lower;
+    const rounded = fraction > .5 || (Math.abs(fraction - .5) < 1e-9 && lower % 2 !== 0)
+      ? lower + 1
+      : lower;
+    return rounded / 100;
+  }
+
   remove(item: ShoppingListItem): void {
-    if (this.isSaving()) return;
+    if (this.isSaving() || this.isItemUpdating(item.id)) return;
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.delete(item.id).pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: () => this.items.update(items => items.filter(current => current.id !== item.id)),
@@ -163,7 +253,7 @@ export class ShoppingListPage implements OnInit {
 
   clearChecked(): void {
     // A bulk action while an add is still in flight would fight over the same list, so both wait.
-    if (this.isSaving() || this.pending().length || this.purchasedCount() === 0) return;
+    if (this.isSaving() || this.pending().length || this.pendingUpdateCount() || this.purchasedCount() === 0) return;
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.clearChecked().pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: () => this.items.update(items => items.filter(item => !item.isPurchased)),
@@ -172,7 +262,7 @@ export class ShoppingListPage implements OnInit {
   }
 
   generate(): void {
-    if (this.isSaving() || this.pending().length || this.generateTo() < this.generateFrom()) return;
+    if (this.isSaving() || this.pending().length || this.pendingUpdateCount() || this.generateTo() < this.generateFrom()) return;
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.generate(this.generateFrom(), this.generateTo()).pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: items => this.items.set(items),
