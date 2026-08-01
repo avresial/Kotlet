@@ -88,12 +88,12 @@ describe('ShoppingListPage notes', () => {
 
   it('updates the note with the trimmed value', () => {
     page.updateNote(item('pasta', 0, null), '  organic  ');
-    expect(shoppingListService.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'pasta' }), { note: 'organic' });
+    expect(shoppingListService.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'pasta' }), { quantity: 1, isPurchased: false, note: 'organic' });
   });
 
   it('clears an existing note with an empty string', () => {
     page.updateNote(item('pasta', 0, 'old note'), '   ');
-    expect(shoppingListService.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'pasta' }), { note: '' });
+    expect(shoppingListService.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'pasta' }), { quantity: 1, isPurchased: false, note: '' });
   });
 
   it('skips the update when the note is unchanged', () => {
@@ -296,5 +296,81 @@ describe('ShoppingListPage background adds', () => {
     page.add(addMeal(1, 'the spicy ones'));
 
     expect(shoppingListService.createPreparedMeal).toHaveBeenCalledWith('gyoza', 1, 'the spicy ones');
+  });
+});
+
+describe('ShoppingListPage optimistic updates', () => {
+  let page: ShoppingListPage;
+  let updateResponse: Subject<ShoppingListItem>;
+  let shoppingListService: {
+    getAll: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>;
+    createPreparedMeal: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>;
+    generate: ReturnType<typeof vi.fn>; clearChecked: ReturnType<typeof vi.fn>;
+  };
+  const pasta = item('pasta', 0);
+
+  beforeEach(() => {
+    updateResponse = new Subject<ShoppingListItem>();
+    shoppingListService = {
+      getAll: vi.fn().mockReturnValue(of([pasta])),
+      create: vi.fn(), createPreparedMeal: vi.fn(),
+      update: vi.fn().mockReturnValue(updateResponse),
+      generate: vi.fn().mockReturnValue(of([])), clearChecked: vi.fn().mockReturnValue(of({ removed: 0 })),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        ShoppingListPage,
+        { provide: ShoppingListService, useValue: shoppingListService },
+        { provide: IngredientService, useValue: { getAll: vi.fn().mockReturnValue(of([ingredient])) } },
+        { provide: PreparedMealService, useValue: { list: vi.fn().mockReturnValue(of([])) } },
+        { provide: TranslationService, useValue: { translate: (key: string) => key } },
+      ],
+    });
+    page = TestBed.inject(ShoppingListPage);
+    page.ngOnInit();
+  });
+
+  it('shows a checkbox change immediately without blocking the row', () => {
+    page.update(pasta, { isPurchased: true });
+
+    expect(page.items()[0].isPurchased).toBe(true);
+    expect(page.isItemUpdating('pasta')).toBe(true);
+    expect(page.isSaving()).toBe(false);
+    expect(shoppingListService.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'pasta' }), {
+      quantity: 1, isPurchased: true, note: null,
+    });
+  });
+
+  it('uses the confirmed server response after a successful update', () => {
+    page.update(pasta, { isPurchased: true });
+    updateResponse.next({ ...pasta, isPurchased: true, totalPrice: 2 });
+
+    expect(page.items()[0]).toMatchObject({ isPurchased: true, totalPrice: 2 });
+    expect(page.isItemUpdating('pasta')).toBe(false);
+  });
+
+  it('restores the last confirmed value when an update fails', () => {
+    page.update(pasta, { isPurchased: true });
+    updateResponse.error(new Error('failed'));
+
+    expect(page.items()[0]).toEqual(pasta);
+    expect(page.isItemUpdating('pasta')).toBe(false);
+    expect(page.error()).toBe('shopping.updateError');
+  });
+
+  it('serializes rapid toggles and sends the final selected state', () => {
+    page.update(pasta, { isPurchased: true });
+    page.update(page.items()[0], { isPurchased: false });
+
+    expect(shoppingListService.update).toHaveBeenCalledTimes(1);
+    updateResponse.next({ ...pasta, isPurchased: true });
+    expect(shoppingListService.update).toHaveBeenCalledTimes(2);
+    expect(shoppingListService.update).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'pasta' }), {
+      quantity: 1, isPurchased: false, note: null,
+    });
+
+    updateResponse.next({ ...pasta, isPurchased: false });
+    expect(page.items()[0].isPurchased).toBe(false);
+    expect(page.isItemUpdating('pasta')).toBe(false);
   });
 });
