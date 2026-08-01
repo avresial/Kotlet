@@ -1,4 +1,6 @@
 using Kotlet.Domain.Auth;
+using Kotlet.Domain.AgentMemory;
+using AgentMemoryEntity = Kotlet.Domain.AgentMemory.AgentMemory;
 using Kotlet.Domain.Ai;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Domain.Images;
@@ -48,6 +50,8 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<StoredImage> Images => Set<StoredImage>();
     public DbSet<Translation> Translations => Set<Translation>();
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<AgentMemoryEntity> AgentMemories => Set<AgentMemoryEntity>();
+    public DbSet<AgentMemoryCollection> AgentMemoryCollections => Set<AgentMemoryCollection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

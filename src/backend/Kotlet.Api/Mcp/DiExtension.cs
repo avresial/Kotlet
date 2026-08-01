@@ -74,6 +74,11 @@ public static class DiExtension
                 suggestion. These tools require absolute yyyy-MM-dd dates, return conflicts and ambiguous candidates
                 explicitly, support expectedVersion/idempotencyKey, and never silently change the shopping list.
 
+                Agent memory: read kotlet://agent-memory when bootstrapping. Store only concise,
+                user-owned facts and preferences. Search before creating, use memory_update with the
+                returned version for corrections, and use memory_changes_since for incremental sync.
+                Never store secrets, full conversation transcripts, or unsupported inferences.
+
                 Adding a recipe (e.g. one found on the internet): follow the
                 kotlet://recipes/new-recipe-guide resource. In short: check for duplicates first with
                 check_recipe_exists (source URL and/or title), find every ingredient in one call

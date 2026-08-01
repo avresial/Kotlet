@@ -3,6 +3,7 @@ using System;
 using Kotlet.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Kotlet.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(KotletDbContext))]
-    partial class KotletDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260801122801_AddAgentMemory")]
+    partial class AddAgentMemory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -639,11 +642,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("date")
                         .HasColumnName("planned_date");
 
-                    b.Property<string>("FreeText")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("free_text");
-
                     b.Property<int>("Guests")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -666,11 +664,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("ingredient_unit");
-
-                    b.Property<string>("LastMutationKey")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("last_mutation_key");
 
                     b.Property<string>("Note")
                         .HasColumnType("text")
@@ -708,10 +701,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("user_id");
 
-                    b.Property<long>("Version")
-                        .HasColumnType("bigint")
-                        .HasColumnName("version");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ParentMealPlanItemId");
@@ -729,7 +718,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
                     b.ToTable("meal_plan_items", "kotlet", t =>
                         {
-                            t.HasCheckConstraint("CK_meal_plan_items_one_source", "(CASE WHEN recipe_id IS NULL THEN 0 ELSE 1 END + CASE WHEN ingredient_id IS NULL THEN 0 ELSE 1 END + CASE WHEN prepared_meal_id IS NULL THEN 0 ELSE 1 END + CASE WHEN free_text IS NULL THEN 0 ELSE 1 END) = 1");
+                            t.HasCheckConstraint("CK_meal_plan_items_one_source", "(CASE WHEN recipe_id IS NULL THEN 0 ELSE 1 END + CASE WHEN ingredient_id IS NULL THEN 0 ELSE 1 END + CASE WHEN prepared_meal_id IS NULL THEN 0 ELSE 1 END) = 1");
                         });
                 });
 

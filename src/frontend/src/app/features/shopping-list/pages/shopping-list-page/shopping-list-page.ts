@@ -1,13 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, computed, HostListener, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { foodCategories, Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { ShoppingAdd, ShoppingAddListedProduct, ShoppingAddRequest } from '../../components/shopping-add/shopping-add';
-import { ShoppingListItem } from '../../shopping-list.models';
+import { ShoppingListItem, ShoppingListUpdate } from '../../shopping-list.models';
+import { ShoppingListMutation, ShoppingListOfflineService, ShoppingListOfflineState, shoppingListCacheKey } from '../../shopping-list-offline.service';
 import { ShoppingListService } from '../../shopping-list.service';
 import { DisplayUnit, displayMeasurement, shortUnitLabel, toBaseQuantity } from '../../../ingredients/display-units';
 import { PreparedMeal } from '../../../prepared-meals/prepared-meal.models';
@@ -48,6 +51,17 @@ export interface PendingAddition {
   preparedMealId: string | null;
 }
 
+interface PendingUpdate {
+  confirmed: ShoppingListItem | null;
+  desired: ShoppingListUpdate;
+  operationId: string;
+  status: 'pending' | 'failed';
+  inFlight: boolean;
+  persisted: boolean;
+}
+
+type ShoppingListSyncState = 'loading' | 'synced' | 'offline' | 'syncing' | 'failed';
+
 @Component({
   selector: 'app-shopping-list-page',
   imports: [RouterLink, ShoppingAdd, TranslatePipe],
@@ -56,7 +70,9 @@ export interface PendingAddition {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ShoppingListPage implements OnInit {
+  private readonly auth = inject(AuthService, { optional: true });
   private readonly shoppingListService = inject(ShoppingListService);
+  private readonly offline = inject(ShoppingListOfflineService);
   private readonly ingredientService = inject(IngredientService);
   private readonly preparedMealService = inject(PreparedMealService);
   private readonly translations = inject(TranslationService);
@@ -64,9 +80,14 @@ export class ShoppingListPage implements OnInit {
   readonly ingredients = signal<Ingredient[]>([]);
   readonly preparedMeals = signal<PreparedMeal[]>([]);
   readonly pending = signal<PendingAddition[]>([]);
+  private readonly pendingUpdates = signal(new Map<string, PendingUpdate>());
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
+  readonly syncState = signal<ShoppingListSyncState>('loading');
   private pendingCounter = 0;
+  private cacheKey: string | null = null;
+  private loaded = false;
+  private flushingQueue = false;
   readonly generateFrom = signal(this.dateString(this.monday(new Date())));
   readonly generateTo = signal(this.dateString(new Date(this.monday(new Date()).getTime() + 6 * 86400000)));
   readonly showGenerate = signal(false);
@@ -97,19 +118,134 @@ export class ShoppingListPage implements OnInit {
   readonly purchasedCount = computed(() => this.items().filter(item => item.isPurchased).length);
   readonly totalPrice = computed(() => this.items().reduce((sum, item) => sum + item.totalPrice, 0));
   readonly groups = computed(() => groupShoppingItems(this.items()));
+  readonly pendingUpdateCount = computed(() => [...this.pendingUpdates().values()].filter(update => update.status === 'pending').length);
+  readonly failedUpdateCount = computed(() => [...this.pendingUpdates().values()].filter(update => update.status === 'failed').length);
+  readonly syncLabel = computed(() => ({
+    loading: 'shopping.loading', synced: 'shopping.syncSynced', offline: 'shopping.syncOffline',
+    syncing: 'shopping.syncing', failed: 'shopping.syncFailed',
+  })[this.syncState()]);
 
   ngOnInit(): void {
+    this.cacheKey = shoppingListCacheKey(this.auth?.currentUser() ?? null);
+    if (!this.cacheKey) return this.loadOnline(null);
+    void this.loadCachedThenOnline();
+  }
+
+  private async loadCachedThenOnline(): Promise<void> {
+    let cached: ShoppingListOfflineState | null = null;
+    try {
+      cached = await this.offline.load(this.cacheKey!);
+    } catch {
+      // A storage-restricted browser can still use the online list.
+    }
+    if (cached) this.restoreCachedState(cached);
+    this.loadOnline(cached);
+  }
+
+  private loadOnline(cached: ShoppingListOfflineState | null): void {
     forkJoin({
       items: this.shoppingListService.getAll(),
       ingredients: this.ingredientService.getAll(),
       preparedMeals: this.preparedMealService.list(),
     })
       .pipe(finalize(() => this.isLoading.set(false))).subscribe({
-        next: ({ items, ingredients, preparedMeals }) => {
-          this.items.set(items); this.ingredients.set(ingredients); this.preparedMeals.set(preparedMeals);
-        },
-        error: error => this.error.set(getApiError(error, this.translations.translate('shopping.loadError'))),
+        next: result => this.applyOnlineSnapshot(result),
+        error: error => this.handleLoadError(error, cached),
       });
+  }
+
+  private restoreCachedState(state: ShoppingListOfflineState): void {
+    if (state.snapshot) {
+      this.ingredients.set(state.snapshot.ingredients);
+      this.preparedMeals.set(state.snapshot.preparedMeals);
+      this.items.set(this.applyPendingUpdates(state.snapshot.items, state.mutations));
+      this.syncState.set(this.networkAvailable() ? 'syncing' : 'offline');
+    }
+    this.pendingUpdates.set(new Map(state.mutations.map(mutation => [mutation.itemId, {
+      confirmed: mutation.confirmed ?? state.snapshot?.items.find(item => item.id === mutation.itemId) ?? null,
+      desired: this.updateFromMutation(mutation), operationId: mutation.operationId,
+      status: mutation.status ?? 'pending', inFlight: false, persisted: true,
+    }])));
+    if (this.failedUpdateCount()) this.syncState.set('failed');
+  }
+
+  private applyOnlineSnapshot(result: {
+    items: ShoppingListItem[];
+    ingredients: Ingredient[];
+    preparedMeals: PreparedMeal[];
+  }): void {
+    this.ingredients.set(result.ingredients);
+    this.preparedMeals.set(result.preparedMeals);
+    this.pendingUpdates.update(updates => {
+      const next = new Map(updates);
+      for (const [id, pending] of next) {
+        const confirmed = result.items.find(item => item.id === id);
+        if (confirmed) next.set(id, { ...pending, confirmed });
+      }
+      return next;
+    });
+    this.items.set(this.overlayPendingUpdates(result.items));
+    this.loaded = true;
+    this.error.set(null);
+    this.syncState.set(this.failedUpdateCount() ? 'failed' : this.pendingUpdateCount() ? 'syncing' : 'synced');
+    this.persistSnapshot();
+    if (this.pendingUpdateCount()) this.flushQueued();
+  }
+
+  private handleLoadError(error: unknown, cached: ShoppingListOfflineState | null): void {
+    this.loaded = true;
+    const networkFailure = this.isNetworkFailure(error);
+    if (cached?.snapshot) {
+      this.syncState.set(networkFailure ? 'offline' : 'failed');
+      if (!networkFailure) this.error.set(getApiError(error, this.translations.translate('shopping.loadError')));
+      return;
+    }
+    this.syncState.set(networkFailure ? 'offline' : 'failed');
+    this.error.set(getApiError(error, this.translations.translate('shopping.loadError')));
+  }
+
+  @HostListener('window:online')
+  onOnline(): void {
+    if (!this.loaded) return;
+    this.syncState.set('syncing');
+    this.flushQueued();
+  }
+
+  @HostListener('window:offline')
+  onOffline(): void {
+    if (this.loaded) this.syncState.set('offline');
+  }
+
+  private applyPendingUpdates(items: ShoppingListItem[], mutations: ShoppingListMutation[]): ShoppingListItem[] {
+    return mutations.reduce((current, mutation) => mutation.status === 'pending'
+      ? current.map(item => item.id === mutation.itemId ? this.optimisticItem(item, this.updateFromMutation(mutation)) : item)
+      : current, items);
+  }
+
+  private overlayPendingUpdates(items: ShoppingListItem[]): ShoppingListItem[] {
+    return items.map(item => {
+      const pending = this.pendingUpdates().get(item.id);
+      return pending?.status === 'pending' ? this.optimisticItem(item, pending.desired) : item;
+    });
+  }
+
+  private updateFromMutation(mutation: ShoppingListMutation): ShoppingListUpdate {
+    return { quantity: mutation.quantity, isPurchased: mutation.isPurchased, note: mutation.note };
+  }
+
+  private persistSnapshot(): void {
+    if (!this.cacheKey) return;
+    void this.offline.saveSnapshot(this.cacheKey, {
+      items: this.items(), ingredients: this.ingredients(), preparedMeals: this.preparedMeals(),
+    }).catch(() => undefined);
+  }
+
+  private networkAvailable(): boolean {
+    return typeof navigator === 'undefined' || navigator.onLine !== false;
+  }
+
+  private isNetworkFailure(error: unknown): boolean {
+    return error instanceof HttpErrorResponse && error.status === 0;
   }
 
   /** The add panel hands over and resets immediately; the save runs here in the background so the
@@ -143,17 +279,199 @@ export class ShoppingListPage implements OnInit {
       });
   }
 
-  update(item: ShoppingListItem, changes: Partial<Pick<ShoppingListItem, 'quantity' | 'isPurchased' | 'note'>>): void {
+  update(item: ShoppingListItem, changes: Partial<ShoppingListUpdate>): void {
+    if (this.isSaving()) return;
     if (changes.quantity !== undefined && (!Number.isFinite(changes.quantity) || changes.quantity <= 0)) return;
-    this.isSaving.set(true); this.error.set(null);
-    this.shoppingListService.update(item, changes).pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: updated => this.items.update(items => items.map(current => current.id === updated.id ? updated : current)),
-      error: error => this.error.set(getApiError(error, this.translations.translate('shopping.updateError'))),
+    const current = this.items().find(value => value.id === item.id) ?? item;
+    const pending = this.pendingUpdates().get(item.id);
+    const desired: ShoppingListUpdate = {
+      quantity: changes.quantity ?? current.quantity,
+      isPurchased: changes.isPurchased ?? current.isPurchased,
+      note: changes.note !== undefined ? changes.note : current.note,
+    };
+    this.error.set(null);
+    this.items.update(items => items.map(value => value.id === item.id ? this.optimisticItem(value, desired) : value));
+    const operationId = this.newOperationId();
+    const nextPending: PendingUpdate = {
+      confirmed: pending?.confirmed ?? current, desired, operationId,
+      status: 'pending', inFlight: pending?.inFlight ?? false, persisted: !this.cacheKey,
+    };
+    this.pendingUpdates.update(updates => {
+      const next = new Map(updates);
+      next.set(item.id, nextPending);
+      return next;
+    });
+    this.syncState.set(this.networkAvailable() ? 'syncing' : 'offline');
+    this.persistMutation(item.id, nextPending);
+  }
+
+  isItemUpdating(id: string): boolean { return this.pendingUpdates().get(id)?.status === 'pending'; }
+
+  private startUpdate(id: string): void {
+    const pending = this.pendingUpdates().get(id);
+    if (!pending || pending.status !== 'pending' || pending.inFlight || !pending.persisted) return;
+    if (!this.networkAvailable()) {
+      this.syncState.set('offline');
+      return;
+    }
+    this.setPendingUpdate(id, { ...pending, inFlight: true });
+    const requestItem = this.items().find(item => item.id === id) ?? pending.confirmed ?? { id } as ShoppingListItem;
+    this.shoppingListService.update(requestItem, pending.desired).subscribe({
+      next: updated => {
+        const current = this.pendingUpdates().get(id);
+        if (!current) return;
+        if (this.sameUpdate(current.desired, pending.desired)) {
+          this.pendingUpdates.update(updates => {
+            const next = new Map(updates);
+            next.delete(id);
+            return next;
+          });
+          this.items.update(items => items.some(item => item.id === updated.id)
+            ? items.map(item => item.id === updated.id ? updated : item) : [...items, updated]);
+          void this.removePersistedMutation(current.operationId);
+          if (this.flushingQueue) {
+            if (this.pendingUpdateCount() === 0) this.refreshAfterSync();
+          } else {
+            this.syncState.set(this.failedUpdateCount() ? 'failed' : this.pendingUpdateCount() ? 'syncing' : 'synced');
+            this.persistSnapshot();
+          }
+          return;
+        }
+        this.setPendingUpdate(id, { ...current, confirmed: updated, inFlight: false });
+        this.items.update(items => items.some(item => item.id === updated.id)
+          ? items.map(item => item.id === updated.id ? this.optimisticItem(updated, current.desired) : item)
+          : [...items, this.optimisticItem(updated, current.desired)]);
+        this.startUpdate(id);
+      },
+      error: error => {
+        const current = this.pendingUpdates().get(id);
+        if (!current) return;
+        if (this.isNetworkFailure(error)) {
+          this.setPendingUpdate(id, { ...current, inFlight: false });
+          this.syncState.set('offline');
+          this.persistSnapshot();
+          return;
+        }
+        if (!this.sameUpdate(current.desired, pending.desired)) {
+          this.setPendingUpdate(id, { ...current, inFlight: false });
+          this.items.update(items => items.map(item => item.id === id ? this.optimisticItem(current.confirmed ?? item, current.desired) : item));
+          this.startUpdate(id);
+          return;
+        }
+        if (current.confirmed) this.items.update(items => items.map(item => item.id === id ? current.confirmed! : item));
+        this.setPendingUpdate(id, { ...current, status: 'failed', inFlight: false, persisted: true });
+        if (this.cacheKey) void this.offline.markMutationFailed(this.cacheKey, current.operationId, 'shopping.updateError').catch(() => undefined);
+        this.syncState.set('failed');
+        this.persistSnapshot();
+        if (this.flushingQueue && this.pendingUpdateCount() === 0) this.flushingQueue = false;
+        this.error.set(getApiError(error, this.translations.translate('shopping.updateError')));
+      },
     });
   }
 
+  private persistMutation(id: string, pending: PendingUpdate): void {
+    if (!this.cacheKey) {
+      this.startUpdate(id);
+      return;
+    }
+    const mutation: ShoppingListMutation = {
+      ...pending.desired, operationId: pending.operationId, itemId: id,
+      confirmed: pending.confirmed, queuedAt: Date.now(), status: 'pending',
+    };
+    void this.offline.queueMutation(this.cacheKey, mutation).then(() => {
+      const current = this.pendingUpdates().get(id);
+      if (!current || current.operationId !== pending.operationId) return;
+      this.setPendingUpdate(id, { ...current, persisted: true });
+      this.persistSnapshot();
+      this.startUpdate(id);
+    }).catch(() => {
+      // Keep the optimistic interaction usable online even if a browser blocks IndexedDB.
+      const current = this.pendingUpdates().get(id);
+      if (!current || current.operationId !== pending.operationId) return;
+      this.setPendingUpdate(id, { ...current, persisted: true });
+      this.syncState.set(this.networkAvailable() ? 'syncing' : 'offline');
+      this.startUpdate(id);
+    });
+  }
+
+  private removePersistedMutation(operationId: string): Promise<void> {
+    return this.cacheKey ? this.offline.removeMutation(this.cacheKey, operationId).catch(() => undefined) : Promise.resolve();
+  }
+
+  private flushQueued(): void {
+    if (!this.pendingUpdateCount()) {
+      this.flushingQueue = false;
+      this.syncState.set(this.failedUpdateCount() ? 'failed' : 'synced');
+      return;
+    }
+    if (!this.networkAvailable()) {
+      this.syncState.set('offline');
+      return;
+    }
+    this.flushingQueue = true;
+    for (const id of this.pendingUpdates().keys()) this.startUpdate(id);
+  }
+
+  retryFailed(): void {
+    const failed = [...this.pendingUpdates().entries()].filter(([, update]) => update.status === 'failed');
+    if (!failed.length) return;
+    this.error.set(null);
+    for (const [id, update] of failed) {
+      const retried = { ...update, status: 'pending' as const, inFlight: false, persisted: !this.cacheKey };
+      this.setPendingUpdate(id, retried);
+      this.items.update(items => items.map(item => item.id === id ? this.optimisticItem(item, update.desired) : item));
+      this.persistMutation(id, retried);
+    }
+    this.syncState.set(this.networkAvailable() ? 'syncing' : 'offline');
+  }
+
+  private refreshAfterSync(): void {
+    this.flushingQueue = false;
+    this.shoppingListService.getAll().subscribe({
+      next: items => {
+        this.items.set(this.overlayPendingUpdates(items));
+        this.syncState.set(this.failedUpdateCount() ? 'failed' : this.pendingUpdateCount() ? 'syncing' : 'synced');
+        this.persistSnapshot();
+        if (this.pendingUpdateCount()) this.flushQueued();
+      },
+      error: error => {
+        this.syncState.set(this.isNetworkFailure(error) ? 'offline' : 'failed');
+        if (!this.isNetworkFailure(error)) this.error.set(getApiError(error, this.translations.translate('shopping.loadError')));
+      },
+    });
+  }
+
+  private newOperationId(): string {
+    return globalThis.crypto?.randomUUID?.() ?? `shopping-${Date.now()}-${++this.pendingCounter}`;
+  }
+
+  private setPendingUpdate(id: string, value: PendingUpdate): void {
+    this.pendingUpdates.update(updates => new Map(updates).set(id, value));
+  }
+
+  private sameUpdate(left: ShoppingListUpdate, right: ShoppingListUpdate): boolean {
+    return left.quantity === right.quantity && left.isPurchased === right.isPurchased && left.note === right.note;
+  }
+
+  private optimisticItem(item: ShoppingListItem, update: ShoppingListUpdate): ShoppingListItem {
+    const totalPrice = item.preparedMealId
+      ? update.quantity * item.pricePer100BaseUnits
+      : (update.quantity / 100) * item.pricePer100BaseUnits;
+    return { ...item, ...update, totalPrice: this.roundToCents(totalPrice) };
+  }
+
+  private roundToCents(value: number): number {
+    const cents = value * 100;
+    const lower = Math.floor(cents);
+    const fraction = cents - lower;
+    const rounded = fraction > .5 || (Math.abs(fraction - .5) < 1e-9 && lower % 2 !== 0)
+      ? lower + 1
+      : lower;
+    return rounded / 100;
+  }
+
   remove(item: ShoppingListItem): void {
-    if (this.isSaving()) return;
+    if (this.isSaving() || this.isItemUpdating(item.id)) return;
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.delete(item.id).pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: () => this.items.update(items => items.filter(current => current.id !== item.id)),
@@ -163,7 +481,7 @@ export class ShoppingListPage implements OnInit {
 
   clearChecked(): void {
     // A bulk action while an add is still in flight would fight over the same list, so both wait.
-    if (this.isSaving() || this.pending().length || this.purchasedCount() === 0) return;
+    if (this.isSaving() || this.pending().length || this.pendingUpdateCount() || this.failedUpdateCount() || this.purchasedCount() === 0) return;
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.clearChecked().pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: () => this.items.update(items => items.filter(item => !item.isPurchased)),
@@ -172,7 +490,7 @@ export class ShoppingListPage implements OnInit {
   }
 
   generate(): void {
-    if (this.isSaving() || this.pending().length || this.generateTo() < this.generateFrom()) return;
+    if (this.isSaving() || this.pending().length || this.pendingUpdateCount() || this.failedUpdateCount() || this.generateTo() < this.generateFrom()) return;
     this.isSaving.set(true); this.error.set(null);
     this.shoppingListService.generate(this.generateFrom(), this.generateTo()).pipe(finalize(() => this.isSaving.set(false))).subscribe({
       next: items => this.items.set(items),

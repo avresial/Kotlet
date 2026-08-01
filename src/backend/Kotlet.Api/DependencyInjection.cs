@@ -1,4 +1,5 @@
 using Kotlet.Api.Admin;
+using Kotlet.Api.AgentMemory;
 using Kotlet.Api.Ai;
 using Kotlet.Api.FoodSettings;
 using Kotlet.Api.Auth;
@@ -67,6 +68,7 @@ public static class DependencyInjection
         app.MapFoodSettingsEndpoints();
         app.MapHousesFeature();
         app.MapAdminFeature();
+        app.MapAgentMemoryEndpoints();
         app.MapIngredientsFeature();
         app.MapPantryFeature();
         app.MapPreparedMealEndpoints();

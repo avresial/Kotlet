@@ -1,4 +1,5 @@
 using Kotlet.Application.Admin;
+using Kotlet.Application.AgentMemory;
 using Kotlet.Application.Ai;
 using Kotlet.Application.FoodSettings;
 using Kotlet.Application.Auth;
@@ -23,6 +24,7 @@ public static class DependencyInjection
     {
         return services
             .AddAdminApplication()
+            .AddScoped<AgentMemoryService>()
             .AddAiApplication()
             .AddScoped<UserFoodSettingsService>()
             .AddAuthApplication()
