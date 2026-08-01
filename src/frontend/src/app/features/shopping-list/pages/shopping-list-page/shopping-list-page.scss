@@ -42,32 +42,33 @@ button:disabled { opacity: .5; cursor: default; }
 .bought-heading { margin-top: 1.5rem; color: #8b8377; }
 .receipt-line {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto auto 2.75rem;
   grid-template-areas:
-    "check     name      remove"
-    "price-per price-per price-per"
-    "qty       qty       total"
-    "note      note      note";
-  column-gap: .7rem; row-gap: .3rem; align-items: center;
-  padding: .75rem 0; border-bottom: 1px solid #e1d7c9;
+    "check name qty total remove"
+    "note  note note note  note";
+  column-gap: .35rem; row-gap: .25rem; align-items: center;
+  padding: .4rem 0; border-bottom: 1px solid #e1d7c9;
 }
-.check { grid-area: check; align-self: center; display: grid; place-items: center; min-width: 2rem; min-height: 2rem; margin: -.3rem 0 -.3rem -.3rem; color: #9b8e7d; font-size: 1.15rem; }
-.name { grid-area: name; align-self: center; min-width: 0; font-family: Georgia, serif; font-weight: 500; }
-.remove { grid-area: remove; align-self: start; justify-self: end; display: grid; place-items: center; min-width: 2rem; min-height: 2rem; margin: -.3rem -.3rem 0 0; color: #9a3024; font-size: 1.35rem; line-height: 1; }
+.check { grid-area: check; align-self: center; display: grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem; color: #9b8e7d; font-size: 1.15rem; }
+.name { grid-area: name; align-self: center; min-width: 0; overflow: hidden; font-family: Georgia, serif; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.remove { grid-area: remove; align-self: center; justify-self: end; display: grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem; color: #9a3024; font-size: 1.35rem; line-height: 1; }
 .check:focus-visible, .remove:focus-visible { outline: 2px solid #b96554; outline-offset: 1px; border-radius: .4rem; }
-.price-per { grid-area: price-per; align-self: center; }
+.price-per { display: none; grid-area: price-per; align-self: center; }
 .price-per, .unit { color: var(--app-text-muted); font-size: .75rem; }
-.qty { grid-area: qty; display: flex; align-items: center; gap: .35rem; }
-.qty input { min-height: 2.1rem; width: 4rem; padding: .3rem .35rem; text-align: right; }
-.line-price { grid-area: total; align-self: center; justify-self: end; text-align: right; font-variant-numeric: tabular-nums; }
+.qty { grid-area: qty; display: flex; min-width: 0; align-items: center; gap: .2rem; white-space: nowrap; }
+.qty input { min-height: 2.75rem; width: 3.25rem; padding: .3rem .25rem; text-align: right; }
+.unit { max-width: 3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.line-price { grid-area: total; align-self: center; justify-self: end; max-width: 5.5rem; overflow: hidden; text-align: right; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .note-input { grid-area: note; display: block; width: 100%; min-height: 1.9rem; field-sizing: content; resize: none; overflow: hidden; margin-top: .15rem; padding: .3rem .55rem; border: 0; border-left: 2px solid var(--app-border-strong); border-radius: 0 .3rem .3rem 0; color: var(--app-text-soft); background: transparent; font: italic .78rem/1.35 inherit; white-space: pre-wrap; word-break: break-word; }
 .note-input:focus { font-style: normal; color: var(--app-text); border-left-color: #b96554; background: var(--app-surface-raised); }
-.is-purchased { opacity: .58; }
+.is-purchased { opacity: .72; }
 .check.is-pending { color: #963827; animation: pending-pulse 1.2s ease-in-out infinite; }
 /* A line handed to the API but not confirmed yet: shown straight away so the shopper sees the pick
    landed, greyed out so it does not read as a saved line. */
 .is-pending { opacity: .6; }
 .is-pending .check { animation: pending-pulse 1.2s ease-in-out infinite; }
+.receipt-line.is-pending { grid-template-columns: 2.75rem minmax(0, 1fr) auto; grid-template-areas: "check name qty"; }
+.receipt-line.is-pending .price-per { display: none; }
 .is-pending .qty { font-variant-numeric: tabular-nums; }
 @keyframes pending-pulse { 50% { opacity: .3; } }
 @media (prefers-reduced-motion: reduce) { .is-pending .check, .check.is-pending, .sync-syncing span { animation: none; } }
@@ -97,6 +98,12 @@ button:disabled { opacity: .5; cursor: default; }
       "note  note note      note note note";
     column-gap: 1rem; align-items: center;
   }
+  .price-per { display: block; }
+  .receipt-line.is-pending {
+    grid-template-columns: 2rem minmax(8rem, 18rem) 1fr auto;
+    grid-template-areas: "check name price-per qty";
+  }
+  .receipt-line.is-pending .price-per { display: block; }
   .check { align-self: center; margin-block: 0; }
   .remove { align-self: center; margin-top: 0; }
   .price-per { justify-self: start; }
