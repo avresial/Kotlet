@@ -51,6 +51,16 @@ describe('ShoppingAdd', () => {
 
   it('offers nothing until something is typed', () => {
     expect(component.suggestions()).toEqual([]);
+    expect(component.listedMatches()).toEqual([]);
+  });
+
+  it('answers a search for something already on the list with how much of it is down', () => {
+    fixture.componentRef.setInput('onList', [{ id: 'eggs', name: 'Eggs', quantity: 6, unit: 'piece' }]);
+
+    component.onInput('egg');
+
+    expect(component.suggestions()).toEqual([]);
+    expect(component.listedMatches()).toEqual([{ id: 'eggs', name: 'Eggs', quantity: 6, unit: 'piece' }]);
   });
 
   it('reveals the quantity controls only once a product is picked', () => {

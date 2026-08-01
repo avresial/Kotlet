@@ -1,11 +1,15 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of, Subject } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { ShoppingListItem } from '../../shopping-list.models';
 import { ShoppingListService } from '../../shopping-list.service';
+import { ShoppingListMutation, ShoppingListOfflineService, ShoppingListOfflineState, shoppingListCacheKey } from '../../shopping-list-offline.service';
 import { PreparedMealService } from '../../../prepared-meals/prepared-meal.service';
 import { PreparedMeal } from '../../../prepared-meals/prepared-meal.models';
 import { ShoppingAddRequest } from '../../components/shopping-add/shopping-add';
@@ -88,12 +92,12 @@ describe('ShoppingListPage notes', () => {
 
   it('updates the note with the trimmed value', () => {
     page.updateNote(item('pasta', 0, null), '  organic  ');
-    expect(shoppingListService.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'pasta' }), { note: 'organic' });
+    expect(shoppingListService.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'pasta' }), { quantity: 1, isPurchased: false, note: 'organic' });
   });
 
   it('clears an existing note with an empty string', () => {
     page.updateNote(item('pasta', 0, 'old note'), '   ');
-    expect(shoppingListService.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'pasta' }), { note: '' });
+    expect(shoppingListService.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'pasta' }), { quantity: 1, isPurchased: false, note: '' });
   });
 
   it('skips the update when the note is unchanged', () => {
@@ -146,6 +150,18 @@ describe('ShoppingListPage re-adding a bought item', () => {
     const page = loadPage([item('pasta', 0)]);
 
     expect(page.availableIngredients()).toEqual([]);
+  });
+
+  it('reports a hidden ingredient as already on the list, with how much of it is down', () => {
+    const page = loadPage([{ ...item('pasta', 0), quantity: 1500 }]);
+
+    expect(page.listedProducts()).toEqual([{ id: 'pasta', name: 'pasta', quantity: 1.5, unit: 'kg' }]);
+  });
+
+  it('leaves a bought ingredient off the already-on-the-list answer, since it can be re-added', () => {
+    const page = loadPage([boughtPasta]);
+
+    expect(page.listedProducts()).toEqual([]);
   });
 
   it('resets the bought line instead of creating a duplicate', () => {
@@ -231,6 +247,12 @@ describe('ShoppingListPage background adds', () => {
     expect(page.availableIngredients()).toEqual([]);
   });
 
+  it('reports a product in flight as already on the list', () => {
+    page.add(addIngredient(200, ''));
+
+    expect(page.listedProducts()).toEqual([{ id: 'pasta', name: 'Pasta', quantity: 200, unit: 'g' }]);
+  });
+
   it('keeps a ready meal in flight out of the picker too', () => {
     page.add(addMeal(2));
 
@@ -278,5 +300,244 @@ describe('ShoppingListPage background adds', () => {
     page.add(addMeal(1, 'the spicy ones'));
 
     expect(shoppingListService.createPreparedMeal).toHaveBeenCalledWith('gyoza', 1, 'the spicy ones');
+  });
+});
+
+describe('ShoppingListPage optimistic updates', () => {
+  let page: ShoppingListPage;
+  let updateResponses: Subject<ShoppingListItem>[];
+  let shoppingListService: {
+    getAll: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>;
+    createPreparedMeal: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>;
+    generate: ReturnType<typeof vi.fn>; clearChecked: ReturnType<typeof vi.fn>;
+  };
+  const pasta = item('pasta', 0);
+
+  beforeEach(() => {
+    updateResponses = [];
+    shoppingListService = {
+      getAll: vi.fn().mockReturnValue(of([pasta])),
+      create: vi.fn(), createPreparedMeal: vi.fn(),
+      update: vi.fn().mockImplementation(() => {
+        const response = new Subject<ShoppingListItem>();
+        updateResponses.push(response);
+        return response;
+      }),
+      generate: vi.fn().mockReturnValue(of([])), clearChecked: vi.fn().mockReturnValue(of({ removed: 0 })),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        ShoppingListPage,
+        { provide: ShoppingListService, useValue: shoppingListService },
+        { provide: IngredientService, useValue: { getAll: vi.fn().mockReturnValue(of([ingredient])) } },
+        { provide: PreparedMealService, useValue: { list: vi.fn().mockReturnValue(of([])) } },
+        { provide: TranslationService, useValue: { translate: (key: string) => key } },
+      ],
+    });
+    page = TestBed.inject(ShoppingListPage);
+    page.ngOnInit();
+  });
+
+  it('shows a checkbox change immediately without blocking the row', () => {
+    page.update(pasta, { isPurchased: true });
+
+    expect(page.items()[0].isPurchased).toBe(true);
+    expect(page.isItemUpdating('pasta')).toBe(true);
+    expect(page.isSaving()).toBe(false);
+    expect(shoppingListService.update).toHaveBeenCalledWith(expect.objectContaining({ id: 'pasta' }), {
+      quantity: 1, isPurchased: true, note: null,
+    });
+  });
+
+  it('uses the confirmed server response after a successful update', () => {
+    page.update(pasta, { isPurchased: true });
+    updateResponses[0].next({ ...pasta, isPurchased: true, totalPrice: 2 });
+
+    expect(page.items()[0]).toMatchObject({ isPurchased: true, totalPrice: 2 });
+    expect(page.isItemUpdating('pasta')).toBe(false);
+  });
+
+  it('restores the last confirmed value when an update fails', () => {
+    page.update(pasta, { isPurchased: true });
+    updateResponses[0].error(new Error('failed'));
+
+    expect(page.items()[0]).toEqual(pasta);
+    expect(page.isItemUpdating('pasta')).toBe(false);
+    expect(page.error()).toBe('shopping.updateError');
+  });
+
+  it('serializes rapid toggles and sends the final selected state', () => {
+    page.update(pasta, { isPurchased: true });
+    page.update(page.items()[0], { isPurchased: false });
+
+    expect(shoppingListService.update).toHaveBeenCalledTimes(1);
+    updateResponses[0].next({ ...pasta, isPurchased: true });
+    expect(shoppingListService.update).toHaveBeenCalledTimes(2);
+    expect(shoppingListService.update).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'pasta' }), {
+      quantity: 1, isPurchased: false, note: null,
+    });
+
+    updateResponses[1].next({ ...pasta, isPurchased: false });
+    expect(page.items()[0].isPurchased).toBe(false);
+    expect(page.isItemUpdating('pasta')).toBe(false);
+  });
+
+  it('retries the latest desired state when an earlier update fails', () => {
+    page.update(pasta, { isPurchased: true });
+    page.update(page.items()[0], { isPurchased: false });
+
+    updateResponses[0].error(new Error('failed'));
+
+    expect(shoppingListService.update).toHaveBeenCalledTimes(2);
+    updateResponses[1].next({ ...pasta, isPurchased: false });
+    expect(page.items()[0].isPurchased).toBe(false);
+    expect(page.isItemUpdating('pasta')).toBe(false);
+    expect(page.error()).toBeNull();
+  });
+});
+
+describe('ShoppingListPage offline shopping list', () => {
+  let page: ShoppingListPage;
+  let cacheState: ShoppingListOfflineState;
+  let offlineStore: {
+    load: ReturnType<typeof vi.fn>; saveSnapshot: ReturnType<typeof vi.fn>;
+    queueMutation: ReturnType<typeof vi.fn>; removeMutation: ReturnType<typeof vi.fn>;
+    markMutationFailed: ReturnType<typeof vi.fn>; clearUser: ReturnType<typeof vi.fn>;
+  };
+  let shoppingListService: {
+    getAll: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>;
+    createPreparedMeal: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>;
+    generate: ReturnType<typeof vi.fn>; clearChecked: ReturnType<typeof vi.fn>;
+  };
+  const user = { id: 'user-1', activeHouseId: 'house-1' };
+  const cachedPasta = { ...item('pasta', 0), isPurchased: false };
+  const checkedPasta = { ...cachedPasta, isPurchased: true };
+  const snapshot = () => ({ items: [cachedPasta], ingredients: [ingredient], preparedMeals: [], savedAt: Date.now() });
+  const networkError = () => new HttpErrorResponse({ status: 0, statusText: 'Offline' });
+  const permanentError = () => new HttpErrorResponse({ status: 500, statusText: 'Server error' });
+  const mutation = (overrides: Partial<ShoppingListMutation> = {}): ShoppingListMutation => ({
+    itemId: 'pasta', operationId: 'operation-1', quantity: 1, isPurchased: true, note: null,
+    confirmed: cachedPasta, queuedAt: Date.now(), status: 'pending', ...overrides,
+  });
+
+  beforeEach(() => {
+    cacheState = { snapshot: snapshot(), mutations: [] };
+    offlineStore = {
+      load: vi.fn().mockImplementation(async () => ({
+        snapshot: cacheState.snapshot && { ...cacheState.snapshot, items: [...cacheState.snapshot.items] },
+        mutations: cacheState.mutations.map(value => ({ ...value })),
+      })),
+      saveSnapshot: vi.fn().mockImplementation(async (_key: string, value: Omit<NonNullable<ShoppingListOfflineState['snapshot']>, 'savedAt'>) => {
+        cacheState.snapshot = { ...value, savedAt: Date.now() };
+      }),
+      queueMutation: vi.fn().mockImplementation(async (_key: string, value: ShoppingListMutation) => {
+        cacheState.mutations = [...cacheState.mutations.filter(current => current.itemId !== value.itemId), value];
+      }),
+      removeMutation: vi.fn().mockImplementation(async (_key: string, operationId: string) => {
+        cacheState.mutations = cacheState.mutations.filter(value => value.operationId !== operationId);
+      }),
+      markMutationFailed: vi.fn().mockImplementation(async (_key: string, operationId: string, error: string) => {
+        cacheState.mutations = cacheState.mutations.map(value => value.operationId === operationId ? { ...value, status: 'failed', error } : value);
+      }),
+      clearUser: vi.fn().mockResolvedValue(undefined),
+    };
+    shoppingListService = {
+      getAll: vi.fn().mockReturnValue(throwError(networkError)),
+      create: vi.fn(), createPreparedMeal: vi.fn(), update: vi.fn(),
+      generate: vi.fn(), clearChecked: vi.fn(),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        ShoppingListPage,
+        { provide: ShoppingListService, useValue: shoppingListService },
+        { provide: ShoppingListOfflineService, useValue: offlineStore },
+        { provide: IngredientService, useValue: { getAll: vi.fn().mockReturnValue(of([ingredient])) } },
+        { provide: PreparedMealService, useValue: { list: vi.fn().mockReturnValue(of([])) } },
+        { provide: TranslationService, useValue: { translate: (key: string) => key } },
+        { provide: AuthService, useValue: { currentUser: signal(user) } },
+      ],
+    });
+  });
+
+  const loadPage = async (): Promise<ShoppingListPage> => {
+    page = TestBed.inject(ShoppingListPage);
+    page.ngOnInit();
+    await vi.waitFor(() => expect(page.isLoading()).toBe(false));
+    return page;
+  };
+
+  it('scopes cache keys to both user and active household', () => {
+    expect(shoppingListCacheKey(user)).toBe('user-1:house-1');
+    expect(shoppingListCacheKey({ ...user, activeHouseId: 'house-2' })).not.toBe(shoppingListCacheKey(user));
+    expect(shoppingListCacheKey({ ...user, id: 'user-2' })).not.toBe(shoppingListCacheKey(user));
+  });
+
+  it('renders the cached snapshot when the initial API request is unavailable', async () => {
+    const loaded = await loadPage();
+
+    expect(loaded.items()).toEqual([cachedPasta]);
+    expect(loaded.syncState()).toBe('offline');
+    expect(loaded.isLoading()).toBe(false);
+  });
+
+  it('restores a pending mutation after a page reload without losing the optimistic state', async () => {
+    cacheState.mutations = [mutation()];
+    const loaded = await loadPage();
+
+    expect(loaded.items()[0].isPurchased).toBe(true);
+    expect(loaded.pendingUpdateCount()).toBe(1);
+    expect(loaded.syncState()).toBe('offline');
+  });
+
+  it('compacts rapid offline mutations to the final set-state command', async () => {
+    const update = vi.fn().mockReturnValue(throwError(networkError));
+    shoppingListService.update = update;
+    const loaded = await loadPage();
+
+    loaded.update(cachedPasta, { isPurchased: true });
+    loaded.update(loaded.items()[0], { isPurchased: false });
+    await vi.waitFor(() => expect(cacheState.mutations).toHaveLength(1));
+
+    expect(cacheState.mutations).toHaveLength(1);
+    expect(cacheState.mutations[0]).toMatchObject({ itemId: 'pasta', isPurchased: false });
+  });
+
+  it('retries queued mutations on reconnection and refreshes the server snapshot', async () => {
+    cacheState.mutations = [mutation()];
+    shoppingListService.getAll
+      .mockReturnValueOnce(throwError(networkError))
+      .mockReturnValueOnce(of([checkedPasta]));
+    const response = new Subject<ShoppingListItem>();
+    shoppingListService.update.mockReturnValue(response);
+    const loaded = await loadPage();
+
+    loaded.onOnline();
+    expect(shoppingListService.update).toHaveBeenCalledTimes(1);
+    response.next(checkedPasta);
+    await vi.waitFor(() => expect(cacheState.mutations).toEqual([]));
+
+    expect(loaded.items()).toEqual([checkedPasta]);
+    expect(loaded.syncState()).toBe('synced');
+    expect(cacheState.mutations).toEqual([]);
+  });
+
+  it('keeps a permanent failure visible and retries it explicitly', async () => {
+    shoppingListService.getAll = vi.fn().mockReturnValue(of([cachedPasta]));
+    shoppingListService.update
+      .mockReturnValueOnce(throwError(permanentError))
+      .mockReturnValueOnce(of(checkedPasta));
+    const loaded = await loadPage();
+
+    loaded.update(cachedPasta, { isPurchased: true });
+    await vi.waitFor(() => expect(loaded.failedUpdateCount()).toBe(1));
+    expect(loaded.items()[0].isPurchased).toBe(false);
+    expect(loaded.failedUpdateCount()).toBe(1);
+    expect(loaded.syncState()).toBe('failed');
+
+    loaded.retryFailed();
+    await vi.waitFor(() => expect(loaded.syncState()).toBe('synced'));
+    expect(loaded.items()[0].isPurchased).toBe(true);
+    expect(loaded.failedUpdateCount()).toBe(0);
+    expect(loaded.syncState()).toBe('synced');
   });
 });

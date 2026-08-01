@@ -60,6 +60,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/agent/agent-page').then((m) => m.AgentPage),
   },
   {
+    path: 'agent-memory',
+    canActivate: [homeGuard],
+    loadComponent: () => import('./features/agent-memory/agent-memory-page').then(m => m.AgentMemoryPage),
+  },
+  {
     path: 'settings/food', canActivate: [authGuard],
     loadComponent: () => import('./features/settings/pages/food-settings-page/food-settings-page').then((m) => m.FoodSettingsPage),
   },

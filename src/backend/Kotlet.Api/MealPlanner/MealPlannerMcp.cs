@@ -65,6 +65,104 @@ public sealed class MealPlannerMcp
         return await service.GetForRangeAsync(userId, houseId, parsedFrom, days, cancellationToken);
     }
 
+    [McpServerTool(Name = "meal_plan_get_range", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Returns the meal plan for an absolute yyyy-MM-dd date and range length. This is the read step for " +
+                 "meal-plan replacement and movement; it never changes meals or the shopping list.")]
+    public static async Task<IReadOnlyList<DailyMealPlanResponse>> GetMealPlanRange(
+        [Description("First date in yyyy-MM-dd format; resolve relative dates before calling this tool.")] string from,
+        [Description("Number of days to return, from 1 to 62.")] int days,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken)
+    {
+        if (!DateOnly.TryParseExact(from, "yyyy-MM-dd", out var parsedFrom))
+            throw new McpException("From must use yyyy-MM-dd format.");
+        if (days is < 1 or > 62)
+            throw new McpException("Days must be between 1 and 62.");
+
+        return await service.GetForRangeAsync(
+            RequireUser(currentUser), RequireHouse(currentUser), parsedFrom, days, cancellationToken);
+    }
+
+    [McpServerTool(Name = "meal_plan_replace", ReadOnly = false, Destructive = false,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Replaces one meal-plan entry by mealId, or the only meal in an absolute yyyy-MM-dd date and slot. " +
+                 "The source must contain exactly one recipeId, ingredientId, preparedMealId, or freeText. " +
+                 "Use createIfMissing when an empty slot should be filled. Supply expectedVersion after reading the plan. " +
+                 "The operation is atomic and does not mutate the shopping list.")]
+    public static Task<MealPlanMutationResponse> ReplaceMealPlan(
+        ReplaceMealPlanRequest request,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.ReplaceAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
+
+    [McpServerTool(Name = "meal_plan_move", ReadOnly = false, Destructive = true,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Moves a meal to an absolute yyyy-MM-dd destination slot and clears its original slot. " +
+                 "destinationBehavior is reject (default), replace, or swap. Empty and ambiguous destinations are " +
+                 "reported explicitly; expectedVersion protects against concurrent edits. The shopping list is not changed.")]
+    public static Task<MealPlanMutationResponse> MoveMealPlan(
+        MoveMealPlanMutationRequest request,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.MoveAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
+
+    [McpServerTool(Name = "meal_plan_swap", ReadOnly = false, Destructive = false,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Atomically swaps the dates and slots of two meal-plan entries. Obtain both ids and versions from " +
+                 "meal_plan_get_range; no shopping-list mutation occurs.")]
+    public static Task<MealPlanMutationResponse> SwapMealPlan(
+        SwapMealPlanRequest request,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.SwapAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
+
+    [McpServerTool(Name = "meal_plan_clear_slot", ReadOnly = false, Destructive = true,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Clears every planned meal in one absolute yyyy-MM-dd slot. An already-empty slot is a successful no-op. " +
+                 "The result includes the removed entries and the shopping list is not changed.")]
+    public static Task<MealPlanMutationResponse> ClearMealPlanSlot(
+        ClearMealPlanSlotRequest request,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.ClearSlotAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
+
+    [McpServerTool(Name = "meal_plan_recommend_replacement", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Lists up to five household recipes and prepared meals as replacement options for an absolute " +
+                 "yyyy-MM-dd slot. Options are not ranked by date, slot, or preferences, and the tool does not change " +
+                 "the meal plan or shopping list. Apply a selected option with meal_plan_apply_replacement.")]
+    public static async Task<MealPlanRecommendationResponse> RecommendMealPlanReplacement(
+        [Description("Date in yyyy-MM-dd format; resolve relative dates before calling this tool.")] string date,
+        [Description("Slot: breakfast, second-breakfast, dinner, snack, or supper.")] string slot,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken)
+    {
+        if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var parsedDate))
+            throw new McpException("Date must use yyyy-MM-dd format.");
+        var normalizedSlot = string.IsNullOrWhiteSpace(slot) ? null : slot.Trim().ToLowerInvariant();
+        if (normalizedSlot is not ("breakfast" or "second-breakfast" or "dinner" or "snack" or "supper"))
+            throw new McpException("Slot must be one of: breakfast, second-breakfast, dinner, snack, supper.");
+        return await service.RecommendReplacementAsync(
+            RequireHouse(currentUser), parsedDate, normalizedSlot, cancellationToken);
+    }
+
+    [McpServerTool(Name = "meal_plan_apply_replacement", ReadOnly = false, Destructive = false,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Applies a selected recommendation to an existing meal-plan entry by mealId. The source must contain " +
+                 "exactly one recipeId, ingredientId, preparedMealId, or freeText. Supply expectedVersion; the operation " +
+                 "is atomic and leaves the shopping list unchanged.")]
+    public static Task<MealPlanMutationResponse> ApplyMealPlanReplacement(
+        ApplyMealPlanReplacementRequest request,
+        MealPlannerService service,
+        ICurrentUser currentUser,
+        CancellationToken cancellationToken) =>
+        service.ApplyReplacementAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
+
     [McpServerTool(Name = "add_weekly_meal_plan", ReadOnly = false, Destructive = false,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
      Description("Adds up to 35 meals within one seven-day period. Existing identical meals are skipped; existing meals are never replaced. Returns status, added/skipped counts, and the new meal ids.")]
@@ -79,7 +177,8 @@ public sealed class MealPlannerMcp
     [McpServerTool(Name = "add_meal_to_plan", ReadOnly = false, Destructive = false,
         Idempotent = false, OpenWorld = false, UseStructuredContent = true),
      Description("Adds one meal to a single slot on a single day of the household meal plan. A meal is " +
-                "either a recipe or a bare ingredient — provide EXACTLY ONE of recipeId or ingredientId, never both. " +
+                 "either a recipe, a bare ingredient, a prepared meal, or freeText — provide EXACTLY ONE of recipeId, ingredientId, " +
+                "preparedMealId, or freeText, never more than one. " +
                 "IMPORTANT: to plan a recipe you must first look it up — call get_recipes (optionally with a search " +
                 "term) to find the recipe and copy its id into recipeId. Never invent or guess a recipe id. " +
                 "Likewise resolve a bare ingredient with get_ingredients first. Use add_weekly_meal_plan instead when " +
@@ -87,8 +186,10 @@ public sealed class MealPlannerMcp
                 "ValidationFailed; on ValidationFailed inspect validationErrors for the offending field.")]
     public static Task<MealPlannerOperationResult> AddMealToPlan(
         [Description("The meal to add. date is yyyy-MM-dd. slot is one of: breakfast, second-breakfast, dinner, " +
-                     "snack, supper. Set recipeId to a recipe id obtained from get_recipes, OR ingredientId to an " +
-                     "ingredient id from get_ingredients — supply exactly one. note is optional free text.")]
+                      "snack, supper. Set recipeId to a recipe id obtained from get_recipes, ingredientId to an " +
+                      "ingredient id from get_ingredients, preparedMealId to a prepared meal id from " +
+                      "get_prepared_meals, or freeText for a meal that is not in the catalog — supply exactly one. " +
+                      "note is optional free text.")]
         AddMealPlanItemRequest request,
         MealPlannerService service,
         ICurrentUser currentUser,
