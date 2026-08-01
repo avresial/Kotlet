@@ -107,7 +107,7 @@
               @if (meal.isArchived) { <span class="badge">{{ 'preparedMeals.archived' | t }}</span> }
             </div>
             <span class="meal-meta">
-              @if (meal.brand) { {{ meal.brand }} · }{{ meal.servings }} {{ 'preparedMeals.servings' | t }} · {{ meal.caloriesPerServing.toFixed(0) }} kcal / {{ 'recipes.serving' | t }}@if (meal.price != null) {  ·  {{ meal.price.toFixed(2) }} }@if (meal.addons.length) {  ·  {{ meal.addons.length }} {{ 'preparedMeals.addons' | t }} }
+              @if (meal.brand) { {{ meal.brand }} · }{{ meal.servings }} {{ 'preparedMeals.servings' | t }} · {{ meal.caloriesPerServing.toFixed(0) }} kcal / {{ 'recipes.perServing' | t }}@if (meal.price != null) {  ·  {{ meal.price.toFixed(2) }} }@if (meal.addons.length) {  ·  {{ meal.addons.length }} {{ 'preparedMeals.addons' | t }} }
             </span>
           </div>
           <div class="meal-actions">

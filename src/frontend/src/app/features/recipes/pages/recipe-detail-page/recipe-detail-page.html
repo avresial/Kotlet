@@ -46,8 +46,8 @@
         @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
         <section class="recipe-totals" [attr.aria-label]="'recipes.nutritionAndCost' | t">
-          <div><span>{{ 'recipes.totalCost' | t }}</span><strong>{{ (pricePerServing() * r.servings).toFixed(2) }} zł</strong><small>{{ pricePerServing().toFixed(2) }} zł / {{ 'recipes.serving' | t }}</small></div>
-          <div><span>{{ 'recipes.totalCalories' | t }}</span><strong>{{ (caloriesPerServing() * r.servings).toFixed(0) }} kcal</strong><small>{{ caloriesPerServing().toFixed(0) }} kcal / {{ 'recipes.serving' | t }}</small></div>
+          <div><span>{{ 'recipes.totalCost' | t }}</span><strong>{{ (pricePerServing() * r.servings).toFixed(2) }} zł</strong><small>{{ pricePerServing().toFixed(2) }} zł / {{ 'recipes.perServing' | t }}</small></div>
+          <div><span>{{ 'recipes.totalCalories' | t }}</span><strong>{{ (caloriesPerServing() * r.servings).toFixed(0) }} kcal</strong><small>{{ caloriesPerServing().toFixed(0) }} kcal / {{ 'recipes.perServing' | t }}</small></div>
         </section>
 
         @if (propertyGroups().length) {
