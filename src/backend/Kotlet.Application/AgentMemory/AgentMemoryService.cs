@@ -22,9 +22,20 @@ public sealed class AgentMemoryService(IAgentMemoryRepository repository)
         var errors = new Dictionary<string, string[]>();
         var validSource = TryParseSource(source, out var parsedSource);
         var validReviewStatus = TryParseReviewStatus(reviewStatus, out var parsedReviewStatus);
-        if (!validSource) errors["source"] = ["Source is invalid."];
-        if (!validReviewStatus) errors["reviewStatus"] = ["Review status is invalid."];
-        if (errors.Count > 0) return new(revision, [], errors);
+        if (!validSource)
+        {
+            errors["source"] = ["Source is invalid."];
+        }
+
+        if (!validReviewStatus)
+        {
+            errors["reviewStatus"] = ["Review status is invalid."];
+        }
+
+        if (errors.Count > 0)
+        {
+            return new(revision, [], errors);
+        }
 
         var memories = await repository.ListAsync(
             userId, houseId, query, category, parsedSource, parsedReviewStatus, includeExpired, cancellationToken);
@@ -52,7 +63,9 @@ public sealed class AgentMemoryService(IAgentMemoryRepository repository)
         var validation = Validate(request.Content, request.Title, request.Category, request.Source,
             request.Confidence, request.ReviewStatus, request.ClientId, out var source, out var reviewStatus);
         if (validation.Count > 0)
+        {
             return AgentMemoryOperationResult.From(AgentMemoryOperationStatus.ValidationFailed, errors: validation);
+        }
 
         var now = DateTimeOffset.UtcNow;
         var memory = new AgentMemoryEntity
@@ -83,15 +96,23 @@ public sealed class AgentMemoryService(IAgentMemoryRepository repository)
         CancellationToken cancellationToken)
     {
         var memory = await repository.GetAsync(id, userId, houseId, includeDeleted: false, cancellationToken);
-        if (memory is null) return AgentMemoryOperationResult.From(AgentMemoryOperationStatus.NotFound);
+        if (memory is null)
+        {
+            return AgentMemoryOperationResult.From(AgentMemoryOperationStatus.NotFound);
+        }
+
         if (memory.Version != request.ExpectedVersion)
+        {
             return AgentMemoryOperationResult.From(AgentMemoryOperationStatus.Conflict, memory,
                 message: $"Memory version {memory.Version} is newer than expected version {request.ExpectedVersion}.");
+        }
 
         var validation = Validate(request.Content, request.Title, request.Category, request.Source,
             request.Confidence, request.ReviewStatus, request.ClientId, out var source, out var reviewStatus);
         if (validation.Count > 0)
+        {
             return AgentMemoryOperationResult.From(AgentMemoryOperationStatus.ValidationFailed, errors: validation);
+        }
 
         memory.Content = request.Content.Trim();
         memory.Title = Clean(request.Title);
@@ -113,10 +134,16 @@ public sealed class AgentMemoryService(IAgentMemoryRepository repository)
         CancellationToken cancellationToken)
     {
         var memory = await repository.GetAsync(id, userId, houseId, includeDeleted: false, cancellationToken);
-        if (memory is null) return AgentMemoryOperationResult.From(AgentMemoryOperationStatus.NotFound);
+        if (memory is null)
+        {
+            return AgentMemoryOperationResult.From(AgentMemoryOperationStatus.NotFound);
+        }
+
         if (memory.Version != expectedVersion)
+        {
             return AgentMemoryOperationResult.From(AgentMemoryOperationStatus.Conflict, memory,
                 message: $"Memory version {memory.Version} is newer than expected version {expectedVersion}.");
+        }
 
         memory.IsDeleted = true;
         memory.DeletedAt = DateTimeOffset.UtcNow;
@@ -153,28 +180,71 @@ public sealed class AgentMemoryService(IAgentMemoryRepository repository)
         var errors = new Dictionary<string, string[]>();
         parsedSource = AgentMemorySource.ExplicitRequest;
         parsedReviewStatus = AgentMemoryReviewStatus.Confirmed;
-        if (string.IsNullOrWhiteSpace(content)) errors["content"] = ["Content is required."];
-        else if (content.Trim().Length > MaxContentLength) errors["content"] = [$"Content must be at most {MaxContentLength} characters."];
-        if (title?.Trim().Length > MaxTitleLength) errors["title"] = [$"Title must be at most {MaxTitleLength} characters."];
-        if (category?.Trim().Length > MaxCategoryLength) errors["category"] = [$"Category must be at most {MaxCategoryLength} characters."];
-        if (clientId?.Trim().Length > MaxClientLength) errors["clientId"] = [$"Client id must be at most {MaxClientLength} characters."];
-        if (!TryParseSource(source, out parsedSource)) errors["source"] = ["Source is invalid."];
-        if (!TryParseReviewStatus(reviewStatus, out parsedReviewStatus)) errors["reviewStatus"] = ["Review status is invalid."];
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            errors["content"] = ["Content is required."];
+        }
+        else if (content.Trim().Length > MaxContentLength)
+        {
+            errors["content"] = [$"Content must be at most {MaxContentLength} characters."];
+        }
+
+        if (title?.Trim().Length > MaxTitleLength)
+        {
+            errors["title"] = [$"Title must be at most {MaxTitleLength} characters."];
+        }
+
+        if (category?.Trim().Length > MaxCategoryLength)
+        {
+            errors["category"] = [$"Category must be at most {MaxCategoryLength} characters."];
+        }
+
+        if (clientId?.Trim().Length > MaxClientLength)
+        {
+            errors["clientId"] = [$"Client id must be at most {MaxClientLength} characters."];
+        }
+
+        if (!TryParseSource(source, out parsedSource))
+        {
+            errors["source"] = ["Source is invalid."];
+        }
+
+        if (!TryParseReviewStatus(reviewStatus, out parsedReviewStatus))
+        {
+            errors["reviewStatus"] = ["Review status is invalid."];
+        }
         else if (string.IsNullOrWhiteSpace(reviewStatus) && parsedSource == AgentMemorySource.AgentInference)
+        {
             parsedReviewStatus = AgentMemoryReviewStatus.Inferred;
-        if (confidence is < 0 or > 1) errors["confidence"] = ["Confidence must be between 0 and 1."];
+        }
+
+        if (confidence is < 0 or > 1)
+        {
+            errors["confidence"] = ["Confidence must be between 0 and 1."];
+        }
+
         return errors;
     }
 
     private static bool TryParseSource(string? value, out AgentMemorySource result)
     {
-        if (string.IsNullOrWhiteSpace(value)) { result = AgentMemorySource.ExplicitRequest; return true; }
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            result = AgentMemorySource.ExplicitRequest;
+            return true;
+        }
+
         return Enum.TryParse(value, true, out result) && Enum.IsDefined(result);
     }
 
     private static bool TryParseReviewStatus(string? value, out AgentMemoryReviewStatus result)
     {
-        if (string.IsNullOrWhiteSpace(value)) { result = AgentMemoryReviewStatus.Confirmed; return true; }
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            result = AgentMemoryReviewStatus.Confirmed;
+            return true;
+        }
+
         return Enum.TryParse(value, true, out result) && Enum.IsDefined(result);
     }
 

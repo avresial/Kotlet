@@ -1,6 +1,6 @@
+using Kotlet.Application.Translations;
 using Kotlet.Domain.Common;
 using Kotlet.Domain.Shopping;
-using Kotlet.Application.Translations;
 
 namespace Kotlet.Application.Shopping;
 
@@ -15,17 +15,36 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
 
     public async Task<ShoppingListOperationResult> CreateAsync(Guid houseId, CreateShoppingListItemCommand command, string languageCode, CancellationToken cancellationToken)
     {
-        if (!ValidQuantity(command.Quantity)) return InvalidQuantity();
-        if (!ValidNote(command.Note)) return InvalidNote();
+        if (!ValidQuantity(command.Quantity))
+        {
+            return InvalidQuantity();
+        }
+
+        if (!ValidNote(command.Note))
+        {
+            return InvalidNote();
+        }
+
         if ((command.IngredientId is null) == (command.PreparedMealId is null))
+        {
             return new(ShoppingListOperationStatus.ValidationFailed, ValidationErrors:
                 new Dictionary<string, string[]> { ["item"] = ["Choose either an ingredient or a ready meal."] });
+        }
+
         if (command.IngredientId is { } ingredientId && !await repository.IngredientExistsAsync(ingredientId, cancellationToken))
+        {
             return new(ShoppingListOperationStatus.NotFound);
+        }
+
         if (command.PreparedMealId is { } preparedMealId && !await repository.PreparedMealExistsAsync(preparedMealId, houseId, cancellationToken))
+        {
             return new(ShoppingListOperationStatus.NotFound);
+        }
+
         if (await repository.ItemExistsAsync(houseId, command.IngredientId, command.PreparedMealId, cancellationToken))
+        {
             return new(ShoppingListOperationStatus.Conflict, Message: "This product is already on the shopping list.");
+        }
 
         var item = new ShoppingListItem
         {
@@ -38,20 +57,45 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
         };
         repository.Add(item);
         await repository.SaveChangesAsync(cancellationToken);
-        return new(ShoppingListOperationStatus.Success, await ToLocalizedDtoAsync((await repository.GetByIdAsync(item.Id, houseId, cancellationToken))!, languageCode, cancellationToken));
+
+        var savedItem = await repository.GetByIdAsync(item.Id, houseId, cancellationToken);
+        if (savedItem is null)
+        {
+            throw new InvalidOperationException("The shopping-list item was not found after it was created.");
+        }
+
+        return new(
+            ShoppingListOperationStatus.Success,
+            await ToLocalizedDtoAsync(savedItem, languageCode, cancellationToken));
     }
 
     public async Task<ShoppingListOperationResult> UpdateAsync(Guid id, Guid houseId, UpdateShoppingListItemCommand command, string languageCode, CancellationToken cancellationToken)
     {
-        if (!ValidQuantity(command.Quantity)) return InvalidQuantity();
-        if (!ValidNote(command.Note)) return InvalidNote();
+        if (!ValidQuantity(command.Quantity))
+        {
+            return InvalidQuantity();
+        }
+
+        if (!ValidNote(command.Note))
+        {
+            return InvalidNote();
+        }
+
         var item = await repository.GetByIdAsync(id, houseId, cancellationToken);
-        if (item is null) return new(ShoppingListOperationStatus.NotFound);
+        if (item is null)
+        {
+            return new(ShoppingListOperationStatus.NotFound);
+        }
+
         item.Quantity = Quantity.FromAmount(command.Quantity);
         item.IsPurchased = command.IsPurchased;
         // Note is a partial field: omitting it (null) preserves the stored value; an
         // explicit (possibly empty) string replaces it, clearing when blank.
-        if (command.Note is not null) item.Note = NormalizeNote(command.Note);
+        if (command.Note is not null)
+        {
+            item.Note = NormalizeNote(command.Note);
+        }
+
         await repository.SaveChangesAsync(cancellationToken);
         return new(ShoppingListOperationStatus.Success, await ToLocalizedDtoAsync(item, languageCode, cancellationToken));
     }
@@ -59,7 +103,11 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
     public async Task<ShoppingListOperationStatus> DeleteAsync(Guid id, Guid houseId, CancellationToken cancellationToken)
     {
         var item = await repository.GetByIdAsync(id, houseId, cancellationToken);
-        if (item is null) return ShoppingListOperationStatus.NotFound;
+        if (item is null)
+        {
+            return ShoppingListOperationStatus.NotFound;
+        }
+
         repository.Remove(item);
         await repository.SaveChangesAsync(cancellationToken);
         return ShoppingListOperationStatus.Success;
@@ -72,8 +120,10 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
         Guid houseId, GenerateShoppingListCommand command, string languageCode, CancellationToken cancellationToken)
     {
         if (command.To < command.From || command.To.DayNumber - command.From.DayNumber > 31)
+        {
             return new(ShoppingListOperationStatus.ValidationFailed, ValidationErrors:
                 new Dictionary<string, string[]> { ["to"] = ["Date range must contain between 1 and 32 days."] });
+        }
 
         var planned = await repository.GetPlannedIngredientsAsync(houseId, command.From, command.To, cancellationToken);
         var existing = (await repository.GetAllTrackedAsync(houseId, cancellationToken))
@@ -98,7 +148,11 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
             }
         }
 
-        if (planned.Count > 0) await repository.SaveChangesAsync(cancellationToken);
+        if (planned.Count > 0)
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+        }
+
         return new(ShoppingListOperationStatus.Success,
             Items: await GetAllAsync(houseId, languageCode, cancellationToken));
     }
@@ -124,8 +178,13 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
 
     private static string ResolveName(ShoppingListItem item, string languageCode, IReadOnlyDictionary<string, string> dictionary)
     {
-        if (item.PreparedMeal is not null) return item.PreparedMeal.Name;
-        var ingredient = item.Ingredient!;
+        if (item.PreparedMeal is { } preparedMeal)
+        {
+            return preparedMeal.Name;
+        }
+
+        var ingredient = item.Ingredient
+            ?? throw new InvalidOperationException("Shopping-list item is missing its ingredient.");
         return !TranslationKeys.IsDefaultLanguage(languageCode)
                && dictionary.TryGetValue(TranslationKeys.Ingredient(ingredient.Id, languageCode), out var translated)
                && !string.IsNullOrWhiteSpace(translated)
@@ -143,7 +202,8 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
                 item.IsPurchased, Kotlet.Domain.Ingredients.FoodCategory.Unknown, item.Note);
         }
 
-        var ingredient = item.Ingredient!;
+        var ingredient = item.Ingredient
+            ?? throw new InvalidOperationException("Shopping-list item is missing its ingredient.");
         return new(item.Id, ingredient.Id, null, name, ingredient.MeasurementUnit,
             item.Quantity.Amount, ingredient.PricePer100BaseUnits.Amount,
             (item.Quantity.Amount / 100m * ingredient.PricePer100BaseUnits).RoundedToCents().Amount, item.IsPurchased,

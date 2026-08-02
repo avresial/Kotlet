@@ -57,8 +57,14 @@ public sealed class HouseRepository(KotletDbContext dbContext) : IHouseRepositor
     public async Task<HouseDetailResponse?> GetDetailAsync(
         Guid houseId, Guid currentUserId, CancellationToken cancellationToken)
     {
-        var house = await dbContext.Houses.AsNoTracking().SingleOrDefaultAsync(item => item.Id == houseId, cancellationToken);
-        if (house is null) return null;
+        var house = await dbContext.Houses
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == houseId, cancellationToken);
+        if (house is null)
+        {
+            return null;
+        }
+
         var members = await dbContext.HouseMemberships.AsNoTracking()
             .Where(membership => membership.HouseId == houseId)
             .OrderByDescending(membership => membership.UserId == currentUserId)
