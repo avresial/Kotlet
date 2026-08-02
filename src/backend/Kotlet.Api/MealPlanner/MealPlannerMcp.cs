@@ -88,6 +88,8 @@ public sealed class MealPlannerMcp
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
      Description("Replaces one meal-plan entry by mealId, or the only meal in an absolute yyyy-MM-dd date and slot. " +
                  "The source must contain exactly one recipeId, ingredientId, preparedMealId, or freeText. " +
+                 "Use freeText only after recipe and ingredient lookup found no catalog match, the user approved an " +
+                 "uncatalogued meal, and confirmUncatalogued is true. " +
                  "Use createIfMissing when an empty slot should be filled. Supply expectedVersion after reading the plan. " +
                  "The operation is atomic and does not mutate the shopping list.")]
     public static Task<MealPlanMutationResponse> ReplaceMealPlan(
@@ -154,7 +156,8 @@ public sealed class MealPlannerMcp
     [McpServerTool(Name = "meal_plan_apply_replacement", ReadOnly = false, Destructive = false,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
      Description("Applies a selected recommendation to an existing meal-plan entry by mealId. The source must contain " +
-                 "exactly one recipeId, ingredientId, preparedMealId, or freeText. Supply expectedVersion; the operation " +
+                 "exactly one recipeId, ingredientId, preparedMealId, or freeText. Use freeText only for a user-approved " +
+                 "uncatalogued meal with confirmUncatalogued=true. Supply expectedVersion; the operation " +
                  "is atomic and leaves the shopping list unchanged.")]
     public static Task<MealPlanMutationResponse> ApplyMealPlanReplacement(
         ApplyMealPlanReplacementRequest request,
@@ -165,7 +168,10 @@ public sealed class MealPlannerMcp
 
     [McpServerTool(Name = "add_weekly_meal_plan", ReadOnly = false, Destructive = false,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Adds up to 35 meals within one seven-day period. Existing identical meals are skipped; existing meals are never replaced. Returns status, added/skipped counts, and the new meal ids.")]
+     Description("Adds up to 35 meals within one seven-day period. Catalog meals must use ids obtained from " +
+                 "get_recipes, get_ingredients, or get_prepared_meals. Existing identical meals are skipped; existing " +
+                 "meals are never replaced. A freeText meal requires explicit user approval and " +
+                 "confirmUncatalogued=true. Returns status, added/skipped counts, and the new meal ids.")]
     public static Task<WeeklyMealPlannerOperationResult> AddWeeklyMealPlan(
         [Description("The week start and meals to add. Every meal date must fall within the seven-day period.")]
         AddWeeklyMealPlanRequest request,
@@ -179,8 +185,12 @@ public sealed class MealPlannerMcp
      Description("Adds one meal to a single slot on a single day of the household meal plan. A meal is " +
                  "either a recipe, a bare ingredient, a prepared meal, or freeText — provide EXACTLY ONE of recipeId, ingredientId, " +
                 "preparedMealId, or freeText, never more than one. " +
-                "IMPORTANT: to plan a recipe you must first look it up — call get_recipes (optionally with a search " +
-                "term) to find the recipe and copy its id into recipeId. Never invent or guess a recipe id. " +
+                "IMPORTANT: to plan a recipe, first call get_recipes with the full title. If there are no results, retry " +
+                "with distinctive title terms and resolve ingredient clues with get_ingredients, then filter get_recipes " +
+                "with ingredientIds. Choose the closest real catalog recipe and copy its id into recipeId. Never invent " +
+                "or guess a recipe id, and never use freeText for a renamed or translated catalog recipe. " +
+                "Use freeText only after these searches fail, the user explicitly approves an uncatalogued meal, and " +
+                "confirmUncatalogued is true. " +
                 "Likewise resolve a bare ingredient with get_ingredients first. Use add_weekly_meal_plan instead when " +
                 "adding several meals across a week. The returned status is Success, NotFound, Conflict, or " +
                 "ValidationFailed; on ValidationFailed inspect validationErrors for the offending field.")]
@@ -189,7 +199,7 @@ public sealed class MealPlannerMcp
                       "snack, supper. Set recipeId to a recipe id obtained from get_recipes, ingredientId to an " +
                       "ingredient id from get_ingredients, preparedMealId to a prepared meal id from " +
                       "get_prepared_meals, or freeText for a meal that is not in the catalog — supply exactly one. " +
-                      "note is optional free text.")]
+                      "freeText also requires confirmUncatalogued=true after explicit user approval; note is optional free text.")]
         AddMealPlanItemRequest request,
         MealPlannerService service,
         ICurrentUser currentUser,

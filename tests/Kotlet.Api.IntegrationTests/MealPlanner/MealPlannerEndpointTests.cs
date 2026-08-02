@@ -31,6 +31,33 @@ public sealed class MealPlannerEndpointTests(TestWebApplicationFactory factory) 
     }
 
     [Fact]
+    public async Task FreeTextMeal_RequiresExplicitConfirmation()
+    {
+        var client = await CreateAuthenticatedClient("mp-free-text");
+
+        var rejected = await client.PostAsJsonAsync("/api/meal-planner/items", new
+        {
+            date = Date,
+            slot = "dinner",
+            freeText = "Pizza night"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+        var errors = await rejected.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(errors.GetProperty("errors").TryGetProperty("confirmUncatalogued", out _));
+
+        var accepted = await client.PostAsJsonAsync("/api/meal-planner/items", new
+        {
+            date = Date,
+            slot = "dinner",
+            freeText = "Pizza night",
+            confirmUncatalogued = true
+        });
+        Assert.Equal(HttpStatusCode.Created, accepted.StatusCode);
+        var item = await accepted.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("free-text", item.GetProperty("type").GetString());
+    }
+
+    [Fact]
     public async Task Overview_ReturnsEveryDayAndMarksPlannedSlots()
     {
         var client = await CreateAuthenticatedClient("mp-overview");

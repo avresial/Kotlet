@@ -8,7 +8,8 @@ public sealed record AddMealPlanItemRequest(
     string? Note,
     Guid? PreparedMealId = null,
     IReadOnlyList<SelectedPreparedMealAddon>? Addons = null,
-    string? FreeText = null);
+    string? FreeText = null,
+    bool ConfirmUncatalogued = false);
 
 public sealed record SelectedPreparedMealAddon(Guid IngredientId, decimal Quantity, string Unit);
 
@@ -55,7 +56,8 @@ public sealed record MealPlanSourceRequest(
     Guid? PreparedMealId = null,
     string? FreeText = null,
     string? Note = null,
-    IReadOnlyList<SelectedPreparedMealAddon>? Addons = null);
+    IReadOnlyList<SelectedPreparedMealAddon>? Addons = null,
+    bool ConfirmUncatalogued = false);
 
 public sealed record ReplaceMealPlanRequest(
     Guid? MealId,

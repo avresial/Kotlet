@@ -56,15 +56,21 @@ public static class DiExtension
 
                 Meal-planning flow:
                 1. Resolve all user-supplied ingredient names in one get_ingredients call.
-                2. Use get_recipes for compact recipe candidates; filter by ingredientIds to favor
-                   shared ingredients. Use get_prepared_meals for compact ready-meal candidates.
-                   These compact tools are for reasoning; singular get_* tools/resources return detail.
+                2. Use get_recipes for compact recipe candidates. Search the complete title first; when
+                   that returns no result, retry with distinctive title terms, resolve ingredient clues
+                   with get_ingredients, and filter get_recipes by ingredientIds. Inspect the candidates
+                   and use the closest real catalog recipe's id. Use get_prepared_meals for compact
+                   ready-meal candidates. These compact tools are for reasoning; singular get_* tools/
+                   resources return detail.
                 3. Compose up to seven days in one add-week request. Repeats are allowed when the user
                    wants them. Prefer candidates sharing ingredients when requested.
                 4. Call preview_meal_plan before saving. It validates and renders the draft without
                    changing data. Its request is identical to add_weekly_meal_plan.
                 5. Save only after approval by calling add_weekly_meal_plan with the unchanged request.
                    In MCP Apps hosts the preview offers an explicit Add to Kotlet button.
+                   Never use freeText for a renamed or translated catalog recipe. Use freeText only
+                   after the searches above find no catalog match, the user explicitly approves an
+                   uncatalogued meal, and confirmUncatalogued is true.
 
                 Other browsing: get_shopping_list, get_pantry, get_meal_plan_overview/get_meal_plan.
 
