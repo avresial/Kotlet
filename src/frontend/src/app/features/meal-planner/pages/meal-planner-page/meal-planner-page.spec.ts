@@ -6,7 +6,7 @@ import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { TranslationService } from '../../../../core/i18n/translation.service';
-import { DailyMealPlan, MealParticipant, MealPlanItem } from '../../models/meal-planner.models';
+import { DailyMealPlan, MealParticipant, MealPlanItem, MealPlanOverviewDay } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
 import { ShoppingListIntegrationService } from '../../services/shopping-list-integration.service';
 import { isValidDateString, MealPlannerPage, weekStart } from './meal-planner-page';
@@ -142,6 +142,66 @@ describe('MealPlannerPage portion validation', () => {
 
     expect(called).toBe(false);
     expect(input.value).toBe('100');
+  });
+});
+
+describe('MealPlannerPage supplementary slots', () => {
+  // The page reaches its day through the router, so the plan only lands once navigation settles.
+  async function createPage(overview: MealPlanOverviewDay[], dailyPlan: DailyMealPlan = plan): Promise<MealPlannerPage> {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: MealPlannerService,
+          useValue: {
+            getForDate: () => of(dailyPlan),
+            getHouseMembers: () => of([]),
+            getOverview: () => of(overview),
+          },
+        },
+        { provide: RecipeService, useValue: { list: () => of({ items: [], total: 0 }), get: () => of(null) } },
+        { provide: IngredientService, useValue: { getAll: () => of([ingredient]) } },
+        { provide: ShoppingListIntegrationService, useValue: { addToShoppingList: () => of(null) } },
+        { provide: TranslationService, useValue: { translate: (key: string) => key, language: () => 'en' } },
+      ],
+    });
+    const fixture = TestBed.createComponent(MealPlannerPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture.componentInstance;
+  }
+
+  it('drops the second breakfast and snack rows when nothing in the range uses them', async () => {
+    const page = await createPage([{ date: '2026-07-13', plannedSlots: ['breakfast', 'supper'] }]);
+
+    expect(page.overviewSlots()).toEqual(['breakfast', 'dinner', 'supper']);
+  });
+
+  it('keeps an optional row as soon as one day in the range plans it', async () => {
+    const page = await createPage([
+      { date: '2026-07-13', plannedSlots: ['breakfast'] },
+      { date: '2026-07-14', plannedSlots: ['snack'] },
+    ]);
+
+    expect(page.overviewSlots()).toEqual(['breakfast', 'dinner', 'snack', 'supper']);
+  });
+
+  it('collapses only the empty optional slots of the shown day', async () => {
+    const page = await createPage([]);
+
+    expect(page.isSlotCollapsed('second-breakfast')).toBe(true);
+    expect(page.isSlotCollapsed('snack')).toBe(true);
+    expect(page.isSlotCollapsed('breakfast')).toBe(false);
+  });
+
+  it('expands an optional slot the user opens, and one that already holds a meal', async () => {
+    const page = await createPage([], { ...plan, meals: { ...emptyMeals(), snack: [{ ...item, slot: 'snack' }] } });
+
+    page.openSlot('second-breakfast');
+
+    expect(page.isSlotCollapsed('second-breakfast')).toBe(false);
+    expect(page.isSlotCollapsed('snack')).toBe(false);
   });
 });
 
