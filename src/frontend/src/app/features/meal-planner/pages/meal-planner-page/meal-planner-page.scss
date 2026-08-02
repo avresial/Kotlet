@@ -169,6 +169,20 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%);
 }
 
+// Supplementary slots shrink to a single button until the day needs them.
+.slot-section-compact { display: flex; padding-top: .8rem; padding-bottom: .8rem; }
+.open-slot {
+  padding: .35rem .6rem;
+  border: 0;
+  border-radius: .45rem;
+  color: #843426;
+  background: transparent;
+  font-size: .88rem;
+  font-weight: 750;
+
+  &:hover { background: var(--app-inset); }
+}
+
 .slot-heading, .receipt-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .add-buttons { display: flex; gap: .35rem; }
 .text-button {
@@ -230,6 +244,7 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   outline: 2px dashed #c58b53;
   outline-offset: 4px;
 }
+.slot-section-compact.cdk-drop-list-receiving { outline: 2px dashed #c58b53; outline-offset: 2px; }
 .overview-day.cdk-drop-list-receiving {
   border-color: #9a3a2a;
   color: #c47256;
