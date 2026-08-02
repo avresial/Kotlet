@@ -52,12 +52,13 @@ public sealed class MealPlannerServiceTests
     }
 
     [Fact]
-    public async Task AddItem_WithFreeText_AddsUncataloguedEntry()
+    public async Task AddItem_WithConfirmedFreeText_AddsUncataloguedEntry()
     {
         var (service, meals) = CreateService();
 
         var result = await service.AddItemAsync(CurrentUserId, HouseId,
-            new AddMealPlanItemRequest(Today, "dinner", null, null, null, FreeText: "Pizza night"),
+            new AddMealPlanItemRequest(Today, "dinner", null, null, null,
+                FreeText: "Pizza night", ConfirmUncatalogued: true),
             CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
@@ -67,16 +68,38 @@ public sealed class MealPlannerServiceTests
     }
 
     [Fact]
+    public async Task AddItem_WithUnconfirmedFreeText_FailsValidation()
+    {
+        var (service, meals) = CreateService();
+
+        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+            new AddMealPlanItemRequest(Today, "dinner", null, null, null, FreeText: "Pizza night"),
+            CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
+        Assert.Contains("confirmUncatalogued", result.ValidationErrors!.Keys);
+        Assert.Empty(meals.Items);
+    }
+
+    [Fact]
     public async Task ReplaceAndMove_UseVersionsAndPreserveFreeText()
     {
         var (service, meals) = CreateService();
         var added = await service.AddItemAsync(CurrentUserId, HouseId,
-            new AddMealPlanItemRequest(Today, "dinner", null, null, null, FreeText: "Pizza night"),
+            new AddMealPlanItemRequest(Today, "dinner", null, null, null,
+                FreeText: "Pizza night", ConfirmUncatalogued: true),
             CancellationToken.None);
         var mealId = added.Item!.Id;
 
-        var replaced = await service.ReplaceAsync(CurrentUserId, HouseId,
+        var rejected = await service.ReplaceAsync(CurrentUserId, HouseId,
             new ReplaceMealPlanRequest(mealId, null, null, new MealPlanSourceRequest(FreeText: "Soup night"), 1),
+            CancellationToken.None);
+        Assert.Equal("ValidationFailed", rejected.Status);
+        Assert.Contains("confirmUncatalogued", rejected.ValidationErrors!.Keys);
+
+        var replaced = await service.ReplaceAsync(CurrentUserId, HouseId,
+            new ReplaceMealPlanRequest(mealId, null, null,
+                new MealPlanSourceRequest(FreeText: "Soup night", ConfirmUncatalogued: true), 1),
             CancellationToken.None);
         Assert.Equal("Success", replaced.Status);
         Assert.Equal(2, replaced.Item!.Version);
@@ -278,6 +301,23 @@ public sealed class MealPlannerServiceTests
         var result = await service.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
+        Assert.Empty(meals.Items);
+    }
+
+    [Fact]
+    public async Task AddWeek_WithUnconfirmedFreeText_FailsAtomically()
+    {
+        var (service, meals) = CreateService();
+        var request = new AddWeeklyMealPlanRequest(Today,
+        [
+            new(Today, "breakfast", SoupRecipe.Id, null, null),
+            new(Today.AddDays(1), "dinner", null, null, null, FreeText: "Pizza night")
+        ]);
+
+        var result = await service.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+
+        Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
+        Assert.Contains("meals[1].confirmUncatalogued", result.ValidationErrors!.Keys);
         Assert.Empty(meals.Items);
     }
 

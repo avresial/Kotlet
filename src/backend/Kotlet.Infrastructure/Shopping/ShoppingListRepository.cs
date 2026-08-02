@@ -8,23 +8,63 @@ namespace Kotlet.Infrastructure.Shopping;
 internal sealed class ShoppingListRepository(KotletDbContext dbContext) : IShoppingListRepository
 {
     public async Task<IReadOnlyCollection<ShoppingListItem>> GetAllAsync(Guid houseId, CancellationToken cancellationToken) =>
-        await dbContext.ShoppingListItems.AsNoTracking().Include(x => x.Ingredient).Include(x => x.PreparedMeal).Where(x => x.HouseId == houseId)
-            .OrderBy(x => x.IsPurchased).ThenBy(x => x.Ingredient != null ? x.Ingredient.Name : x.PreparedMeal!.Name).ToListAsync(cancellationToken);
-    public async Task<IReadOnlyCollection<ShoppingListItem>> GetAllTrackedAsync(Guid houseId, CancellationToken cancellationToken) =>
-        await dbContext.ShoppingListItems.Include(x => x.Ingredient).Include(x => x.PreparedMeal).Where(x => x.HouseId == houseId)
+        await dbContext.ShoppingListItems
+            .AsNoTracking()
+            .Include(item => item.Ingredient)
+            .Include(item => item.PreparedMeal)
+            .Where(item => item.HouseId == houseId)
+            .OrderBy(item => item.IsPurchased)
+            .ThenBy(item => item.Ingredient != null ? item.Ingredient.Name : item.PreparedMeal!.Name)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyCollection<ShoppingListItem>> GetAllTrackedAsync(Guid houseId, CancellationToken cancellationToken) =>
+        await dbContext.ShoppingListItems
+            .Include(item => item.Ingredient)
+            .Include(item => item.PreparedMeal)
+            .Where(item => item.HouseId == houseId)
+            .ToListAsync(cancellationToken);
+
     public Task<ShoppingListItem?> GetByIdAsync(Guid id, Guid houseId, CancellationToken cancellationToken) =>
-        dbContext.ShoppingListItems.Include(x => x.Ingredient).Include(x => x.PreparedMeal).SingleOrDefaultAsync(x => x.Id == id && x.HouseId == houseId, cancellationToken);
-    public Task<bool> IngredientExistsAsync(Guid ingredientId, CancellationToken cancellationToken) => dbContext.Ingredients.AnyAsync(x => x.Id == ingredientId, cancellationToken);
+        dbContext.ShoppingListItems
+            .Include(item => item.Ingredient)
+            .Include(item => item.PreparedMeal)
+            .SingleOrDefaultAsync(item => item.Id == id && item.HouseId == houseId, cancellationToken);
+
+    public async Task LoadReferencesAsync(ShoppingListItem item, CancellationToken cancellationToken)
+    {
+        var entry = dbContext.Entry(item);
+        if (item.IngredientId is not null)
+        {
+            await entry.Reference(tracked => tracked.Ingredient).LoadAsync(cancellationToken);
+        }
+
+        if (item.PreparedMealId is not null)
+        {
+            await entry.Reference(tracked => tracked.PreparedMeal).LoadAsync(cancellationToken);
+        }
+    }
+
+    public Task<bool> IngredientExistsAsync(Guid ingredientId, CancellationToken cancellationToken) =>
+        dbContext.Ingredients.AnyAsync(ingredient => ingredient.Id == ingredientId, cancellationToken);
+
     public Task<bool> PreparedMealExistsAsync(Guid preparedMealId, Guid houseId, CancellationToken cancellationToken) =>
-        dbContext.PreparedMeals.AnyAsync(x => x.Id == preparedMealId && x.HouseId == houseId && !x.IsArchived, cancellationToken);
+        dbContext.PreparedMeals.AnyAsync(
+            meal => meal.Id == preparedMealId && meal.HouseId == houseId && !meal.IsArchived,
+            cancellationToken);
+
     public Task<bool> ItemExistsAsync(Guid houseId, Guid? ingredientId, Guid? preparedMealId, CancellationToken cancellationToken) =>
-        dbContext.ShoppingListItems.AnyAsync(x => x.HouseId == houseId
-            && (ingredientId != null ? x.IngredientId == ingredientId : x.PreparedMealId == preparedMealId), cancellationToken);
+        dbContext.ShoppingListItems.AnyAsync(
+            item => item.HouseId == houseId
+                && (ingredientId != null ? item.IngredientId == ingredientId : item.PreparedMealId == preparedMealId),
+            cancellationToken);
+
     public async Task<IReadOnlyList<PlannedIngredient>> GetPlannedIngredientsAsync(
         Guid houseId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
         await dbContext.MealPlanItems.AsNoTracking()
-            .Where(meal => meal.HouseId == houseId && meal.Date >= from && meal.Date <= to && meal.RecipeId != null)
+            .Where(meal => meal.HouseId == houseId
+                && meal.Date >= from
+                && meal.Date <= to
+                && meal.RecipeId != null)
             .SelectMany(meal => dbContext.RecipeIngredients
                 .Where(recipeIngredient => recipeIngredient.RecipeId == meal.RecipeId)
                 .Select(recipeIngredient => new
@@ -39,9 +79,14 @@ internal sealed class ShoppingListRepository(KotletDbContext dbContext) : IShopp
             .GroupBy(item => item.IngredientId)
             .Select(group => new PlannedIngredient(group.Key, group.Sum(item => item.Quantity)))
             .ToListAsync(cancellationToken);
+
     public void Add(ShoppingListItem item) => dbContext.ShoppingListItems.Add(item);
     public void Remove(ShoppingListItem item) => dbContext.ShoppingListItems.Remove(item);
+
     public Task<int> RemovePurchasedAsync(Guid houseId, CancellationToken cancellationToken) =>
-        dbContext.ShoppingListItems.Where(x => x.HouseId == houseId && x.IsPurchased).ExecuteDeleteAsync(cancellationToken);
+        dbContext.ShoppingListItems
+            .Where(item => item.HouseId == houseId && item.IsPurchased)
+            .ExecuteDeleteAsync(cancellationToken);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken) => dbContext.SaveChangesAsync(cancellationToken);
 }

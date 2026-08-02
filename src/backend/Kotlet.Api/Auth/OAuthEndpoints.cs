@@ -15,6 +15,7 @@ public static class OAuthEndpoints
     public static IEndpointRouteBuilder MapOAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapMethods("/connect/authorize", [HttpMethods.Get, HttpMethods.Post], Authorize);
+
         return endpoints;
     }
 

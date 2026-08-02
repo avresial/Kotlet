@@ -46,19 +46,34 @@ internal sealed class PantryRecipeMatchCacheInterceptor(IMemoryCache cache) : Sa
     private void Detect(DbContext? context)
     {
         if (context is null)
+        {
             return;
+        }
+
         foreach (var entry in context.ChangeTracker.Entries<PantryItem>())
+        {
             if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            {
                 _changedHouseIds.Add(entry.Entity.HouseId);
+            }
+        }
+
         foreach (var entry in context.ChangeTracker.Entries<Recipe>())
+        {
             if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            {
                 _changedHouseIds.Add(entry.Entity.HouseId);
+            }
+        }
     }
 
     private void Evict()
     {
         foreach (var houseId in _changedHouseIds)
+        {
             cache.Remove(PantryRecipeMatchCache.Key(houseId));
+        }
+
         _changedHouseIds.Clear();
     }
 }

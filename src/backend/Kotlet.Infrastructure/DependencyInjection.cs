@@ -26,23 +26,29 @@ namespace Kotlet.Infrastructure;
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(
-        this IServiceCollection services, IConfiguration configuration) => services
-        .AddAdminInfrastructure()
-        .AddScoped<IAgentMemoryRepository, AgentMemoryRepository>()
-        .AddAiInfrastructure()
-        .AddScoped<IUserFoodSettingsRepository, UserFoodSettingsRepository>()
-        .AddAuthInfrastructure()
-        .AddHousesInfrastructure()
-        .AddSingleton<IImageProcessor, ImageSharpImageProcessor>()
-        .AddScoped<IStoredImageRepository, StoredImageRepository>()
-        .AddIngredientsInfrastructure()
-        .AddMealPlannerInfrastructure()
-        .AddPantryInfrastructure()
-        .AddPreparedMealsInfrastructure()
-        .AddRecipesInfrastructure()
-        .AddRecipeImageSearchInfrastructure(configuration)
-        .AddShoppingInfrastructure()
-        .AddTranslationsInfrastructure()
-        .AddVideoTranscriptsInfrastructure(configuration)
-        .AddPersistenceInfrastructure(configuration);
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddAdminInfrastructure();
+        services.AddScoped<IAgentMemoryRepository, AgentMemoryRepository>();
+        services.AddAiInfrastructure();
+        services.AddScoped<IUserFoodSettingsRepository, UserFoodSettingsRepository>();
+        services.AddAuthInfrastructure();
+        services.AddHousesInfrastructure();
+
+        services.AddSingleton<IImageProcessor, ImageSharpImageProcessor>();
+        services.AddScoped<IStoredImageRepository, StoredImageRepository>();
+        services.AddIngredientsInfrastructure();
+        services.AddMealPlannerInfrastructure();
+        services.AddPantryInfrastructure();
+        services.AddPreparedMealsInfrastructure();
+
+        services.AddRecipesInfrastructure();
+        services.AddRecipeImageSearchInfrastructure(configuration);
+        services.AddShoppingInfrastructure();
+        services.AddTranslationsInfrastructure();
+        services.AddVideoTranscriptsInfrastructure(configuration);
+        services.AddPersistenceInfrastructure(configuration);
+
+        return services;
+    }
 }

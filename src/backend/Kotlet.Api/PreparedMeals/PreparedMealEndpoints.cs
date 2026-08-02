@@ -8,19 +8,35 @@ public static class PreparedMealEndpoints
 {
     public static IEndpointRouteBuilder MapPreparedMealEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/prepared-meals").WithTags("PreparedMeals").RequireAuthorization();
+        var group = endpoints
+            .MapGroup("/api/prepared-meals")
+            .WithTags("PreparedMeals")
+            .RequireAuthorization();
+
         group.MapGet("", List);
+
         group.MapGet("/{id:guid}", Get);
+
         group.MapPost("", Create);
+
         group.MapPut("/{id:guid}", Update);
+
         group.MapDelete("/{id:guid}", Archive);
+
         group.MapPost("/{id:guid}/restore", Restore);
+
         group.MapPost("/{id:guid}/images", UploadImage).DisableAntiforgery();
+
         group.MapGet("/{id:guid}/images", ListImages);
+
         group.MapGet("/{id:guid}/images/{imageId:guid}/content", GetImageContent);
+
         group.MapPatch("/{id:guid}/images/{imageId:guid}", UpdateImage);
+
         group.MapPut("/{id:guid}/images/order", ReorderImages);
+
         group.MapDelete("/{id:guid}/images/{imageId:guid}", DeleteImage);
+
         return endpoints;
     }
 

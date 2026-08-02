@@ -11,8 +11,11 @@ a useful visual draft before anything is saved.
 2. Resolve every supplied ingredient name in one `get_ingredients` call.
 3. Query `get_recipes` with a small `pageSize` (default 10). Use
    `ingredientIds` when the user wants recipes containing specific or shared
-   ingredients. Results contain only planning fields: ID, title, servings,
-   meal type, ingredient IDs/names, and a detail resource URI.
+   ingredients. If a full-title search returns no result, retry with
+   distinctive title terms and ingredient IDs resolved from `get_ingredients`.
+   Choose the closest real catalog recipe by its returned ID. Results contain
+   only planning fields: ID, title, servings, meal type, ingredient IDs/names,
+   and a detail resource URI.
 4. Query `get_prepared_meals` only when ready meals are relevant. Its compact
    results include nutrition plus required/default add-ons; instructions and
    package detail remain behind `get_prepared_meal`.
@@ -46,9 +49,12 @@ a useful visual draft before anything is saved.
 }
 ```
 
-Each meal sets exactly one of `recipeId`, `ingredientId`, or
-`preparedMealId`. A prepared meal also carries configured required/default
-`addons` returned by `get_prepared_meals`.
+Each meal sets exactly one of `recipeId`, `ingredientId`, `preparedMealId`, or
+`freeText`. Catalog recipes must use `recipeId`; never use `freeText` for a
+renamed or translated catalog recipe. A free-text meal is allowed only after
+the user explicitly approves an uncatalogued meal and the request sets
+`confirmUncatalogued: true`. A prepared meal also carries configured
+required/default `addons` returned by `get_prepared_meals`.
 
 ## Performance properties
 

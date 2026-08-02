@@ -27,14 +27,17 @@ public static class DependencyInjection
     {
         services.AddHttpContextAccessor();
         services.AddResponseCompression();
+
         services.AddOpenApiFeature();
         services.AddAuthFeature(configuration, environment);
         services.AddHousesFeature();
         services.AddMcpFeature(configuration);
+
         services.AddLocalizationFeature();
         services.AddIngredientsFeature(configuration);
         services.AddRecipesFeature();
         services.AddPersistenceFeature();
+
         services.AddCors(options => options.AddDefaultPolicy(policy => policy
             .SetIsOriginAllowed(_ => true)
             .AllowAnyHeader()
@@ -61,18 +64,22 @@ public static class DependencyInjection
     public static WebApplication MapApiFeatures(this WebApplication app)
     {
         app.UseResponseCompression();
+
         app.MapOpenApiFeature();
         app.MapAuthFeature();
         app.MapMcpFeature();
+
         app.MapAiFeature();
         app.MapFoodSettingsEndpoints();
         app.MapHousesFeature();
         app.MapAdminFeature();
         app.MapAgentMemoryEndpoints();
+
         app.MapIngredientsFeature();
         app.MapPantryFeature();
         app.MapPreparedMealEndpoints();
         app.MapShoppingFeature();
+
         app.MapRecipesFeature();
         app.MapMealPlannerFeature();
         return app;

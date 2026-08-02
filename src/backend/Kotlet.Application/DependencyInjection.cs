@@ -22,22 +22,23 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        return services
-            .AddAdminApplication()
-            .AddScoped<AgentMemoryService>()
-            .AddAiApplication()
-            .AddScoped<UserFoodSettingsService>()
-            .AddAuthApplication()
-            .AddHousesApplication()
-            .AddIngredientsApplication()
-            .AddScoped<StoredImageService>()
-            .AddMealPlannerApplication()
-            .AddMeasurementsApplication()
-            .AddPantryApplication()
-            .AddPreparedMealsApplication()
-            .AddRecipesApplication()
-            .AddRecipeImageSearchApplication()
-            .AddShoppingApplication()
-            .AddVideoTranscriptsApplication();
+        services.AddAdminApplication();
+        services.AddScoped<AgentMemoryService>();
+        services.AddAiApplication();
+        services.AddScoped<UserFoodSettingsService>();
+        services.AddAuthApplication();
+        services.AddHousesApplication();
+        services.AddIngredientsApplication();
+        services.AddScoped<StoredImageService>();
+        services.AddMealPlannerApplication();
+        services.AddMeasurementsApplication();
+        services.AddPantryApplication();
+        services.AddPreparedMealsApplication();
+        services.AddRecipesApplication();
+        services.AddRecipeImageSearchApplication();
+        services.AddShoppingApplication();
+        services.AddVideoTranscriptsApplication();
+
+        return services;
     }
 }

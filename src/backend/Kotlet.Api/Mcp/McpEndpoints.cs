@@ -26,6 +26,7 @@ public static class McpEndpoints
                 ScopesSupported: [SupportedScope]);
             return Results.Ok(document);
         }).AllowAnonymous();
+
         return endpoints;
     }
 

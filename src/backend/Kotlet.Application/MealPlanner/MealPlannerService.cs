@@ -759,7 +759,8 @@ public sealed class MealPlannerService(
             source.Note,
             source.PreparedMealId,
             source.Addons,
-            source.FreeText);
+            source.FreeText,
+            source.ConfirmUncatalogued);
         return await ValidateAddAsync(houseId, request, cancellationToken, validateSlot: false);
     }
 
@@ -938,9 +939,21 @@ public sealed class MealPlannerService(
         var hasFreeText = request.FreeText is not null;
 
         if ((hasRecipe ? 1 : 0) + (hasIngredient ? 1 : 0) + (hasPreparedMeal ? 1 : 0) + (hasFreeText ? 1 : 0) != 1)
+        {
             errors["item"] = ["Exactly one of recipeId, ingredientId, preparedMealId or freeText must be provided."];
+        }
+        else if (hasFreeText && !request.ConfirmUncatalogued)
+        {
+            errors["confirmUncatalogued"] = ["Free-text meals require explicit confirmation after recipe lookup."];
+        }
+        else if (!hasFreeText && request.ConfirmUncatalogued)
+        {
+            errors["confirmUncatalogued"] = ["confirmUncatalogued can only be used with freeText."];
+        }
         else if (!hasPreparedMeal && request.Addons is { Count: > 0 })
+        {
             errors["addons"] = ["Add-ons can only be selected for a prepared meal."];
+        }
         else if (hasRecipe)
         {
             var recipe = await recipeRepository.GetByIdAsync(request.RecipeId!.Value, houseId, tracked: false, cancellationToken);
@@ -957,7 +970,9 @@ public sealed class MealPlannerService(
             else if (request.FreeText.Trim().Length > 500) errors["freeText"] = ["Free text cannot exceed 500 characters."];
         }
         else if (preparedMealRepository is null || await preparedMealRepository.GetAsync(request.PreparedMealId!.Value, houseId, false, cancellationToken) is not { IsArchived: false } meal)
+        {
             errors["preparedMealId"] = ["Prepared meal not found or archived."];
+        }
         else
         {
             var selected = request.Addons ?? [];
@@ -1024,6 +1039,19 @@ public sealed class MealPlannerService(
             {
                 errors[$"meals[{index}].item"] =
                     ["Exactly one of recipeId, ingredientId, preparedMealId or freeText must be provided."];
+                continue;
+            }
+
+            if (hasFreeText && !meal.ConfirmUncatalogued)
+            {
+                errors[$"meals[{index}].confirmUncatalogued"] =
+                    ["Free-text meals require explicit confirmation after recipe lookup."];
+                continue;
+            }
+            if (!hasFreeText && meal.ConfirmUncatalogued)
+            {
+                errors[$"meals[{index}].confirmUncatalogued"] =
+                    ["confirmUncatalogued can only be used with freeText."];
                 continue;
             }
 

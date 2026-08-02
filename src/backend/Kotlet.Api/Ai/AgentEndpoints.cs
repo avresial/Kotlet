@@ -19,6 +19,7 @@ public static class AgentEndpoints
     public static IEndpointRouteBuilder MapAgentEndpoints(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapPost("/api/agent/chat", Chat).RequireAuthorization();
+
         return endpoints;
     }
 

@@ -13,15 +13,26 @@ public static class AuthEndpoints
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var auth = endpoints.MapGroup("/api/auth").WithTags("Auth");
+        var auth = endpoints
+            .MapGroup("/api/auth")
+            .WithTags("Auth");
+
         auth.MapPost("/register", Register);
+
         auth.MapPost("/login", Login);
+
         auth.MapPost("/oauth-bridge", OAuthBridge).DisableAntiforgery();
+
         auth.MapPost("/refresh", Refresh);
+
         auth.MapPost("/logout", Logout);
+
         auth.MapGet("/me", Me).RequireAuthorization();
+
         auth.MapPut("/profile", UpdateProfile).RequireAuthorization();
+
         auth.MapPost("/password", ChangePassword).RequireAuthorization();
+
         return endpoints;
     }
 

@@ -7,20 +7,36 @@ public static class MealPlannerEndpoints
 {
     public static IEndpointRouteBuilder MapMealPlannerEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/meal-planner").WithTags("MealPlanner").RequireAuthorization();
+        var group = endpoints
+            .MapGroup("/api/meal-planner")
+            .WithTags("MealPlanner")
+            .RequireAuthorization();
+
         group.MapGet("", GetForDate).WithName("GetMealPlan");
+
         group.MapGet("/overview", GetOverview).WithName("GetMealPlanOverview");
+
         group.MapGet("/members", GetMembers).WithName("GetMealPlanHouseMembers");
+
         group.MapPost("/items", AddItem).WithName("AddMealPlanItem");
+
         group.MapPost("/copy-day", CopyDay).WithName("CopyMealPlanDay");
+
         group.MapPost("/copy-week", CopyWeek).WithName("CopyMealPlanWeek");
+
         group.MapPut("/items/{id:guid}/move", MoveItem).WithName("MoveMealPlanItem");
+
         group.MapDelete("/items/{id:guid}", RemoveItem).WithName("RemoveMealPlanItem");
+
         group.MapPut("/items/{id:guid}/participants", SetParticipants).WithName("SetMealPlanItemParticipants");
+
         group.MapPut("/items/{id:guid}/participants/{participantUserId:guid}/portion", SetParticipantPortion)
             .WithName("SetMealPlanItemParticipantPortion");
+
         group.MapPut("/items/{id:guid}/servings", SetServings).WithName("SetMealPlanItemServings");
+
         group.MapPut("/items/{id:guid}/guests", SetGuests).WithName("SetMealPlanItemGuests");
+
         return endpoints;
     }
 

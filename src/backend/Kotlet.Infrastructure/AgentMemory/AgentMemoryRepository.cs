@@ -17,17 +17,33 @@ internal sealed class AgentMemoryRepository(KotletDbContext dbContext) : IAgentM
         var memories = dbContext.AgentMemories.AsNoTracking()
             .Where(memory => memory.UserId == userId && memory.HouseId == houseId && !memory.IsDeleted);
         if (!includeExpired)
+        {
             memories = memories.Where(memory => memory.ExpiresAt == null || memory.ExpiresAt > now);
+        }
+
         if (!string.IsNullOrWhiteSpace(query))
         {
             var term = query.Trim();
-            var pattern = $"%{term.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal)}%";
+            var pattern = $"%{EscapeLikePattern(term)}%";
             memories = memories.Where(memory => (memory.Title != null && EF.Functions.ILike(memory.Title, pattern, "\\"))
                 || EF.Functions.ILike(memory.Content, pattern, "\\"));
         }
-        if (!string.IsNullOrWhiteSpace(category)) memories = memories.Where(memory => memory.Category == category.Trim());
-        if (source is { } sourceValue) memories = memories.Where(memory => memory.Source == sourceValue);
-        if (reviewStatus is { } reviewValue) memories = memories.Where(memory => memory.ReviewStatus == reviewValue);
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            memories = memories.Where(memory => memory.Category == category.Trim());
+        }
+
+        if (source is { } sourceValue)
+        {
+            memories = memories.Where(memory => memory.Source == sourceValue);
+        }
+
+        if (reviewStatus is { } reviewValue)
+        {
+            memories = memories.Where(memory => memory.ReviewStatus == reviewValue);
+        }
+
         return await memories.OrderByDescending(memory => memory.UpdatedAt).ThenBy(memory => memory.Id).ToListAsync(cancellationToken);
     }
 
@@ -80,12 +96,20 @@ internal sealed class AgentMemoryRepository(KotletDbContext dbContext) : IAgentM
             }
             catch (DbUpdateConcurrencyException exception)
             {
-                if (!exception.Entries.Any(entry => entry.Entity is AgentMemoryCollection)) throw;
+                if (!exception.Entries.Any(entry => entry.Entity is AgentMemoryCollection))
+                {
+                    throw;
+                }
+
                 await ResetRevision(attempt, cancellationToken);
             }
             catch (DbUpdateException)
             {
-                if (!dbContext.ChangeTracker.Entries<AgentMemoryCollection>().Any(entry => entry.State == EntityState.Added)) throw;
+                if (!dbContext.ChangeTracker.Entries<AgentMemoryCollection>().Any(entry => entry.State == EntityState.Added))
+                {
+                    throw;
+                }
+
                 await ResetInsertedRevision(attempt, cancellationToken);
             }
         }
@@ -95,9 +119,17 @@ internal sealed class AgentMemoryRepository(KotletDbContext dbContext) : IAgentM
 
     private async Task ResetRevision(int attempt, CancellationToken cancellationToken)
     {
-        if (attempt == 2) throw new InvalidOperationException("Could not allocate an agent-memory revision.");
+        if (attempt == 2)
+        {
+            throw new InvalidOperationException("Could not allocate an agent-memory revision.");
+        }
+
         var entries = dbContext.ChangeTracker.Entries<AgentMemoryCollection>().ToList();
-        if (entries.Count == 0) throw new InvalidOperationException("Could not allocate an agent-memory revision.");
+        if (entries.Count == 0)
+        {
+            throw new InvalidOperationException("Could not allocate an agent-memory revision.");
+        }
+
         foreach (var entry in entries)
         {
             await entry.ReloadAsync(cancellationToken);
@@ -108,16 +140,32 @@ internal sealed class AgentMemoryRepository(KotletDbContext dbContext) : IAgentM
 
     private async Task ResetInsertedRevision(int attempt, CancellationToken cancellationToken)
     {
-        if (attempt == 2) throw new InvalidOperationException("Could not allocate an agent-memory revision.");
+        if (attempt == 2)
+        {
+            throw new InvalidOperationException("Could not allocate an agent-memory revision.");
+        }
+
         var added = dbContext.ChangeTracker.Entries<AgentMemoryCollection>()
             .Where(entry => entry.State == EntityState.Added).ToList();
-        if (added.Count == 0) throw new InvalidOperationException("Could not allocate an agent-memory revision.");
-        foreach (var entry in added) entry.State = EntityState.Detached;
+        if (added.Count == 0)
+        {
+            throw new InvalidOperationException("Could not allocate an agent-memory revision.");
+        }
+
+        foreach (var entry in added)
+        {
+            entry.State = EntityState.Detached;
+        }
+
         foreach (var entry in added)
         {
             var collection = await dbContext.AgentMemoryCollections.SingleOrDefaultAsync(item =>
                 item.UserId == entry.Entity.UserId && item.HouseId == entry.Entity.HouseId, cancellationToken);
-            if (collection is null) throw new InvalidOperationException("Could not allocate an agent-memory revision.");
+            if (collection is null)
+            {
+                throw new InvalidOperationException("Could not allocate an agent-memory revision.");
+            }
+
             collection.Revision++;
             SyncMemoryRevisions(collection);
         }
@@ -127,6 +175,13 @@ internal sealed class AgentMemoryRepository(KotletDbContext dbContext) : IAgentM
     {
         foreach (var entry in dbContext.ChangeTracker.Entries<AgentMemoryEntity>().Where(entry =>
                      entry.Entity.UserId == collection.UserId && entry.Entity.HouseId == collection.HouseId))
+        {
             entry.Entity.Revision = collection.Revision;
+        }
     }
+
+    private static string EscapeLikePattern(string value) => value
+        .Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("%", "\\%", StringComparison.Ordinal)
+        .Replace("_", "\\_", StringComparison.Ordinal);
 }
