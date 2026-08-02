@@ -69,6 +69,8 @@ export class MealPlannerPage implements OnInit {
   private lastValidDate = this.initialDate;
 
   readonly slots: MealSlot[] = ['breakfast', 'second-breakfast', 'dinner', 'snack', 'supper'];
+  /** Second breakfast and snack are supplementary: they stay out of the way until a day actually uses them. */
+  readonly optionalSlots: MealSlot[] = ['second-breakfast', 'snack'];
   readonly slotLabels = computed<Record<MealSlot, string>>(() => ({
     breakfast: this.translations.translate('meal.breakfast'),
     'second-breakfast': this.translations.translate('meal.secondBreakfast'),
@@ -76,11 +78,21 @@ export class MealPlannerPage implements OnInit {
     snack: this.translations.translate('meal.snack'),
     supper: this.translations.translate('meal.dinner'),
   }));
+  /** Labels of the buttons that open a collapsed optional slot, e.g. "Add snack". */
+  readonly openSlotLabels = computed<Partial<Record<MealSlot, string>>>(() => ({
+    'second-breakfast': this.translations.translate('meal.addSecondBreakfast'),
+    snack: this.translations.translate('meal.addSnack'),
+  }));
+  /** Optional slots the user opened by hand; cleared whenever the shown day changes. */
+  private readonly openedSlots = signal<MealSlot[]>([]);
 
   private readonly overviewDays = 7;
   readonly selectedDate = signal(this.initialDate);
   readonly overviewFrom = signal(weekStart(this.initialDate));
   readonly overview = signal<MealPlanOverviewDay[]>([]);
+  /** Grid rows: an optional slot only earns a row when a day in the shown range plans something in it. */
+  readonly overviewSlots = computed(() => this.slots.filter((slot) =>
+    !this.optionalSlots.includes(slot) || this.overview().some((day) => day.plannedSlots.includes(slot))));
   readonly overviewLabel = computed(() => {
     const from = this.overviewFrom();
     const to = this.addDays(from, this.overviewDays - 1);
@@ -311,6 +323,7 @@ export class MealPlannerPage implements OnInit {
   private applyDate(date: string): void {
     this.selectedDate.set(date);
     this.lastValidDate = date;
+    this.openedSlots.set([]);
     this.updateCopyTargets();
     this.centerOverviewOnSelected();
     this.loadPlan();
@@ -336,6 +349,20 @@ export class MealPlannerPage implements OnInit {
 
   itemsForSlot(slot: MealSlot): MealPlanItem[] {
     return this.plan()?.meals[slot] ?? [];
+  }
+
+  /** True while an optional slot has nothing planned and the user has not opened it on this day. */
+  isSlotCollapsed(slot: MealSlot): boolean {
+    return this.optionalSlots.includes(slot)
+      && !this.openedSlots().includes(slot)
+      && !this.itemsForSlot(slot).length
+      && !this.composer()[slot];
+  }
+
+  /** Swaps a collapsed optional slot for the full card so the user can add to it. */
+  openSlot(slot: MealSlot): void {
+    if (this.openedSlots().includes(slot)) return;
+    this.openedSlots.update((slots) => [...slots, slot]);
   }
 
   addRecipe(slot: MealSlot): void {

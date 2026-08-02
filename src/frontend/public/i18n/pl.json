@@ -56,6 +56,7 @@
   "meal.slot.breakfast": "ŚNIADANIE", "meal.slot.dinner": "OBIAD", "meal.slot.supper": "KOLACJA",
   "meal.slot.second-breakfast": "II ŚNIADANIE", "meal.slot.snack": "PRZEKĄSKA",
   "meal.secondBreakfast": "II śniadanie", "meal.snack": "Przekąska",
+  "meal.addSecondBreakfast": "Dodaj II śniadanie", "meal.addSnack": "Dodaj przekąskę",
   "meal.copyPlan": "Kopiuj plan", "meal.copyPlanHint": "Skopiuj ten dzień lub cały tydzień na inną datę.",
   "meal.copyTo": "Kopiuj do", "meal.copyDay": "Kopiuj dzień", "meal.copyDayError": "Nie udało się skopiować dnia. Dzień docelowy może już zawierać posiłki.", "meal.copyWeekTo": "Kopiuj tydzień do", "meal.copyWeek": "Kopiuj tydzień", "meal.copyWeekError": "Nie udało się skopiować tygodnia. Tydzień docelowy może już zawierać posiłki.",
   "home.dashboard.recentProducts": "Ostatnio dodane produkty",
