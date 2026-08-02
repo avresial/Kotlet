@@ -285,6 +285,12 @@ public sealed class ShoppingListServiceTests
         public Task<ShoppingListItem?> GetByIdAsync(Guid id, Guid houseId, CancellationToken cancellationToken) =>
             Task.FromResult(Items.SingleOrDefault(i => i.Id == id && i.HouseId == houseId) is { } item ? Hydrate(item) : null);
 
+        public Task LoadReferencesAsync(ShoppingListItem item, CancellationToken cancellationToken)
+        {
+            Hydrate(item);
+            return Task.CompletedTask;
+        }
+
         public Task<bool> IngredientExistsAsync(Guid ingredientId, CancellationToken cancellationToken) =>
             Task.FromResult(ingredients.Any(x => x.Id == ingredientId));
 

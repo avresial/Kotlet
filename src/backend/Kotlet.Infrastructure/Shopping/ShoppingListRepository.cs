@@ -30,6 +30,20 @@ internal sealed class ShoppingListRepository(KotletDbContext dbContext) : IShopp
             .Include(item => item.PreparedMeal)
             .SingleOrDefaultAsync(item => item.Id == id && item.HouseId == houseId, cancellationToken);
 
+    public async Task LoadReferencesAsync(ShoppingListItem item, CancellationToken cancellationToken)
+    {
+        var entry = dbContext.Entry(item);
+        if (item.IngredientId is not null)
+        {
+            await entry.Reference(tracked => tracked.Ingredient).LoadAsync(cancellationToken);
+        }
+
+        if (item.PreparedMealId is not null)
+        {
+            await entry.Reference(tracked => tracked.PreparedMeal).LoadAsync(cancellationToken);
+        }
+    }
+
     public Task<bool> IngredientExistsAsync(Guid ingredientId, CancellationToken cancellationToken) =>
         dbContext.Ingredients.AnyAsync(ingredient => ingredient.Id == ingredientId, cancellationToken);
 

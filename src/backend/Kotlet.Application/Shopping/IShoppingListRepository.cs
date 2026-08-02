@@ -7,6 +7,7 @@ public interface IShoppingListRepository
     Task<IReadOnlyCollection<ShoppingListItem>> GetAllAsync(Guid houseId, CancellationToken cancellationToken);
     Task<IReadOnlyCollection<ShoppingListItem>> GetAllTrackedAsync(Guid houseId, CancellationToken cancellationToken);
     Task<ShoppingListItem?> GetByIdAsync(Guid id, Guid houseId, CancellationToken cancellationToken);
+    Task LoadReferencesAsync(ShoppingListItem item, CancellationToken cancellationToken);
     Task<bool> IngredientExistsAsync(Guid ingredientId, CancellationToken cancellationToken);
     Task<bool> PreparedMealExistsAsync(Guid preparedMealId, Guid houseId, CancellationToken cancellationToken);
     Task<bool> ItemExistsAsync(Guid houseId, Guid? ingredientId, Guid? preparedMealId, CancellationToken cancellationToken);

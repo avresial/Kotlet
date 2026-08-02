@@ -58,15 +58,13 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
         repository.Add(item);
         await repository.SaveChangesAsync(cancellationToken);
 
-        var savedItem = await repository.GetByIdAsync(item.Id, houseId, cancellationToken);
-        if (savedItem is null)
-        {
-            throw new InvalidOperationException("The shopping-list item was not found after it was created.");
-        }
+        // Map the inserted entity instead of reloading it: a concurrent delete between the
+        // insert and a reload would otherwise turn a successful create into a failure.
+        await repository.LoadReferencesAsync(item, cancellationToken);
 
         return new(
             ShoppingListOperationStatus.Success,
-            await ToLocalizedDtoAsync(savedItem, languageCode, cancellationToken));
+            await ToLocalizedDtoAsync(item, languageCode, cancellationToken));
     }
 
     public async Task<ShoppingListOperationResult> UpdateAsync(Guid id, Guid houseId, UpdateShoppingListItemCommand command, string languageCode, CancellationToken cancellationToken)
