@@ -8,8 +8,11 @@ public static class RecipeImportEndpoints
     public static RouteGroupBuilder MapRecipeImportEndpoints(this RouteGroupBuilder recipes)
     {
         recipes.MapPost("/import", Start).WithName("StartRecipeImport");
+
         recipes.MapGet("/import/{id:guid}", Get).WithName("GetRecipeImport");
+
         recipes.MapPost("/import/{id:guid}/accept", Accept).WithName("AcceptRecipeImport");
+
         return recipes;
     }
 

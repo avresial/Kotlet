@@ -54,27 +54,27 @@ internal static class McpToolResultAdapter
     {
         var schemas = new Dictionary<string, JsonElement>
         {
-        ["get_ingredients"] = Schema(
+            ["get_ingredients"] = Schema(
             """
             {"type":"object","properties":{"matches":{"type":"array","items":{"type":"object","properties":{"inputName":{"type":"string"},"ingredientId":{"type":["string","null"],"format":"uuid"},"matchedName":{"type":["string","null"]},"measurementUnit":{"type":["string","null"]},"exactMatch":{"type":"boolean"},"similarity":{"type":["number","null"]},"resourceUri":{"type":["string","null"]}},"required":["inputName","ingredientId","matchedName","measurementUnit","exactMatch","similarity","resourceUri"],"additionalProperties":false}}},"required":["matches"],"additionalProperties":false}
             """),
-        ["create_ingredient"] = OperationSchema(
+            ["create_ingredient"] = OperationSchema(
             """
             "ingredientId":{"type":["string","null"],"format":"uuid"},"name":{"type":["string","null"]},"measurementUnit":{"type":["string","null"]},"resourceUri":{"type":["string","null"]}
             """),
-        ["get_meal_plan_members"] = Schema(
+            ["get_meal_plan_members"] = Schema(
             """
             {"type":"object","properties":{"members":{"type":"array","items":{"type":"object","properties":{"userId":{"type":"string","format":"uuid"},"displayName":{"type":"string"}},"required":["userId","displayName"],"additionalProperties":false}}},"required":["members"],"additionalProperties":false}
             """),
-        ["get_meal_plan"] = Schema(
+            ["get_meal_plan"] = Schema(
             """
             {"type":"object","properties":{"days":{"type":"array","items":{"type":"object","properties":{"date":{"type":"string"},"meals":{"type":"array","items":{"type":"object","properties":{"id":{"type":"string","format":"uuid"},"slot":{"type":"string"},"type":{"type":"string"},"recipeId":{"type":["string","null"],"format":"uuid"},"ingredientId":{"type":["string","null"],"format":"uuid"},"preparedMealId":{"type":["string","null"],"format":"uuid"},"freeText":{"type":["string","null"]},"displayName":{"type":"string"},"note":{"type":["string","null"]},"participants":{"type":"array","items":{"type":"object","properties":{"userId":{"type":"string","format":"uuid"},"displayName":{"type":"string"},"portionPercent":{"type":"integer"}},"required":["userId","displayName","portionPercent"],"additionalProperties":false}},"guests":{"type":"integer"},"servings":{"type":"number"},"version":{"type":"integer"}},"required":["id","slot","type","recipeId","ingredientId","preparedMealId","freeText","displayName","note","participants","guests","servings","version"],"additionalProperties":false}}},"required":["date","meals"],"additionalProperties":false}}},"required":["days"],"additionalProperties":false}
             """),
-        ["add_weekly_meal_plan"] = OperationSchema(
+            ["add_weekly_meal_plan"] = OperationSchema(
             """
             "addedCount":{"type":"integer"},"skippedCount":{"type":"integer"},"mealIds":{"type":"array","items":{"type":"string","format":"uuid"}}
             """),
-        ["set_meal_participants"] = OperationSchema(
+            ["set_meal_participants"] = OperationSchema(
             """
             "mealId":{"type":["string","null"],"format":"uuid"},"participantCount":{"type":"integer"},"servings":{"type":["number","null"]}
             """)

@@ -120,8 +120,12 @@ public sealed class ShoppingListServiceTests
     {
         var meal = new PreparedMeal
         {
-            Id = Guid.NewGuid(), HouseId = HouseId, Name = "Pierożki gioza", Servings = 2,
-            CaloriesPerServing = 250m, Price = 12.50m
+            Id = Guid.NewGuid(),
+            HouseId = HouseId,
+            Name = "Pierożki gioza",
+            Servings = 2,
+            CaloriesPerServing = 250m,
+            Price = 12.50m
         };
         var repo = new FakeRepository(Apples);
         repo.PreparedMeals.Add(meal);

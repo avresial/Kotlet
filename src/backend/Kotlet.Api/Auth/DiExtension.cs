@@ -129,6 +129,7 @@ public static class DiExtension
             });
         services.AddAuthorization(options =>
             options.AddPolicy(RoleNames.Admin, policy => policy.RequireRole(RoleNames.Admin)));
+
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<TokenService>();
         return services;
@@ -137,7 +138,9 @@ public static class DiExtension
     public static IEndpointRouteBuilder MapAuthFeature(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapAuthEndpoints();
+
         endpoints.MapOAuthEndpoints();
+
         endpoints.MapOAuthRegistrationEndpoints();
         return endpoints;
     }
