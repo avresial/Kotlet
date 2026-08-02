@@ -34,6 +34,7 @@ public static class OAuthRegistrationEndpoints
         endpoints.MapPost("/connect/register", Register)
             .AllowAnonymous()
             .RequireRateLimiting(RateLimitPolicy);
+
         return endpoints;
     }
 

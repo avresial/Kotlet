@@ -7,19 +7,44 @@ public static class IngredientEndpoints
 {
     public static IEndpointRouteBuilder MapIngredientEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var ingredients = endpoints.MapGroup("/api/ingredients").WithTags("Ingredients").RequireAuthorization();
-        ingredients.MapGet("", async (IngredientService service, ILanguageContext language, CancellationToken ct) =>
-            Results.Ok(await service.GetAllAsync(language.Language, ct))).WithName("GetIngredients");
-        ingredients.MapGet("/{id:guid}", async (Guid id, IngredientService service, ILanguageContext language, CancellationToken ct) =>
-            await service.GetByIdAsync(id, language.Language, ct) is { } ingredient ? Results.Ok(ingredient) : Results.NotFound())
+        var ingredients = endpoints
+            .MapGroup("/api/ingredients")
+            .WithTags("Ingredients")
+            .RequireAuthorization();
+
+        ingredients.MapGet(
+            "",
+            async (IngredientService service, ILanguageContext language, CancellationToken ct) =>
+                Results.Ok(await service.GetAllAsync(language.Language, ct)))
+            .WithName("GetIngredients");
+
+        ingredients.MapGet(
+            "/{id:guid}",
+            async (Guid id, IngredientService service, ILanguageContext language, CancellationToken ct) =>
+                await service.GetByIdAsync(id, language.Language, ct) is { } ingredient
+                    ? Results.Ok(ingredient)
+                    : Results.NotFound())
             .WithName("GetIngredient");
-        ingredients.MapPost("", Create).WithName("CreateIngredient");
-        ingredients.MapPost("/autofill", async (AutofillIngredientRequest request, IngredientDetailsAutofillService service, CancellationToken ct) =>
-            await service.SuggestAsync(request.Name, ct) is { } suggestion ? Results.Ok(suggestion)
-                : Results.Problem("Ingredient details could not be generated.", statusCode: StatusCodes.Status503ServiceUnavailable))
+
+        ingredients.MapPost("", Create)
+            .WithName("CreateIngredient");
+
+        ingredients.MapPost(
+            "/autofill",
+            async (AutofillIngredientRequest request, IngredientDetailsAutofillService service, CancellationToken ct) =>
+                await service.SuggestAsync(request.Name, ct) is { } suggestion
+                    ? Results.Ok(suggestion)
+                    : Results.Problem(
+                        "Ingredient details could not be generated.",
+                        statusCode: StatusCodes.Status503ServiceUnavailable))
             .WithName("AutofillIngredientDetails");
-        ingredients.MapPut("/{id:guid}", Update).WithName("UpdateIngredient");
-        ingredients.MapDelete("/{id:guid}", Delete).WithName("DeleteIngredient");
+
+        ingredients.MapPut("/{id:guid}", Update)
+            .WithName("UpdateIngredient");
+
+        ingredients.MapDelete("/{id:guid}", Delete)
+            .WithName("DeleteIngredient");
+
         return endpoints;
     }
 

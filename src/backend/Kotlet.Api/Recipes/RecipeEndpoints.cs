@@ -11,23 +11,49 @@ public static class RecipeEndpoints
 {
     public static IEndpointRouteBuilder MapRecipeEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var recipes = endpoints.MapGroup("/api/recipes").WithTags("Recipes").RequireAuthorization();
+        var recipes = endpoints
+            .MapGroup("/api/recipes")
+            .WithTags("Recipes")
+            .RequireAuthorization();
+
         recipes.MapRecipeImportEndpoints();
+
         recipes.MapGet("/images/search", SearchImages).WithName("SearchRecipeImages");
+
         recipes.MapPost("/images/import", ImportImage).WithName("ImportRecipeImage");
+
         recipes.MapGet("", List).WithName("ListRecipes");
+
         recipes.MapGet("/recent", ListRecent).WithName("ListRecentRecipes");
+
         recipes.MapGet("/audit", ListAudit).WithName("ListRecipeAudit");
+
         recipes.MapPost("", Create).WithName("CreateRecipe");
+
         recipes.MapGet("/{id:guid}", GetById).AllowAnonymous().WithName("GetRecipe");
+
         recipes.MapPut("/{id:guid}", Update).WithName("UpdateRecipe");
+
         recipes.MapDelete("/{id:guid}", Delete).WithName("DeleteRecipe");
-        recipes.MapPost("/{recipeId:guid}/images", UploadImage).DisableAntiforgery().WithName("UploadRecipeImage");
+
+        recipes
+            .MapPost("/{recipeId:guid}/images", UploadImage)
+            .DisableAntiforgery()
+            .WithName("UploadRecipeImage");
+
         recipes.MapGet("/{recipeId:guid}/images", ListImages).WithName("ListRecipeImages");
-        recipes.MapGet("/{recipeId:guid}/images/{imageId:guid}/content", GetImageContent).AllowAnonymous().WithName("GetRecipeImageContent");
+
+        recipes
+            .MapGet("/{recipeId:guid}/images/{imageId:guid}/content", GetImageContent)
+            .AllowAnonymous()
+            .WithName("GetRecipeImageContent");
+
         recipes.MapPut("/{recipeId:guid}/images/order", ReorderImages).WithName("ReorderRecipeImages");
+
         recipes.MapPatch("/{recipeId:guid}/images/{imageId:guid}", UpdateImage).WithName("UpdateRecipeImage");
+
         recipes.MapDelete("/{recipeId:guid}/images/{imageId:guid}", DeleteImage).WithName("DeleteRecipeImage");
+
         return endpoints;
     }
 

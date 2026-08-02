@@ -1,6 +1,6 @@
-namespace Kotlet.Domain.MealPlanner;
-
 using Kotlet.Domain.PreparedMeals;
+
+namespace Kotlet.Domain.MealPlanner;
 
 public sealed class MealPlanItem
 {

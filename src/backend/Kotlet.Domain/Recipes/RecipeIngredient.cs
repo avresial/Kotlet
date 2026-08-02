@@ -1,7 +1,7 @@
-namespace Kotlet.Domain.Recipes;
-
 using Kotlet.Domain.Common;
 using Kotlet.Domain.Ingredients;
+
+namespace Kotlet.Domain.Recipes;
 
 public sealed class RecipeIngredient
 {

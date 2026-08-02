@@ -1,6 +1,6 @@
 using Kotlet.Application.Recipes;
-using Kotlet.Domain.Recipes;
 using Kotlet.Domain.MealPlanner;
+using Kotlet.Domain.Recipes;
 using Kotlet.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,7 +22,11 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
             var term = search.Trim().ToLower();
             query = query.Where(r => r.Title.ToLower().Contains(term));
         }
-        if (mealType is not null) query = query.Where(r => r.MealType == mealType);
+        if (mealType is { } requestedMealType)
+        {
+            query = query.Where(r => r.MealType == requestedMealType);
+        }
+
         var requiredIngredientIds = ingredientIds?.Distinct().ToArray() ?? [];
         if (requiredIngredientIds.Length > 0)
         {
@@ -87,7 +91,9 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
     {
         var requested = ids.Distinct().ToArray();
         if (requested.Length == 0)
+        {
             return new Dictionary<Guid, Recipe>();
+        }
 
         return await dbContext.Recipes
             .AsNoTracking()

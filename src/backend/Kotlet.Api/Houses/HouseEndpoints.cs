@@ -10,20 +10,37 @@ public static class HouseEndpoints
 {
     public static IEndpointRouteBuilder MapHouseEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var houses = endpoints.MapGroup("/api/houses").WithTags("Houses").RequireAuthorization();
+        var houses = endpoints
+            .MapGroup("/api/houses")
+            .WithTags("Houses")
+            .RequireAuthorization();
+
         endpoints.MapGet("/api/dashboard/stats", DashboardStats).WithTags("Dashboard").RequireAuthorization();
+
         houses.MapGet("", ListHouses);
+
         houses.MapPost("", CreateHouse);
+
         houses.MapGet("/invitations", ListMyInvitations);
+
         houses.MapPost("/invitations/{invitationId:guid}/accept", AcceptInvitation);
+
         houses.MapPost("/invitations/{invitationId:guid}/decline", DeclineInvitation);
+
         houses.MapGet("/{id:guid}", GetHouse);
+
         houses.MapPut("/{id:guid}", RenameHouse);
+
         houses.MapDelete("/{id:guid}", DeleteHouse);
+
         houses.MapPost("/{id:guid}/switch", SwitchHouse);
+
         houses.MapPost("/{id:guid}/members", InviteMember);
+
         houses.MapDelete("/{id:guid}/members/{memberUserId:guid}", RemoveMember);
+
         houses.MapDelete("/{id:guid}/invitations/{invitationId:guid}", CancelInvitation);
+
         return endpoints;
     }
 

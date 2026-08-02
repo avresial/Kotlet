@@ -29,6 +29,7 @@ public static class AiTranslationEndpoints
             })
             .WithTags("AI translation")
             .RequireAuthorization();
+
         return endpoints;
     }
 }
