@@ -158,6 +158,7 @@ button { cursor: pointer; }
 button:disabled, select:disabled { opacity: .5; cursor: default; }
 .error { margin-bottom: 1rem; padding: .75rem 1rem; border: 1px solid var(--app-danger-border); border-radius: .6rem; color: var(--app-danger); background: var(--app-danger-bg); }
 .empty { margin: 2rem 0; color: var(--app-text-muted); text-align: center; }
+
 // Every track is minmax(0, …): a wide child (the portion table) must scroll inside its own
 // wrapper instead of stretching the column past the page and clipping the cards on the right.
 .planner-body { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; align-items: start; gap: 1.5rem; }
@@ -187,6 +188,7 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 }
 
 .slot-heading, .receipt-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+
 // On the narrowest phones the three add actions no longer fit on one line beside the slot name.
 .add-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; }
 .text-button {
@@ -275,6 +277,7 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 }
 
 .meal-item-details { margin: .85rem 0 0 1.65rem; }
+
 // Positioned so the visually hidden header label resolves inside the scroller rather than against
 // the page, which otherwise leaves the document a few pixels wider than the viewport.
 .portion-table-wrap { position: relative; overflow-x: auto; }

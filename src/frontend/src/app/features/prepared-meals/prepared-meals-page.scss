@@ -74,6 +74,7 @@ button:disabled { opacity: .55; cursor: default; }
 
 @media (max-width: 52rem) {
   .form-grid { grid-template-columns: minmax(0, 1fr); }
+
   // Two shrinkable columns: the quantity and unit fields must give way instead of widening the form.
   .addon-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .addon-ingredient { grid-column: 1 / -1; }

@@ -22,9 +22,9 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 .status span { width: .4rem; height: .4rem; margin-right: .35rem; border-radius: 50%; display: inline-block; background: #63805b; }
 .status.muted { color: var(--app-accent); background: var(--app-accent-bg); }
 
-/* The text column of every list row below is minmax(0, 1fr): its contents are single nowrap lines,
-   so an auto minimum would size the column to the whole line and push the trailing column off the
-   card instead of letting the text ellipsize. */
+/* The text column of the rows below has a zero (or small) minimum: their titles and preview lines
+   are nowrap, so an auto minimum would size the column to the whole line and push the trailing
+   column off the card instead of letting the text ellipsize. */
 
 /* Today's menu */
 .menu-list, .recipe-list, .shopping-list, .ingredient-list { margin: 1.25rem 0 0; padding: 0; list-style: none; }

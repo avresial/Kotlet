@@ -33,6 +33,7 @@ button:disabled { opacity: .5; cursor: default; }
 .stock-card { padding: 1rem; border: 1px solid var(--app-border); border-radius: .75rem; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 1rem; background: var(--app-surface-raised); }
 .stock-card.is-empty { border-color: var(--app-danger-border); background: var(--app-inset-strong); }
 .stock-main { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+
 // The product name is a single nowrap line: without a zero minimum on its wrapper the flex row grows
 // to the full name and pushes the remove button out of the card.
 .stock-main > div { min-width: 0; }
