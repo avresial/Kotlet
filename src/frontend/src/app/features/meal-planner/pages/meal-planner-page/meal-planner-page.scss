@@ -1,3 +1,4 @@
+@use '../../../../shared/styles/mobile-page' as mobile;
 :host { display: block; }
 
 .meal-planner-page {
@@ -274,7 +275,9 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 }
 
 .meal-item-details { margin: .85rem 0 0 1.65rem; }
-.portion-table-wrap { overflow-x: auto; }
+// Positioned so the visually hidden header label resolves inside the scroller rather than against
+// the page, which otherwise leaves the document a few pixels wider than the viewport.
+.portion-table-wrap { position: relative; overflow-x: auto; }
 .portion-table { width: 100%; border-collapse: collapse; font-size: .76rem; }
 .portion-table th, .portion-table td { padding: .35rem .3rem; border-bottom: 1px solid var(--app-border); text-align: left; white-space: nowrap; }
 .portion-table thead th { color: var(--app-text-muted); font-size: .65rem; text-transform: uppercase; }
@@ -399,8 +402,8 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   }
 }
 
-@media (max-width: 42rem) {
-  .meal-planner-page { width: min(100% - 1.5rem, 72rem); padding: 1rem 0 2.5rem; }
+@media (max-width: mobile.$breakpoint) {
+  .meal-planner-page { @include mobile.page; padding-block: 1rem 2.5rem; }
   header { flex-wrap: nowrap; align-items: center; gap: .6rem; margin: .25rem 0 .75rem; }
   header > div:first-child { flex: 1 1 auto; min-width: 0; }
   .eyebrow { display: none; }
@@ -420,7 +423,7 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   .planner-body { gap: .85rem; }
   .slots { gap: .65rem; }
   .receipt-rail { gap: .65rem; }
-  .slot-section, .day-receipt, .calorie-overview { padding: .85rem 1rem; border-radius: .75rem; }
+  .slot-section, .day-receipt, .calorie-overview { @include mobile.full-bleed; padding: .85rem 1rem; }
   .item-list { margin-top: .5rem; }
   .meal-item { padding: .7rem 0; }
   .meal-item-header { gap: .4rem; }

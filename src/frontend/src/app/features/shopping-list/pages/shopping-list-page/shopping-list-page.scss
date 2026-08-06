@@ -1,3 +1,4 @@
+@use '../../../../shared/styles/mobile-page' as mobile;
 :host { display: block; }
 .shopping-page { width: min(72rem, calc(100% - 2.5rem)); margin: 0 auto; padding: 2.5rem 0 4rem; color: var(--app-text); container: page / inline-size; }
 .back { color: #7d3428; font-weight: 700; text-decoration: none; }
@@ -124,4 +125,9 @@ button:disabled { opacity: .5; cursor: default; }
   .receipt { margin: 0; border: 0; box-shadow: none; }
   .receipt-line input, .receipt-line textarea { border: 0; background: transparent; }
   .note-input { color: var(--app-text) !important; font-style: normal; }
+}
+
+@media (max-width: mobile.$breakpoint) {
+  .shopping-page { @include mobile.page; }
+  .generate-panel, .receipt { @include mobile.full-bleed; }
 }

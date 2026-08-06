@@ -1,0 +1,18 @@
+// Phones have too little width to spend a gutter on both sides of every card. Below this width a
+// page keeps a small gutter so headings and prose stay off the screen edge, and its cards break out
+// of that gutter to run edge to edge. Their side borders and corner rounding go with them, so a
+// full-width card reads as a deliberate section rather than one that got clipped.
+$breakpoint: 42rem;
+$gutter: 1rem;
+
+@mixin page {
+  width: 100%;
+  box-sizing: border-box;
+  padding-inline: $gutter;
+}
+
+@mixin full-bleed {
+  margin-inline: -$gutter;
+  border-inline: 0;
+  border-radius: 0;
+}

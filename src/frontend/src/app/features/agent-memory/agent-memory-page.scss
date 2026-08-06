@@ -1,3 +1,4 @@
+@use '../../shared/styles/mobile-page' as mobile;
 :host { display: block; }
 .memory-page { width: min(58rem, calc(100% - 2.5rem)); margin: 0 auto; padding: 2.5rem 0 4rem; }
 .back { color: #7d3428; font-weight: 700; text-decoration: none; }
@@ -13,4 +14,4 @@ form, .form-grid { display: grid; gap: .8rem; } label { display: grid; gap: .3re
 .toolbar { margin: 1rem 0; } .toolbar input { flex: 1 1 15rem; }
 .empty { margin: 1.5rem 0; color: var(--app-text-muted); }
 .memory-list { display: grid; gap: .8rem; } .memory-card { display: grid; gap: .75rem; } .memory-card.needs-review { border-color: #d79a58; } .memory-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; } .memory-heading h2 { font-family: Georgia, serif; } .meta, .dates { margin: .25rem 0 0; color: var(--app-text-muted); font-size: .75rem; } .status { flex: 0 0 auto; padding: .2rem .45rem; border-radius: .35rem; color: var(--app-accent); background: var(--app-accent-bg); font-size: .7rem; font-weight: 800; } .content { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; } .export { margin-top: 1.25rem; } pre { max-height: 30rem; margin: .75rem 0 0; overflow: auto; white-space: pre-wrap; }
-@media (max-width: 42rem) { .memory-page { width: min(100% - 1.5rem, 58rem); padding-top: 1.5rem; } .form-grid { grid-template-columns: 1fr; } .memory-heading { display: grid; gap: .5rem; } .status { justify-self: start; } }
+@media (max-width: mobile.$breakpoint) { .memory-page { @include mobile.page; padding-top: 1.5rem; } .card { @include mobile.full-bleed; } .form-grid { grid-template-columns: 1fr; } .memory-heading { display: grid; gap: .5rem; } .status { justify-self: start; } }

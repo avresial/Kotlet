@@ -1,3 +1,4 @@
+@use '../../../../shared/styles/mobile-page' as mobile;
 :host { display: block; }
 .pantry-page { width: min(72rem, calc(100% - 2.5rem)); margin: 0 auto; padding: 2.5rem 0 4rem; }
 .back { color: #7d3428; font-weight: 700; text-decoration: none; }
@@ -46,3 +47,8 @@ h3 { margin: 0; overflow: hidden; font: 500 1.05rem Georgia, serif; text-overflo
 .empty { margin: 1.5rem 0 0; color: var(--app-text-muted); }
 @media (max-width: 60rem) { .add-panel { grid-template-columns: minmax(0, 1fr); gap: 1rem; } .item-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 38rem) { form label, form label:first-child, form label:nth-child(2), form label:nth-child(4), form .primary { flex-basis: 100%; } .stock-card { grid-template-columns: minmax(0, 1fr) auto; } .quantity-control { grid-row: 2; grid-column: 1 / -1; } .remove { grid-row: 1; grid-column: 2; } }
+
+@media (max-width: mobile.$breakpoint) {
+  .pantry-page { @include mobile.page; }
+  .add-panel, .inventory { @include mobile.full-bleed; }
+}

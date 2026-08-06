@@ -1,3 +1,4 @@
+@use '../../../../shared/styles/mobile-page' as mobile;
 :host { display: block; overflow-x: clip; }
 .ingredients-page { width: min(72rem, calc(100% - 2.5rem)); margin: 0 auto; padding: 2.5rem 0 4rem; }
 .back { color: #7d3428; font-weight: 700; text-decoration: none; }
@@ -75,4 +76,9 @@ th:last-child, td:last-child { text-align: right; }
   .row-actions { justify-content: space-between; }
   .row-actions::before { margin-right: auto; }
   .allergens-cell { max-width: none; }
+}
+
+@media (max-width: mobile.$breakpoint) {
+  .ingredients-page { @include mobile.page; }
+  .editor, .catalogue { @include mobile.full-bleed; }
 }
