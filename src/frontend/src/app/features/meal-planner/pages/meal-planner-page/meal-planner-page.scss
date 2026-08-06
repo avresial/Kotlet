@@ -157,9 +157,11 @@ button { cursor: pointer; }
 button:disabled, select:disabled { opacity: .5; cursor: default; }
 .error { margin-bottom: 1rem; padding: .75rem 1rem; border: 1px solid var(--app-danger-border); border-radius: .6rem; color: var(--app-danger); background: var(--app-danger-bg); }
 .empty { margin: 2rem 0; color: var(--app-text-muted); text-align: center; }
+// Every track is minmax(0, …): a wide child (the portion table) must scroll inside its own
+// wrapper instead of stretching the column past the page and clipping the cards on the right.
 .planner-body { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; align-items: start; gap: 1.5rem; }
-.slots { display: grid; gap: 1rem; }
-.receipt-rail { position: sticky; top: 1rem; display: grid; gap: 1rem; }
+.slots { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+.receipt-rail { position: sticky; top: 1rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
 
 .slot-section, .day-receipt, .calorie-overview {
   padding: clamp(1.2rem, 3vw, 1.75rem);
@@ -183,8 +185,9 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   &:hover { background: var(--app-inset); }
 }
 
-.slot-heading, .receipt-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.add-buttons { display: flex; gap: .35rem; }
+.slot-heading, .receipt-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+// On the narrowest phones the three add actions no longer fit on one line beside the slot name.
+.add-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; }
 .text-button {
   padding: .45rem .6rem;
   border: 0;
@@ -368,7 +371,7 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 .mobile-day-nav { display: none; }
 
 @media (max-width: 60rem) {
-  .planner-body { grid-template-columns: 1fr; }
+  .planner-body { grid-template-columns: minmax(0, 1fr); }
   .receipt-rail { position: static; }
 }
 
