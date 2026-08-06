@@ -1,3 +1,4 @@
+@use '../../../../shared/styles/mobile-page' as mobile;
 :host { display: block; }
 .admin-page { width: min(64rem, calc(100% - 2.5rem)); margin: 0 auto; padding: 2.5rem 0 4rem; }
 .back { color: #7d3428; font-weight: 700; text-decoration: none; }
@@ -28,3 +29,8 @@ fieldset input { width: auto; min-height: auto; }
 input, select { width: 100%; min-height: 2.6rem; box-sizing: border-box; }
 select { padding: .5rem; border: 1px solid var(--app-border-strong); border-radius: .4rem; background: var(--app-input); }
 @media (max-width: 48rem) { .user-row, .service { align-items: stretch; flex-direction: column; } form { grid-template-columns: 1fr; } }
+
+@media (max-width: mobile.$breakpoint) {
+  .admin-page { @include mobile.page; }
+  .card { @include mobile.full-bleed; }
+}
