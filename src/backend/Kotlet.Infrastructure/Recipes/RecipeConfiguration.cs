@@ -33,6 +33,10 @@ internal sealed class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         builder.HasIndex(r => r.HouseId).HasDatabaseName("ix_recipes_house_id");
         builder.HasOne<House>().WithMany().HasForeignKey(r => r.HouseId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(r => r.UpdatedAtUtc).HasDatabaseName("ix_recipes_updated_at_utc");
+        builder.HasIndex(r => new { r.HouseId, r.UpdatedAtUtc, r.Id })
+            .HasDatabaseName("ix_recipes_house_updated_id");
+        builder.HasIndex(r => new { r.HouseId, r.CreatedAtUtc, r.Id })
+            .HasDatabaseName("ix_recipes_house_created_id");
         builder.HasIndex(r => new { r.OwnerUserId, r.Slug }).IsUnique().HasDatabaseName("ux_recipes_owner_slug");
 
         builder.HasMany(r => r.Ingredients)

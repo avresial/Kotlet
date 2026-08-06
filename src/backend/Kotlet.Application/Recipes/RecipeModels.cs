@@ -1,3 +1,7 @@
+using Kotlet.Domain.Common;
+using Kotlet.Domain.MealPlanner;
+using Kotlet.Domain.Recipes;
+
 namespace Kotlet.Application.Recipes;
 
 public sealed record RecipeIngredientRequest(
@@ -47,6 +51,31 @@ public sealed record RecipeSummaryResponse(
     bool IsAiAssisted,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
+
+public sealed record RecipeSummaryData(
+    Guid Id,
+    string Title,
+    string Slug,
+    Guid OwnerUserId,
+    int IngredientCount,
+    ServingCount Servings,
+    MealSlot? MealType,
+    bool IsAiAssisted,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc)
+{
+    public static RecipeSummaryData FromRecipe(Recipe recipe) => new(
+        recipe.Id,
+        recipe.Title,
+        recipe.Slug,
+        recipe.OwnerUserId,
+        recipe.Ingredients.Count,
+        recipe.Servings,
+        recipe.MealType,
+        recipe.IsAiAssisted,
+        recipe.CreatedAtUtc,
+        recipe.UpdatedAtUtc);
+}
 
 public sealed record RecipePlanningIngredientResponse(Guid Id, string Name);
 

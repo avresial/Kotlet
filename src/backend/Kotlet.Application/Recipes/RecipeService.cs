@@ -24,11 +24,11 @@ public sealed class RecipeService(
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
-        var (items, total) = await repository.GetPagedAsync(
+        var (items, total) = await repository.GetPagedSummariesAsync(
             houseId, page, pageSize, search, ParseMealType(mealType), ingredientIds, cancellationToken);
-        var firstImageIds = await GetFirstImageIdsAsync(items.Select(r => r.Id).ToList(), cancellationToken);
+        var firstImageIds = await GetFirstImageIdsAsync(items.Select(item => item.Id).ToList(), cancellationToken);
         return new PagedResponse<RecipeSummaryResponse>(
-            items.Select(r => responseMapper.ToSummaryResponse(r, firstImageIds)).ToList(),
+            items.Select(item => responseMapper.ToSummaryResponse(item, firstImageIds)).ToList(),
             page, pageSize, total);
     }
 
@@ -36,9 +36,9 @@ public sealed class RecipeService(
         Guid houseId, int limit, CancellationToken cancellationToken)
     {
         limit = Math.Clamp(limit, 1, 20);
-        var recipes = await repository.GetRecentAsync(houseId, limit, cancellationToken);
-        var firstImageIds = await GetFirstImageIdsAsync(recipes.Select(r => r.Id).ToList(), cancellationToken);
-        return recipes.Select(r => responseMapper.ToSummaryResponse(r, firstImageIds)).ToList();
+        var recipes = await repository.GetRecentSummariesAsync(houseId, limit, cancellationToken);
+        var firstImageIds = await GetFirstImageIdsAsync(recipes.Select(recipe => recipe.Id).ToList(), cancellationToken);
+        return recipes.Select(recipe => responseMapper.ToSummaryResponse(recipe, firstImageIds)).ToList();
     }
 
     public async Task<RecipePlanningSearchResponse> ListForPlanningAsync(
