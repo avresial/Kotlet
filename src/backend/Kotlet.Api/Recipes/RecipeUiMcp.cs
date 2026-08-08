@@ -2,7 +2,9 @@ using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Kotlet.Api.Auth;
+using Kotlet.Api.Mcp;
 using Kotlet.Application.Recipes;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
@@ -23,6 +25,7 @@ public static class RecipeUiMcp
     public const string ToolName = "show_recipes";
     public const string ResourceUri = "ui://kotlet/recipes-v2";
     public const string ResourceMimeType = "text/html;profile=mcp-app";
+    public const string PresentationDataKey = "kotlet/recipeUi";
 
     private static readonly Lazy<string> AppHtml = new(() =>
     {
@@ -63,6 +66,7 @@ public static class RecipeUiMcp
                                 mealType = new { type = new[] { "string", "null" } },
                                 servings = new { type = "integer" },
                                 ingredientCount = new { type = "integer" },
+                                description = new { type = new[] { "string", "null" } },
                                 imageUrl = new { type = new[] { "string", "null" } },
                                 isAiAssisted = new { type = "boolean" },
                                 updatedAtUtc = new { type = "string", format = "date-time" }
@@ -70,7 +74,7 @@ public static class RecipeUiMcp
                             required = new[]
                             {
                                 "id", "title", "mealType", "servings", "ingredientCount",
-                                "imageUrl", "isAiAssisted", "updatedAtUtc"
+                                "description", "imageUrl", "isAiAssisted", "updatedAtUtc"
                             },
                             additionalProperties = false
                         }
@@ -153,34 +157,169 @@ public static class RecipeUiMcp
         var result = await service.ListAsync(
             RequireHouse(currentUser), page, pageSize, search, null, null, cancellationToken);
         var origin = ApiOrigin(oauth.Value);
+        var frontendOrigin = FrontendOrigin(oauth.Value);
         var cards = result.Items
             .Select(recipe => new RecipeUiCard(
                 recipe.Id, recipe.Title, recipe.MealType, recipe.Servings, recipe.IngredientCount,
+                SummaryText(recipe.DescriptionMarkdown),
                 recipe.FirstImageUrl is null ? null : origin + recipe.FirstImageUrl,
                 recipe.IsAiAssisted, recipe.UpdatedAtUtc))
             .ToList();
-        return new CallToolResult
+        RecipeUiDetail? singleRecipe = null;
+        if (result.TotalCount == 1 && cards.Count == 1)
+        {
+            var detail = await service.GetByIdAsync(
+                cards[0].Id, RequireHouse(currentUser), cancellationToken);
+            if (detail is not null)
+            {
+                singleRecipe = RecipeUiDetail.From(detail, origin, frontendOrigin);
+            }
+        }
+        var toolResult = new CallToolResult
         {
             Content = [new TextContentBlock { Text = FallbackText(cards, result.TotalCount) }],
             StructuredContent = JsonSerializer.SerializeToElement(
                 new RecipeUiListData(cards, result.TotalCount, page, pageSize, origin),
                 JsonSerializerOptions.Web)
         };
+        SetPresentation(toolResult, new RecipeUiListPresentation(
+            cards.Select(RecipeUiPresentationCard.From).ToList(), result.TotalCount, singleRecipe));
+        return toolResult;
+    }
+
+    /// <summary>Routes recipe search and detail results to the dedicated recipe UI.</summary>
+    public static void AttachToRecipeTools(IList<Tool> tools)
+    {
+        foreach (var tool in tools.Where(tool => tool.Name is "get_recipes" or "get_recipe"))
+        {
+            tool.Meta ??= new JsonObject();
+            tool.Meta["ui"] = new JsonObject { ["resourceUri"] = ResourceUri };
+            tool.Meta["openai/outputTemplate"] = ResourceUri;
+            tool.Meta["openai/toolInvocation/invoking"] = "Loading recipe...";
+            tool.Meta["openai/toolInvocation/invoked"] = "Recipe ready";
+        }
+    }
+
+    /// <summary>
+    /// Adds a bounded presentation payload while preserving the existing agent-facing result
+    /// contract for recipe planning and imports.
+    /// </summary>
+    public static async Task ApplyPresentationAsync(
+        string toolName,
+        CallToolResult result,
+        string apiOrigin,
+        string frontendOrigin,
+        IServiceProvider? services,
+        CancellationToken cancellationToken)
+    {
+        if (result.IsError is true || result.StructuredContent is not { } structuredContent)
+        {
+            return;
+        }
+
+        if (toolName == "get_recipe")
+        {
+            var detail = TryDeserialize<RecipeDetailResponse>(structuredContent);
+            if (detail is not null)
+            {
+                SetPresentation(result,
+                    new RecipeUiDetailPresentation(RecipeUiDetail.From(detail, apiOrigin, frontendOrigin)));
+            }
+            return;
+        }
+
+        if (toolName != "get_recipes")
+        {
+            return;
+        }
+
+        var search = TryDeserialize<McpRecipeSearchResponse>(structuredContent);
+        if (search is null)
+        {
+            return;
+        }
+
+        var cards = search.Recipes
+            .Select(recipe => new RecipeUiPresentationCard(
+                recipe.Id,
+                recipe.Title,
+                recipe.Description,
+                recipe.MealType,
+                recipe.Servings,
+                recipe.Ingredients.Count,
+                ToAbsoluteUrlOrNull(apiOrigin, recipe.ImageUrl),
+                CanEdit: true))
+            .ToList();
+        var service = services?.GetService<RecipeService>();
+        var currentUser = services?.GetService<ICurrentUser>();
+        RecipeUiDetail? singleRecipe = null;
+        if (search.TotalCount == 1 && cards.Count == 1 && service is not null && currentUser is not null)
+        {
+            var detail = await service.GetByIdAsync(
+                cards[0].Id, RequireHouse(currentUser), cancellationToken);
+            if (detail is not null)
+            {
+                singleRecipe = RecipeUiDetail.From(detail, apiOrigin, frontendOrigin);
+            }
+        }
+
+        SetPresentation(result, new RecipeUiListPresentation(cards, search.TotalCount, singleRecipe));
     }
 
     public static string ApiOrigin(OAuthOptions oauth) =>
         new Uri(oauth.Resource).GetLeftPart(UriPartial.Authority);
 
+    public static string FrontendOrigin(OAuthOptions oauth)
+    {
+        var loginUri = new Uri(oauth.LoginUrl);
+        var path = loginUri.AbsolutePath.TrimEnd('/');
+        const string loginPath = "/login";
+        if (path.EndsWith(loginPath, StringComparison.OrdinalIgnoreCase))
+        {
+            path = path[..^loginPath.Length].TrimEnd('/');
+        }
+
+        return loginUri.GetLeftPart(UriPartial.Authority) + path;
+    }
+
     private static string FallbackText(IReadOnlyList<RecipeUiCard> cards, int totalCount)
     {
         if (cards.Count == 0)
+        {
             return "No recipes found for this household.";
+        }
         var lines = cards.Select((card, index) =>
             $"{index + 1}. {card.Title} — {card.Servings} serving(s), {card.IngredientCount} ingredient(s)"
             + (card.MealType is null ? "" : $", {card.MealType}"));
         return $"Household recipes ({cards.Count} of {totalCount}):\n" + string.Join('\n', lines)
              + "\n\nUse get_recipe with a recipe ID from get_recipes for full details.";
     }
+
+    private static void SetPresentation(CallToolResult result, object presentation)
+    {
+        result.Meta ??= new JsonObject();
+        result.Meta[PresentationDataKey] = JsonSerializer.SerializeToNode(presentation, JsonSerializerOptions.Web);
+    }
+
+    private static T? TryDeserialize<T>(JsonElement structuredContent)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(structuredContent.GetRawText(), JsonSerializerOptions.Web);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
+    }
+
+    internal static string ToAbsoluteUrl(string apiOrigin, string url) =>
+        url.StartsWith("/", StringComparison.Ordinal) ? apiOrigin + url : url;
+
+    internal static string? ToAbsoluteUrlOrNull(string apiOrigin, string? url) =>
+        url is null ? null : ToAbsoluteUrl(apiOrigin, url);
+
+    internal static string? SummaryText(string? description) => McpRecipeText.Summary(description);
 }
 
 /// <summary>One recipe card in the embedded MCP App UI.</summary>
@@ -190,6 +329,7 @@ public sealed record RecipeUiCard(
     string? MealType,
     int Servings,
     int IngredientCount,
+    string? Description,
     string? ImageUrl,
     bool IsAiAssisted,
     DateTimeOffset UpdatedAtUtc);
@@ -201,3 +341,93 @@ public sealed record RecipeUiListData(
     int Page,
     int PageSize,
     string ApiOrigin);
+
+/// <summary>Small, user-facing recipe card data used only by the dedicated MCP App.</summary>
+public sealed record RecipeUiPresentationCard(
+    Guid Id,
+    string Title,
+    string? Description,
+    string? MealType,
+    int Servings,
+    int IngredientCount,
+    string? ImageUrl,
+    bool CanEdit)
+{
+    public static RecipeUiPresentationCard From(RecipeUiCard card) => new(
+        card.Id, card.Title,
+        RecipeUiMcp.SummaryText(card.Description), card.MealType, card.Servings,
+        card.IngredientCount, card.ImageUrl, CanEdit: false);
+}
+
+/// <summary>Search result data consumed by the dedicated MCP App.</summary>
+public sealed record RecipeUiListPresentation(
+    IReadOnlyList<RecipeUiPresentationCard> Recipes,
+    int TotalCount,
+    RecipeUiDetail? Detail = null)
+{
+    public string Kind => "list";
+}
+
+/// <summary>Detail result wrapper consumed by the dedicated MCP App.</summary>
+public sealed record RecipeUiDetailPresentation(RecipeUiDetail Detail)
+{
+    public string Kind => "detail";
+}
+
+/// <summary>Presentation-only recipe detail; persistence and audit fields are intentionally absent.</summary>
+public sealed record RecipeUiDetail(
+    Guid Id,
+    string Title,
+    string? Description,
+    int Servings,
+    string? MealType,
+    RecipeUiImage? Image,
+    IReadOnlyList<RecipeUiIngredient> Ingredients,
+    bool CanEdit,
+    bool IsIncomplete,
+    string? EditUrl)
+{
+    public static RecipeUiDetail From(
+        RecipeDetailResponse response,
+        string apiOrigin,
+        string frontendOrigin)
+    {
+        var ingredients = response.Ingredients
+            .Select(RecipeUiIngredient.From)
+            .ToList();
+        var image = response.Images
+            .OrderBy(image => image.SortOrder)
+            .Select(image =>
+            {
+                var contentUrl = image.ContentUrl;
+                return contentUrl is null
+                    ? null
+                    : new RecipeUiImage(
+                        RecipeUiMcp.ToAbsoluteUrl(apiOrigin, contentUrl), image.AltText ?? response.Title);
+            })
+            .OfType<RecipeUiImage>()
+            .FirstOrDefault();
+        var isIncomplete = ingredients.Count == 0 || string.IsNullOrWhiteSpace(response.DescriptionMarkdown);
+        return new(
+            response.Id,
+            response.Title,
+            response.DescriptionMarkdown,
+            response.Servings,
+            response.MealType,
+            image,
+            ingredients,
+            response.CanEdit,
+            isIncomplete,
+            response.CanEdit ? $"{frontendOrigin}/recipes/{response.Id}/edit" : null);
+    }
+}
+
+/// <summary>Image data needed to render a recipe hero image, without storage metadata.</summary>
+public sealed record RecipeUiImage(string Url, string? AltText);
+
+/// <summary>Ingredient data needed to render a recipe, without catalog or storage metadata.</summary>
+public sealed record RecipeUiIngredient(string Name, decimal Quantity, string Unit, string? Note)
+{
+    public static RecipeUiIngredient From(RecipeIngredientResponse ingredient) =>
+        new(ingredient.Name, ingredient.Quantity, ingredient.Unit, ingredient.Note);
+}

@@ -105,6 +105,8 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains("data.totalCount === 1", body);
         Assert.Contains("data.recipes.length === 1", body);
         Assert.Contains("openRecipe(data.recipes[0].id)", body);
+        Assert.Contains("attachImageFallback", body);
+        Assert.DoesNotContain("onerror=", body);
         // The UI must stay self-contained: no external scripts, styles, or REST calls.
         Assert.DoesNotContain("src=\\\"http", body);
         Assert.DoesNotContain("fetch(", body);
@@ -172,6 +174,89 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task RecipeTools_ExposeCleanPresentationDataAndOpenSingleShowResult()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+        var ingredient = await CallTool(client, accessToken, "create_ingredient", new
+        {
+            request = new { name = $"Lentils {Guid.NewGuid():N}", measurementUnit = "g", caloriesPer100BaseUnits = 116 }
+        });
+        var ingredientId = ExtractGuidAfter(await ingredient.Content.ReadAsStringAsync(), "\"id\":\"");
+        var title = $"Lentil bowl {Guid.NewGuid():N}";
+        var recipe = await CallTool(client, accessToken, "add_recipe", new
+        {
+            request = new
+            {
+                title,
+                servings = 2,
+                mealType = "dinner",
+                descriptionMarkdown = "A warm lentil bowl.\n\n1. Simmer the lentils.",
+                ingredients = new[] { new { ingredientId, quantity = 180, unit = "g" } }
+            }
+        });
+        var recipeId = ExtractGuidAfter(await recipe.Content.ReadAsStringAsync(), "\"id\":\"");
+
+        var detailResponse = await CallTool(client, accessToken, "get_recipe", new { recipeId });
+        var detailResult = ReadSseResult(await detailResponse.Content.ReadAsStringAsync());
+        var detailPresentation = detailResult.GetProperty("_meta").GetProperty("kotlet/recipeUi");
+        Assert.Equal("detail", detailPresentation.GetProperty("kind").GetString());
+        var detail = detailPresentation.GetProperty("detail");
+        Assert.Equal(title, detail.GetProperty("title").GetString());
+        Assert.Equal("A warm lentil bowl.\n\n1. Simmer the lentils.", detail.GetProperty("description").GetString());
+        Assert.False(detail.GetProperty("isIncomplete").GetBoolean());
+        Assert.True(detail.GetProperty("canEdit").GetBoolean());
+        Assert.True(detail.TryGetProperty("editUrl", out var editUrl), "Editable details should expose an edit URL.");
+        Assert.Equal($"http://localhost:4200/recipes/{recipeId}/edit", editUrl.GetString());
+        AssertDoesNotContainKey(detail, "createdAtUtc");
+        AssertDoesNotContainKey(detail, "updatedAtUtc");
+        AssertDoesNotContainKey(detail, "createdByUserId");
+        AssertDoesNotContainKey(detail, "slug");
+        AssertDoesNotContainKey(detail, "sourceUrl");
+        AssertDoesNotContainKey(detail, "isAiAssisted");
+        AssertDoesNotContainKey(detail, "preparationTimeMinutes");
+        AssertDoesNotContainKey(detail, "cookingTimeMinutes");
+        AssertDoesNotContainKey(detail, "totalTimeMinutes");
+
+        var searchResponse = await CallTool(client, accessToken, "get_recipes", new { search = title });
+        var searchResult = ReadSseResult(await searchResponse.Content.ReadAsStringAsync());
+        var searchPresentation = searchResult.GetProperty("_meta").GetProperty("kotlet/recipeUi");
+        Assert.Equal("list", searchPresentation.GetProperty("kind").GetString());
+        var card = Assert.Single(searchPresentation.GetProperty("recipes").EnumerateArray());
+        Assert.Equal(title, card.GetProperty("title").GetString());
+        Assert.Equal("A warm lentil bowl.", card.GetProperty("description").GetString());
+        AssertDoesNotContainKey(card, "resourceUri");
+        AssertDoesNotContainKey(card, "updatedAtUtc");
+        AssertDoesNotContainKey(card, "isAiAssisted");
+
+        var showResponse = await CallTool(client, accessToken, "show_recipes", new { search = title });
+        var showResult = ReadSseResult(await showResponse.Content.ReadAsStringAsync());
+        var showPresentation = showResult.GetProperty("_meta").GetProperty("kotlet/recipeUi");
+        Assert.Equal("list", showPresentation.GetProperty("kind").GetString());
+        Assert.Equal(title, showPresentation.GetProperty("detail").GetProperty("title").GetString());
+    }
+
+    [Fact]
+    public async Task RecipeDetailPresentation_MarksIncompleteRecipesWithoutRawFields()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+        var title = $"Incomplete recipe {Guid.NewGuid():N}";
+        var recipe = await CallTool(client, accessToken, "add_recipe", new
+        {
+            request = new { title, servings = 1, ingredients = Array.Empty<object>() }
+        });
+        var recipeId = ExtractGuidAfter(await recipe.Content.ReadAsStringAsync(), "\"id\":\"");
+
+        var response = await CallTool(client, accessToken, "get_recipe", new { recipeId });
+        var result = ReadSseResult(await response.Content.ReadAsStringAsync());
+        var detail = result.GetProperty("_meta").GetProperty("kotlet/recipeUi").GetProperty("detail");
+        Assert.True(detail.GetProperty("isIncomplete").GetBoolean());
+        Assert.True(detail.GetProperty("canEdit").GetBoolean());
+        Assert.Equal(title, detail.GetProperty("title").GetString());
+        Assert.Empty(detail.GetProperty("ingredients").EnumerateArray());
+        AssertDoesNotContainKey(detail, "createdAtUtc");
+    }
+
+    [Fact]
     public async Task ToolsList_AttachesAnUiResourceToEveryTool()
     {
         var (client, accessToken) = await AuthorizeMcpClientAsync();
@@ -191,11 +276,13 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
             Assert.StartsWith("ui://kotlet/", template.GetString(), StringComparison.Ordinal);
             Assert.True(meta.GetProperty("ui").TryGetProperty("resourceUri", out _));
         });
-        // show_recipes and show_meal_plan carry their own MCP Apps UI; every other tool falls back
-        // to the shared data renderer.
-        string[] dedicatedUiTools = ["show_recipes", "show_meal_plan", "preview_meal_plan"];
+        // Dedicated MCP Apps tools keep their own widget resources; all remaining tools fall back
+        // to the shared data renderer. Recipe search and detail use the recipe widget too.
+        string[] dedicatedUiTools = ["show_recipes", "show_meal_plan", "preview_meal_plan", "get_recipes", "get_recipe"];
         Assert.All(tools.Where(tool => !dedicatedUiTools.Contains(tool.GetProperty("name").GetString())), tool =>
             Assert.Equal("ui://kotlet/data-v3", tool.GetProperty("_meta").GetProperty("openai/outputTemplate").GetString()));
+        Assert.All(tools.Where(tool => tool.GetProperty("name").GetString() is "get_recipes" or "get_recipe"), tool =>
+            Assert.Equal("ui://kotlet/recipes-v2", tool.GetProperty("_meta").GetProperty("openai/outputTemplate").GetString()));
     }
 
     [Fact]
@@ -257,7 +344,10 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains(title, candidatesBody);
         Assert.Contains(ingredientName, candidatesBody);
         Assert.Contains($"kotlet://recipes/{recipeId}", candidatesBody);
-        Assert.DoesNotContain("METHOD_SHOULD_ONLY_APPEAR_IN_DETAIL", candidatesBody);
+        var candidateResult = ReadSseResult(candidatesBody);
+        Assert.DoesNotContain(
+            "METHOD_SHOULD_ONLY_APPEAR_IN_DETAIL",
+            candidateResult.GetProperty("structuredContent").GetRawText());
 
         var request = new
         {
@@ -392,6 +482,18 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         start += marker.Length;
         return Guid.Parse(body.Substring(start, 36));
     }
+
+    private static JsonElement ReadSseResult(string body)
+    {
+        var dataLine = body.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Single(line => line.StartsWith("data:", StringComparison.Ordinal));
+        using var document = JsonDocument.Parse(dataLine[5..].Trim());
+        return document.RootElement.GetProperty("result").Clone();
+    }
+
+    private static void AssertDoesNotContainKey(JsonElement value, string key) =>
+        Assert.False(value.TryGetProperty(key, out _),
+            $"'{key}' must not be present in the recipe presentation payload.");
 
     private static Task<HttpResponseMessage> CallTool(
         HttpClient client, string accessToken, string name, object arguments, string? language = null)
