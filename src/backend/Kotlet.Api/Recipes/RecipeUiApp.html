@@ -16,7 +16,7 @@
     --app-danger: #9a3022; --app-danger-bg: #fff0ec; --app-danger-border: #d99b8b;
     --app-ai: #5b3ca0; --app-ai-bg: #eee7ff;
     --app-link: #7d3428;
-    color: var(--app-text); background: var(--app-bg); font-family: system-ui, sans-serif;
+    color: var(--app-text); background: var(--app-bg); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   .app-dark {
     --app-bg: #171512; --app-surface: #211e1a; --app-surface-raised: #29251f; --app-surface-bright: #302b25;
@@ -29,7 +29,7 @@
     --app-link: #d98a6f;
   }
   html, body { margin: 0; min-width: 16rem; }
-  body { color: var(--app-text); background: var(--app-bg); padding: 1rem; }
+  body { color: var(--app-text); background: var(--app-bg); padding: 1rem; box-sizing: border-box; }
   button { font: inherit; }
 
   .eyebrow { margin: 0; color: var(--app-accent); font-size: .7rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
@@ -43,23 +43,34 @@
     background: var(--app-ai-bg); color: var(--app-ai); font-size: .65rem; font-weight: 700; letter-spacing: .05em;
   }
 
+  .recipe-media-container {
+    position: relative; width: 100%; height: 8.5rem; background: var(--app-inset);
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
+  }
+  .recipe-image { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .recipe-placeholder {
+    display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;
+    background: var(--app-inset); color: var(--app-text-muted); opacity: .8;
+  }
+  .recipe-placeholder svg { width: 2.75rem; height: 2.75rem; }
+
   /* List view (mirrors .recipe-grid / .recipe-card) */
-  .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 1rem; }
+  .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 1rem; margin-top: .6rem; }
   .recipe-card {
     position: relative; display: flex; flex-direction: column; overflow: hidden;
     border: 1px solid var(--app-border); border-radius: 1rem; background: var(--app-surface);
-    box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%);
+    box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%); transition: transform .15s ease, box-shadow .15s ease;
   }
-  .recipe-image { display: block; width: 100%; height: 8.5rem; object-fit: cover; background: var(--app-inset); }
   .card-body { flex: 1; padding: 14px 16px; }
-  .card-body h2 { margin: 0 0 6px; font: 500 1.15rem Georgia, serif; }
-  .card-body .meta { margin: 0 0 4px; font-size: .85rem; color: var(--app-text-muted); }
+  .card-body h2 { margin: 0 0 6px; font: 500 1.15rem Georgia, serif; word-break: break-word; }
+  .card-body .meta { margin: 0 0 6px; font-size: .85rem; color: var(--app-text-muted); line-height: 1.3; }
+  .card-summary { margin: 4px 0 0; font-size: .85rem; color: var(--app-text-soft); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .card-actions { padding: 0 16px 14px; }
   .button {
-    display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 6px;
-    border: 1px solid transparent; font-size: .9rem; font-weight: 500; cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 6px;
+    border: 1px solid transparent; font-size: .9rem; font-weight: 500; cursor: pointer; text-decoration: none; min-height: 2.5rem;
   }
-  .button.primary { background: #963827; color: #fff; }
+  .button.primary { background: #963827; color: #fff; width: 100%; box-sizing: border-box; }
   .button.primary:hover { background: #842f20; }
   .button.secondary { background: transparent; border-color: var(--app-border-strong); color: var(--app-text-soft); }
   .button:disabled { opacity: .5; cursor: not-allowed; }
@@ -67,18 +78,23 @@
 
   /* Detail view (mirrors recipe-detail-page) */
   .back {
-    display: inline-block; margin-bottom: .8rem; padding: 0; border: 0; background: none;
-    color: var(--app-link); font-size: .9rem; font-weight: 700; cursor: pointer;
+    display: inline-flex; align-items: center; margin-bottom: .8rem; padding: .4rem 0; border: 0; background: none;
+    color: var(--app-link); font-size: .9rem; font-weight: 700; cursor: pointer; min-height: 2.2rem;
   }
   .detail-card {
     border: 1px solid var(--app-border); border-radius: 1rem; overflow: hidden;
     background: var(--app-surface); box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%);
   }
-  .detail-image { display: block; width: 100%; max-height: 16rem; object-fit: cover; background: var(--app-inset); }
+  .detail-media-container {
+    position: relative; width: 100%; max-height: 16rem; background: var(--app-inset);
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
+  }
+  .detail-media-container.detail-placeholder { height: 7.5rem; }
+  .detail-image { display: block; width: 100%; max-height: 16rem; object-fit: cover; }
   .detail-body { padding: 1.1rem 1.25rem 1.4rem; }
-  .detail-body h1 { margin: .35rem 0 .6rem; font: 500 1.7rem/1.15 Georgia, serif; }
-  .detail-meta { margin: 0 0 1rem; font-size: .85rem; color: var(--app-text-muted); }
-  .detail-body h2 { margin: 1.2rem 0 .5rem; font: 500 1.15rem Georgia, serif; }
+  .detail-body h1 { margin: .35rem 0 .6rem; font: 500 1.7rem/1.15 Georgia, serif; word-break: break-word; }
+  .detail-meta { margin: 0 0 1rem; font-size: .85rem; color: var(--app-text-muted); line-height: 1.4; }
+  .detail-body h2 { margin: 1.2rem 0 .5rem; font: 500 1.15rem Georgia, serif; border-bottom: 1px solid var(--app-inset-strong); padding-bottom: .3rem; }
   .ingredient-list { margin: 0; padding: 0; list-style: none; }
   .ingredient-item {
     display: flex; align-items: baseline; justify-content: space-between; gap: .75rem;
@@ -93,6 +109,19 @@
   .markdown-body ol, .markdown-body ul { margin: .5rem 0; padding-left: 1.4rem; }
   .markdown-body li { margin: .3rem 0; }
   .markdown-body h3, .markdown-body h4 { margin: .9rem 0 .35rem; color: var(--app-text); }
+  .incomplete-note { margin: .5rem 0 1rem; padding: .7rem .8rem; border-radius: .5rem; background: var(--app-accent-bg); color: var(--app-text-soft); font-size: .9rem; }
+  .detail-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.25rem; }
+  .detail-actions .button { width: auto; }
+
+  @media (max-width: 520px) {
+    body { padding: .75rem; }
+    .recipe-grid { grid-template-columns: 1fr; gap: .75rem; }
+    .recipe-media-container { height: 7.5rem; }
+    .card-body { padding: 12px 14px; }
+    .card-body h2 { font-size: 1.05rem; }
+    .detail-body { padding: .9rem 1rem 1.2rem; }
+    .detail-body h1 { font-size: 1.4rem; }
+  }
 </style>
 </head>
 <body>
@@ -129,6 +158,7 @@ const STRINGS = {
     errorRecipe: "The recipe could not be loaded.", errorNoData: "The host returned no recipe data.",
     errorNoList: "The host did not deliver recipe data to the app.", errorHost: "Host request failed.",
     initFailed: "MCP Apps initialization failed: {message}",
+    incomplete: "This recipe is incomplete.", edit: "Edit recipe", timeMin: "{mins} min",
     "slot.breakfast": "Breakfast", "slot.second-breakfast": "Second breakfast", "slot.dinner": "Lunch",
     "slot.snack": "Snack", "slot.supper": "Dinner"
   },
@@ -143,6 +173,7 @@ const STRINGS = {
     errorRecipe: "Nie udało się załadować przepisu.", errorNoData: "Host nie zwrócił danych przepisu.",
     errorNoList: "Host nie przekazał danych przepisów do aplikacji.", errorHost: "Żądanie do hosta nie powiodło się.",
     initFailed: "Inicjalizacja MCP Apps nie powiodła się: {message}",
+    incomplete: "Ten przepis jest niekompletny.", edit: "Edytuj przepis", timeMin: "{mins} min",
     "slot.breakfast": "Śniadanie", "slot.second-breakfast": "II śniadanie", "slot.dinner": "Obiad",
     "slot.snack": "Przekąska", "slot.supper": "Kolacja"
   }
@@ -180,6 +211,22 @@ const tv = (prefix, value) => {
     ? String(value).replaceAll("-", " ").replace(/^./, (c) => c.toUpperCase())
     : String(found);
 };
+
+const PLACEHOLDER_SVG = '<div class="recipe-placeholder" aria-hidden="true"><svg viewBox="0 0 24 24" width="36" height="36" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10v7a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-7"/><path d="M4 10h16"/><path d="M10 6h4"/><path d="M12 3v3"/><path d="M8 10V8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>';
+
+function getTimeMinutes(item) {
+  if (!item) return null;
+  const raw = item.totalTimeMinutes || item.preparationTimeMinutes || item.cookingTimeMinutes
+    || item.prepTimeMinutes || item.cookTimeMinutes || item.timeMinutes || item.time;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function presentationFrom(result) {
+  const meta = result && (result._meta || result.meta);
+  return meta ? meta["kotlet/recipeUi"] : null;
+}
+
 /* Minimal MCP Apps (SEP-1865) bridge.
  * Hand-rolled equivalent of @modelcontextprotocol/ext-apps: JSON-RPC 2.0 over
  * window.parent.postMessage. Kept dependency-free so the UI stays a single HTML
@@ -312,6 +359,10 @@ function renderList(data) {
   state.apiOrigin = data.apiOrigin || "";
   const grid = el("recipe-grid");
   grid.innerHTML = "";
+  if (data.detail) {
+    renderDetail(data.detail);
+    return;
+  }
   if (!data.recipes || data.recipes.length === 0) {
     grid.innerHTML = `<p class="empty">${escapeHtml(t("empty"))}</p>`;
     show("list");
@@ -321,12 +372,24 @@ function renderList(data) {
     const card = document.createElement("article");
     card.className = "recipe-card";
     card.setAttribute("role", "listitem");
+    const timeMins = getTimeMinutes(recipe);
+    const ingredientCount = recipe.ingredientCount || (recipe.ingredients ? recipe.ingredients.length : 0);
+    const counts = [];
+    if (recipe.servings && recipe.servings > 0) counts.push(tp("servings", recipe.servings));
+    if (ingredientCount && ingredientCount > 0) counts.push(tp("ingredients", ingredientCount));
+    if (timeMins) counts.push(t("timeMin", { mins: timeMins }));
+    const summary = recipe.description || recipe.summary || "";
+    const summaryText = String(summary).replace(/[*_`#]/g, "").split(/\r?\n/)[0].trim();
+    const imageHtml = recipe.imageUrl
+      ? `<div class="recipe-media-container"><img class="recipe-image" src="${escapeHtml(recipe.imageUrl)}" alt="${escapeHtml(recipe.title)}" onerror="this.parentElement.innerHTML=PLACEHOLDER_SVG;" /></div>`
+      : `<div class="recipe-media-container">${PLACEHOLDER_SVG}</div>`;
     card.innerHTML =
-      (recipe.imageUrl ? `<img class="recipe-image" src="${escapeHtml(recipe.imageUrl)}" alt="${escapeHtml(recipe.title)}" onerror="this.remove()" />` : "") +
+      imageHtml +
       '<div class="card-body">' +
-      `<h2>${escapeHtml(recipe.title)}${recipe.isAiAssisted ? ` <span class="ai-badge" title="${escapeHtml(t("aiTitle"))}">AI</span>` : ""}</h2>` +
+      `<h2>${escapeHtml(recipe.title)}</h2>` +
       (recipe.mealType ? `<p class="meta">${escapeHtml(tv("slot", recipe.mealType))}</p>` : "") +
-      `<p class="meta">${escapeHtml(tp("servings", recipe.servings))} · ${escapeHtml(tp("ingredients", recipe.ingredientCount))}</p>` +
+      (counts.length ? `<p class="meta">${escapeHtml(counts.join(" · "))}</p>` : "") +
+      (summaryText ? `<p class="card-summary">${escapeHtml(summaryText)}</p>` : "") +
       "</div>" +
       `<div class="card-actions"><button type="button" class="button primary">${escapeHtml(t("view"))}</button></div>`;
     const viewButton = card.querySelector("button");
@@ -337,31 +400,51 @@ function renderList(data) {
   footer.hidden = data.totalCount <= data.recipes.length;
   footer.textContent = t("showing", { shown: data.recipes.length, total: tp("recipes", data.totalCount) });
   show("list");
-  if (data.totalCount === 1 && data.recipes.length === 1) {
+  if (data.totalCount === 1 && data.recipes.length === 1 && data.recipes[0].id) {
     void openRecipe(data.recipes[0].id);
   }
 }
 
 function renderDetail(recipe) {
   state.detail = recipe;
-  const image = (recipe.images || [])[0];
+  const image = recipe.image || (recipe.images || [])[0];
+  const imageUrl = image ? absoluteUrl(image.url || image.contentUrl) : null;
   const ingredients = (recipe.ingredients || []).map((ing) => {
     const wholeQuantity = Number.isInteger(ing.quantity);
-    const quantity = wholeQuantity ? ing.quantity : ing.normalizedQuantity;
-    const unit = wholeQuantity ? ing.unit : ing.normalizedUnit;
+    const quantity = wholeQuantity ? ing.quantity : (ing.normalizedQuantity ?? ing.quantity);
+    const unit = wholeQuantity ? ing.unit : (ing.normalizedUnit ?? ing.unit);
+    const quantityText = [quantity, unit].filter(value => value !== null && value !== undefined && value !== "").join(" ");
     return '<li class="ingredient-item"><span class="ingredient-copy">' +
       `<span class="ing-name">${escapeHtml(ing.name)}</span>` +
       (ing.note ? `<span class="ing-note">${escapeHtml(ing.note)}</span>` : "") +
-      `</span><span class="ing-qty">${escapeHtml(String(quantity))} ${escapeHtml(unit)}</span></li>`;
+      `</span>${quantityText ? `<span class="ing-qty">${escapeHtml(String(quantityText))}</span>` : ""}</li>`;
   }).join("");
+  const ingredientCount = (recipe.ingredients || []).length;
+  const description = recipe.description ?? recipe.descriptionMarkdown ?? "";
+  const timeMins = getTimeMinutes(recipe);
+  const metaParts = [];
+  if (recipe.mealType) metaParts.push(tv("slot", recipe.mealType));
+  if (recipe.servings && recipe.servings > 0) metaParts.push(tp("servings", recipe.servings));
+  if (ingredientCount > 0) metaParts.push(tp("ingredients", ingredientCount));
+  if (timeMins) metaParts.push(t("timeMin", { mins: timeMins }));
+  const incomplete = recipe.isIncomplete === true || ingredientCount === 0 || !description.trim();
+  const editAction = recipe.canEdit && recipe.editUrl
+    ? `<a class="button secondary" href="${escapeHtml(recipe.editUrl)}" target="_blank" rel="noreferrer">${escapeHtml(t("edit"))}</a>`
+    : "";
+  const ingredientsSection = `<h2>${escapeHtml(t("ingredientsHeading"))}</h2>` +
+    (ingredients ? `<ul class="ingredient-list">${ingredients}</ul>` : `<p class="incomplete-note">${escapeHtml(t("incomplete"))}</p>`);
+  const methodSection = `<h2>${escapeHtml(t("methodHeading"))}</h2>` +
+    (description.trim() ? `<div class="markdown-body">${renderMarkdown(description)}</div>` : `<p class="incomplete-note">${escapeHtml(t("incomplete"))}</p>`);
   el("detail-card").innerHTML =
-    (image ? `<img class="detail-image" src="${escapeHtml(absoluteUrl(image.contentUrl))}" alt="${escapeHtml(image.altText || recipe.title)}" onerror="this.remove()" />` : "") +
+    (imageUrl ? `<div class="detail-media-container"><img class="detail-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(image.altText || recipe.title)}" onerror="this.parentElement.innerHTML=PLACEHOLDER_SVG;" /></div>` : `<div class="detail-media-container detail-placeholder">${PLACEHOLDER_SVG}</div>`) +
     '<div class="detail-body">' +
-    `<p class="eyebrow">${escapeHtml(t("detailEyebrow"))} · ${escapeHtml(tp("servings", recipe.servings))}${recipe.mealType ? " · " + escapeHtml(tv("slot", recipe.mealType)) : ""}</p>` +
-    `<h1>${escapeHtml(recipe.title)}${recipe.isAiAssisted ? ` <span class="ai-badge" title="${escapeHtml(t("aiTitle"))}">AI</span>` : ""}</h1>` +
-    `<p class="detail-meta">♧ ${escapeHtml(tp("ingredients", (recipe.ingredients || []).length))}</p>` +
-    (ingredients ? `<h2>${escapeHtml(t("ingredientsHeading"))}</h2><ul class="ingredient-list">${ingredients}</ul>` : "") +
-    (recipe.descriptionMarkdown ? `<h2>${escapeHtml(t("methodHeading"))}</h2><div class="markdown-body">${renderMarkdown(recipe.descriptionMarkdown)}</div>` : "") +
+    `<p class="eyebrow">${escapeHtml(t("detailEyebrow"))}${metaParts.length ? " · " + escapeHtml(metaParts.join(" · ")) : ""}</p>` +
+    `<h1>${escapeHtml(recipe.title)}</h1>` +
+    (description.trim() ? `<p class="detail-meta">${escapeHtml(description.replace(/[*_`#]/g, "").split(/\r?\n/)[0])}</p>` : "") +
+    (incomplete ? `<p class="incomplete-note" role="status">${escapeHtml(t("incomplete"))}</p>` : "") +
+    ingredientsSection +
+    methodSection +
+    (editAction ? `<div class="detail-actions">${editAction}</div>` : "") +
     "</div>";
   show("detail");
 }
@@ -375,8 +458,10 @@ async function openRecipe(recipeId, button) {
       const text = (result.content || []).map((block) => block.text).join(" ");
       throw new Error(text || t("errorRecipe"));
     }
-    if (!result.structuredContent) throw new Error(t("errorNoData"));
-    renderDetail(result.structuredContent);
+    const presentation = presentationFrom(result);
+    if (presentation && presentation.kind === "detail") renderDetail(presentation.detail);
+    else if (result.structuredContent) renderDetail(result.structuredContent);
+    else throw new Error(t("errorNoData"));
   } catch (error) {
     showError(error.message);
   } finally {
@@ -394,7 +479,10 @@ bridge.on("ui/notifications/tool-result", (params) => {
   // A result without the key means nothing was negotiated, so an earlier one must not linger.
   locale.server = (params && params._meta && params._meta["kotlet/locale"]) || null;
   applyLanguage();
-  if (params && params.structuredContent) renderList(params.structuredContent);
+  const presentation = presentationFrom(params);
+  if (presentation && presentation.kind === "list") renderList(presentation);
+  else if (presentation && presentation.kind === "detail") renderDetail(presentation.detail);
+  else if (params && params.structuredContent) renderList(params.structuredContent);
   else {
     el("loading").hidden = true;
     showError(t("errorNoList"));

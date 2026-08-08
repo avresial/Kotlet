@@ -164,6 +164,7 @@ internal sealed class RecipeRepository(KotletDbContext dbContext) : IRecipeRepos
             recipe.Ingredients.Count(),
             recipe.Servings,
             recipe.MealType,
+            recipe.DescriptionMarkdown,
             recipe.IsAiAssisted,
             recipe.CreatedAtUtc,
             recipe.UpdatedAtUtc));

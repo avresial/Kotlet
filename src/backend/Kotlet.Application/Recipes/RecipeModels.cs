@@ -47,6 +47,7 @@ public sealed record RecipeSummaryResponse(
     int IngredientCount,
     int Servings,
     string? MealType,
+    string? Description,
     string? FirstImageUrl,
     bool IsAiAssisted,
     DateTimeOffset CreatedAtUtc,
@@ -60,6 +61,7 @@ public sealed record RecipeSummaryData(
     int IngredientCount,
     ServingCount Servings,
     MealSlot? MealType,
+    string? Description,
     bool IsAiAssisted,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc)
@@ -72,6 +74,7 @@ public sealed record RecipeSummaryData(
         recipe.Ingredients.Count,
         recipe.Servings,
         recipe.MealType,
+        recipe.DescriptionMarkdown,
         recipe.IsAiAssisted,
         recipe.CreatedAtUtc,
         recipe.UpdatedAtUtc);

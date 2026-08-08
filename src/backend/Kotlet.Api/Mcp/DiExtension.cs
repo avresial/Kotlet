@@ -116,6 +116,7 @@ public static class DiExtension
                 {
                     var result = await next(request, cancellationToken);
                     DataUiMcp.AttachTo(result.Tools);
+                    RecipeUiMcp.AttachToRecipeTools(result.Tools);
                     // Keep discovery compact for every generated tool. Compact-result tools publish
                     // precise schemas; the generic object fallback intentionally avoids restoring the
                     // large SDK-generated schemas trimmed in 036e6da.
@@ -129,6 +130,13 @@ public static class DiExtension
                 var result = await next(request, cancellationToken);
                 if (!request.Params.Name.StartsWith("show_") && request.Params.Name != MealPlanUiMcp.ToolName)
                     McpToolResultAdapter.Apply(request.Params.Name, result);
+                if (request.Params.Name is "get_recipes" or "get_recipe")
+                    await RecipeUiMcp.ApplyPresentationAsync(
+                        request.Params.Name,
+                        result,
+                        RecipeUiMcp.ApiOrigin(oauth),
+                        request.Services,
+                        cancellationToken);
                 // Every result may end up in an MCP App, so all of them carry the negotiated language.
                 McpUiLocale.Apply(request.Services, result);
                 return result;
