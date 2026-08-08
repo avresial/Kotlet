@@ -129,14 +129,19 @@ public static class DiExtension
             {
                 var result = await next(request, cancellationToken);
                 if (!request.Params.Name.StartsWith("show_") && request.Params.Name != MealPlanUiMcp.ToolName)
+                {
                     McpToolResultAdapter.Apply(request.Params.Name, result);
+                }
                 if (request.Params.Name is "get_recipes" or "get_recipe")
+                {
                     await RecipeUiMcp.ApplyPresentationAsync(
                         request.Params.Name,
                         result,
                         RecipeUiMcp.ApiOrigin(oauth),
+                        RecipeUiMcp.FrontendOrigin(oauth),
                         request.Services,
                         cancellationToken);
+                }
                 // Every result may end up in an MCP App, so all of them carry the negotiated language.
                 McpUiLocale.Apply(request.Services, result);
                 return result;

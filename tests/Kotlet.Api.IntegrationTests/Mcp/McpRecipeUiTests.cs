@@ -105,6 +105,8 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains("data.totalCount === 1", body);
         Assert.Contains("data.recipes.length === 1", body);
         Assert.Contains("openRecipe(data.recipes[0].id)", body);
+        Assert.Contains("attachImageFallback", body);
+        Assert.DoesNotContain("onerror=", body);
         // The UI must stay self-contained: no external scripts, styles, or REST calls.
         Assert.DoesNotContain("src=\\\"http", body);
         Assert.DoesNotContain("fetch(", body);
@@ -203,13 +205,17 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Equal("A warm lentil bowl.\n\n1. Simmer the lentils.", detail.GetProperty("description").GetString());
         Assert.False(detail.GetProperty("isIncomplete").GetBoolean());
         Assert.True(detail.GetProperty("canEdit").GetBoolean());
-        Assert.True(detail.TryGetProperty("editUrl", out var editUrl) && editUrl.GetString() is not null);
+        Assert.True(detail.TryGetProperty("editUrl", out var editUrl), "Editable details should expose an edit URL.");
+        Assert.Equal($"http://localhost:4200/recipes/{recipeId}/edit", editUrl.GetString());
         AssertDoesNotContainKey(detail, "createdAtUtc");
         AssertDoesNotContainKey(detail, "updatedAtUtc");
         AssertDoesNotContainKey(detail, "createdByUserId");
         AssertDoesNotContainKey(detail, "slug");
         AssertDoesNotContainKey(detail, "sourceUrl");
         AssertDoesNotContainKey(detail, "isAiAssisted");
+        AssertDoesNotContainKey(detail, "preparationTimeMinutes");
+        AssertDoesNotContainKey(detail, "cookingTimeMinutes");
+        AssertDoesNotContainKey(detail, "totalTimeMinutes");
 
         var searchResponse = await CallTool(client, accessToken, "get_recipes", new { search = title });
         var searchResult = ReadSseResult(await searchResponse.Content.ReadAsStringAsync());
@@ -247,7 +253,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.True(detail.GetProperty("canEdit").GetBoolean());
         Assert.Equal(title, detail.GetProperty("title").GetString());
         Assert.Empty(detail.GetProperty("ingredients").EnumerateArray());
-        Assert.DoesNotContain("createdAtUtc", detail.EnumerateObject().Select(property => property.Name));
+        AssertDoesNotContainKey(detail, "createdAtUtc");
     }
 
     [Fact]
@@ -270,8 +276,8 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
             Assert.StartsWith("ui://kotlet/", template.GetString(), StringComparison.Ordinal);
             Assert.True(meta.GetProperty("ui").TryGetProperty("resourceUri", out _));
         });
-        // show_recipes and show_meal_plan carry their own MCP Apps UI; every other tool falls back
-        // to the shared data renderer.
+        // Dedicated MCP Apps tools keep their own widget resources; all remaining tools fall back
+        // to the shared data renderer. Recipe search and detail use the recipe widget too.
         string[] dedicatedUiTools = ["show_recipes", "show_meal_plan", "preview_meal_plan", "get_recipes", "get_recipe"];
         Assert.All(tools.Where(tool => !dedicatedUiTools.Contains(tool.GetProperty("name").GetString())), tool =>
             Assert.Equal("ui://kotlet/data-v3", tool.GetProperty("_meta").GetProperty("openai/outputTemplate").GetString()));
@@ -338,7 +344,10 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains(title, candidatesBody);
         Assert.Contains(ingredientName, candidatesBody);
         Assert.Contains($"kotlet://recipes/{recipeId}", candidatesBody);
-        Assert.DoesNotContain("METHOD_SHOULD_ONLY_APPEAR_IN_DETAIL", candidatesBody);
+        var candidateResult = ReadSseResult(candidatesBody);
+        Assert.DoesNotContain(
+            "METHOD_SHOULD_ONLY_APPEAR_IN_DETAIL",
+            candidateResult.GetProperty("structuredContent").GetRawText());
 
         var request = new
         {

@@ -54,6 +54,8 @@ public sealed class RecipeService(
         limit = Math.Clamp(limit, 1, 20);
         var (recipes, total) = await repository.GetPagedAsync(
             houseId, page, limit, search, ParseMealType(mealType), ingredientIds, cancellationToken);
+        var firstImageIds = await GetFirstImageIdsAsync(
+            recipes.Select(recipe => recipe.Id).ToList(), cancellationToken);
         return new(
             recipes.Select(recipe => new RecipePlanningSummaryResponse(
                 recipe.Id,
@@ -64,7 +66,11 @@ public sealed class RecipeService(
                     .OrderBy(item => item.SortOrder)
                     .Select(item => new RecipePlanningIngredientResponse(
                         item.IngredientId, item.Ingredient.Name))
-                    .ToList()))
+                    .ToList(),
+                recipe.DescriptionMarkdown,
+                firstImageIds.TryGetValue(recipe.Id, out var imageId)
+                    ? $"/api/recipes/{recipe.Id}/images/{imageId}/content"
+                    : null))
                 .ToList(),
             total);
     }

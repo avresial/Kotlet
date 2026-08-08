@@ -157,10 +157,11 @@ public static class RecipeUiMcp
         var result = await service.ListAsync(
             RequireHouse(currentUser), page, pageSize, search, null, null, cancellationToken);
         var origin = ApiOrigin(oauth.Value);
+        var frontendOrigin = FrontendOrigin(oauth.Value);
         var cards = result.Items
             .Select(recipe => new RecipeUiCard(
                 recipe.Id, recipe.Title, recipe.MealType, recipe.Servings, recipe.IngredientCount,
-                recipe.Description,
+                SummaryText(recipe.DescriptionMarkdown),
                 recipe.FirstImageUrl is null ? null : origin + recipe.FirstImageUrl,
                 recipe.IsAiAssisted, recipe.UpdatedAtUtc))
             .ToList();
@@ -170,17 +171,20 @@ public static class RecipeUiMcp
             var detail = await service.GetByIdAsync(
                 cards[0].Id, RequireHouse(currentUser), cancellationToken);
             if (detail is not null)
-                singleRecipe = RecipeUiDetail.From(detail, origin);
+            {
+                singleRecipe = RecipeUiDetail.From(detail, origin, frontendOrigin);
+            }
         }
-        return new CallToolResult
+        var toolResult = new CallToolResult
         {
             Content = [new TextContentBlock { Text = FallbackText(cards, result.TotalCount) }],
             StructuredContent = JsonSerializer.SerializeToElement(
                 new RecipeUiListData(cards, result.TotalCount, page, pageSize, origin),
-                JsonSerializerOptions.Web),
-            Meta = PresentationMeta(new RecipeUiListPresentation(
-                cards.Select(RecipeUiPresentationCard.From).ToList(), result.TotalCount, singleRecipe))
+                JsonSerializerOptions.Web)
         };
+        SetPresentation(toolResult, new RecipeUiListPresentation(
+            cards.Select(RecipeUiPresentationCard.From).ToList(), result.TotalCount, singleRecipe));
+        return toolResult;
     }
 
     /// <summary>Routes recipe search and detail results to the dedicated recipe UI.</summary>
@@ -204,70 +208,86 @@ public static class RecipeUiMcp
         string toolName,
         CallToolResult result,
         string apiOrigin,
+        string frontendOrigin,
         IServiceProvider? services,
         CancellationToken cancellationToken)
     {
         if (result.IsError is true || result.StructuredContent is not { } structuredContent)
+        {
             return;
+        }
 
         if (toolName == "get_recipe")
         {
-            var detail = JsonSerializer.Deserialize<RecipeDetailResponse>(
-                structuredContent.GetRawText(), JsonSerializerOptions.Web);
+            var detail = TryDeserialize<RecipeDetailResponse>(structuredContent);
             if (detail is not null)
-                SetPresentation(result, new RecipeUiDetailPresentation(RecipeUiDetail.From(detail, apiOrigin)));
+            {
+                SetPresentation(result,
+                    new RecipeUiDetailPresentation(RecipeUiDetail.From(detail, apiOrigin, frontendOrigin)));
+            }
             return;
         }
 
         if (toolName != "get_recipes")
+        {
             return;
+        }
 
-        var search = JsonSerializer.Deserialize<McpRecipeSearchResponse>(
-            structuredContent.GetRawText(), JsonSerializerOptions.Web);
+        var search = TryDeserialize<McpRecipeSearchResponse>(structuredContent);
         if (search is null)
+        {
             return;
+        }
 
         var cards = search.Recipes
             .Select(recipe => new RecipeUiPresentationCard(
                 recipe.Id,
                 recipe.Title,
-                Description: null,
+                recipe.Description,
                 recipe.MealType,
                 recipe.Servings,
                 recipe.Ingredients.Count,
-                ImageUrl: null,
-                CanEdit: false))
+                ToAbsoluteUrlOrNull(apiOrigin, recipe.ImageUrl),
+                CanEdit: true))
             .ToList();
         var service = services?.GetService<RecipeService>();
         var currentUser = services?.GetService<ICurrentUser>();
-        if (service is not null && currentUser is not null)
+        RecipeUiDetail? singleRecipe = null;
+        if (search.TotalCount == 1 && cards.Count == 1 && service is not null && currentUser is not null)
         {
-            for (var index = 0; index < cards.Count; index++)
+            var detail = await service.GetByIdAsync(
+                cards[0].Id, RequireHouse(currentUser), cancellationToken);
+            if (detail is not null)
             {
-                var detail = await service.GetByIdAsync(
-                    cards[index].Id, RequireHouse(currentUser), cancellationToken);
-                if (detail is null)
-                    continue;
-                var presentation = RecipeUiDetail.From(detail, apiOrigin);
-                cards[index] = cards[index] with
-                {
-                    Description = SummaryText(presentation.Description),
-                    ImageUrl = presentation.Image?.Url,
-                    CanEdit = presentation.CanEdit
-                };
+                singleRecipe = RecipeUiDetail.From(detail, apiOrigin, frontendOrigin);
             }
         }
 
-        SetPresentation(result, new RecipeUiListPresentation(cards, search.TotalCount));
+        SetPresentation(result, new RecipeUiListPresentation(cards, search.TotalCount, singleRecipe));
     }
 
     public static string ApiOrigin(OAuthOptions oauth) =>
         new Uri(oauth.Resource).GetLeftPart(UriPartial.Authority);
 
+    public static string FrontendOrigin(OAuthOptions oauth)
+    {
+        var loginUri = new Uri(oauth.LoginUrl);
+        var path = loginUri.AbsolutePath.TrimEnd('/');
+        const string loginPath = "/login";
+        if (path.EndsWith(loginPath, StringComparison.OrdinalIgnoreCase))
+        {
+            path = path[..^loginPath.Length].TrimEnd('/');
+        }
+
+        return loginUri.GetLeftPart(UriPartial.Authority) + path;
+    }
+
     private static string FallbackText(IReadOnlyList<RecipeUiCard> cards, int totalCount)
     {
         if (cards.Count == 0)
+        {
             return "No recipes found for this household.";
+        }
         var lines = cards.Select((card, index) =>
             $"{index + 1}. {card.Title} — {card.Servings} serving(s), {card.IngredientCount} ingredient(s)"
             + (card.MealType is null ? "" : $", {card.MealType}"));
@@ -275,30 +295,31 @@ public static class RecipeUiMcp
              + "\n\nUse get_recipe with a recipe ID from get_recipes for full details.";
     }
 
-    private static JsonObject PresentationMeta(RecipeUiListPresentation presentation) =>
-        new() { [PresentationDataKey] = JsonSerializer.SerializeToNode(presentation, JsonSerializerOptions.Web) };
-
     private static void SetPresentation(CallToolResult result, object presentation)
     {
         result.Meta ??= new JsonObject();
         result.Meta[PresentationDataKey] = JsonSerializer.SerializeToNode(presentation, JsonSerializerOptions.Web);
     }
 
+    private static T? TryDeserialize<T>(JsonElement structuredContent)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(structuredContent.GetRawText(), JsonSerializerOptions.Web);
+        }
+        catch (JsonException)
+        {
+            return default;
+        }
+    }
+
     internal static string ToAbsoluteUrl(string apiOrigin, string url) =>
         url.StartsWith("/", StringComparison.Ordinal) ? apiOrigin + url : url;
 
-    internal static string? SummaryText(string? description)
-    {
-        if (string.IsNullOrWhiteSpace(description))
-            return null;
-        var summary = description
-            .Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .FirstOrDefault(paragraph =>
-                !paragraph.TrimStart().StartsWith("1.", StringComparison.Ordinal)
-                && !paragraph.TrimStart().StartsWith("-", StringComparison.Ordinal)
-                && !paragraph.TrimStart().StartsWith("*", StringComparison.Ordinal));
-        return string.IsNullOrWhiteSpace(summary) || !summary.Any(char.IsWhiteSpace) ? null : summary;
-    }
+    internal static string? ToAbsoluteUrlOrNull(string apiOrigin, string? url) =>
+        url is null ? null : ToAbsoluteUrl(apiOrigin, url);
+
+    internal static string? SummaryText(string? description) => McpRecipeText.Summary(description);
 }
 
 /// <summary>One recipe card in the embedded MCP App UI.</summary>
@@ -360,24 +381,31 @@ public sealed record RecipeUiDetail(
     string? Description,
     int Servings,
     string? MealType,
-    int? PreparationTimeMinutes,
-    int? CookingTimeMinutes,
-    int? TotalTimeMinutes,
     RecipeUiImage? Image,
     IReadOnlyList<RecipeUiIngredient> Ingredients,
     bool CanEdit,
     bool IsIncomplete,
     string? EditUrl)
 {
-    public static RecipeUiDetail From(RecipeDetailResponse response, string apiOrigin)
+    public static RecipeUiDetail From(
+        RecipeDetailResponse response,
+        string apiOrigin,
+        string frontendOrigin)
     {
         var ingredients = response.Ingredients
             .Select(RecipeUiIngredient.From)
             .ToList();
         var image = response.Images
             .OrderBy(image => image.SortOrder)
-            .Select(image => new RecipeUiImage(
-                RecipeUiMcp.ToAbsoluteUrl(apiOrigin, image.ContentUrl), image.AltText ?? response.Title))
+            .Select(image =>
+            {
+                var contentUrl = image.ContentUrl;
+                return contentUrl is null
+                    ? null
+                    : new RecipeUiImage(
+                        RecipeUiMcp.ToAbsoluteUrl(apiOrigin, contentUrl), image.AltText ?? response.Title);
+            })
+            .OfType<RecipeUiImage>()
             .FirstOrDefault();
         var isIncomplete = ingredients.Count == 0 || string.IsNullOrWhiteSpace(response.DescriptionMarkdown);
         return new(
@@ -386,14 +414,11 @@ public sealed record RecipeUiDetail(
             response.DescriptionMarkdown,
             response.Servings,
             response.MealType,
-            PreparationTimeMinutes: null,
-            CookingTimeMinutes: null,
-            TotalTimeMinutes: null,
             image,
             ingredients,
             response.CanEdit,
             isIncomplete,
-            response.CanEdit ? $"{apiOrigin}/recipes/{response.Id}/edit" : null);
+            response.CanEdit ? $"{frontendOrigin}/recipes/{response.Id}/edit" : null);
     }
 }
 

@@ -158,7 +158,8 @@ const STRINGS = {
     errorRecipe: "The recipe could not be loaded.", errorNoData: "The host returned no recipe data.",
     errorNoList: "The host did not deliver recipe data to the app.", errorHost: "Host request failed.",
     initFailed: "MCP Apps initialization failed: {message}",
-    incomplete: "This recipe is incomplete.", edit: "Edit recipe", timeMin: "{mins} min",
+    incomplete: "This recipe is incomplete.", noIngredients: "No ingredients added yet.",
+    noMethod: "No preparation steps added yet.", edit: "Edit recipe",
     "slot.breakfast": "Breakfast", "slot.second-breakfast": "Second breakfast", "slot.dinner": "Lunch",
     "slot.snack": "Snack", "slot.supper": "Dinner"
   },
@@ -173,7 +174,8 @@ const STRINGS = {
     errorRecipe: "Nie udało się załadować przepisu.", errorNoData: "Host nie zwrócił danych przepisu.",
     errorNoList: "Host nie przekazał danych przepisów do aplikacji.", errorHost: "Żądanie do hosta nie powiodło się.",
     initFailed: "Inicjalizacja MCP Apps nie powiodła się: {message}",
-    incomplete: "Ten przepis jest niekompletny.", edit: "Edytuj przepis", timeMin: "{mins} min",
+    incomplete: "Ten przepis jest niekompletny.", noIngredients: "Nie dodano jeszcze składników.",
+    noMethod: "Nie dodano jeszcze kroków przygotowania.", edit: "Edytuj przepis",
     "slot.breakfast": "Śniadanie", "slot.second-breakfast": "II śniadanie", "slot.dinner": "Obiad",
     "slot.snack": "Przekąska", "slot.supper": "Kolacja"
   }
@@ -213,14 +215,6 @@ const tv = (prefix, value) => {
 };
 
 const PLACEHOLDER_SVG = '<div class="recipe-placeholder" aria-hidden="true"><svg viewBox="0 0 24 24" width="36" height="36" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10v7a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-7"/><path d="M4 10h16"/><path d="M10 6h4"/><path d="M12 3v3"/><path d="M8 10V8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>';
-
-function getTimeMinutes(item) {
-  if (!item) return null;
-  const raw = item.totalTimeMinutes || item.preparationTimeMinutes || item.cookingTimeMinutes
-    || item.prepTimeMinutes || item.cookTimeMinutes || item.timeMinutes || item.time;
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
 
 function presentationFrom(result) {
   const meta = result && (result._meta || result.meta);
@@ -271,6 +265,14 @@ const bridge = (() => {
 
 const el = (id) => document.getElementById(id);
 const state = { apiOrigin: "", listData: null, detail: null, view: null };
+
+function attachImageFallback(container, selector) {
+  const image = container.querySelector(selector);
+  if (!image) return;
+  image.addEventListener("error", () => {
+    if (image.parentElement) image.parentElement.innerHTML = PLACEHOLDER_SVG;
+  }, { once: true });
+}
 
 /* Re-picks the dictionary from the known locale sources and, when it changed, re-renders the
  * static chrome and whichever view is on screen. */
@@ -372,16 +374,14 @@ function renderList(data) {
     const card = document.createElement("article");
     card.className = "recipe-card";
     card.setAttribute("role", "listitem");
-    const timeMins = getTimeMinutes(recipe);
     const ingredientCount = recipe.ingredientCount || (recipe.ingredients ? recipe.ingredients.length : 0);
     const counts = [];
     if (recipe.servings && recipe.servings > 0) counts.push(tp("servings", recipe.servings));
     if (ingredientCount && ingredientCount > 0) counts.push(tp("ingredients", ingredientCount));
-    if (timeMins) counts.push(t("timeMin", { mins: timeMins }));
     const summary = recipe.description || recipe.summary || "";
     const summaryText = String(summary).replace(/[*_`#]/g, "").split(/\r?\n/)[0].trim();
     const imageHtml = recipe.imageUrl
-      ? `<div class="recipe-media-container"><img class="recipe-image" src="${escapeHtml(recipe.imageUrl)}" alt="${escapeHtml(recipe.title)}" onerror="this.parentElement.innerHTML=PLACEHOLDER_SVG;" /></div>`
+      ? `<div class="recipe-media-container"><img class="recipe-image" src="${escapeHtml(recipe.imageUrl)}" alt="${escapeHtml(recipe.title)}" /></div>`
       : `<div class="recipe-media-container">${PLACEHOLDER_SVG}</div>`;
     card.innerHTML =
       imageHtml +
@@ -392,6 +392,7 @@ function renderList(data) {
       (summaryText ? `<p class="card-summary">${escapeHtml(summaryText)}</p>` : "") +
       "</div>" +
       `<div class="card-actions"><button type="button" class="button primary">${escapeHtml(t("view"))}</button></div>`;
+    attachImageFallback(card, ".recipe-image");
     const viewButton = card.querySelector("button");
     viewButton.addEventListener("click", () => openRecipe(recipe.id, viewButton));
     grid.appendChild(card);
@@ -421,31 +422,38 @@ function renderDetail(recipe) {
   }).join("");
   const ingredientCount = (recipe.ingredients || []).length;
   const description = recipe.description ?? recipe.descriptionMarkdown ?? "";
-  const timeMins = getTimeMinutes(recipe);
   const metaParts = [];
   if (recipe.mealType) metaParts.push(tv("slot", recipe.mealType));
   if (recipe.servings && recipe.servings > 0) metaParts.push(tp("servings", recipe.servings));
   if (ingredientCount > 0) metaParts.push(tp("ingredients", ingredientCount));
-  if (timeMins) metaParts.push(t("timeMin", { mins: timeMins }));
   const incomplete = recipe.isIncomplete === true || ingredientCount === 0 || !description.trim();
   const editAction = recipe.canEdit && recipe.editUrl
     ? `<a class="button secondary" href="${escapeHtml(recipe.editUrl)}" target="_blank" rel="noreferrer">${escapeHtml(t("edit"))}</a>`
     : "";
+  const descriptionParagraphs = description.trim()
+    .replace(/\r\n?/g, "\n")
+    .split(/\n\s*\n/)
+    .map(paragraph => paragraph.trim())
+    .filter(Boolean);
+  const detailSummary = descriptionParagraphs.length > 1
+    ? descriptionParagraphs[0].replace(/[*_`#]/g, "").split(/\r?\n/)[0].trim()
+    : "";
   const ingredientsSection = `<h2>${escapeHtml(t("ingredientsHeading"))}</h2>` +
-    (ingredients ? `<ul class="ingredient-list">${ingredients}</ul>` : `<p class="incomplete-note">${escapeHtml(t("incomplete"))}</p>`);
+    (ingredients ? `<ul class="ingredient-list">${ingredients}</ul>` : `<p class="incomplete-note">${escapeHtml(t("noIngredients"))}</p>`);
   const methodSection = `<h2>${escapeHtml(t("methodHeading"))}</h2>` +
-    (description.trim() ? `<div class="markdown-body">${renderMarkdown(description)}</div>` : `<p class="incomplete-note">${escapeHtml(t("incomplete"))}</p>`);
+    (description.trim() ? `<div class="markdown-body">${renderMarkdown(description)}</div>` : `<p class="incomplete-note">${escapeHtml(t("noMethod"))}</p>`);
   el("detail-card").innerHTML =
-    (imageUrl ? `<div class="detail-media-container"><img class="detail-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(image.altText || recipe.title)}" onerror="this.parentElement.innerHTML=PLACEHOLDER_SVG;" /></div>` : `<div class="detail-media-container detail-placeholder">${PLACEHOLDER_SVG}</div>`) +
+    (imageUrl ? `<div class="detail-media-container"><img class="detail-image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(image.altText || recipe.title)}" /></div>` : `<div class="detail-media-container detail-placeholder">${PLACEHOLDER_SVG}</div>`) +
     '<div class="detail-body">' +
     `<p class="eyebrow">${escapeHtml(t("detailEyebrow"))}${metaParts.length ? " · " + escapeHtml(metaParts.join(" · ")) : ""}</p>` +
     `<h1>${escapeHtml(recipe.title)}</h1>` +
-    (description.trim() ? `<p class="detail-meta">${escapeHtml(description.replace(/[*_`#]/g, "").split(/\r?\n/)[0])}</p>` : "") +
+    (detailSummary ? `<p class="detail-meta">${escapeHtml(detailSummary)}</p>` : "") +
     (incomplete ? `<p class="incomplete-note" role="status">${escapeHtml(t("incomplete"))}</p>` : "") +
     ingredientsSection +
     methodSection +
     (editAction ? `<div class="detail-actions">${editAction}</div>` : "") +
     "</div>";
+  attachImageFallback(el("detail-card"), ".detail-image");
   show("detail");
 }
 

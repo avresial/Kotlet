@@ -43,7 +43,7 @@ public sealed class RecipeResponseMapper(
         if (firstImageIds is not null && firstImageIds.TryGetValue(summary.Id, out var imageId))
             firstImageUrl = $"/api/recipes/{summary.Id}/images/{imageId}/content";
         return new(summary.Id, summary.Title, summary.Slug, summary.OwnerUserId, summary.IngredientCount, summary.Servings.Value,
-            summary.MealType?.ToApiValue(), summary.Description, firstImageUrl, summary.IsAiAssisted,
+            summary.MealType?.ToApiValue(), summary.DescriptionMarkdown, firstImageUrl, summary.IsAiAssisted,
             summary.CreatedAtUtc, summary.UpdatedAtUtc);
     }
 
