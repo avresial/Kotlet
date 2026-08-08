@@ -1031,6 +1031,12 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.HasIndex("UpdatedAtUtc")
                         .HasDatabaseName("ix_recipes_updated_at_utc");
 
+                    b.HasIndex("HouseId", "UpdatedAtUtc", "Id")
+                        .HasDatabaseName("ix_recipes_house_updated_id");
+
+                    b.HasIndex("HouseId", "CreatedAtUtc", "Id")
+                        .HasDatabaseName("ix_recipes_house_created_id");
+
                     b.HasIndex("OwnerUserId", "Slug")
                         .IsUnique()
                         .HasDatabaseName("ux_recipes_owner_slug");

@@ -33,13 +33,17 @@ public sealed class RecipeResponseMapper(
     }
 
     public RecipeSummaryResponse ToSummaryResponse(
-        Recipe recipe, IReadOnlyDictionary<Guid, Guid>? firstImageIds = null)
+        Recipe recipe, IReadOnlyDictionary<Guid, Guid>? firstImageIds = null) =>
+        ToSummaryResponse(RecipeSummaryData.FromRecipe(recipe), firstImageIds);
+
+    public RecipeSummaryResponse ToSummaryResponse(
+        RecipeSummaryData summary, IReadOnlyDictionary<Guid, Guid>? firstImageIds = null)
     {
         string? firstImageUrl = null;
-        if (firstImageIds is not null && firstImageIds.TryGetValue(recipe.Id, out var imageId))
-            firstImageUrl = $"/api/recipes/{recipe.Id}/images/{imageId}/content";
-        return new(recipe.Id, recipe.Title, recipe.Slug, recipe.OwnerUserId, recipe.Ingredients.Count, recipe.Servings.Value, recipe.MealType?.ToApiValue(),
-            firstImageUrl, recipe.IsAiAssisted, recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
+        if (firstImageIds is not null && firstImageIds.TryGetValue(summary.Id, out var imageId))
+            firstImageUrl = $"/api/recipes/{summary.Id}/images/{imageId}/content";
+        return new(summary.Id, summary.Title, summary.Slug, summary.OwnerUserId, summary.IngredientCount, summary.Servings.Value,
+            summary.MealType?.ToApiValue(), firstImageUrl, summary.IsAiAssisted, summary.CreatedAtUtc, summary.UpdatedAtUtc);
     }
 
     public static RecipeImageResponse ToImageResponse(RecipeImage i) => new(i.Id, i.RecipeId, i.Image.FileName,
