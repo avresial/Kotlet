@@ -87,7 +87,9 @@ public sealed class McpSession(HttpClient client, string accessToken, string pro
     private object AddProtocolMetadata(object parameters)
     {
         if (protocolVersion != "2026-07-28")
+        {
             return parameters;
+        }
 
         var parametersObject = JsonSerializer.SerializeToNode(parameters)?.AsObject()
             ?? new JsonObject();

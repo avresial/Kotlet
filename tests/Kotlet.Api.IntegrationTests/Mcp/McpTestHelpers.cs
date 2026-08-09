@@ -61,19 +61,22 @@ public static class McpTestHelpers
         });
         var authorizeResponse = await client.GetAsync(authorization);
         Assert.Equal(HttpStatusCode.Redirect, authorizeResponse.StatusCode);
-        var code = Assert.Single(QueryHelpers.ParseQuery(authorizeResponse.Headers.Location!.Query)["code"]);
+        var location = Assert.IsType<Uri>(authorizeResponse.Headers.Location);
+        var code = Assert.Single(QueryHelpers.ParseQuery(location.Query)["code"]);
+        Assert.NotNull(code);
         var tokenResponse = await client.PostAsync("/connect/token", new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["grant_type"] = "authorization_code",
             ["client_id"] = "kotlet-mcp-tests",
-            ["code"] = code!,
+            ["code"] = code,
             ["redirect_uri"] = "http://127.0.0.1/callback",
             ["code_verifier"] = verifier,
             ["resource"] = "http://localhost/mcp"
         }));
         tokenResponse.EnsureSuccessStatusCode();
         var accessToken = (await tokenResponse.Content.ReadFromJsonAsync<JsonElement>())
-            .GetProperty("access_token").GetString()!;
+            .GetProperty("access_token").GetString();
+        Assert.NotNull(accessToken);
         return (client, accessToken);
     }
 
@@ -137,7 +140,9 @@ public static class McpTestHelpers
     private static object AddProtocolMetadata(object parameters, string protocolVersion)
     {
         if (protocolVersion != DefaultProtocolVersion)
+        {
             return parameters;
+        }
 
         var parametersObject = JsonSerializer.SerializeToNode(parameters)?.AsObject()
             ?? new JsonObject();
@@ -172,8 +177,9 @@ public static class McpTestHelpers
     {
         var content = Assert.Single(result.GetProperty("content").EnumerateArray());
         var text = content.GetProperty("text").GetString();
-        Assert.Contains(expected, text!);
-        Assert.True(text!.Length < 120);
+        Assert.NotNull(text);
+        Assert.Contains(expected, text);
+        Assert.True(text.Length < 120);
         Assert.DoesNotContain('{', text);
     }
 
