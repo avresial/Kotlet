@@ -4,17 +4,19 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace Kotlet.Bench;
 
 /// <summary>One authenticated MCP connection, plus the JSON-RPC plumbing used to time calls.</summary>
-public sealed class McpSession(HttpClient client, string accessToken, string protocolVersion)
+public sealed class McpSession(HttpClient client, string accessToken, string protocolVersion = "2026-07-28")
 {
+    private const string ProtocolVersionMetadataKey = "io.modelcontextprotocol/protocolVersion";
     private int requestId;
 
     public static async Task<McpSession> ConnectAsync(
-        HttpClient client, Credentials credentials, string resource, string clientId, string protocolVersion)
+        HttpClient client, Credentials credentials, string resource, string clientId, string protocolVersion = "2026-07-28")
     {
         // The authorization endpoint authenticates from the refresh cookie that signing in
         // sets, so the cookie-carrying client is what drives the OAuth handshake below.
@@ -33,12 +35,20 @@ public sealed class McpSession(HttpClient client, string accessToken, string pro
         request.Headers.Accept.ParseAdd("application/json");
         request.Headers.Accept.ParseAdd("text/event-stream");
         request.Headers.Add("MCP-Protocol-Version", protocolVersion);
+        if (protocolVersion == "2026-07-28")
+        {
+            request.Headers.Add("Mcp-Method", method);
+            if (GetRequestName(method, parameters) is { } requestName)
+            {
+                request.Headers.Add("Mcp-Name", requestName);
+            }
+        }
         request.Content = JsonContent.Create(new
         {
             jsonrpc = "2.0",
             id = Interlocked.Increment(ref requestId),
             method,
-            @params = parameters
+            @params = AddProtocolMetadata(parameters)
         });
 
         var queriesBefore = counter?.Count ?? 0;
@@ -58,8 +68,40 @@ public sealed class McpSession(HttpClient client, string accessToken, string pro
             payload);
     }
 
+    private static string? GetRequestName(string method, object parameters)
+    {
+        var parametersElement = JsonSerializer.SerializeToElement(parameters);
+        return method switch
+        {
+            "tools/call" or "prompts/get" when parametersElement.TryGetProperty("name", out var name)
+                => name.GetString(),
+            "resources/read" when parametersElement.TryGetProperty("uri", out var uri)
+                => uri.GetString(),
+            _ => null
+        };
+    }
+
     public Task<McpCallResult> CallToolAsync(string name, object arguments, DbQueryCounter? counter = null) =>
         SendAsync("tools/call", new { name, arguments }, counter);
+
+    private object AddProtocolMetadata(object parameters)
+    {
+        if (protocolVersion != "2026-07-28")
+            return parameters;
+
+        var parametersObject = JsonSerializer.SerializeToNode(parameters)?.AsObject()
+            ?? new JsonObject();
+        var metadata = parametersObject["_meta"] as JsonObject ?? new JsonObject();
+        metadata[ProtocolVersionMetadataKey] = protocolVersion;
+        metadata["io.modelcontextprotocol/clientCapabilities"] = new JsonObject();
+        metadata["io.modelcontextprotocol/clientInfo"] = new JsonObject
+        {
+            ["name"] = "kotlet-bench",
+            ["version"] = "1.0.0"
+        };
+        parametersObject["_meta"] = metadata;
+        return parametersObject;
+    }
 
     /// <summary>Server-Sent-Events framing wraps the JSON body in a "data: " line.</summary>
     private static string StripEventStreamFraming(string body)
