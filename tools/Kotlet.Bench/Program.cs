@@ -9,7 +9,7 @@ namespace Kotlet.Bench;
 /// </summary>
 public static class BenchProgram
 {
-    private const string ProtocolVersion = "2025-11-25";
+    private const string ProtocolVersion = "2026-07-28";
 
     public static async Task<int> Main(string[] args)
     {
