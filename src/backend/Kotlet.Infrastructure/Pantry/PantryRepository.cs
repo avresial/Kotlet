@@ -18,5 +18,13 @@ internal sealed class PantryRepository(KotletDbContext dbContext) : IPantryRepos
         dbContext.PantryItems.AnyAsync(x => x.HouseId == houseId && x.IngredientId == ingredientId, cancellationToken);
     public void Add(PantryItem item) => dbContext.PantryItems.Add(item);
     public void Remove(PantryItem item) => dbContext.PantryItems.Remove(item);
+    public async Task IncrementPantryVersionAsync(Guid houseId, CancellationToken cancellationToken)
+    {
+        var house = await dbContext.Houses.SingleOrDefaultAsync(item => item.Id == houseId, cancellationToken);
+        if (house is not null)
+        {
+            house.PantryVersion++;
+        }
+    }
     public Task SaveChangesAsync(CancellationToken cancellationToken) => dbContext.SaveChangesAsync(cancellationToken);
 }

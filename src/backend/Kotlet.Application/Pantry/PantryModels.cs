@@ -2,7 +2,18 @@ using Kotlet.Domain.Pantry;
 
 namespace Kotlet.Application.Pantry;
 
-public sealed record PantryItemDto(Guid Id, Guid IngredientId, string IngredientName, string MeasurementUnit, decimal Quantity, DateOnly? ExpirationDate, StorageLocation? StorageLocation);
+public sealed record PantryItemDto(
+    Guid Id,
+    Guid IngredientId,
+    string IngredientName,
+    string MeasurementUnit,
+    decimal Quantity,
+    DateOnly? ExpirationDate,
+    StorageLocation? StorageLocation,
+    decimal? LastObservedQuantity = null,
+    string? LastObservedUnit = null,
+    string? PackageDescription = null,
+    decimal? ConversionConfidence = null);
 public sealed record SavePantryItemCommand(Guid IngredientId, decimal Quantity, DateOnly? ExpirationDate = null, StorageLocation? StorageLocation = null);
 
 public enum PantryOperationStatus { Success, NotFound, Conflict, ValidationFailed }

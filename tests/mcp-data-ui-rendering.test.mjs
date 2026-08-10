@@ -10,9 +10,24 @@ const html = readFileSync(
   "utf8",
 );
 
+const pantryReconciliation = {
+  status: "Success",
+  pantryVersion: 4,
+  added: [{ itemName: "Milk", measurementUnit: "ml", newQuantity: 1000, newUnit: "ml", changeQuantity: 1000 }],
+  increased: [{ itemName: "Rice", measurementUnit: "g", previousQuantity: 200, newQuantity: 500, changeQuantity: 300 }],
+  decreased: [{ itemName: "Flour", measurementUnit: "g", previousQuantity: 800, newQuantity: 400, changeQuantity: -400 }],
+  removed: [{ itemName: "Tea", measurementUnit: "g", previousQuantity: 100, newQuantity: null, changeQuantity: -100 }],
+  unchanged: [{ itemName: "Salt", measurementUnit: "g", previousQuantity: 50, newQuantity: 50, changeQuantity: 0 }],
+  needsReview: [{ itemName: "Eggs", reason: "Quantity needs review", observedQuantity: 6, observedUnit: "piece", quantityConfidence: 0.4 }],
+  unmatched: [{ rawPhrase: "mystery carton", identityConfidence: 0.3 }],
+  ambiguous: [{ rawPhrase: "cream", identityConfidence: 0.6, candidates: [{ itemId: "x" }, { itemId: "y" }] }],
+  unrecognizedCount: 2,
+};
+
 const cases = [
   ["Shopping list", [{ ingredientName: "Milk", measurementUnit: "ml", quantity: 500, totalPrice: 4.2, isPurchased: false, category: "Dairy" }]],
   ["Pantry", [{ ingredientName: "Rice", measurementUnit: "g", quantity: 800, expirationDate: "2027-01-01", storageLocation: "Cabinet" }]],
+  ["Pantry reconciliation", pantryReconciliation],
   ["Prepared meals", [{ name: "Curry", servings: 2, caloriesPerServing: 350, price: 12.5, isArchived: false, addons: [], preparationInstructions: "Heat." }]],
   ["Meal plan", [{ date: "2026-07-23", meals: { dinner: [{ displayName: "Curry", type: "prepared-meal", servings: 2, guests: 0 }] } }]],
   ["Ingredient matches", [{ inputName: "Tomto", matchedName: "Tomato", matchedLanguage: "en", measurementUnit: "g", exactMatch: false, similarity: 0.83 }]],
@@ -40,6 +55,38 @@ test("shared MCP app renders every custom data shape", () => {
     assert.ok(dom.window.document.getElementById("content").textContent.trim());
     dom.window.close();
   }
+});
+
+test("pantry reconciliation keeps changes and review queues in separate groups", () => {
+  const dom = new JSDOM(html, {
+    runScripts: "dangerously",
+    url: "https://widget.test/",
+    beforeParse(window) {
+      window.matchMedia = () => ({ matches: false });
+    },
+  });
+  dom.window.dispatchEvent(new dom.window.MessageEvent("message", {
+    data: {
+      jsonrpc: "2.0",
+      method: "ui/notifications/tool-result",
+      params: { structuredContent: pantryReconciliation },
+    },
+  }));
+
+  const document = dom.window.document;
+  assert.equal(document.getElementById("title").textContent, "Pantry reconciliation");
+  assert.equal(document.getElementById("summary").textContent, "Pantry version 4");
+  assert.deepEqual(
+    [...document.querySelectorAll(".section h2")].map((heading) => heading.textContent),
+    ["More", "Less", "Needs review", "Not matched", "Not recognized"],
+  );
+  assert.equal(document.querySelector("details.reconciliation-collapsed").open, false);
+  assert.match(document.querySelector("details.reconciliation-collapsed summary").textContent, /Unchanged · 1 item/);
+  assert.match(document.querySelector(".section").textContent, /Milk/);
+  assert.match(document.body.textContent, /mystery carton/);
+  assert.match(document.body.textContent, /cream/);
+  assert.match(document.body.textContent, /2 not recognized/);
+  dom.window.close();
 });
 
 test("meal operation result prioritizes useful content and hides identifiers", () => {

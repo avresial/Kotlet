@@ -217,11 +217,16 @@ public sealed record McpPantryItem(
     string MeasurementUnit,
     decimal Quantity,
     DateOnly? ExpirationDate,
-    string? StorageLocation)
+    string? StorageLocation,
+    decimal? LastObservedQuantity = null,
+    string? LastObservedUnit = null,
+    string? PackageDescription = null,
+    decimal? ConversionConfidence = null)
 {
     public static McpPantryItem From(PantryItemDto dto) => new(
         dto.Id, dto.IngredientId, dto.IngredientName, dto.MeasurementUnit,
-        dto.Quantity, dto.ExpirationDate, dto.StorageLocation?.ToString());
+        dto.Quantity, dto.ExpirationDate, dto.StorageLocation?.ToString(), dto.LastObservedQuantity,
+        dto.LastObservedUnit, dto.PackageDescription, dto.ConversionConfidence);
 }
 
 public sealed record McpPantryOperationResult(

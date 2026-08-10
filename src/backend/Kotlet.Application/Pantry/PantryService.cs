@@ -26,6 +26,7 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
 
         var item = new PantryItem { Id = Guid.NewGuid(), HouseId = houseId, IngredientId = command.IngredientId, Quantity = Quantity.FromAmount(command.Quantity), ExpirationDate = command.ExpirationDate, StorageLocation = command.StorageLocation };
         repository.Add(item);
+        await repository.IncrementPantryVersionAsync(houseId, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
         var saved = await repository.GetByIdAsync(item.Id, houseId, cancellationToken);
         return new(PantryOperationStatus.Success, await ToLocalizedDtoAsync(saved!, languageCode, cancellationToken));
@@ -38,6 +39,7 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
         var item = await repository.GetByIdAsync(id, houseId, cancellationToken);
         if (item is null) return new(PantryOperationStatus.NotFound);
         item.Quantity = Quantity.FromAmount(quantity);
+        await repository.IncrementPantryVersionAsync(houseId, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
         return new(PantryOperationStatus.Success, await ToLocalizedDtoAsync(item, languageCode, cancellationToken));
     }
@@ -47,6 +49,7 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
         var item = await repository.GetByIdAsync(id, houseId, cancellationToken);
         if (item is null) return PantryOperationStatus.NotFound;
         repository.Remove(item);
+        await repository.IncrementPantryVersionAsync(houseId, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
         return PantryOperationStatus.Success;
     }
@@ -70,5 +73,7 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
         && !string.IsNullOrWhiteSpace(translated) ? translated : fallback;
 
     private static PantryItemDto ToDto(PantryItem item, string ingredientName) =>
-        new(item.Id, item.IngredientId, ingredientName, item.Ingredient.MeasurementUnit, item.Quantity.Amount, item.ExpirationDate, item.StorageLocation);
+        new(item.Id, item.IngredientId, ingredientName, item.Ingredient.MeasurementUnit, item.Quantity.Amount,
+            item.ExpirationDate, item.StorageLocation, item.LastObservedQuantity, item.LastObservedUnit,
+            item.PackageDescription, item.ConversionConfidence);
 }

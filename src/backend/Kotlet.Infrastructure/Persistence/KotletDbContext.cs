@@ -31,6 +31,8 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<PantryItem> PantryItems => Set<PantryItem>();
+    public DbSet<PantryReconciliationOperation> PantryReconciliationOperations => Set<PantryReconciliationOperation>();
+    public DbSet<PantryUnmatchedPhrase> PantryUnmatchedPhrases => Set<PantryUnmatchedPhrase>();
     public DbSet<House> Houses => Set<House>();
     public DbSet<HouseMembership> HouseMemberships => Set<HouseMembership>();
     public DbSet<HouseInvitation> HouseInvitations => Set<HouseInvitation>();

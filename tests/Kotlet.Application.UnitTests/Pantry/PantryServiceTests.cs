@@ -247,6 +247,7 @@ public sealed class PantryServiceTests
 
         public void Add(PantryItem item) => Items.Add(item);
         public void Remove(PantryItem item) => Items.Remove(item);
+        public Task IncrementPantryVersionAsync(Guid houseId, CancellationToken cancellationToken) => Task.CompletedTask;
         public Task SaveChangesAsync(CancellationToken cancellationToken) { SaveCount++; return Task.CompletedTask; }
 
         private PantryItem Hydrate(PantryItem item)

@@ -10,5 +10,6 @@ public interface IPantryRepository
     Task<bool> ItemExistsAsync(Guid houseId, Guid ingredientId, CancellationToken cancellationToken);
     void Add(PantryItem item);
     void Remove(PantryItem item);
+    Task IncrementPantryVersionAsync(Guid houseId, CancellationToken cancellationToken);
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

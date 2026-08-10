@@ -12,6 +12,12 @@ public sealed class PantryItem
     public Quantity Quantity { get; set; }
     public DateOnly? ExpirationDate { get; set; }
     public StorageLocation? StorageLocation { get; set; }
+    public decimal? LastObservedQuantity { get; set; }
+    public string? LastObservedUnit { get; set; }
+    public string? PackageDescription { get; set; }
+    public decimal? ConversionConfidence { get; set; }
+    public DateTimeOffset? LastObservedAtUtc { get; set; }
+    public string? LastObservationIdsJson { get; set; }
     public House House { get; set; } = null!;
     public Ingredient Ingredient { get; set; } = null!;
 }
