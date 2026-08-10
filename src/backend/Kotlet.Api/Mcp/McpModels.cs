@@ -95,7 +95,9 @@ public sealed record McpRecipeSummary(
     int Servings,
     string? MealType,
     IReadOnlyList<McpRecipePlanningIngredient> Ingredients,
-    string ResourceUri);
+    string ResourceUri,
+    string? Description,
+    string? ImageUrl);
 
 public sealed record McpRecipeSearchResponse(
     IReadOnlyList<McpRecipeSummary> Recipes,
@@ -110,9 +112,33 @@ public sealed record McpRecipeSearchResponse(
             recipe.Ingredients
                 .Select(ingredient => new McpRecipePlanningIngredient(ingredient.Id, ingredient.Name))
                 .ToList(),
-            $"kotlet://recipes/{recipe.Id}"))
+            $"kotlet://recipes/{recipe.Id}",
+            McpRecipeText.Summary(recipe.DescriptionMarkdown),
+            recipe.FirstImageUrl))
             .ToList(),
         response.TotalCount);
+}
+
+internal static class McpRecipeText
+{
+    public static string? Summary(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            return null;
+        }
+
+        var summary = description
+            .ReplaceLineEndings("\n")
+            .Split("\n\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault(paragraph =>
+                !paragraph.TrimStart().StartsWith("1.", StringComparison.Ordinal)
+                && !paragraph.TrimStart().StartsWith("-", StringComparison.Ordinal)
+                && !paragraph.TrimStart().StartsWith("*", StringComparison.Ordinal));
+
+        // Single-word values are usually titles or placeholder tokens, not useful summaries.
+        return string.IsNullOrWhiteSpace(summary) || !summary.Any(char.IsWhiteSpace) ? null : summary;
+    }
 }
 
 public sealed record McpRecipeExistenceResult(bool Exists, IReadOnlyList<McpRecipeMatch> Matches)
@@ -191,11 +217,16 @@ public sealed record McpPantryItem(
     string MeasurementUnit,
     decimal Quantity,
     DateOnly? ExpirationDate,
-    string? StorageLocation)
+    string? StorageLocation,
+    decimal? LastObservedQuantity = null,
+    string? LastObservedUnit = null,
+    string? PackageDescription = null,
+    decimal? ConversionConfidence = null)
 {
     public static McpPantryItem From(PantryItemDto dto) => new(
         dto.Id, dto.IngredientId, dto.IngredientName, dto.MeasurementUnit,
-        dto.Quantity, dto.ExpirationDate, dto.StorageLocation?.ToString());
+        dto.Quantity, dto.ExpirationDate, dto.StorageLocation?.ToString(), dto.LastObservedQuantity,
+        dto.LastObservedUnit, dto.PackageDescription, dto.ConversionConfidence);
 }
 
 public sealed record McpPantryOperationResult(

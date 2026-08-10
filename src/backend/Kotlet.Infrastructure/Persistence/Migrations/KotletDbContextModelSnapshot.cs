@@ -428,6 +428,11 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(150)")
                         .HasColumnName("name");
 
+                    b.Property<long>("PantryVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint")
+                        .HasColumnName("pantry_version");
+
                     b.HasKey("Id");
 
                     b.ToTable("houses", "kotlet");
@@ -767,6 +772,11 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<decimal?>("ConversionConfidence")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("numeric(5,4)")
+                        .HasColumnName("conversion_confidence");
+
                     b.Property<DateOnly?>("ExpirationDate")
                         .HasColumnType("date")
                         .HasColumnName("expiration_date");
@@ -778,6 +788,29 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("IngredientId")
                         .HasColumnType("uuid")
                         .HasColumnName("ingredient_id");
+
+                    b.Property<string>("LastObservationIdsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("last_observation_ids_json");
+
+                    b.Property<DateTimeOffset?>("LastObservedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_observed_at_utc");
+
+                    b.Property<decimal?>("LastObservedQuantity")
+                        .HasPrecision(11, 3)
+                        .HasColumnType("numeric(11,3)")
+                        .HasColumnName("last_observed_quantity");
+
+                    b.Property<string>("LastObservedUnit")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("last_observed_unit");
+
+                    b.Property<string>("PackageDescription")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("package_description");
 
                     b.Property<decimal>("Quantity")
                         .HasPrecision(11, 3)
@@ -797,6 +830,126 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ux_pantry_items_house_ingredient");
 
                     b.ToTable("pantry_items", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Pantry.PantryReconciliationOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
+                    b.Property<string>("OperationId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("operation_id");
+
+                    b.Property<long>("PantryVersion")
+                        .HasColumnType("bigint")
+                        .HasColumnName("pantry_version");
+
+                    b.Property<string>("ResponseJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("response_json");
+
+                    b.Property<string>("UndoResponseJson")
+                        .HasColumnType("text")
+                        .HasColumnName("undo_response_json");
+
+                    b.Property<string>("UndoStateJson")
+                        .HasColumnType("text")
+                        .HasColumnName("undo_state_json");
+
+                    b.Property<string>("UndoToken")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("undo_token");
+
+                    b.Property<DateTimeOffset?>("UndoneAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("undone_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UndoToken")
+                        .IsUnique()
+                        .HasDatabaseName("ux_pantry_reconciliation_operations_undo_token");
+
+                    b.HasIndex("HouseId", "OperationId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_pantry_reconciliation_operations_house_operation");
+
+                    b.ToTable("pantry_reconciliation_operations", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Pantry.PantryUnmatchedPhrase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CandidateIdsJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("candidate_ids_json");
+
+                    b.Property<DateTimeOffset>("FirstSeenAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_seen_at_utc");
+
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
+                    b.Property<DateTimeOffset>("LastSeenAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at_utc");
+
+                    b.Property<string>("Locale")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("locale");
+
+                    b.Property<string>("NormalizedPhrase")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("normalized_phrase");
+
+                    b.Property<int>("OccurrenceCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("occurrence_count");
+
+                    b.Property<string>("RawPhrase")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("raw_phrase");
+
+                    b.Property<decimal?>("RecognitionConfidence")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("numeric(5,4)")
+                        .HasColumnName("recognition_confidence");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseId", "NormalizedPhrase", "Locale")
+                        .IsUnique()
+                        .HasDatabaseName("ux_pantry_unmatched_phrases_house_phrase_locale");
+
+                    b.ToTable("pantry_unmatched_phrases", "kotlet");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.PreparedMeals.PreparedMeal", b =>
@@ -1034,6 +1187,12 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerUserId", "Slug")
                         .IsUnique()
                         .HasDatabaseName("ux_recipes_owner_slug");
+
+                    b.HasIndex("HouseId", "CreatedAtUtc", "Id")
+                        .HasDatabaseName("ix_recipes_house_created_id");
+
+                    b.HasIndex("HouseId", "UpdatedAtUtc", "Id")
+                        .HasDatabaseName("ix_recipes_house_updated_id");
 
                     b.ToTable("recipes", "kotlet");
                 });
@@ -1771,6 +1930,28 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("House");
 
                     b.Navigation("Ingredient");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Pantry.PantryReconciliationOperation", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Houses.House", "House")
+                        .WithMany()
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("House");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Pantry.PantryUnmatchedPhrase", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Houses.House", "House")
+                        .WithMany()
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("House");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.PreparedMeals.PreparedMeal", b =>

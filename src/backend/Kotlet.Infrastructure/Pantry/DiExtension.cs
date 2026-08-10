@@ -9,6 +9,7 @@ public static class DiExtension
     {
         services.AddMemoryCache();
         services.AddScoped<IPantryRepository, PantryRepository>();
+        services.AddScoped<IPantryReconciliationRepository, PantryReconciliationRepository>();
         services.AddScoped<IPantryRecipeMatchCache, PantryRecipeMatchMemoryCache>();
         services.AddScoped<PantryRecipeMatchCacheInterceptor>();
         return services;

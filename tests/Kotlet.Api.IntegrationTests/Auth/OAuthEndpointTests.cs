@@ -5,6 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Kotlet.Api.IntegrationTests.Mcp;
 using Kotlet.Domain.Ingredients;
 using Kotlet.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -203,20 +204,7 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
         => SendMcp(client, accessToken, "prompts/get", new { name });
 
     private static Task<HttpResponseMessage> SendMcp(
-        HttpClient client, string accessToken, string method, object parameters)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/mcp");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        request.Headers.Accept.ParseAdd("application/json");
-        request.Headers.Accept.ParseAdd("text/event-stream");
-        request.Headers.Add("MCP-Protocol-Version", "2025-11-25");
-        request.Content = JsonContent.Create(new
-        {
-            jsonrpc = "2.0",
-            id = 1,
-            method,
-            @params = parameters
-        });
-        return client.SendAsync(request);
-    }
+        HttpClient client, string accessToken, string method, object parameters,
+        string protocolVersion = McpTestHelpers.DefaultProtocolVersion)
+        => McpTestHelpers.SendMcp(client, accessToken, method, parameters, protocolVersion);
 }

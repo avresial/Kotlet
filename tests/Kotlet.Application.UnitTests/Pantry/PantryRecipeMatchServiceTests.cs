@@ -271,6 +271,7 @@ public sealed class PantryRecipeMatchServiceTests
             throw new NotSupportedException();
         public void Add(PantryItem item) => throw new NotSupportedException();
         public void Remove(PantryItem item) => throw new NotSupportedException();
+        public Task IncrementPantryVersionAsync(Guid houseId, CancellationToken cancellationToken) => throw new NotSupportedException();
         public Task SaveChangesAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 

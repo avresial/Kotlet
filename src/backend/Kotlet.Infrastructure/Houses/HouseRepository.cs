@@ -106,5 +106,31 @@ public sealed class HouseRepository(KotletDbContext dbContext) : IHouseRepositor
     public void RemoveHouse(House house) => dbContext.Houses.Remove(house);
     public void RemoveMembership(HouseMembership membership) => dbContext.HouseMemberships.Remove(membership);
     public void RemoveInvitation(HouseInvitation invitation) => dbContext.HouseInvitations.Remove(invitation);
-    public Task SaveChangesAsync(CancellationToken cancellationToken) => dbContext.SaveChangesAsync(cancellationToken);
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+            when (exception.Entries.Count > 0 && exception.Entries.All(entry => entry.Entity is House))
+        {
+            // PantryVersion protects pantry mutations. Refresh that token so an unrelated house write can
+            // be retried without making renames, invitations, or deletes fail after a pantry change.
+            foreach (var entry in exception.Entries)
+            {
+                var databaseValues = await entry.GetDatabaseValuesAsync(cancellationToken);
+                if (databaseValues is null)
+                {
+                    throw;
+                }
+
+                entry.OriginalValues.SetValues(databaseValues);
+                entry.Property(nameof(House.PantryVersion)).CurrentValue =
+                    databaseValues[nameof(House.PantryVersion)];
+            }
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+    }
 }

@@ -74,6 +74,19 @@ public static class DiExtension
 
                 Other browsing: get_shopping_list, get_pantry, get_meal_plan_overview/get_meal_plan.
 
+                Fridge-photo pantry flow:
+                1. Ask the vision-capable host to deduplicate all visible objects across every fridge photo and call
+                   pantry.resolve_observations once with the complete normalized observation list. Keep its matched,
+                   ambiguous, unmatched, and unrecognized categories separate; never invent an item id.
+                2. Resolve every matched item using the returned item id and itemType, preserve observed and normalized
+                   quantities/units, then call pantry.reconcile once with the returned pantryVersion and a unique
+                   operationId. Use merge by default: absence from a photo never removes a pantry item.
+                3. Use reconcile_visible_snapshot or replace_location only when the user confirms that the selected
+                   location is fully covered. replace_location also requires explicit confirmation. Treat needsReview,
+                   unmatched, ambiguous, and unrecognized results as distinct; never silently apply low-confidence
+                   quantities. Use pantry.undo_reconcile with the returned undoToken when a destructive result must be
+                   reversed.
+
                 Direct meal-plan changes: use meal_plan_get_range first, then meal_plan_replace for a single entry,
                 meal_plan_move or meal_plan_swap for atomic movement, meal_plan_clear_slot to empty a slot, and
                 meal_plan_recommend_replacement followed by meal_plan_apply_replacement when the user wants a
@@ -116,6 +129,7 @@ public static class DiExtension
                 {
                     var result = await next(request, cancellationToken);
                     DataUiMcp.AttachTo(result.Tools);
+                    RecipeUiMcp.AttachToRecipeTools(result.Tools);
                     // Keep discovery compact for every generated tool. Compact-result tools publish
                     // precise schemas; the generic object fallback intentionally avoids restoring the
                     // large SDK-generated schemas trimmed in 036e6da.
@@ -128,7 +142,19 @@ public static class DiExtension
             {
                 var result = await next(request, cancellationToken);
                 if (!request.Params.Name.StartsWith("show_") && request.Params.Name != MealPlanUiMcp.ToolName)
+                {
                     McpToolResultAdapter.Apply(request.Params.Name, result);
+                }
+                if (request.Params.Name is "get_recipes" or "get_recipe")
+                {
+                    await RecipeUiMcp.ApplyPresentationAsync(
+                        request.Params.Name,
+                        result,
+                        RecipeUiMcp.ApiOrigin(oauth),
+                        RecipeUiMcp.FrontendOrigin(oauth),
+                        request.Services,
+                        cancellationToken);
+                }
                 // Every result may end up in an MCP App, so all of them carry the negotiated language.
                 McpUiLocale.Apply(request.Services, result);
                 return result;

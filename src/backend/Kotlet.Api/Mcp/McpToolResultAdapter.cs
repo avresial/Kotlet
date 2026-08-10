@@ -22,12 +22,24 @@ internal static class McpToolResultAdapter
         "set_meal_participants"
     ];
 
+    private static readonly HashSet<string> PreserveStructuredTools =
+    [
+        "pantry.resolve_observations",
+        "pantry.reconcile",
+        "pantry.undo_reconcile"
+    ];
+
     private static readonly IReadOnlyDictionary<string, JsonElement> OutputSchemas = CreateOutputSchemas();
 
     public static void Apply(string toolName, CallToolResult result)
     {
         if (result.StructuredContent is not { } fullResult || result.IsError is true)
             return;
+
+        if (PreserveStructuredTools.Contains(toolName))
+        {
+            return;
+        }
 
         if (!CompactTools.Contains(toolName))
         {
@@ -80,6 +92,18 @@ internal static class McpToolResultAdapter
             """)
         };
         schemas["meal_plan_get_range"] = schemas["get_meal_plan"];
+        schemas["pantry.resolve_observations"] = Schema(
+            """
+            {"type":"object","properties":{"status":{"type":"string"},"pantryVersion":{"type":"integer"},"matched":{"type":"array"},"ambiguous":{"type":"array"},"unmatched":{"type":"array"},"unrecognizedCount":{"type":"integer"},"validationErrors":{"type":["object","null"]},"message":{"type":["string","null"]}},"required":["status","pantryVersion","matched","ambiguous","unmatched","unrecognizedCount"],"additionalProperties":true}
+            """);
+        schemas["pantry.reconcile"] = Schema(
+            """
+            {"type":"object","properties":{"status":{"type":"string"},"pantryVersion":{"type":"integer"},"added":{"type":"array"},"increased":{"type":"array"},"decreased":{"type":"array"},"removed":{"type":"array"},"unchanged":{"type":"array"},"needsReview":{"type":"array"},"unmatched":{"type":"array"},"ambiguous":{"type":"array"},"unrecognizedCount":{"type":"integer"},"undoToken":{"type":["string","null"]},"uiResource":{"type":"string"},"validationErrors":{"type":["object","null"]},"message":{"type":["string","null"]}},"required":["status","pantryVersion","added","increased","decreased","removed","unchanged","needsReview","unmatched","ambiguous","unrecognizedCount","undoToken","uiResource"],"additionalProperties":false}
+            """);
+        schemas["pantry.undo_reconcile"] = Schema(
+            """
+            {"type":"object","properties":{"status":{"type":"string"},"pantryVersion":{"type":"integer"},"undoToken":{"type":["string","null"]},"validationErrors":{"type":["object","null"]},"message":{"type":["string","null"]}},"required":["status","pantryVersion","undoToken"],"additionalProperties":false}
+            """);
         return schemas;
     }
 

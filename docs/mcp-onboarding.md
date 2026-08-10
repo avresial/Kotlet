@@ -148,6 +148,13 @@ secret; the server accepts exactly the one client ID configured in
 `OAuth:ClientId`, and each client's redirect/callback URL must be pre-registered
 in `OAuth:RedirectUris`.
 
+## Protocol Negotiation and Stateless Transport
+
+- **Stateless HTTP Transport**: Kotlet processes MCP requests statelessly over HTTP POST at `/mcp`. Each request carries an OAuth `Bearer` token in the `Authorization` header and receives an HTTP 200 response with JSON-RPC SSE framing (`data: ...`).
+- **Protocol Versioning**: Requests specify the target protocol version via the `MCP-Protocol-Version` header. The server standardizes on MCP protocol version `2026-07-28`. That version also requires the matching `Mcp-Method` header and per-request `_meta` values for protocol version, client capabilities, and client identity; named tool, prompt, and resource requests send the matching `Mcp-Name` header.
+- **Backwards Compatibility**: Legacy clients sending protocol version `2025-11-25` remain fully supported according to SDK behavior.
+- **MCP Apps Handshake (SEP-1865)**: Interactive UI HTML documents served from `ui://kotlet/...` resources perform an in-iframe `ui/initialize` handshake supplying `appInfo` and the negotiated `protocolVersion`.
+
 Troubleshooting:
 
 - If the connection fails, make sure you completed the Kotlet login.

@@ -1,3 +1,4 @@
+@use '../../../../shared/styles/mobile-page' as mobile;
 .recipe-list-page {
   width: min(72rem, calc(100% - 2.5rem));
   margin: 0 auto;
@@ -147,6 +148,9 @@
       .updated { margin: 0; font-size: 0.8rem; color: var(--app-text-muted); }
     }
 
+    // Without a cover image the actions button sits over the title row instead of over the image.
+    &:not(:has(.recipe-image)) .card-body h2 { padding-right: 2.6rem; }
+
     .card-menu {
       position: absolute;
       z-index: 2;
@@ -255,4 +259,8 @@
     .button { justify-content: center; }
     .button.primary:last-child { grid-column: 1 / -1; }
   }
+}
+
+@media (max-width: mobile.$breakpoint) {
+  .recipe-list-page { @include mobile.page; }
 }

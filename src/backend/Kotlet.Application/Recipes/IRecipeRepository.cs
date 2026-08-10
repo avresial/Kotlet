@@ -10,6 +10,20 @@ public interface IRecipeRepository
         IReadOnlyCollection<Guid>? ingredientIds, CancellationToken cancellationToken);
     Task<IReadOnlyList<Recipe>> GetRecentAsync(
         Guid ownerUserId, int limit, CancellationToken cancellationToken);
+    async Task<(IReadOnlyList<RecipeSummaryData> Items, int TotalCount)> GetPagedSummariesAsync(
+        Guid houseId, int page, int pageSize, string? search, MealSlot? mealType,
+        IReadOnlyCollection<Guid>? ingredientIds, CancellationToken cancellationToken)
+    {
+        var (recipes, totalCount) = await GetPagedAsync(
+            houseId, page, pageSize, search, mealType, ingredientIds, cancellationToken);
+        return (recipes.Select(RecipeSummaryData.FromRecipe).ToList(), totalCount);
+    }
+    async Task<IReadOnlyList<RecipeSummaryData>> GetRecentSummariesAsync(
+        Guid houseId, int limit, CancellationToken cancellationToken)
+    {
+        var recipes = await GetRecentAsync(houseId, limit, cancellationToken);
+        return recipes.Select(RecipeSummaryData.FromRecipe).ToList();
+    }
     Task<Recipe?> GetByIdAsync(Guid id, Guid ownerUserId, bool tracked, CancellationToken cancellationToken);
     async Task<IReadOnlyDictionary<Guid, Recipe>> GetByIdsAsync(
         IReadOnlyCollection<Guid> ids, Guid houseId, CancellationToken cancellationToken)

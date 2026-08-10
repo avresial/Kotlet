@@ -1,3 +1,4 @@
+@use '../../shared/styles/mobile-page' as mobile;
 :host { display: block; height: 100%; }
 .agent-page { width: min(58rem, calc(100% - 2rem)); height: calc(100vh - 2rem); margin: 0 auto; display: grid; grid-template-rows: auto 1fr auto; }
 header { padding: 1.5rem 0 1rem; border-bottom: 1px solid var(--app-border); }
@@ -39,3 +40,7 @@ footer { padding: 1rem 0 1.5rem; }
 .composer button:disabled { opacity: .4; cursor: default; } .composer button svg { width: 1.25rem; height: 1.25rem; }
 footer small { display: block; margin-top: .55rem; color: var(--app-text-muted); text-align: center; }
 @media (max-width: 38rem) { select { max-width: 11rem; }.conversation { padding-inline: 0; } article { max-width: 92%; } }
+
+@media (max-width: mobile.$breakpoint) {
+  .agent-page { @include mobile.page; }
+}

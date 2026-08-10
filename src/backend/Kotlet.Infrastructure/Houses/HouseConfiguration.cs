@@ -12,5 +12,6 @@ internal sealed class HouseConfiguration : IEntityTypeConfiguration<House>
         builder.HasKey(house => house.Id);
         builder.Property(house => house.Id).HasColumnName("id");
         builder.Property(house => house.Name).HasColumnName("name").HasMaxLength(150).IsRequired();
+        builder.Property(house => house.PantryVersion).HasColumnName("pantry_version").IsConcurrencyToken().IsRequired();
     }
 }
