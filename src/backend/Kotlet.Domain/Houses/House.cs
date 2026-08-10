@@ -7,6 +7,7 @@ public sealed class House
 {
     public Guid Id { get; set; }
     public required string Name { get; set; }
+    public long PantryVersion { get; set; }
     public ICollection<HouseMembership> Memberships { get; set; } = [];
     public ICollection<HouseInvitation> Invitations { get; set; } = [];
     public ICollection<PantryItem> PantryItems { get; set; } = [];
