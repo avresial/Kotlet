@@ -71,6 +71,7 @@ public sealed class PantryServiceTests
         Assert.NotNull(result.Item);
         Assert.Equal(250m, result.Item.Quantity);
         Assert.Equal(1, repo.SaveCount);
+        Assert.Equal(1, repo.VersionIncrementCount);
     }
 
     [Theory]
@@ -141,6 +142,7 @@ public sealed class PantryServiceTests
         Assert.Equal(PantryOperationStatus.Success, result.Status);
         Assert.Equal(750m, item.Quantity.Amount);
         Assert.Equal(750m, result.Item!.Quantity);
+        Assert.Equal(1, repo.VersionIncrementCount);
     }
 
     [Fact]
@@ -193,6 +195,7 @@ public sealed class PantryServiceTests
         Assert.Equal(PantryOperationStatus.Success, status);
         Assert.Empty(repo.Items);
         Assert.Equal(1, repo.SaveCount);
+        Assert.Equal(1, repo.VersionIncrementCount);
     }
 
     [Fact]
@@ -218,6 +221,7 @@ public sealed class PantryServiceTests
     {
         public List<PantryItem> Items { get; } = [];
         public int SaveCount { get; private set; }
+        public int VersionIncrementCount { get; private set; }
 
         public PantryItem SeedItem(Guid houseId, Ingredient ingredient, decimal quantity)
         {
@@ -247,7 +251,11 @@ public sealed class PantryServiceTests
 
         public void Add(PantryItem item) => Items.Add(item);
         public void Remove(PantryItem item) => Items.Remove(item);
-        public Task IncrementPantryVersionAsync(Guid houseId, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task IncrementPantryVersionAsync(Guid houseId, CancellationToken cancellationToken)
+        {
+            VersionIncrementCount++;
+            return Task.CompletedTask;
+        }
         public Task SaveChangesAsync(CancellationToken cancellationToken) { SaveCount++; return Task.CompletedTask; }
 
         private PantryItem Hydrate(PantryItem item)

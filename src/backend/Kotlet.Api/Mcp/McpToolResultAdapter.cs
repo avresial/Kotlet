@@ -37,7 +37,9 @@ internal static class McpToolResultAdapter
             return;
 
         if (PreserveStructuredTools.Contains(toolName))
+        {
             return;
+        }
 
         if (!CompactTools.Contains(toolName))
         {

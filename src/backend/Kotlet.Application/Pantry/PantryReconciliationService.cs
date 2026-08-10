@@ -410,6 +410,43 @@ public sealed class PantryReconciliationService(
                 var currentItems = await repository.GetItemsAsync(houseId, transactionCancellationToken);
                 var currentById = currentItems.ToDictionary(item => item.Id);
                 var currentByIngredient = currentItems.ToDictionary(item => item.IngredientId);
+                var addedItemIds = state.AddedPantryItemIds.ToHashSet();
+                var ingredientsToRestore = new Dictionary<Guid, Ingredient>();
+                foreach (var previous in state.PreviousItems)
+                {
+                    if (currentById.ContainsKey(previous.PantryItemId))
+                    {
+                        continue;
+                    }
+                    if (currentByIngredient.TryGetValue(previous.IngredientId, out var conflictingItem)
+                        && !addedItemIds.Contains(conflictingItem.Id))
+                    {
+                        return new PantryUndoResponse(
+                            "Conflict",
+                            transactionHouse.PantryVersion,
+                            token,
+                            Message: "The pantry contains another item for a removed ingredient; undo was not applied.");
+                    }
+
+                    if (ingredientsToRestore.ContainsKey(previous.IngredientId))
+                    {
+                        continue;
+                    }
+
+                    var ingredient = await ingredientRepository.GetByIdAsync(
+                        previous.IngredientId, tracked: false, transactionCancellationToken);
+                    if (ingredient is null)
+                    {
+                        return new PantryUndoResponse(
+                            "Conflict",
+                            transactionHouse.PantryVersion,
+                            token,
+                            Message: "An ingredient needed to restore the pantry item is no longer available.");
+                    }
+
+                    ingredientsToRestore[previous.IngredientId] = ingredient;
+                }
+
                 foreach (var addedItemId in state.AddedPantryItemIds)
                 {
                     if (currentById.TryGetValue(addedItemId, out var addedItem))
@@ -424,25 +461,6 @@ public sealed class PantryReconciliationService(
                     {
                         Restore(current, previous);
                         continue;
-                    }
-                    if (currentByIngredient.ContainsKey(previous.IngredientId))
-                    {
-                        return new PantryUndoResponse(
-                            "Conflict",
-                            transactionHouse.PantryVersion,
-                            token,
-                            Message: "The pantry contains another item for a removed ingredient; undo was not applied.");
-                    }
-
-                    var ingredient = await ingredientRepository.GetByIdAsync(
-                        previous.IngredientId, tracked: false, transactionCancellationToken);
-                    if (ingredient is null)
-                    {
-                        return new PantryUndoResponse(
-                            "Conflict",
-                            transactionHouse.PantryVersion,
-                            token,
-                            Message: "An ingredient needed to restore the pantry item is no longer available.");
                     }
 
                     repository.Add(new PantryItem
@@ -459,7 +477,7 @@ public sealed class PantryReconciliationService(
                         ConversionConfidence = previous.ConversionConfidence,
                         LastObservedAtUtc = previous.LastObservedAtUtc,
                         LastObservationIdsJson = previous.LastObservationIdsJson,
-                        Ingredient = ingredient
+                        Ingredient = ingredientsToRestore[previous.IngredientId]
                     });
                 }
 
@@ -487,7 +505,7 @@ public sealed class PantryReconciliationService(
         {
             errors["observations"] = ["Provide at least one observation or a positive unrecognizedCount."];
         }
-        if (observations.Count > MaximumObservations)
+        else if (observations.Count > MaximumObservations)
         {
             errors["observations"] = [$"At most {MaximumObservations} observations are allowed."];
         }
@@ -557,13 +575,13 @@ public sealed class PantryReconciliationService(
         {
             errors["scope.coverage"] = ["Coverage must be partial or full."];
         }
+        else if (mode is not ReconciliationMode.Merge && coverage != "full")
+        {
+            errors["scope.coverage"] = ["Full coverage is required before decreases or removals are allowed."];
+        }
         if (mode is not ReconciliationMode.Merge && string.IsNullOrWhiteSpace(scope.Location))
         {
             errors["scope.location"] = ["A location is required for a full-location reconciliation."];
-        }
-        if (mode is not ReconciliationMode.Merge && coverage != "full")
-        {
-            errors["scope.coverage"] = ["Full coverage is required before decreases or removals are allowed."];
         }
         if (mode == ReconciliationMode.ReplaceLocation
             && !(request.Confirm || request.ConfirmDestructiveChanges || request.Confirmed))
@@ -580,14 +598,7 @@ public sealed class PantryReconciliationService(
         for (var index = 0; index < items.Count; index++)
         {
             var item = items[index];
-            if (string.IsNullOrWhiteSpace(item.ObservationId) || item.ObservationId.Trim().Length > 100)
-            {
-                errors[$"items[{index}].observationId"] = ["Observation id is required and cannot exceed 100 characters."];
-            }
-            else if (!observationIds.Add(item.ObservationId.Trim()))
-            {
-                errors[$"items[{index}].observationId"] = ["Observation ids must be unique within a reconciliation."];
-            }
+            ValidateObservationId(item.ObservationId, $"items[{index}].observationId", observationIds, errors);
             if (!string.Equals(item.ItemType?.Trim(), IngredientType, StringComparison.OrdinalIgnoreCase))
             {
                 errors[$"items[{index}].itemType"] = ["Only itemType 'ingredient' is supported by the pantry catalogue."];
@@ -618,6 +629,41 @@ public sealed class PantryReconciliationService(
             {
                 errors[$"items[{index}].packageDescription"] = ["Package description cannot exceed 200 characters."];
             }
+        }
+
+        var unmatched = request.Unmatched ?? [];
+        var ambiguous = request.Ambiguous ?? [];
+        if (unmatched.Count > MaximumObservations)
+        {
+            errors["unmatched"] = [$"At most {MaximumObservations} unmatched observations are allowed."];
+        }
+        if (ambiguous.Count > MaximumObservations)
+        {
+            errors["ambiguous"] = [$"At most {MaximumObservations} ambiguous observations are allowed."];
+        }
+        if (items.Count + unmatched.Count + ambiguous.Count > MaximumObservations)
+        {
+            errors["observations"] = [$"At most {MaximumObservations} observations are allowed in a reconciliation."];
+        }
+        for (var index = 0; index < unmatched.Count; index++)
+        {
+            var observation = unmatched[index];
+            ValidateObservationId(observation.ObservationId, $"unmatched[{index}].observationId", observationIds, errors);
+            ValidatePhrase(observation.RawPhrase, $"unmatched[{index}].rawPhrase", "Raw phrase", errors);
+            ValidatePhrase(observation.NormalizedPhrase, $"unmatched[{index}].normalizedPhrase", "Normalized phrase", errors);
+            ValidateConfidence(observation.IdentityConfidence, $"unmatched[{index}].identityConfidence", errors);
+            if (observation.RecognitionConfidence is { } recognitionConfidence)
+            {
+                ValidateConfidence(recognitionConfidence, $"unmatched[{index}].recognitionConfidence", errors);
+            }
+        }
+        for (var index = 0; index < ambiguous.Count; index++)
+        {
+            var observation = ambiguous[index];
+            ValidateObservationId(observation.ObservationId, $"ambiguous[{index}].observationId", observationIds, errors);
+            ValidatePhrase(observation.RawPhrase, $"ambiguous[{index}].rawPhrase", "Raw phrase", errors);
+            ValidatePhrase(observation.NormalizedPhrase, $"ambiguous[{index}].normalizedPhrase", "Normalized phrase", errors);
+            ValidateConfidence(observation.IdentityConfidence, $"ambiguous[{index}].identityConfidence", errors);
         }
 
         if (request.UnrecognizedCount is < 0 or > MaximumUnrecognizedCount)
@@ -735,7 +781,7 @@ public sealed class PantryReconciliationService(
                 item.Candidates.Select(candidate => candidate.ItemId).ToArray(),
                 item.IdentityConfidence)))
             .Where(item => !string.IsNullOrWhiteSpace(item.NormalizedPhrase))
-            .GroupBy(item => NormalizePhrase(item.NormalizedPhrase), StringComparer.Ordinal)
+            .GroupBy(item => Limit(NormalizePhrase(item.NormalizedPhrase), 300), StringComparer.Ordinal)
             .Select(group => new MissedPhrase(
                 group.First().RawPhrase,
                 group.Key,
@@ -743,10 +789,15 @@ public sealed class PantryReconciliationService(
                 group.Average(item => item.Confidence)))
             .ToList();
 
+        var existingPhrases = await repository.GetUnmatchedPhrasesAsync(
+            houseId,
+            records.Select(record => record.NormalizedPhrase).ToArray(),
+            locale,
+            cancellationToken);
+        var now = DateTimeOffset.UtcNow;
         foreach (var record in records)
         {
-            var existing = await repository.GetUnmatchedPhraseAsync(
-                houseId, record.NormalizedPhrase, locale, cancellationToken);
+            var existing = existingPhrases.GetValueOrDefault(record.NormalizedPhrase);
             if (existing is null)
             {
                 repository.AddUnmatchedPhrase(new PantryUnmatchedPhrase
@@ -758,8 +809,8 @@ public sealed class PantryReconciliationService(
                     Locale = locale,
                     CandidateIdsJson = JsonSerializer.Serialize(record.CandidateIds, JsonOptions),
                     RecognitionConfidence = record.Confidence,
-                    FirstSeenAtUtc = DateTimeOffset.UtcNow,
-                    LastSeenAtUtc = DateTimeOffset.UtcNow,
+                    FirstSeenAtUtc = now,
+                    LastSeenAtUtc = now,
                     OccurrenceCount = 1
                 });
             }
@@ -768,7 +819,7 @@ public sealed class PantryReconciliationService(
                 existing.RawPhrase = Limit(record.RawPhrase, 300);
                 existing.CandidateIdsJson = JsonSerializer.Serialize(record.CandidateIds, JsonOptions);
                 existing.RecognitionConfidence = record.Confidence;
-                existing.LastSeenAtUtc = DateTimeOffset.UtcNow;
+                existing.LastSeenAtUtc = now;
                 existing.OccurrenceCount++;
             }
         }
@@ -792,39 +843,27 @@ public sealed class PantryReconciliationService(
             })
             .ToList();
 
-    private static bool ApplyObservation(
+    private static void ApplyObservation(
         PantryItem item,
         PreparedReconcileItem prepared,
         IReadOnlyList<string> observationIds,
         StorageLocation? location,
         DateTimeOffset observedAt)
     {
-        var changed = false;
         if (location.HasValue && item.StorageLocation != location)
         {
             item.StorageLocation = location;
-            changed = true;
         }
 
         var observedUnit = NormalizeUnit(prepared.Item.ObservedUnit);
         var packageDescription = NormalizeDescription(prepared.Item.PackageDescription);
         var observationIdsJson = JsonSerializer.Serialize(observationIds, JsonOptions);
-        if (item.LastObservedQuantity != prepared.Item.ObservedQuantity
-            || !string.Equals(item.LastObservedUnit, observedUnit, StringComparison.Ordinal)
-            || !string.Equals(item.PackageDescription, packageDescription, StringComparison.Ordinal)
-            || item.ConversionConfidence != prepared.ConversionConfidence
-            || item.LastObservationIdsJson != observationIdsJson)
-        {
-            changed = true;
-        }
-
         item.LastObservedQuantity = prepared.Item.ObservedQuantity;
         item.LastObservedUnit = observedUnit;
         item.PackageDescription = packageDescription;
         item.ConversionConfidence = prepared.ConversionConfidence;
         item.LastObservedAtUtc = observedAt;
         item.LastObservationIdsJson = observationIdsJson;
-        return changed;
     }
 
     private static bool ObservationChanges(
@@ -968,6 +1007,7 @@ public sealed class PantryReconciliationService(
         IReadOnlyCollection<CatalogName> searchableNames) =>
         searchableNames
             .Where(candidate => normalizedPhrase.Length > 0 && candidate.NormalizedName.Length > 0)
+            .Where(candidate => CouldReachCandidateConfidence(normalizedPhrase, candidate.NormalizedName))
             .Select(candidate => new ScoredCandidate(
                 candidate.Id,
                 candidate.Name,
@@ -981,6 +1021,14 @@ public sealed class PantryReconciliationService(
             .ThenBy(candidate => candidate.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(candidate => candidate.Id)
             .ToList();
+
+    private static bool CouldReachCandidateConfidence(string left, string right)
+    {
+        var longestLength = Math.Max(left.Length, right.Length);
+        var lengthDifference = Math.Abs(left.Length - right.Length);
+        var maximumSimilarity = 1m - (decimal)lengthDifference / longestLength;
+        return maximumSimilarity >= MinimumCandidateConfidence;
+    }
 
     private static decimal Similarity(string left, string right)
     {
@@ -997,9 +1045,9 @@ public sealed class PantryReconciliationService(
     private static int Distance(string left, string right)
     {
         var previous = Enumerable.Range(0, right.Length + 1).ToArray();
+        var current = new int[right.Length + 1];
         for (var i = 1; i <= left.Length; i++)
         {
-            var current = new int[right.Length + 1];
             current[0] = i;
             for (var j = 1; j <= right.Length; j++)
             {
@@ -1007,7 +1055,7 @@ public sealed class PantryReconciliationService(
                     Math.Min(current[j - 1] + 1, previous[j] + 1),
                     previous[j - 1] + (left[i - 1] == right[j - 1] ? 0 : 1));
             }
-            previous = current;
+            (previous, current) = (current, previous);
         }
         return previous[right.Length];
     }
@@ -1054,6 +1102,34 @@ public sealed class PantryReconciliationService(
         if (confidence is < 0 or > 1)
         {
             errors[field] = ["Confidence must be between 0 and 1."];
+        }
+    }
+
+    private static void ValidateObservationId(
+        string? observationId,
+        string field,
+        ISet<string> observationIds,
+        IDictionary<string, string[]> errors)
+    {
+        if (string.IsNullOrWhiteSpace(observationId) || observationId.Trim().Length > 100)
+        {
+            errors[field] = ["Observation id is required and cannot exceed 100 characters."];
+        }
+        else if (!observationIds.Add(observationId.Trim()))
+        {
+            errors[field] = ["Observation ids must be unique within a reconciliation."];
+        }
+    }
+
+    private static void ValidatePhrase(
+        string? phrase,
+        string field,
+        string label,
+        IDictionary<string, string[]> errors)
+    {
+        if (string.IsNullOrWhiteSpace(phrase) || phrase.Trim().Length > 300)
+        {
+            errors[field] = [$"{label} is required and cannot exceed 300 characters."];
         }
     }
 

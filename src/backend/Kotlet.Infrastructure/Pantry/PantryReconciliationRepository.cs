@@ -37,11 +37,24 @@ internal sealed class PantryReconciliationRepository(KotletDbContext dbContext) 
             operation => operation.HouseId == houseId && operation.UndoToken == undoToken,
             cancellationToken);
 
-    public Task<PantryUnmatchedPhrase?> GetUnmatchedPhraseAsync(
-        Guid houseId, string normalizedPhrase, string locale, CancellationToken cancellationToken) =>
-        dbContext.PantryUnmatchedPhrases.SingleOrDefaultAsync(
-            phrase => phrase.HouseId == houseId && phrase.NormalizedPhrase == normalizedPhrase && phrase.Locale == locale,
-            cancellationToken);
+    public async Task<IReadOnlyDictionary<string, PantryUnmatchedPhrase>> GetUnmatchedPhrasesAsync(
+        Guid houseId,
+        IReadOnlyCollection<string> normalizedPhrases,
+        string locale,
+        CancellationToken cancellationToken)
+    {
+        if (normalizedPhrases.Count == 0)
+        {
+            return new Dictionary<string, PantryUnmatchedPhrase>(StringComparer.Ordinal);
+        }
+
+        var phrases = await dbContext.PantryUnmatchedPhrases
+            .Where(phrase => phrase.HouseId == houseId
+                && phrase.Locale == locale
+                && normalizedPhrases.Contains(phrase.NormalizedPhrase))
+            .ToListAsync(cancellationToken);
+        return phrases.ToDictionary(phrase => phrase.NormalizedPhrase, StringComparer.Ordinal);
+    }
 
     public void Add(PantryItem item)
     {
@@ -51,7 +64,7 @@ internal sealed class PantryReconciliationRepository(KotletDbContext dbContext) 
         {
             item.Ingredient = trackedIngredient;
         }
-        else
+        else if (item.Ingredient is not null)
         {
             dbContext.Entry(item.Ingredient).State = EntityState.Unchanged;
         }

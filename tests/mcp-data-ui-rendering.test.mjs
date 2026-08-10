@@ -18,7 +18,10 @@ const pantryReconciliation = {
   decreased: [{ itemName: "Flour", measurementUnit: "g", previousQuantity: 800, newQuantity: 400, changeQuantity: -400 }],
   removed: [{ itemName: "Tea", measurementUnit: "g", previousQuantity: 100, newQuantity: null, changeQuantity: -100 }],
   unchanged: [{ itemName: "Salt", measurementUnit: "g", previousQuantity: 50, newQuantity: 50, changeQuantity: 0 }],
-  needsReview: [{ itemName: "Eggs", reason: "Quantity needs review", observedQuantity: 6, observedUnit: "piece", quantityConfidence: 0.4 }],
+  needsReview: [
+    { itemName: "Eggs", reason: "Quantity needs review", observedQuantity: 6, observedUnit: "piece", quantityConfidence: 0.4 },
+    { itemName: "Mystery item", observedQuantity: 2, observedUnit: "piece", quantityConfidence: 0.5 },
+  ],
   unmatched: [{ rawPhrase: "mystery carton", identityConfidence: 0.3 }],
   ambiguous: [{ rawPhrase: "cream", identityConfidence: 0.6, candidates: [{ itemId: "x" }, { itemId: "y" }] }],
   unrecognizedCount: 2,
@@ -83,9 +86,17 @@ test("pantry reconciliation keeps changes and review queues in separate groups",
   assert.equal(document.querySelector("details.reconciliation-collapsed").open, false);
   assert.match(document.querySelector("details.reconciliation-collapsed summary").textContent, /Unchanged · 1 item/);
   assert.match(document.querySelector(".section").textContent, /Milk/);
-  assert.match(document.body.textContent, /mystery carton/);
-  assert.match(document.body.textContent, /cream/);
-  assert.match(document.body.textContent, /2 not recognized/);
+  const sections = [...document.querySelectorAll(".section")];
+  const section = (heading) => sections.find((element) => element.querySelector("h2").textContent === heading);
+  const needsReview = section("Needs review");
+  assert.ok(needsReview);
+  assert.match(section("Not matched").textContent, /mystery carton/);
+  assert.match(needsReview.textContent, /cream/);
+  assert.match(section("Not recognized").textContent, /2 not recognized/);
+  const fallbackRow = [...needsReview.querySelectorAll(".row")]
+    .find((row) => row.querySelector("strong").textContent === "Mystery item");
+  assert.ok(fallbackRow);
+  assert.equal(fallbackRow.querySelector(".meta").textContent, "Needs review");
   dom.window.close();
 });
 

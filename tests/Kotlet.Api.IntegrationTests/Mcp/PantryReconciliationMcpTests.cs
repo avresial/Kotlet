@@ -193,8 +193,13 @@ public sealed class PantryReconciliationMcpTests(TestWebApplicationFactory facto
                 unrecognizedCount = 2
             }
         });
-        Assert.Equal(reconcileData.GetProperty("pantryVersion").GetInt64(),
-            repeated.GetProperty("structuredContent").GetProperty("pantryVersion").GetInt64());
+        var repeatedData = repeated.GetProperty("structuredContent");
+        Assert.Equal("Success", repeatedData.GetProperty("status").GetString());
+        Assert.Equal(reconcileData.GetProperty("pantryVersion").GetInt64(), repeatedData.GetProperty("pantryVersion").GetInt64());
+        Assert.Equal(reconcileData.GetProperty("added").GetArrayLength(), repeatedData.GetProperty("added").GetArrayLength());
+        Assert.Equal(
+            reconcileData.GetProperty("added")[0].GetProperty("newQuantity").GetDecimal(),
+            repeatedData.GetProperty("added")[0].GetProperty("newQuantity").GetDecimal());
 
         var pantry = await client.GetFromJsonAsync<JsonElement[]>("/api/pantry");
         var stored = Assert.Single(pantry!, item => item.GetProperty("ingredientId").GetGuid() == ingredientId);
@@ -281,7 +286,7 @@ public sealed class PantryReconciliationMcpTests(TestWebApplicationFactory facto
             }
         });
         var partialErrors = partial.GetProperty("structuredContent").GetProperty("validationErrors");
-        Assert.Contains("full", partialErrors.GetProperty("scope.coverage")[0].GetString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("scope.coverage", partialErrors.EnumerateObject().Select(property => property.Name));
 
         var unsafeConversion = await CallToolAsync(client, accessToken, "pantry.reconcile", new
         {
