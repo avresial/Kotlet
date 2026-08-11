@@ -10,6 +10,7 @@
   "ingredients.autofill": "Uzupełnij szczegóły przez AI", "ingredients.autofilling": "Uzupełnianie…", "ingredients.autofillError": "Nie udało się uzupełnić szczegółów składnika.",
   "units.kilograms": "Kilogramy (kg)", "units.litres": "Litry (l)", "ingredients.unit": "Jednostka", "ingredients.caloriesPer": "Kalorie na", "ingredients.pricePer": "Cena za",
   "home.dashboard.quickStats": "Szybkie statystyki", "home.dashboard.atAGlance": "W skrócie", "home.dashboard.statsLoading": "Ładowanie statystyk…", "home.dashboard.statsError": "Nie udało się załadować statystyk.",
+  "home.dashboard.mealPlan": "Plan posiłków", "home.dashboard.planForThisDay": "Plan na ten dzień", "home.dashboard.dayLoading": "Ładowanie planu na ten dzień…", "home.dashboard.dayError": "Nie udało się załadować planu na ten dzień.", "home.dashboard.dayEmpty": "Na ten dzień nie zaplanowano posiłków.", "home.dashboard.openDay": "Otwórz dzień", "home.dashboard.previousDay": "Poprzedni dzień", "home.dashboard.nextDay": "Następny dzień", "home.dashboard.dayNavigation": "Nawigacja po dniach", "home.dashboard.tomorrow": "jutro",
   "recipes.mealType": "Typ posiłku", "recipes.mealTypeNone": "Bez typu posiłku", "recipes.allMealTypes": "Wszystkie typy posiłków",
   "pantry.location": "Lokalizacja", "pantry.location.refrigerator": "Lodówka", "pantry.location.freezer": "Zamrażarka", "pantry.location.cabinet": "Szafka",
   "pantry.expirationDate": "Data ważności (opcjonalnie)", "pantry.expires": "Ważne do",
