@@ -21,18 +21,37 @@
       <article class="card today-card" aria-labelledby="today-title">
         <div class="card-heading">
           <div>
-            <p class="section-label">{{ 'home.dashboard.todaysMenu' | t }}</p>
-            <h2 id="today-title">{{ 'home.dashboard.onTable' | t }}</h2>
+            <p class="section-label">{{ (isSelectedDateToday() ? 'home.dashboard.todaysMenu' : 'home.dashboard.mealPlan') | t }}</p>
+            <h2 id="today-title">{{ (isSelectedDateToday() ? 'home.dashboard.onTable' : 'home.dashboard.planForThisDay') | t }}</h2>
           </div>
-          @if (todaysMenu().length > 0) {
-            <span class="status"><span></span> {{ 'home.dashboard.planned' | t }}</span>
-          } @else if (!menuLoading() && !menuError()) {
-            <span class="status muted"><span></span> {{ 'home.dashboard.nothingPlanned' | t }}</span>
-          }
+          <div class="card-heading-actions">
+            @if (todaysMenu().length > 0) {
+              <span class="status"><span></span> {{ 'home.dashboard.planned' | t }}</span>
+            } @else if (!menuLoading() && !menuError()) {
+              <span class="status muted"><span></span> {{ 'home.dashboard.nothingPlanned' | t }}</span>
+            }
+            <a class="card-link" routerLink="/meal-planner" [queryParams]="{ date: selectedDate() }">{{ 'home.dashboard.openDay' | t }} →</a>
+          </div>
         </div>
-        @if (menuLoading()) { <p class="recipe-state">{{ 'home.dashboard.menuLoading' | t }}</p> }
-        @else if (menuError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.menuError' | t }}</p> }
-        @else if (todaysMenu().length === 0) { <p class="recipe-state">{{ 'home.dashboard.menuEmpty' | t }} <a routerLink="/meal-planner">{{ 'home.dashboard.planMeals' | t }}</a>.</p> }
+        <div class="day-nav" role="group" [attr.aria-label]="'home.dashboard.dayNavigation' | t">
+          <button type="button" class="day-nav-btn" [disabled]="!canGoToPreviousDay()" (click)="goToPreviousDay()" [attr.aria-label]="'home.dashboard.previousDay' | t">‹</button>
+          <div class="day-nav-info">
+            <span class="day-date">{{ selectedDateLabel() }}</span>
+            @if (selectedDateRelativeLabel()) { <span class="day-relative">{{ selectedDateRelativeLabel() }}</span> }
+          </div>
+          <button type="button" class="day-nav-btn" [disabled]="!canGoToNextDay()" (click)="goToNextDay()" [attr.aria-label]="'home.dashboard.nextDay' | t">›</button>
+        </div>
+        @if (menuLoading()) { <p class="recipe-state">{{ (isSelectedDateToday() ? 'home.dashboard.menuLoading' : 'home.dashboard.dayLoading') | t }}</p> }
+        @else if (menuError()) { <p class="recipe-state error" role="alert">{{ (isSelectedDateToday() ? 'home.dashboard.menuError' : 'home.dashboard.dayError') | t }}</p> }
+        @else if (todaysMenu().length === 0) {
+          <div class="recipe-state empty-day">
+            <p>{{ (isSelectedDateToday() ? 'home.dashboard.menuEmpty' : 'home.dashboard.dayEmpty') | t }}</p>
+            <div class="empty-day-actions">
+              <a routerLink="/meal-planner" [queryParams]="{ date: selectedDate() }">{{ 'home.dashboard.openDay' | t }}</a>
+              <a routerLink="/meal-planner" [queryParams]="{ date: selectedDate() }">{{ 'home.dashboard.planMeals' | t }}</a>
+            </div>
+          </div>
+        }
         @else { <ul class="menu-list">
           @for (meal of todaysMenu(); track meal.id) {
             <li class="menu-item">

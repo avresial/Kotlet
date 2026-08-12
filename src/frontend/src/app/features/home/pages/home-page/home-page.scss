@@ -17,6 +17,7 @@ h1 { margin: .6rem 0 .5rem; font-family: Georgia, serif; font-size: clamp(2.15re
 .stats-list dt { color: var(--app-text-muted); font-size: .75rem; }
 .stats-list dd { margin: .2rem 0 0; font: 500 1.8rem Georgia, serif; }
 .card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.card-heading-actions { display: flex; align-items: center; gap: .75rem; }
 h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2.4vw, 1.6rem); font-weight: 500; }
 .status { padding: .35rem .65rem; border-radius: 99px; color: var(--app-success); background: var(--app-success-bg); font-size: .7rem; font-weight: 750; white-space: nowrap; }
 .status span { width: .4rem; height: .4rem; margin-right: .35rem; border-radius: 50%; display: inline-block; background: #63805b; }
@@ -27,6 +28,18 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
    column off the card instead of letting the text ellipsize. */
 
 /* Today's menu */
+.day-nav { height: 2.75rem; margin-top: .65rem; display: flex; align-items: stretch; justify-content: space-between; gap: .25rem; border: 1px solid var(--app-border); border-radius: .65rem; background: var(--app-inset); }
+.day-nav-info { padding: 0 .35rem; display: flex; align-items: center; justify-content: center; gap: .35rem; min-width: 0; line-height: 1; text-align: center; }
+.day-date { color: var(--app-text); font-size: .88rem; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.day-relative { color: var(--app-text-muted); font-size: .75rem; }
+.day-relative::before { margin-right: .35rem; content: '·'; }
+.day-nav-btn { width: 2.75rem; min-width: 2.75rem; height: calc(100% + 2px); margin: -1px 0; padding: 0; display: inline-grid; place-items: center; border: 0; border-radius: .6rem; color: #8e392b; background: transparent; font: inherit; font-size: 1.25rem; font-weight: 700; line-height: 1; cursor: pointer; touch-action: manipulation; }
+.day-nav-btn:hover:not(:disabled) { background: var(--app-surface-raised); }
+.day-nav-btn:focus-visible { outline: 2px solid #963827; outline-offset: -3px; }
+.day-nav-btn:disabled { opacity: .48; cursor: not-allowed; }
+.empty-day p { margin: 0; }
+.empty-day-actions { margin-top: .5rem; display: flex; flex-wrap: wrap; gap: .75rem; }
+.empty-day-actions a { color: #8e392b; }
 .menu-list, .recipe-list, .shopping-list, .ingredient-list { margin: 1.25rem 0 0; padding: 0; list-style: none; }
 .menu-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem; padding: .85rem 0; border-top: 1px solid var(--app-border); }
 .menu-item:first-child { border-top: 0; }
@@ -129,7 +142,7 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 .fact-source { color: var(--app-text-muted); font-size: .75rem; }
 
 @media (max-width: 52rem) { .dashboard { padding: 2rem 1.25rem; } .card-grid { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 38rem) { .welcome { align-items: flex-start; flex-direction: column; } .primary-action { display: none; } .card-heading { display: block; } .status { display: inline-block; margin-top: .8rem; } }
+@media (max-width: 38rem) { .welcome { align-items: flex-start; flex-direction: column; } .primary-action { display: none; } .card-heading { display: block; } .card-heading-actions { margin-top: .8rem; } .status { display: inline-block; } }
 @media (max-width: 30rem) { .shopping-item { grid-template-columns: auto minmax(0, 1fr) 3.4rem auto; } .shopping-price { grid-column: 2 / 4; text-align: left; } .ingredient-item { grid-template-columns: auto minmax(0, 1fr) auto; } .ingredient-item > span:nth-of-type(3) { display: none; } }
 @media (max-width: 34rem) { .audit-item { grid-template-columns: minmax(0, 1fr); align-items: start; gap: .5rem; padding: 1rem 0; } .audit-badge { justify-self: start; } .audit-visit { justify-self: start; } }
 
