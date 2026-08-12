@@ -28,13 +28,14 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
    column off the card instead of letting the text ellipsize. */
 
 /* Today's menu */
-.day-nav { margin-top: 1rem; padding: .4rem .6rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; border: 1px solid var(--app-border); border-radius: .65rem; background: var(--app-inset); }
-.day-nav-info { display: flex; flex-direction: column; align-items: center; min-width: 0; line-height: 1.25; text-align: center; }
+.day-nav { height: 2.75rem; margin-top: .65rem; display: flex; align-items: stretch; justify-content: space-between; gap: .25rem; border: 1px solid var(--app-border); border-radius: .65rem; background: var(--app-inset); }
+.day-nav-info { padding: 0 .35rem; display: flex; align-items: center; justify-content: center; gap: .35rem; min-width: 0; line-height: 1; text-align: center; }
 .day-date { color: var(--app-text); font-size: .88rem; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .day-relative { color: var(--app-text-muted); font-size: .75rem; }
-.day-nav-btn { width: 2.75rem; height: 2.75rem; padding: 0; display: inline-grid; place-items: center; border: 1px solid var(--app-border-strong); border-radius: .45rem; color: #8e392b; background: var(--app-surface); font: inherit; font-size: 1.25rem; font-weight: 700; line-height: 1; cursor: pointer; touch-action: manipulation; }
-.day-nav-btn:hover:not(:disabled) { border-color: #8e392b; background: var(--app-surface-raised); }
-.day-nav-btn:focus-visible { outline: 2px solid #963827; outline-offset: 2px; }
+.day-relative::before { margin-right: .35rem; content: '·'; }
+.day-nav-btn { width: 2.75rem; min-width: 2.75rem; height: calc(100% + 2px); margin: -1px 0; padding: 0; display: inline-grid; place-items: center; border: 0; border-radius: .6rem; color: #8e392b; background: transparent; font: inherit; font-size: 1.25rem; font-weight: 700; line-height: 1; cursor: pointer; touch-action: manipulation; }
+.day-nav-btn:hover:not(:disabled) { background: var(--app-surface-raised); }
+.day-nav-btn:focus-visible { outline: 2px solid #963827; outline-offset: -3px; }
 .day-nav-btn:disabled { opacity: .48; cursor: not-allowed; }
 .empty-day p { margin: 0; }
 .empty-day-actions { margin-top: .5rem; display: flex; flex-wrap: wrap; gap: .75rem; }

@@ -109,22 +109,23 @@ export class HomePage implements OnInit {
     const user = this.auth.currentUser();
     return user?.displayName?.trim().split(/\s+/)[0] || user?.email.split('@')[0] || this.translations.translate('home.dashboard.there');
   });
+  private readonly dashboardToday = signal(localDateString(new Date()));
   readonly today = computed(() => new Intl.DateTimeFormat(this.translations.language(), {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
-  }).format(new Date()));
+  }).format(this.localDate(this.dashboardToday())));
 
   readonly todaysMenu = signal<TodaysMenuEntry[]>([]);
   readonly menuAvatarUrls = signal<Record<string, string>>({});
   readonly menuRecipes = signal<Record<string, RecipeDetail>>({});
   readonly menuLoading = signal(true);
   readonly menuError = signal(false);
-  private readonly dashboardToday = localDateString(new Date());
   private readonly maximumDayOffset = 7;
   private menuRequestId = 0;
-  readonly selectedDate = signal(this.dashboardToday);
-  readonly selectedDateOffset = computed(() => localDayOffset(this.dashboardToday, this.selectedDate()));
+  private dashboardDayRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+  readonly selectedDate = signal(this.dashboardToday());
+  readonly selectedDateOffset = computed(() => localDayOffset(this.dashboardToday(), this.selectedDate()));
   readonly selectedDateLabel = computed(() => {
     const [year, month, day] = this.selectedDate().split('-').map(Number);
     return new Intl.DateTimeFormat(this.translations.language(), {
@@ -171,9 +172,13 @@ export class HomePage implements OnInit {
 
   ngOnInit(): void {
     this.destroyRef.onDestroy(() => {
+      if (this.dashboardDayRefreshTimer !== undefined) {
+        clearTimeout(this.dashboardDayRefreshTimer);
+      }
       Object.values(this.recipeAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
       Object.values(this.menuAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
     });
+    this.scheduleDashboardDayRefresh();
     this.recipeService.listRecent(4).pipe(finalize(() => this.recipesLoading.set(false))).subscribe({
       next: recipes => {
         this.newestRecipes.set(recipes);
@@ -246,7 +251,36 @@ export class HomePage implements OnInit {
   }
 
   goToToday(): void {
-    this.selectDate(this.dashboardToday);
+    this.selectDate(this.dashboardToday());
+  }
+
+  private scheduleDashboardDayRefresh(): void {
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+    this.dashboardDayRefreshTimer = setTimeout(() => {
+      this.refreshDashboardDay();
+      this.scheduleDashboardDayRefresh();
+    }, nextMidnight.getTime() - now.getTime());
+  }
+
+  private refreshDashboardDay(): void {
+    const newToday = localDateString(new Date());
+    if (newToday === this.dashboardToday()) {
+      return;
+    }
+
+    const selectedOffset = localDayOffset(newToday, this.selectedDate());
+    const clampedOffset = Math.max(-this.maximumDayOffset, Math.min(this.maximumDayOffset, selectedOffset));
+    const clampedDate = addLocalDays(newToday, clampedOffset);
+    this.dashboardToday.set(newToday);
+    this.selectedDate.set(clampedDate);
+    this.loadMenu(clampedDate);
+  }
+
+  private localDate(value: string): Date {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
   }
 
   private selectDate(date: string): void {

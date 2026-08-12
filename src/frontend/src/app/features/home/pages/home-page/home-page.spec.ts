@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { Ingredient } from '../../../ingredients/ingredient.models';
@@ -41,13 +41,13 @@ describe('dashboard date navigation', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { currentUser: signal(null) } },
-        { provide: HttpClient, useValue: {} },
-        { provide: PantryService, useValue: {} },
-        { provide: IngredientService, useValue: {} },
-        { provide: ShoppingListService, useValue: {} },
-        { provide: RecipeService, useValue: {} },
+        { provide: HttpClient, useValue: { get: () => of({}) } },
+        { provide: PantryService, useValue: { getAll: () => of([]) } },
+        { provide: IngredientService, useValue: { getAll: () => of([]) } },
+        { provide: ShoppingListService, useValue: { getAll: () => of([]) } },
+        { provide: RecipeService, useValue: { listRecent: () => of([]), listAudit: () => of([]) } },
         { provide: MealPlannerService, useValue: { getForDate } },
-        { provide: HomeService, useValue: {} },
+        { provide: HomeService, useValue: { getDashboardStats: () => of({}) } },
         {
           provide: TranslationService,
           useValue: { language: signal('en'), translate: (key: string) => key },
@@ -55,6 +55,10 @@ describe('dashboard date navigation', () => {
       ],
     });
     page = TestBed.runInInjectionContext(() => new HomePage());
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('requests adjacent local calendar days', () => {
@@ -94,6 +98,38 @@ describe('dashboard date navigation', () => {
     expect(page.selectedDate()).toBe(today);
     expect(page.isSelectedDateToday()).toBe(true);
     expect(getForDate).toHaveBeenLastCalledWith(today);
+  });
+
+  it('refreshes the today baseline at local midnight', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 11, 23, 59, 59, 900));
+    page = TestBed.runInInjectionContext(() => new HomePage());
+    page.ngOnInit();
+    page.selectedDate.set('2026-08-11');
+    getForDate.mockClear();
+
+    vi.advanceTimersByTime(100);
+
+    expect(page.selectedDateRelativeLabel()).toBe('home.dashboard.yesterday');
+    page.goToToday();
+    expect(page.selectedDate()).toBe('2026-08-12');
+    expect(getForDate).toHaveBeenLastCalledWith('2026-08-12');
+  });
+
+  it('clamps and reloads a selected date outside the refreshed range', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 11, 23, 59, 59, 900));
+    page = TestBed.runInInjectionContext(() => new HomePage());
+    page.ngOnInit();
+    page.selectedDate.set('2026-08-04');
+    getForDate.mockClear();
+
+    vi.advanceTimersByTime(100);
+
+    expect(page.selectedDate()).toBe('2026-08-05');
+    expect(page.canGoToPreviousDay()).toBe(false);
+    expect(getForDate).toHaveBeenCalledOnce();
+    expect(getForDate).toHaveBeenCalledWith('2026-08-05');
   });
 
   it('calculates offsets by calendar date across daylight-saving changes', () => {
