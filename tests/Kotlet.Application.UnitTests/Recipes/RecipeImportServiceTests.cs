@@ -72,6 +72,28 @@ public sealed class RecipeImportServiceTests
         Assert.True((DateTimeOffset.UtcNow - association.Source.RetrievedAtUtc).Duration() < TimeSpan.FromMinutes(1));
     }
 
+    [Fact]
+    public async Task CreateReviewJobAsync_PersistsReadyDraftWithoutQueuingProcessing()
+    {
+        var jobs = new FakeJobs();
+        var signal = new FakeSignal();
+        var service = CreateService(jobs, signal);
+        var draft = new RecipeImportDraft("Soup", 2, "Cook.", [], [], []);
+
+        var result = await service.CreateReviewJobAsync(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "https://youtu.be/test",
+            draft,
+            default);
+
+        Assert.Equal(RecipeImportOperationStatus.Success, result.Status);
+        Assert.Equal(RecipeImportJobStatus.ReadyForReview, jobs.Job!.Status);
+        Assert.NotNull(jobs.Job.DraftJson);
+        Assert.Null(signal.JobId);
+        Assert.Equal(1, jobs.SaveCount);
+    }
+
     private static RecipeImportService CreateService(FakeJobs jobs, IRecipeImportSignal signal) =>
         new(jobs, null!, null!, null!, null!, null!, null!, null!, signal);
 

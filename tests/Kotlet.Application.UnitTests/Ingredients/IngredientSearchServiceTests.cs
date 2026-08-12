@@ -56,6 +56,26 @@ public sealed class IngredientSearchServiceTests
         });
     }
 
+    [Fact]
+    public async Task ResolveAsync_UsesSharedThresholdAndPreservesConfidence()
+    {
+        var apple = new Ingredient { Id = Guid.NewGuid(), Name = "Apple", MeasurementUnit = "g" };
+        var search = new IngredientSearchService(
+            new FakeIngredientRepository(apple),
+            new FakeTranslationRepository());
+        var service = new IngredientResolutionService(search);
+
+        var results = await service.ResolveAsync(["aple", "orange"], CancellationToken.None);
+
+        Assert.Equal(apple.Id, results[0].MatchedIngredientId);
+        Assert.Equal("Apple", results[0].MatchedIngredientName);
+        Assert.Equal(0.8m, results[0].MatchScore);
+        Assert.False(results[0].IsProposedNew);
+        Assert.Null(results[1].MatchedIngredientId);
+        Assert.Equal(0.167m, results[1].MatchScore);
+        Assert.True(results[1].IsProposedNew);
+    }
+
     private sealed class FakeIngredientRepository(params Ingredient[] values) : IIngredientRepository
     {
         public Task<IReadOnlyCollection<Ingredient>> GetAllAsync(CancellationToken cancellationToken) =>

@@ -5,6 +5,7 @@ import { guestGuard } from './core/auth/guest.guard';
 import { authRoutes } from './features/auth/auth.routes';
 import { mealPlannerRoutes } from './features/meal-planner/meal-planner.routes';
 import { recipeRoutes } from './features/recipes/recipes.routes';
+import { toolsRoutes } from './features/tools/tools.routes';
 import { adminGuard } from './core/auth/admin.guard';
 
 export const routes: Routes = [
@@ -16,6 +17,7 @@ export const routes: Routes = [
       import('./features/landing/pages/landing-page/landing-page').then((m) => m.LandingPage),
   },
   ...recipeRoutes,
+  ...toolsRoutes,
   ...mealPlannerRoutes,
   { path: 'prepared-meals', canActivate: [homeGuard], loadComponent: () => import('./features/prepared-meals/prepared-meals-page').then(m => m.PreparedMealsPage) },
   {
