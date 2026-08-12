@@ -12,6 +12,7 @@ using Kotlet.Domain.Recipes;
 using Kotlet.Domain.Shopping;
 using Kotlet.Domain.Sources;
 using Kotlet.Domain.Translations;
+using Kotlet.Domain.Tools;
 using Kotlet.Domain.FoodSettings;
 using Kotlet.Domain.Settings;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +42,7 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<RecipeIngredient> RecipeIngredients => Set<RecipeIngredient>();
     public DbSet<RecipeImage> RecipeImages => Set<RecipeImage>();
     public DbSet<RecipeImportJob> RecipeImportJobs => Set<RecipeImportJob>();
+    public DbSet<VideoAnalysisJob> VideoAnalysisJobs => Set<VideoAnalysisJob>();
     public DbSet<Source> Sources => Set<Source>();
     public DbSet<RecipeSource> RecipeSources => Set<RecipeSource>();
     public DbSet<RecipeImageSource> RecipeImageSources => Set<RecipeImageSource>();

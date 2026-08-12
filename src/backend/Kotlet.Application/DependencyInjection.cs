@@ -13,6 +13,7 @@ using Kotlet.Application.PreparedMeals;
 using Kotlet.Application.Recipes;
 using Kotlet.Application.RecipeImageSearch;
 using Kotlet.Application.Shopping;
+using Kotlet.Application.Tools;
 using Kotlet.Application.VideoTranscripts;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -37,6 +38,7 @@ public static class DependencyInjection
         services.AddRecipesApplication();
         services.AddRecipeImageSearchApplication();
         services.AddShoppingApplication();
+        services.AddToolsApplication();
         services.AddVideoTranscriptsApplication();
 
         return services;

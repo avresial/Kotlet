@@ -17,6 +17,17 @@
           <dl class="stats-list"><div><dt>{{ 'nav.recipes' | t }}</dt><dd>{{ dashboardStats.recipeCount }}</dd></div><div><dt>{{ 'nav.pantry' | t }}</dt><dd>{{ dashboardStats.pantryItemCount }}</dd></div></dl>
         }
       </article>
+      <article class="card" aria-labelledby="video-tool-title">
+        <div class="card-heading">
+          <div>
+            <p class="section-label">{{ 'home.dashboard.videoToolLabel' | t }}</p>
+            <h2 id="video-tool-title">{{ 'home.dashboard.videoToolTitle' | t }}</h2>
+          </div>
+          <span aria-hidden="true">🎬</span>
+        </div>
+        <p>{{ 'home.dashboard.videoToolIntro' | t }}</p>
+        <a class="card-link" routerLink="/tools/video-transcription">{{ 'home.dashboard.videoToolAction' | t }} →</a>
+      </article>
       <!-- Today's menu -->
       <article class="card today-card" aria-labelledby="today-title">
         <div class="card-heading">

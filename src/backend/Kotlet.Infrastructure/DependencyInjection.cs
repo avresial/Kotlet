@@ -17,6 +17,7 @@ using Kotlet.Infrastructure.Recipes;
 using Kotlet.Infrastructure.RecipeImageSearch;
 using Kotlet.Infrastructure.Shopping;
 using Kotlet.Infrastructure.Translations;
+using Kotlet.Infrastructure.Tools;
 using Kotlet.Infrastructure.VideoTranscripts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,6 +47,7 @@ public static class DependencyInjection
         services.AddRecipeImageSearchInfrastructure(configuration);
         services.AddShoppingInfrastructure();
         services.AddTranslationsInfrastructure();
+        services.AddToolsInfrastructure();
         services.AddVideoTranscriptsInfrastructure(configuration);
         services.AddPersistenceInfrastructure(configuration);
 

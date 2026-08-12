@@ -1,13 +1,23 @@
+import '@angular/compiler';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { BrowserTestingModule, platformBrowserTesting } from '@angular/platform-browser/testing';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RecipeService } from './recipe.service';
+
+try {
+  TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
+} catch {
+  // Already initialized
+}
 
 describe('RecipeService image gallery', () => {
   let service: RecipeService;
   let http: HttpTestingController;
 
   beforeEach(() => {
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     service = TestBed.inject(RecipeService);
     http = TestBed.inject(HttpTestingController);
