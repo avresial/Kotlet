@@ -15,7 +15,7 @@ public sealed class RecipeImportService(
     IRecipeRepository recipes,
     RecipeDuplicateDetectionService duplicateDetection,
     IIngredientRepository ingredients,
-    IngredientSearchService ingredientSearch,
+    IngredientResolutionService ingredientResolution,
     MeasurementMappingService measurements,
     VideoTranscriptService transcripts,
     AiRecipeExtractionService extraction,
@@ -24,7 +24,6 @@ public sealed class RecipeImportService(
     /// <summary>Provider recorded on AiAssisted sources; all AI extraction goes through OpenRouter.</summary>
     public const string AiSourceProvider = "OpenRouter";
 
-    private const decimal MatchThreshold = 0.75m;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<RecipeImportOperationResult> CreateJobAsync(
@@ -95,6 +94,30 @@ public sealed class RecipeImportService(
     {
         var job = await jobs.GetAsync(id, null, true, cancellationToken);
         if (job is not null) await FailAsync(job, reason, cancellationToken);
+    }
+
+    public async Task<RecipeImportOperationResult> CreateReviewJobAsync(
+        Guid houseId,
+        Guid userId,
+        string sourceUrl,
+        RecipeImportDraft draft,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var job = new RecipeImportJob
+        {
+            Id = Guid.NewGuid(),
+            HouseId = houseId,
+            UserId = userId,
+            Url = sourceUrl,
+            Status = RecipeImportJobStatus.ReadyForReview,
+            DraftJson = JsonSerializer.Serialize(draft, JsonOptions),
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
+        };
+        jobs.Add(job);
+        await jobs.SaveChangesAsync(cancellationToken);
+        return new(RecipeImportOperationStatus.Success, job.Id);
     }
 
     public async Task<RecipeImportOperationResult> AcceptAsync(
@@ -200,14 +223,17 @@ public sealed class RecipeImportService(
     private async Task<RecipeImportDraft> ResolveAsync(
         Guid houseId, string sourceUrl, RecipeDraft draft, CancellationToken cancellationToken)
     {
-        var matches = await ingredientSearch.FindClosestAsync(draft.Ingredients.Select(x => x.Name).ToArray(), cancellationToken);
+        var matches = await ingredientResolution.ResolveAsync(
+            draft.Ingredients.Select(ingredient => ingredient.Name).ToArray(),
+            cancellationToken);
         var duplicates = await duplicateDetection.CheckExistsAsync(houseId, draft.Title, sourceUrl, cancellationToken);
         return new(draft.Title, draft.Servings, draft.InstructionsMarkdown, draft.Gaps,
             draft.Ingredients.Zip(matches, (line, match) => new RecipeImportIngredient(
                 line.Name, line.Quantity, line.Unit, line.Note,
-                match.Similarity >= MatchThreshold ? match.IngredientId : null,
-                match.Similarity >= MatchThreshold ? match.MatchedName : null,
-                match.Similarity < MatchThreshold)).ToArray(), duplicates.Matches);
+                match.MatchedIngredientId,
+                match.MatchedIngredientName,
+                match.MatchScore,
+                match.IsProposedNew)).ToArray(), duplicates.Matches);
     }
 
     private async Task<string> UniqueSlugAsync(Guid houseId, string baseSlug, CancellationToken cancellationToken)

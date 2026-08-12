@@ -164,6 +164,7 @@ export interface RecipeImportIngredient {
   note: string | null;
   ingredientId: string | null;
   matchedName: string | null;
+  matchScore: number | null;
   isProposedNew: boolean;
 }
 

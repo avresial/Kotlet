@@ -1,13 +1,5 @@
-import { inject } from '@angular/core';
-import { Router, Routes } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { Routes } from '@angular/router';
 import { homeGuard } from '../../core/home/home.guard';
-import { AiProviderService } from '../settings/ai-provider.service';
-
-const aiProviderGuard = async () => {
-  const router = inject(Router);
-  return await firstValueFrom(inject(AiProviderService).loadAvailability()) || router.createUrlTree(['/recipes']);
-};
 
 export const recipeRoutes: Routes = [
   {
@@ -24,7 +16,12 @@ export const recipeRoutes: Routes = [
   },
   {
     path: 'recipes/import',
-    canActivate: [homeGuard, aiProviderGuard],
+    redirectTo: '/tools/video-transcription',
+    pathMatch: 'full',
+  },
+  {
+    path: 'recipes/import/:jobId',
+    canActivate: [homeGuard],
     loadComponent: () =>
       import('./pages/recipe-import-page/recipe-import-page').then((m) => m.RecipeImportPage),
   },

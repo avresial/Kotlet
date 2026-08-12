@@ -40,6 +40,28 @@ export const newestIngredients = (ingredients: Ingredient[]): Ingredient[] =>
 export const ingredientPreview = (recipe: RecipeDetail): string =>
   recipe.ingredients.slice(0, 3).map(ingredient => ingredient.name).join(', ');
 
+export const localDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const addLocalDays = (value: string, days: number): string => {
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return localDateString(date);
+};
+
+export const localDayOffset = (from: string, to: string): number => {
+  const [fromYear, fromMonth, fromDay] = from.split('-').map(Number);
+  const [toYear, toMonth, toDay] = to.split('-').map(Number);
+  return Math.round(
+    (Date.UTC(toYear, toMonth - 1, toDay) - Date.UTC(fromYear, fromMonth - 1, fromDay)) / 86_400_000,
+  );
+};
+
 @Component({
   selector: 'app-home-page',
   imports: [RouterLink, FormsModule, IngredientPicker, TranslatePipe],
@@ -87,17 +109,46 @@ export class HomePage implements OnInit {
     const user = this.auth.currentUser();
     return user?.displayName?.trim().split(/\s+/)[0] || user?.email.split('@')[0] || this.translations.translate('home.dashboard.there');
   });
+  private readonly dashboardToday = signal(localDateString(new Date()));
   readonly today = computed(() => new Intl.DateTimeFormat(this.translations.language(), {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
-  }).format(new Date()));
+  }).format(this.localDate(this.dashboardToday())));
 
   readonly todaysMenu = signal<TodaysMenuEntry[]>([]);
   readonly menuAvatarUrls = signal<Record<string, string>>({});
   readonly menuRecipes = signal<Record<string, RecipeDetail>>({});
   readonly menuLoading = signal(true);
   readonly menuError = signal(false);
+  private readonly maximumDayOffset = 7;
+  private menuRequestId = 0;
+  private dashboardDayRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+  readonly selectedDate = signal(this.dashboardToday());
+  readonly selectedDateOffset = computed(() => localDayOffset(this.dashboardToday(), this.selectedDate()));
+  readonly selectedDateLabel = computed(() => {
+    const [year, month, day] = this.selectedDate().split('-').map(Number);
+    return new Intl.DateTimeFormat(this.translations.language(), {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    }).format(new Date(year, month - 1, day));
+  });
+  readonly selectedDateRelativeLabel = computed(() => {
+    switch (this.selectedDateOffset()) {
+      case -1:
+        return this.translations.translate('home.dashboard.yesterday');
+      case 0:
+        return this.translations.translate('home.dashboard.today');
+      case 1:
+        return this.translations.translate('home.dashboard.tomorrow');
+      default:
+        return '';
+    }
+  });
+  readonly isSelectedDateToday = computed(() => this.selectedDateOffset() === 0);
+  readonly canGoToPreviousDay = computed(() => this.selectedDateOffset() > -this.maximumDayOffset);
+  readonly canGoToNextDay = computed(() => this.selectedDateOffset() < this.maximumDayOffset);
 
   readonly houseName = signal<string | null>(null);
   readonly houseMembers = signal<HouseMember[]>([]);
@@ -121,9 +172,13 @@ export class HomePage implements OnInit {
 
   ngOnInit(): void {
     this.destroyRef.onDestroy(() => {
+      if (this.dashboardDayRefreshTimer !== undefined) {
+        clearTimeout(this.dashboardDayRefreshTimer);
+      }
       Object.values(this.recipeAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
       Object.values(this.menuAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
     });
+    this.scheduleDashboardDayRefresh();
     this.recipeService.listRecent(4).pipe(finalize(() => this.recipesLoading.set(false))).subscribe({
       next: recipes => {
         this.newestRecipes.set(recipes);
@@ -139,14 +194,7 @@ export class HomePage implements OnInit {
       next: stats => this.stats.set(stats),
       error: () => this.statsError.set(true),
     });
-    this.mealPlannerService.getForDate(this.todayString()).pipe(finalize(() => this.menuLoading.set(false))).subscribe({
-      next: plan => {
-        const menu = this.buildMenu(plan);
-        this.todaysMenu.set(menu);
-        this.loadMenuDetails(menu);
-      },
-      error: () => this.menuError.set(true),
-    });
+    this.loadMenu(this.selectedDate());
     const activeHouseId = this.auth.currentUser()?.activeHouseId;
     if (activeHouseId) {
       this.homeService.getHome(activeHouseId).pipe(finalize(() => this.houseLoading.set(false))).subscribe({
@@ -194,6 +242,83 @@ export class HomePage implements OnInit {
     return this.translations.translate('home.dashboard.justNow');
   }
 
+  goToPreviousDay(): void {
+    if (this.canGoToPreviousDay()) this.selectDate(addLocalDays(this.selectedDate(), -1));
+  }
+
+  goToNextDay(): void {
+    if (this.canGoToNextDay()) this.selectDate(addLocalDays(this.selectedDate(), 1));
+  }
+
+  goToToday(): void {
+    this.selectDate(this.dashboardToday());
+  }
+
+  private scheduleDashboardDayRefresh(): void {
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+    this.dashboardDayRefreshTimer = setTimeout(() => {
+      this.refreshDashboardDay();
+      this.scheduleDashboardDayRefresh();
+    }, nextMidnight.getTime() - now.getTime());
+  }
+
+  private refreshDashboardDay(): void {
+    const newToday = localDateString(new Date());
+    if (newToday === this.dashboardToday()) {
+      return;
+    }
+
+    const selectedOffset = localDayOffset(newToday, this.selectedDate());
+    const clampedOffset = Math.max(-this.maximumDayOffset, Math.min(this.maximumDayOffset, selectedOffset));
+    const clampedDate = addLocalDays(newToday, clampedOffset);
+    this.dashboardToday.set(newToday);
+    this.selectedDate.set(clampedDate);
+    this.loadMenu(clampedDate);
+  }
+
+  private localDate(value: string): Date {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  private selectDate(date: string): void {
+    if (date === this.selectedDate()) return;
+    this.selectedDate.set(date);
+    this.loadMenu(date);
+  }
+
+  private loadMenu(date: string): void {
+    const requestId = ++this.menuRequestId;
+    this.clearMenu();
+    this.menuLoading.set(true);
+    this.mealPlannerService.getForDate(date).pipe(
+      finalize(() => {
+        if (requestId === this.menuRequestId) this.menuLoading.set(false);
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: plan => {
+        if (requestId !== this.menuRequestId) return;
+        const menu = this.buildMenu(plan);
+        this.todaysMenu.set(menu);
+        this.loadMenuDetails(menu, requestId);
+      },
+      error: () => {
+        if (requestId === this.menuRequestId) this.menuError.set(true);
+      },
+    });
+  }
+
+  private clearMenu(): void {
+    Object.values(this.menuAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
+    this.todaysMenu.set([]);
+    this.menuAvatarUrls.set({});
+    this.menuRecipes.set({});
+    this.menuError.set(false);
+  }
+
   private loadAvatars(recipes: RecipeSummary[]): void {
     for (const recipe of recipes) {
       if (!recipe.firstImageUrl) continue;
@@ -206,18 +331,20 @@ export class HomePage implements OnInit {
     }
   }
 
-  private loadMenuDetails(entries: TodaysMenuEntry[]): void {
+  private loadMenuDetails(entries: TodaysMenuEntry[], requestId: number): void {
     const recipeIds = [...new Set(entries.map(entry => entry.recipeId).filter((id): id is string => !!id))];
     for (const recipeId of recipeIds) {
       this.recipeService.get(recipeId)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(recipe => {
+          if (requestId !== this.menuRequestId) return;
           this.menuRecipes.update(recipes => ({ ...recipes, [recipeId]: recipe }));
           const first = recipe.images[0];
           if (!first) return;
           this.recipeService.imageContent(first.contentUrl)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe(blob => {
+              if (requestId !== this.menuRequestId) return;
               const url = URL.createObjectURL(blob);
               this.menuAvatarUrls.update(urls => ({ ...urls, [recipeId]: url }));
             });
@@ -308,11 +435,4 @@ export class HomePage implements OnInit {
     return entries;
   }
 
-  private todayString(): string {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
 }

@@ -9,7 +9,8 @@ public sealed record RecipeImportIngredient(
     string? Note,
     Guid? IngredientId,
     string? MatchedName,
-    bool IsProposedNew);
+    decimal? MatchScore = null,
+    bool IsProposedNew = false);
 
 public sealed record RecipeImportDraft(
     string Title,

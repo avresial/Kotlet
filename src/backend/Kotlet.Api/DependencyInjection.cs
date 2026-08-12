@@ -14,6 +14,7 @@ using Kotlet.Api.PreparedMeals;
 using Kotlet.Api.Persistence;
 using Kotlet.Api.Recipes;
 using Kotlet.Api.Shopping;
+using Kotlet.Api.Tools;
 using System.Threading.RateLimiting;
 
 namespace Kotlet.Api;
@@ -36,6 +37,7 @@ public static class DependencyInjection
         services.AddLocalizationFeature();
         services.AddIngredientsFeature(configuration);
         services.AddRecipesFeature();
+        services.AddToolsFeature();
         services.AddPersistenceFeature();
 
         services.AddCors(options => options.AddDefaultPolicy(policy => policy
@@ -81,6 +83,7 @@ public static class DependencyInjection
         app.MapShoppingFeature();
 
         app.MapRecipesFeature();
+        app.MapToolsFeature();
         app.MapMealPlannerFeature();
         return app;
     }

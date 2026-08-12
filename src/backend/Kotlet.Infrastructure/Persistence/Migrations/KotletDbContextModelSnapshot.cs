@@ -1484,6 +1484,97 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.ToTable("sources", "kotlet");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.Tools.VideoAnalysisJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Author")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("author");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("DetectedIngredientsJson")
+                        .HasColumnType("text")
+                        .HasColumnName("detected_ingredients_json");
+
+                    b.Property<string>("DraftJson")
+                        .HasColumnType("text")
+                        .HasColumnName("draft_json");
+
+                    b.Property<string>("ErrorReason")
+                        .HasColumnType("text")
+                        .HasColumnName("error_reason");
+
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
+                    b.Property<string>("Language")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("language");
+
+                    b.Property<string>("Platform")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("platform");
+
+                    b.Property<Guid?>("RecipeImportJobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipe_import_job_id");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("source_url");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("status");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Transcript")
+                        .HasColumnType("text")
+                        .HasColumnName("transcript");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("url");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseId")
+                        .HasDatabaseName("ix_video_analysis_jobs_house_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_video_analysis_jobs_user_id");
+
+                    b.ToTable("video_analysis_jobs", "kotlet");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.Translations.Translation", b =>
                 {
                     b.Property<string>("Key")
@@ -2125,6 +2216,15 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("Ingredient");
 
                     b.Navigation("PreparedMeal");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Tools.VideoAnalysisJob", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Houses.House", null)
+                        .WithMany()
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("OpenIddict.EntityFrameworkCore.Models.OpenIddictEntityFrameworkCoreAuthorization", b =>
