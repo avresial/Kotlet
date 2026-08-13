@@ -88,6 +88,7 @@ describe('localized UI', () => {
         const navigation = [...header.querySelectorAll('.nav-item span')].map(item => item.textContent?.trim());
         expect(navigation).toContain(bundle(language)['nav.recipes']);
         expect(navigation).toContain(bundle(language)['nav.shoppingList']);
+        expect(navigation.at(-1)).toBe(bundle(language)['nav.tools']);
 
         expect(readableText(header).flatMap(keyShaped)).toEqual([]);
       });

@@ -123,6 +123,7 @@ header {
   border-top-color: #963827;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
 }
 
 @keyframes spin {
@@ -417,7 +418,37 @@ header {
   background: var(--app-danger-bg);
 }
 
-@media (max-width: 42rem) {
+@media (max-width: mobile.$breakpoint) {
+  .transcription-page {
+    @include mobile.page;
+  }
+
+  .title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+
+    h1 {
+      width: 100%;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .spinner-row {
+    align-items: flex-start;
+
+    > div {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .start-card,
+  .status-card,
+  .panel {
+    @include mobile.full-bleed;
+  }
+
   .url-row,
   .continue-banner,
   .ingredient-row {
@@ -426,18 +457,53 @@ header {
   }
 
   .stages-stepper {
-    flex-wrap: wrap;
-    gap: 0.8rem;
-  }
-}
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 0.6rem;
 
-@media (max-width: mobile.$breakpoint) {
-  .transcription-page {
-    @include mobile.page;
+    li {
+      white-space: nowrap;
+
+      .step-num {
+        flex-shrink: 0;
+      }
+    }
   }
-  .start-card,
-  .status-card,
-  .panel {
-    @include mobile.full-bleed;
+
+  .status-card.failed {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.8rem;
+
+    .retry-button {
+      width: 100%;
+      text-align: center;
+      white-space: nowrap;
+    }
+  }
+
+  .continue-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.8rem;
+
+    .primary-continue-btn {
+      width: 100%;
+      text-align: center;
+      white-space: nowrap;
+    }
+  }
+
+  .transcript-panel .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+
+    .copy-btn {
+      width: 100%;
+      text-align: center;
+      white-space: nowrap;
+    }
   }
 }
