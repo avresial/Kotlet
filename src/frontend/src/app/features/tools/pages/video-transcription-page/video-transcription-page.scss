@@ -241,8 +241,8 @@ header {
 }
 
 .continue-banner {
-  background: linear-gradient(135deg, #fdf6f0 0%, #f7ebe1 100%);
-  border-color: #e8d0be;
+  background: linear-gradient(135deg, var(--app-surface-raised) 0%, var(--app-inset) 100%);
+  border-color: var(--app-border-strong);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -251,11 +251,11 @@ header {
   h3 {
     margin: 0 0 0.25rem;
     font-size: 1.25rem;
-    color: #5c2419;
+    color: var(--app-text);
   }
   p {
     margin: 0;
-    color: #7a3d31;
+    color: var(--app-text-soft);
     font-size: 0.95rem;
   }
 }
@@ -324,8 +324,8 @@ header {
   }
 
   &.new {
-    border-left: 0.3rem solid #8e24aa;
-    background: #fdf7ff;
+    border-left: 0.3rem solid var(--app-ai);
+    background: var(--app-ai-bg);
   }
 }
 
@@ -372,8 +372,8 @@ header {
   }
 
   &.new-ing {
-    background: #f3e5f5;
-    color: #6a1b9a;
+    background: var(--app-ai-bg);
+    color: var(--app-ai);
   }
 }
 
