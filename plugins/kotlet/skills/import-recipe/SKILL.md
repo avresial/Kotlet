@@ -7,8 +7,9 @@ description: Import a recipe into Kotlet from a web page, video, blog post, scre
 
 Saves one recipe into the user's Kotlet household through the `kotlet` MCP server.
 
-Recipe creation is **add-only and one-shot**: the server exposes no edit tool, so everything
-must be correct before the single `add_recipe` call. The authoritative version of this flow is
+Recipe creation is **one-shot**, so everything must be correct before the single `add_recipe`
+call. Existing recipes can be corrected later through the separate `update-recipe` workflow.
+The authoritative version of this flow is
 published by the server itself — the `kotlet://recipes/new-recipe-guide` resource and the
 `create_recipe_flow` prompt. Read the resource if anything below is ambiguous.
 
@@ -46,6 +47,8 @@ Then report back with the created recipe's title and id.
 - Never create an ingredient without the user's explicit confirmation.
 - Never call `add_recipe` more than once for the same recipe. A duplicate call creates a
   duplicate recipe that cannot be edited away through MCP.
-- Recipes cannot be edited through MCP. If `add_recipe` returns validation errors, report those
-  errors to the user rather than retrying with guessed values, unless the user asks you to retry.
+- If `add_recipe` returns validation errors, report those errors to the user rather than retrying
+  with guessed values, unless the user asks you to retry.
+- For later corrections, use the `update-recipe` skill. Never call `add_recipe` to replace an
+  existing recipe.
 - Everything is scoped to the user's active household; there is no cross-household access.

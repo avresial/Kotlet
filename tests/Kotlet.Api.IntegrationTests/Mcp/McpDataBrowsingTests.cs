@@ -31,7 +31,7 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
                      "get_recipes", "get_recipe", "get_ingredients",
                      "get_prepared_meals", "get_prepared_meal", "get_shopping_list", "get_pantry",
                      "get_meal_plan_overview", "get_meal_plan",
-                     "get_meal_plan_members", "add_recipe", "create_ingredient",
+                     "get_meal_plan_members", "add_recipe", "update_recipe", "create_ingredient",
                      "meal_plan_get_range", "meal_plan_replace", "meal_plan_move", "meal_plan_swap",
                      "meal_plan_clear_slot", "meal_plan_recommend_replacement", "meal_plan_apply_replacement",
                      "check_recipe_exists",
@@ -168,6 +168,62 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         var detailBody = await detail.Content.ReadAsStringAsync();
         Assert.Contains("Source: https://example.com/goulash", detailBody);
         Assert.Contains("sweet variety", detailBody);
+    }
+
+    [Fact]
+    public async Task UpdateRecipe_ReplacesEditableDetails_AndPreservesTheRecipeIdentity()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+        var ingredientName = $"Update recipe ingredient {Guid.NewGuid():N}";
+        var ingredient = await CallTool(client, accessToken, "create_ingredient", new
+        {
+            request = new { name = ingredientName, measurementUnit = "g", caloriesPer100BaseUnits = 10 }
+        });
+        var ingredientId = ExtractGuidAfter(await ingredient.Content.ReadAsStringAsync(), "\"id\":\"");
+
+        var added = await CallTool(client, accessToken, "add_recipe", new
+        {
+            request = new
+            {
+                title = $"Recipe to update {Guid.NewGuid():N}",
+                servings = 2,
+                mealType = "dinner",
+                descriptionMarkdown = "Original description.",
+                sourceUrl = "https://example.com/original",
+                isAiAssisted = true,
+                ingredients = new[] { new { ingredientId, quantity = 100, unit = "g", note = "original note" } }
+            }
+        });
+        var recipeId = ExtractGuidAfter(await added.Content.ReadAsStringAsync(), "\"id\":\"");
+
+        var updated = await CallTool(client, accessToken, "update_recipe", new
+        {
+            recipeId,
+            request = new
+            {
+                title = "Updated recipe",
+                servings = 3,
+                mealType = "supper",
+                descriptionMarkdown = "Updated description.\n\nVideo: https://example.com/video",
+                sourceUrl = "https://example.com/original",
+                ingredients = new[] { new { ingredientId, quantity = 125, unit = "g", note = "preserved and adjusted" } }
+            }
+        });
+
+        Assert.Equal(HttpStatusCode.OK, updated.StatusCode);
+        var updatedBody = await updated.Content.ReadAsStringAsync();
+        Assert.Contains("\"Success\"", updatedBody);
+        Assert.Contains(recipeId.ToString(), updatedBody);
+        Assert.Contains("Updated recipe", updatedBody);
+        Assert.Contains("https://example.com/video", updatedBody);
+
+        var detail = await CallTool(client, accessToken, "get_recipe", new { recipeId });
+        var detailBody = await detail.Content.ReadAsStringAsync();
+        Assert.Contains("Updated recipe", detailBody);
+        Assert.Contains("\"servings\":3", detailBody);
+        Assert.Contains("\"mealType\":\"supper\"", detailBody);
+        Assert.Contains("preserved and adjusted", detailBody);
+        Assert.Contains("\"isAiAssisted\":true", detailBody);
     }
 
     [Fact]

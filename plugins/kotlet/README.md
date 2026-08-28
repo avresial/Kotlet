@@ -1,6 +1,6 @@
 # Kotlet Codex plugin (proof of concept)
 
-Packages the **hosted Kotlet MCP server** plus one reusable workflow skill as a
+Packages the **hosted Kotlet MCP server** plus reusable recipe workflow skills as a
 [Codex plugin](https://developers.openai.com/codex/plugins/build). It is configuration and
 documentation only — no backend or frontend code is involved, and the MCP server itself is
 unchanged.
@@ -17,6 +17,7 @@ plugins/kotlet/
 ├── .mcp.json                   # remote Kotlet MCP server, OAuth-protected
 ├── .app.json                   # app-connector binding — intentionally empty, see below
 ├── skills/import-recipe/       # recipe-import workflow skill
+├── skills/update-recipe/       # safe full-replacement update workflow
 └── assets/icon.png             # 256×256 icon, extracted from the app favicon
 ```
 
@@ -65,6 +66,14 @@ codex mcp list          # kotlet should be listed and logged in
 review with the user → `check_recipe_exists` → one batched `get_ingredients` → confirm before
 `create_ingredient` → a single `add_recipe`. It adds no new tools and no new rules.
 
+## The `update-recipe` skill
+
+`skills/update-recipe/SKILL.md` follows the server's
+`kotlet://recipes/edit-recipe-guide` resource and `update_recipe_flow` prompt. It requires
+`get_recipe` first, applies only the requested change to that complete baseline, and sends one
+full replacement through `update_recipe`. Recipe images, ownership, and AI-assisted provenance
+remain unchanged.
+
 ## Manual test
 
 1. Install the plugin and complete `codex mcp login kotlet` as above.
@@ -78,6 +87,8 @@ review with the user → `check_recipe_exists` → one batched `get_ingredients`
 4. Open the recipe in Kotlet and check the title, servings, ingredients, and source link.
 5. Ask for the **same** recipe again. Codex must report the existing recipe and must not create a
    duplicate.
+6. Ask Codex to append a video link to the imported recipe. Confirm it reads the recipe first,
+   preserves all existing fields and ingredients, and calls `update_recipe` once.
 
 ## Why `.app.json` is empty
 
