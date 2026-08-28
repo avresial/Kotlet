@@ -21,6 +21,8 @@ The audit artifacts are intentionally limited to this report and the screenshots
 
 Evidence: [`pantry.resolve_observations`](screenshots/mcp-ui-audit/pantry-resolve-observations.jpg)
 
+![F-01 mobile table wrapping](screenshots/mcp-ui-audit/pantry-resolve-observations.jpg)
+
 The current renderer selects a normal table when a collection has seven or fewer flat keys, then applies aggressive wrapping to table cells ([`DataUiApp.html:168-169`](../src/backend/Kotlet.Api/Mcp/DataUiApp.html#L168)). On mobile, this should become a card layout or a genuinely scrollable table with useful minimum column widths. A table that technically fits but is unreadable is not an acceptable responsive fallback.
 
 ### F-02 — Recommendation table overflows its card
@@ -30,6 +32,8 @@ The current renderer selects a normal table when a collection has seven or fewer
 `meal_plan_recommend_replacement` renders a recommendation table whose content width was 498 px while the table viewport was 364 px. The `Resource URI` column alone measured about 402 px because the URI chip is non-wrapping. The right side can therefore be clipped or extend beyond the card on a narrow host.
 
 Evidence: [`meal_plan_recommend_replacement`](screenshots/mcp-ui-audit/meal-plan-recommend-replacement.jpg)
+
+![F-02 recommendation table overflow](screenshots/mcp-ui-audit/meal-plan-recommend-replacement.jpg)
 
 Long resource identifiers need a responsive treatment: cards, a wrapped/ellipsized URI, or a table with intentional horizontal scrolling and a visible affordance. The current generic table path does not provide that ([`DataUiApp.html:169`](../src/backend/Kotlet.Api/Mcp/DataUiApp.html#L169)).
 
@@ -41,6 +45,8 @@ The live `get_prepared_meals` result contains `suggestedAddons`, but the prepare
 
 Evidence: [`get_prepared_meals`](screenshots/mcp-ui-audit/get-prepared-meals.jpg)
 
+![F-03 generic prepared-meal result](screenshots/mcp-ui-audit/get-prepared-meals.jpg)
+
 The UI predicate and the MCP output contract should agree. Either the list payload should use the renderer’s expected shape, or the renderer should recognize the list shape actually returned by the tool.
 
 ### F-04 — `memory_search` fails against the local SQLite provider
@@ -51,6 +57,8 @@ The UI predicate and the MCP output contract should agree. Either the list paylo
 
 Evidence: [`memory_search`](screenshots/mcp-ui-audit/memory-search.jpg)
 
+![F-04 memory search error](screenshots/mcp-ui-audit/memory-search.jpg)
+
 The likely cause is the SQLite execution path for `EF.Functions.ILike` in [`AgentMemoryRepository.cs:24-29`](../src/backend/Kotlet.Infrastructure/AgentMemory/AgentMemoryRepository.cs#L24). This is an inference from the observed local-provider failure and the query implementation; the exception was intentionally not exposed in the MCP result.
 
 ### F-05 — Some valid results have low-information generic chrome
@@ -60,6 +68,8 @@ The likely cause is the SQLite execution path for `EF.Functions.ILike` in [`Agen
 Several valid payloads, including `get_meal_plan_members` and simple mutation results, use the generic `Tool result` heading. Technical identifiers are intentionally hidden by the renderer, which keeps the screen cleaner but can leave a result with little visible context.
 
 Evidence: [`get_meal_plan_members`](screenshots/mcp-ui-audit/get-meal-plan-members.jpg)
+
+![F-05 generic result chrome](screenshots/mcp-ui-audit/get-meal-plan-members.jpg)
 
 This is not a functional failure. It is a follow-up polish item after the high-severity table and renderer issues are addressed.
 
