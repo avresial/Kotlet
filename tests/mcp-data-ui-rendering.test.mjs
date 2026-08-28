@@ -300,7 +300,10 @@ test("prepared meal lists recognize suggested add-ons", () => {
           caloriesPerServing: 350,
           price: 12.5,
           isArchived: false,
-          suggestedAddons: [{ ingredientName: "Coriander", quantity: 10, unit: "g", required: true }],
+          suggestedAddons: [
+            { ingredientName: "Coriander", quantity: 10, unit: "g", required: true },
+            { ingredientName: "Chili", quantity: 1, unit: "g", isRequired: false, required: true },
+          ],
         }],
       },
     },
@@ -309,7 +312,10 @@ test("prepared meal lists recognize suggested add-ons", () => {
   assert.equal(dom.window.document.getElementById("title").textContent, "Prepared meals");
   assert.equal(dom.window.document.querySelector(".card h2").textContent, "Curry");
   assert.match(dom.window.document.querySelector(".chips").textContent, /Coriander · 10 g/);
-  assert.equal(dom.window.document.querySelector(".chips .tag").classList.contains("warn"), true);
+  assert.deepEqual(
+    [...dom.window.document.querySelectorAll(".chips .tag")].map((tag) => tag.classList.contains("warn")),
+    [true, true],
+  );
   dom.window.close();
 });
 
