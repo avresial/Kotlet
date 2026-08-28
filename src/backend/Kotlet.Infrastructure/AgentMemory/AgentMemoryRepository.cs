@@ -25,8 +25,11 @@ internal sealed class AgentMemoryRepository(KotletDbContext dbContext) : IAgentM
         {
             var term = query.Trim();
             var pattern = $"%{EscapeLikePattern(term)}%";
-            memories = memories.Where(memory => (memory.Title != null && EF.Functions.ILike(memory.Title, pattern, "\\"))
-                || EF.Functions.ILike(memory.Content, pattern, "\\"));
+            memories = dbContext.Database.IsSqlite()
+                ? memories.Where(memory => (memory.Title != null && EF.Functions.Like(memory.Title, pattern, "\\"))
+                    || EF.Functions.Like(memory.Content, pattern, "\\"))
+                : memories.Where(memory => (memory.Title != null && EF.Functions.ILike(memory.Title, pattern, "\\"))
+                    || EF.Functions.ILike(memory.Content, pattern, "\\"));
         }
 
         if (!string.IsNullOrWhiteSpace(category))
