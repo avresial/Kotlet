@@ -37,7 +37,9 @@ published by the server itself — the `kotlet://recipes/new-recipe-guide` resou
      source URL,
    - `ingredients` — each with the resolved `ingredientId`, a positive `quantity`, the `unit`
      (use the resolved `measurementUnit`), and an optional `note`,
-   - `sourceUrl` — the page or video the recipe came from, for imports,
+   - `sourceUrl` — the source page or social post the recipe came from, for imports,
+   - `videoUrl` — the direct browser-playable media URL, when the source exposes one,
+   - `videoThumbnailUrl` — the video's poster image, when available,
    - `isAiAssisted` — `true` for imports, so the app marks the recipe accordingly.
 
 Then report back with the created recipe's title and id.
@@ -45,6 +47,8 @@ Then report back with the created recipe's title and id.
 ## Rules
 
 - Never create an ingredient without the user's explicit confirmation.
+- Keep page and social-post URLs in `sourceUrl`. Put only direct playable media in `videoUrl`, and
+  never append a video link to `descriptionMarkdown`.
 - Never call `add_recipe` more than once for the same recipe. A duplicate call creates a
   duplicate recipe that cannot be edited away through MCP.
 - If `add_recipe` returns validation errors, report those errors to the user rather than retrying

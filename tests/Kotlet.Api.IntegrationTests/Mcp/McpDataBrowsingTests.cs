@@ -204,8 +204,10 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
                 title = "Updated recipe",
                 servings = 3,
                 mealType = "supper",
-                descriptionMarkdown = "Updated description.\n\nVideo: https://example.com/video",
+                descriptionMarkdown = "Updated description.",
                 sourceUrl = "https://example.com/original",
+                videoUrl = "https://media.example.com/recipe.mp4",
+                videoThumbnailUrl = "https://media.example.com/recipe.jpg",
                 ingredients = new[] { new { ingredientId, quantity = 125, unit = "g", note = "preserved and adjusted" } }
             }
         });
@@ -215,7 +217,8 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         Assert.Contains("\"Success\"", updatedBody);
         Assert.Contains(recipeId.ToString(), updatedBody);
         Assert.Contains("Updated recipe", updatedBody);
-        Assert.Contains("https://example.com/video", updatedBody);
+        Assert.Contains("https://media.example.com/recipe.mp4", updatedBody);
+        Assert.DoesNotContain("Video:", updatedBody);
 
         var detail = await CallTool(client, accessToken, "get_recipe", new { recipeId });
         var detailBody = await detail.Content.ReadAsStringAsync();
@@ -224,6 +227,10 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         Assert.Contains("\"mealType\":\"supper\"", detailBody);
         Assert.Contains("preserved and adjusted", detailBody);
         Assert.Contains("\"isAiAssisted\":true", detailBody);
+        Assert.Contains("\"sourceUrl\":\"https://example.com/original\"", detailBody);
+        Assert.Contains("\"videoUrl\":\"https://media.example.com/recipe.mp4\"", detailBody);
+        Assert.Contains("\"videoThumbnailUrl\":\"https://media.example.com/recipe.jpg\"", detailBody);
+        Assert.DoesNotContain("Video:", detailBody);
     }
 
     [Fact]

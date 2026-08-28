@@ -13,8 +13,12 @@ export interface CreateRecipeRequest {
   servings: number;
   mealType?: RecipeMealType | null;
   ingredients: RecipeIngredientRequest[];
-  /** Original source of the recipe (e.g. the video or web page it was imported from). */
+  /** Original page or social post from which the recipe was imported. */
   sourceUrl?: string | null;
+  /** Direct URL of a video that can be played in the recipe view. */
+  videoUrl?: string | null;
+  /** Optional poster image displayed before the recipe video starts. */
+  videoThumbnailUrl?: string | null;
   /** Marks the recipe as created with AI assistance; ignored on update (provenance is kept). */
   isAiAssisted?: boolean;
 }
@@ -83,6 +87,8 @@ export interface RecipeDetail {
   canEdit: boolean;
   isAiAssisted: boolean;
   sourceUrl: string | null;
+  videoUrl: string | null;
+  videoThumbnailUrl: string | null;
   createdAtUtc: string;
   updatedAtUtc: string;
 }

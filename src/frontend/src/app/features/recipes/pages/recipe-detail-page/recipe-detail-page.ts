@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { finalize, forkJoin, of } from 'rxjs';
@@ -17,10 +17,11 @@ import { allergenOptions, dietarySuitabilityOptions, foodAttributeOptions, Ingre
 import { IngredientService } from '../../../ingredients/ingredient.service';
 import { recipeCaloriesPerServing, recipePricePerServing } from '../../../meal-planner/meal-planner-calculations';
 import { AiBadge } from '../../../../shared/ui/ai-badge/ai-badge';
+import { RecipeVideo } from '../../components/recipe-video/recipe-video';
 
 @Component({
   selector: 'app-recipe-detail-page',
-  imports: [RouterLink, DatePipe, ImageGallery, TranslatePipe, AiBadge, RecipeShoppingList],
+  imports: [RouterLink, DatePipe, NgTemplateOutlet, ImageGallery, RecipeVideo, TranslatePipe, AiBadge, RecipeShoppingList],
   templateUrl: './recipe-detail-page.html',
   styleUrl: './recipe-detail-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

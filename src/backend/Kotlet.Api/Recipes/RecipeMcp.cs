@@ -32,7 +32,7 @@ public sealed class RecipeMcp
             RequireHouse(currentUser), page, pageSize, search, mealType, ingredientIds, cancellationToken));
 
     [McpServerTool(Name = "get_recipe", ReadOnly = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Returns one complete household recipe: Markdown description with preparation steps, servings, and the full ingredient list with quantities.")]
+     Description("Returns one complete household recipe: Markdown description with preparation steps, servings, the full ingredient list with quantities, source URL, and optional playable video metadata.")]
     public static async Task<RecipeDetailResponse> GetRecipe(
         [Description("Recipe ID from get_recipes.")] Guid recipeId,
         RecipeService service,
@@ -61,7 +61,7 @@ public sealed class RecipeMcp
 
     [McpServerTool(Name = "add_recipe", ReadOnly = false, Destructive = false,
         Idempotent = false, OpenWorld = false, UseStructuredContent = true),
-     Description("Creates one new household recipe. This is an add-only one-shot tool: find every ingredient with get_ingredients first, create genuinely missing ones only after user confirmation, then call this once with quantities, units, optional notes, servings, and a Markdown description with preparation steps. When importing a recipe from the internet, set sourceUrl to the page or video it came from and set isAiAssisted to true. Read the kotlet://recipes/new-recipe-guide resource for the full workflow.")]
+     Description("Creates one new household recipe. This is an add-only one-shot tool: find every ingredient with get_ingredients first, create genuinely missing ones only after user confirmation, then call this once with quantities, units, optional notes, servings, and a Markdown description with preparation steps. When importing a recipe from the internet, set sourceUrl to the source page, set isAiAssisted to true, and use videoUrl plus videoThumbnailUrl when a direct playable video and poster are available. Read the kotlet://recipes/new-recipe-guide resource for the full workflow.")]
     public static Task<RecipeOperationResult> AddRecipe(
         [Description("Complete recipe to create. DescriptionMarkdown should include a concise overview and numbered cooking steps. Ingredients must use existing ingredient IDs from get_ingredients or kotlet://ingredients/{ingredientId} resources.")]
         CreateRecipeRequest request,
@@ -75,6 +75,7 @@ public sealed class RecipeMcp
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
      Description("Replaces the editable details and complete ingredient list of one household recipe. " +
                  "Call get_recipe first and carry forward every field that should remain unchanged. " +
+                 "Use videoUrl and videoThumbnailUrl for native playback instead of adding a video link to the Markdown description. " +
                  "Images, ownership, and AI-assisted provenance are preserved.")]
     public static Task<RecipeOperationResult> UpdateRecipe(
         [Description("Recipe ID from get_recipes or get_recipe.")] Guid recipeId,
@@ -102,8 +103,11 @@ public sealed class RecipeMcp
         2. Check for duplicates with `check_recipe_exists`, passing the source URL (when importing) and
            the title. If it reports a match, tell the user instead of adding the recipe again.
         3. Write `descriptionMarkdown` with a short overview followed by numbered preparation/cooking steps.
-           For imported recipes, set `sourceUrl` to the page or video the recipe came from and set
-           `isAiAssisted` to `true` so the recipe is marked accordingly in the app.
+           For imported recipes, set `sourceUrl` to the source page and set `isAiAssisted` to `true`
+           so the recipe is marked accordingly in the app. When the source exposes a direct browser-
+           playable video file, set `videoUrl` to that media URL and, when available,
+           `videoThumbnailUrl` to its poster image. Keep social-post and web-page URLs in `sourceUrl`;
+           never put them in `videoUrl` and never append a video link to `descriptionMarkdown`.
         4. Search all ingredients in ONE call with `get_ingredients`. It returns the closest catalog
            name for each input across all languages, including its language, measurement unit, resource
            URI, exact-match status, edit distance, and normalized similarity. Use the returned ingredient
@@ -135,20 +139,24 @@ public sealed class RecipeMcp
 
         1. Call `get_recipe` and treat its result as the replacement baseline.
         2. Apply only the change the user requested. Preserve the title, description, servings,
-           meal type, source URL, and every ingredient that should remain unchanged.
+           meal type, source URL, native video URL, video thumbnail URL, and every ingredient that
+           should remain unchanged.
         3. Resolve any newly added ingredient with `get_ingredients`. Ask before creating a missing
            shared-catalog ingredient with `create_ingredient`.
         4. Show the exact replacement to the user when the requested change is ambiguous or would
            remove or replace recipe data.
         5. Call `update_recipe` once. Include the recipe id and a complete `UpdateRecipeRequest`.
 
-        Recipe images, ownership, and AI-assisted provenance are not part of the request and remain
-        unchanged. If validation fails, report the error instead of retrying with guessed values.
+        To attach a playable film, set `videoUrl` to a direct browser-playable media URL and optionally
+        set `videoThumbnailUrl` to its poster. Keep the source page in `sourceUrl`; never append the
+        film link to `descriptionMarkdown`. Recipe images, ownership, and AI-assisted provenance are
+        not part of the request and remain unchanged. If validation fails, report the error instead
+        of retrying with guessed values.
         """;
 
     [McpServerResource(UriTemplate = "kotlet://recipes/{recipeId}", Name = "recipe",
         Title = "Kotlet recipe", MimeType = "application/json"),
-     Description("Complete household recipe, including description, servings, ingredients, and images.")]
+     Description("Complete household recipe, including description, servings, ingredients, images, and optional playable video metadata.")]
     public static async Task<string> Recipe(
         Guid recipeId, RecipeService service, ICurrentUser currentUser, ILanguageContext language, CancellationToken cancellationToken) =>
         Json(await service.GetByIdAsync(recipeId, RequireHouse(currentUser), cancellationToken, language.Language)
@@ -174,7 +182,10 @@ public sealed class RecipeMcp
                - `servings`: positive serving count.
                - `descriptionMarkdown`: overview plus numbered steps.
                - `ingredients`: each item must include an existing `ingredientId`, positive `quantity`, `unit`, and optional `note`.
-               - For imported recipes: `sourceUrl` set to the source page or video, and `isAiAssisted` set to `true`.
+               - For imported recipes: `sourceUrl` set to the source page, and `isAiAssisted` set to `true`.
+               - When available: `videoUrl` set to a direct browser-playable media URL and
+                 `videoThumbnailUrl` set to its poster image. Never put a social-post or page URL in
+                 `videoUrl`, and never append a video link to `descriptionMarkdown`.
             6. If `add_recipe` returns validation errors, explain those errors to the user rather than retrying with guessed values.
             """)
     ];
@@ -187,9 +198,13 @@ public sealed class RecipeMcp
             """
             To update an existing Kotlet recipe:
             1. Call `get_recipe` first and use its complete result as the baseline.
-            2. Apply only the requested change. Preserve every other editable field and ingredient.
+            2. Apply only the requested change. Preserve every other editable field and ingredient,
+               including `sourceUrl`, `videoUrl`, and `videoThumbnailUrl`.
             3. Resolve newly added ingredients with `get_ingredients`; ask before creating a missing one.
-            4. Call `update_recipe` once with the recipe id and a complete replacement request.
+            4. To attach a film, set `videoUrl` to a direct browser-playable media URL and optionally
+               set `videoThumbnailUrl` to its poster. Keep the source page in `sourceUrl`; never append
+               the film link to `descriptionMarkdown`.
+            5. Call `update_recipe` once with the recipe id and a complete replacement request.
             Recipe images, ownership, and AI-assisted provenance are preserved automatically.
             If validation fails, report the error instead of retrying with guessed values.
             """)

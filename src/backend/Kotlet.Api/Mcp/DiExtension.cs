@@ -103,10 +103,12 @@ public static class DiExtension
                 check_recipe_exists (source URL and/or title), find every ingredient in one call
                 with get_ingredients, create genuinely missing ones after user confirmation, then
                 call add_recipe exactly once with title, servings, a Markdown description containing
-                numbered steps (cite the source URL when imported), and the ingredient IDs with
-                quantities.
+                numbered steps, and the ingredient IDs with quantities. Put the source page in
+                sourceUrl. When direct browser-playable media is available, put it in videoUrl and
+                its poster in videoThumbnailUrl; never append the video link to descriptionMarkdown.
                 Updating a recipe: call get_recipe first, preserve every field and ingredient that
-                should remain unchanged, then call update_recipe once with the complete replacement.
+                should remain unchanged (including sourceUrl, videoUrl, and videoThumbnailUrl), then
+                call update_recipe once with the complete replacement.
                 Follow kotlet://recipes/edit-recipe-guide. Recipe images, ownership, and AI-assisted
                 provenance remain unchanged.
 

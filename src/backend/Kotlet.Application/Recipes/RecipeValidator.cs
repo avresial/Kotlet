@@ -7,20 +7,27 @@ public static class RecipeValidator
 {
     private const int MaxIngredients = 100;
     private const int MaxServings = 99;
+    private const int MaxUrlLength = 2000;
 
     public static Dictionary<string, string[]> Validate(
-        string title, string? descriptionMarkdown, IReadOnlyList<RecipeIngredientRequest> ingredients, int servings, string? mealType, string? sourceUrl)
+        string title,
+        string? descriptionMarkdown,
+        IReadOnlyList<RecipeIngredientRequest> ingredients,
+        int servings,
+        string? mealType,
+        string? sourceUrl,
+        string? videoUrl,
+        string? videoThumbnailUrl)
     {
         var errors = new Dictionary<string, string[]>();
 
-        var normalizedSourceUrl = RecipeSourceUrl.Normalize(sourceUrl);
-        if (normalizedSourceUrl is not null)
+        ValidateUrl(errors, "sourceUrl", "Source URL", sourceUrl);
+        ValidateUrl(errors, "videoUrl", "Video URL", videoUrl);
+        ValidateUrl(errors, "videoThumbnailUrl", "Video thumbnail URL", videoThumbnailUrl);
+        if (RecipeSourceUrl.Normalize(videoThumbnailUrl) is not null
+            && RecipeSourceUrl.Normalize(videoUrl) is null)
         {
-            if (normalizedSourceUrl.Length > 2000)
-                errors["sourceUrl"] = ["Source URL cannot exceed 2,000 characters."];
-            else if (!Uri.TryCreate(normalizedSourceUrl, UriKind.Absolute, out var uri)
-                     || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-                errors["sourceUrl"] = ["Source URL must be an absolute http(s) URL."];
+            errors["videoThumbnailUrl"] = ["A video thumbnail requires a video URL."];
         }
 
         if (string.IsNullOrWhiteSpace(title))
@@ -59,5 +66,28 @@ public static class RecipeValidator
             errors["ingredients"] = ingredientErrors.ToArray();
 
         return errors;
+    }
+
+    private static void ValidateUrl(
+        IDictionary<string, string[]> errors,
+        string key,
+        string displayName,
+        string? value)
+    {
+        var normalizedUrl = RecipeSourceUrl.Normalize(value);
+        if (normalizedUrl is null)
+        {
+            return;
+        }
+
+        if (normalizedUrl.Length > MaxUrlLength)
+        {
+            errors[key] = [$"{displayName} cannot exceed 2,000 characters."];
+        }
+        else if (!Uri.TryCreate(normalizedUrl, UriKind.Absolute, out var uri)
+                 || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            errors[key] = [$"{displayName} must be an absolute http(s) URL."];
+        }
     }
 }

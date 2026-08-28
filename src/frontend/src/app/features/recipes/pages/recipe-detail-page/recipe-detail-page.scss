@@ -22,6 +22,20 @@
 .actions-dropdown button:hover { background: var(--app-inset); }
 .actions-dropdown button:disabled { opacity: .5; cursor: default; }
 
+.video-hero {
+  position: relative;
+  min-height: 32rem;
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(24rem, 1.1fr);
+  background: var(--app-surface);
+}
+.video-hero-info { min-width: 0; padding: 5.5rem 2.25rem 2.75rem; display: flex; align-items: flex-end; }
+.video-hero app-recipe-video { min-width: 0; grid-column: 2; }
+.video-hero .hero-copy { position: static; color: var(--app-text); }
+.video-hero .eyebrow { color: #a95037; }
+.video-hero .meta { color: var(--app-text-muted); }
+.video-hero .meta .source-link:hover { color: var(--app-text); }
+
 .hero-copy { right: 1.75rem; bottom: 1.7rem; left: 1.75rem; color: #f7f1e7; }
 .eyebrow { margin: 0 0 .65rem; color: #f0d6cb; font-size: .72rem; font-weight: 850; letter-spacing: .18em; text-transform: uppercase; }
 h1 { max-width: 48rem; margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2.5rem, 6vw, 4rem); line-height: .98; letter-spacing: -.02em; text-wrap: balance; }
@@ -71,6 +85,9 @@ section h2 { margin: 0 0 1rem; color: var(--app-text-muted); font-size: .72rem; 
 @media (max-width: 48rem) {
   .recipe-detail-page { padding: 0 0 2rem; }
   .recipe-card { border-radius: 0; box-shadow: none; }
+  .video-hero { min-height: 0; grid-template-columns: 1fr; }
+  .video-hero app-recipe-video { grid-column: 1; grid-row: 1; }
+  .video-hero-info { grid-column: 1; grid-row: 2; padding: 1.75rem 1.25rem 2rem; }
 }
 
 @media (max-width: 40rem) {

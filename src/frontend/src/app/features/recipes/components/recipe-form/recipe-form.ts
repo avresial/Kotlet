@@ -55,6 +55,8 @@ export class RecipeForm implements OnInit {
     mealType: [null as string | null],
     descriptionMarkdown: [''],
     sourceUrl: ['', [Validators.pattern(/^https?:\/\/\S+$/), Validators.maxLength(2000)]],
+    videoUrl: ['', [Validators.pattern(/^https?:\/\/\S+$/), Validators.maxLength(2000)]],
+    videoThumbnailUrl: ['', [Validators.pattern(/^https?:\/\/\S+$/), Validators.maxLength(2000)]],
     ingredients: [[] as RecipeIngredientRequest[]],
   });
 
@@ -67,6 +69,8 @@ export class RecipeForm implements OnInit {
         mealType: initial.mealType,
         descriptionMarkdown: initial.descriptionMarkdown ?? '',
         sourceUrl: initial.sourceUrl ?? '',
+        videoUrl: initial.videoUrl ?? '',
+        videoThumbnailUrl: initial.videoThumbnailUrl ?? '',
         ingredients: initial.ingredients.map((i) => ({
           ingredientId: i.ingredientId,
           name: i.name,
@@ -90,6 +94,8 @@ export class RecipeForm implements OnInit {
       mealType: value.mealType as CreateRecipeRequest['mealType'],
       descriptionMarkdown: value.descriptionMarkdown || null,
       sourceUrl: value.sourceUrl.trim() || null,
+      videoUrl: value.videoUrl.trim() || null,
+      videoThumbnailUrl: value.videoThumbnailUrl.trim() || null,
       ingredients: value.ingredients,
     });
   }

@@ -17,6 +17,8 @@ public sealed record CreateRecipeRequest(
     int Servings = 1,
     string? MealType = null,
     string? SourceUrl = null,
+    string? VideoUrl = null,
+    string? VideoThumbnailUrl = null,
     bool IsAiAssisted = false);
 
 // No IsAiAssisted here: the flag records provenance and survives human edits.
@@ -26,7 +28,9 @@ public sealed record UpdateRecipeRequest(
     IReadOnlyList<RecipeIngredientRequest> Ingredients,
     int Servings = 1,
     string? MealType = null,
-    string? SourceUrl = null);
+    string? SourceUrl = null,
+    string? VideoUrl = null,
+    string? VideoThumbnailUrl = null);
 
 public sealed record RecipeIngredientResponse(
     Guid Id,
@@ -108,6 +112,8 @@ public sealed record RecipeDetailResponse(
     bool CanEdit,
     bool IsAiAssisted,
     string? SourceUrl,
+    string? VideoUrl,
+    string? VideoThumbnailUrl,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);
 
