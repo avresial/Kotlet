@@ -71,14 +71,30 @@ public sealed class RecipeMcp
         CancellationToken cancellationToken) =>
         service.CreateAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken, language.Language);
 
+    [McpServerTool(Name = "update_recipe", ReadOnly = false, Destructive = false,
+        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
+     Description("Replaces the editable details and complete ingredient list of one household recipe. " +
+                 "Call get_recipe first and carry forward every field that should remain unchanged. " +
+                 "Images, ownership, and AI-assisted provenance are preserved.")]
+    public static Task<RecipeOperationResult> UpdateRecipe(
+        [Description("Recipe ID from get_recipes or get_recipe.")] Guid recipeId,
+        [Description("Complete replacement recipe details. Include every ingredient that should remain on the recipe.")]
+        UpdateRecipeRequest request,
+        RecipeService service,
+        ICurrentUser currentUser,
+        ILanguageContext language,
+        CancellationToken cancellationToken) =>
+        service.UpdateAsync(recipeId, RequireHouse(currentUser), request, cancellationToken, language.Language);
+
     [McpServerResource(UriTemplate = "kotlet://recipes/new-recipe-guide", Name = "new-recipe-guide",
         Title = "New recipe creation guide", MimeType = "text/markdown"),
-     Description("Instructions for creating a new Kotlet recipe through MCP without editing existing recipes.")]
+     Description("Instructions for creating a new Kotlet recipe through MCP and correcting it later when needed.")]
     public static string NewRecipeGuide() =>
         """
         # New recipe creation flow
 
-        Use this resource before calling the `add_recipe` tool. The MCP server intentionally exposes recipe creation only; it does not expose an edit recipe tool.
+        Use this resource before calling the `add_recipe` tool. Recipe creation is one-shot, but an
+        existing recipe can be corrected later with `update_recipe` after reading its complete state.
 
         1. Understand the requested recipe and decide on a title, servings, and a Markdown description.
            When the recipe comes from the internet (a website, video, or blog), review it with the user
@@ -101,7 +117,33 @@ public sealed class RecipeMcp
         6. Call `add_recipe` exactly once when every ingredient is resolved. Include each ingredient's
            `ingredientId`, positive `quantity`, the `unit` (use the resolved `measurementUnit`), and an
            optional `note`.
-        7. Do not attempt to edit an existing recipe. If the result has validation errors, report them to the user instead of guessing a second creation attempt unless the user explicitly asks you to try again.
+        7. If the result has validation errors, report them to the user instead of guessing a second creation attempt unless the user explicitly asks you to try again.
+        8. For a later correction, call `get_recipe` first, preserve every field and ingredient that
+           should remain unchanged, obtain user approval for the exact replacement, then call
+           `update_recipe` once with the complete recipe details. Images, ownership, and AI-assisted
+           provenance are preserved automatically.
+        """;
+
+    [McpServerResource(UriTemplate = "kotlet://recipes/edit-recipe-guide", Name = "edit-recipe-guide",
+        Title = "Recipe editing guide", MimeType = "text/markdown"),
+     Description("Instructions for safely editing an existing Kotlet recipe through MCP.")]
+    public static string EditRecipeGuide() =>
+        """
+        # Existing recipe update flow
+
+        `update_recipe` replaces all editable recipe fields and the complete ingredient list.
+
+        1. Call `get_recipe` and treat its result as the replacement baseline.
+        2. Apply only the change the user requested. Preserve the title, description, servings,
+           meal type, source URL, and every ingredient that should remain unchanged.
+        3. Resolve any newly added ingredient with `get_ingredients`. Ask before creating a missing
+           shared-catalog ingredient with `create_ingredient`.
+        4. Show the exact replacement to the user when the requested change is ambiguous or would
+           remove or replace recipe data.
+        5. Call `update_recipe` once. Include the recipe id and a complete `UpdateRecipeRequest`.
+
+        Recipe images, ownership, and AI-assisted provenance are not part of the request and remain
+        unchanged. If validation fails, report the error instead of retrying with guessed values.
         """;
 
     [McpServerResource(UriTemplate = "kotlet://recipes/{recipeId}", Name = "recipe",
@@ -118,7 +160,8 @@ public sealed class RecipeMcp
     [
         new(ChatRole.User,
             """
-            You can add new Kotlet recipes, but you cannot edit recipes through MCP. Treat recipe creation as a one-shot operation.
+            Treat recipe creation as a one-shot operation. Existing recipes can be corrected later with
+            `update_recipe`, but only after reading their complete state with `get_recipe`.
 
             Required flow:
             1. Gather the user's recipe intent, including title, serving count, ingredients, quantities, and any ingredient-specific notes.
@@ -132,7 +175,23 @@ public sealed class RecipeMcp
                - `descriptionMarkdown`: overview plus numbered steps.
                - `ingredients`: each item must include an existing `ingredientId`, positive `quantity`, `unit`, and optional `note`.
                - For imported recipes: `sourceUrl` set to the source page or video, and `isAiAssisted` set to `true`.
-            6. If `add_recipe` returns validation errors, explain those errors to the user. Do not call an edit recipe tool; none is exposed.
+            6. If `add_recipe` returns validation errors, explain those errors to the user rather than retrying with guessed values.
+            """)
+    ];
+
+    [McpServerPrompt(Name = "update_recipe_flow"),
+     Description("Explains how an agent should safely replace an existing recipe through MCP.")]
+    public static IReadOnlyList<ChatMessage> UpdateRecipeFlow() =>
+    [
+        new(ChatRole.User,
+            """
+            To update an existing Kotlet recipe:
+            1. Call `get_recipe` first and use its complete result as the baseline.
+            2. Apply only the requested change. Preserve every other editable field and ingredient.
+            3. Resolve newly added ingredients with `get_ingredients`; ask before creating a missing one.
+            4. Call `update_recipe` once with the recipe id and a complete replacement request.
+            Recipe images, ownership, and AI-assisted provenance are preserved automatically.
+            If validation fails, report the error instead of retrying with guessed values.
             """)
     ];
 }
