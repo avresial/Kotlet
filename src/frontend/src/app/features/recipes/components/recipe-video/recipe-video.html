@@ -1,0 +1,18 @@
+<div class="recipe-video" [class.started]="hasStarted()">
+  <video
+    #video
+    class="player"
+    [src]="videoUrl()"
+    [poster]="thumbnailUrl() || ''"
+    [attr.aria-label]="title()"
+    [controls]="hasStarted()"
+    preload="metadata"
+    playsinline
+    (play)="hasStarted.set(true)"
+  ></video>
+  @if (!hasStarted()) {
+    <button type="button" class="play" (click)="play(video)" [attr.aria-label]="'recipes.playVideo' | t">
+      <span aria-hidden="true">▶</span>
+    </button>
+  }
+</div>

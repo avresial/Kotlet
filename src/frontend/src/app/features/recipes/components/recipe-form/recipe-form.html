@@ -100,6 +100,40 @@
     }
   </div>
 
+  <div class="form-row video-fields">
+    <div class="form-field">
+      <label for="recipe-video-url">{{ 'recipes.videoUrl' | t }}</label>
+      <input
+        id="recipe-video-url"
+        type="url"
+        formControlName="videoUrl"
+        placeholder="https://…/video.mp4"
+        [class.invalid]="form.get('videoUrl')?.invalid && form.get('videoUrl')?.touched"
+        maxlength="2000"
+      />
+      <span class="field-hint">{{ 'recipes.videoUrlHelp' | t }}</span>
+      @if (form.get('videoUrl')?.invalid && form.get('videoUrl')?.touched) {
+        <span class="field-error">{{ 'recipes.videoUrlError' | t }}</span>
+      }
+    </div>
+
+    <div class="form-field">
+      <label for="recipe-video-thumbnail-url">{{ 'recipes.videoThumbnailUrl' | t }}</label>
+      <input
+        id="recipe-video-thumbnail-url"
+        type="url"
+        formControlName="videoThumbnailUrl"
+        placeholder="https://…/poster.jpg"
+        [class.invalid]="form.get('videoThumbnailUrl')?.invalid && form.get('videoThumbnailUrl')?.touched"
+        maxlength="2000"
+      />
+      <span class="field-hint">{{ 'recipes.videoThumbnailUrlHelp' | t }}</span>
+      @if (form.get('videoThumbnailUrl')?.invalid && form.get('videoThumbnailUrl')?.touched) {
+        <span class="field-error">{{ 'recipes.videoThumbnailUrlError' | t }}</span>
+      }
+    </div>
+  </div>
+
   <div class="form-field">
     <label id="recipe-ingredients-label">{{ 'nav.ingredients' | t }}</label>
     <app-ingredient-list-editor

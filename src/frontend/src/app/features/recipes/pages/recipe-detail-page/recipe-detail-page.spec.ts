@@ -48,6 +48,8 @@ function makeRecipe(overrides: Partial<RecipeDetail> = {}): RecipeDetail {
     canEdit: false,
     isAiAssisted: false,
     sourceUrl: null,
+    videoUrl: null,
+    videoThumbnailUrl: null,
     createdAtUtc: '2026-07-10T00:00:00Z',
     updatedAtUtc: '2026-07-10T00:00:00Z',
     ...overrides,
@@ -55,7 +57,7 @@ function makeRecipe(overrides: Partial<RecipeDetail> = {}): RecipeDetail {
 }
 
 describe('RecipeDetailPage source link', () => {
-  function render(sourceUrl: string | null) {
+  function render(overrides: Partial<RecipeDetail>) {
     TestBed.configureTestingModule({
       imports: [RecipeDetailPage],
       providers: [
@@ -69,14 +71,14 @@ describe('RecipeDetailPage source link', () => {
     const http = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(RecipeDetailPage);
     fixture.detectChanges();
-    http.expectOne('/api/recipes/recipe-1').flush(makeRecipe({ sourceUrl }));
+    http.expectOne('/api/recipes/recipe-1').flush(makeRecipe(overrides));
     fixture.detectChanges();
     http.verify();
     return fixture;
   }
 
   it('shows a source link opening in a new tab with safe attributes', () => {
-    const fixture = render('https://example.com/recipe');
+    const fixture = render({ sourceUrl: 'https://example.com/recipe' });
     const link = fixture.nativeElement.querySelector('a.source-link') as HTMLAnchorElement;
     expect(link).not.toBeNull();
     expect(link.getAttribute('href')).toBe('https://example.com/recipe');
@@ -85,8 +87,21 @@ describe('RecipeDetailPage source link', () => {
   });
 
   it('hides the source link when the recipe has no source url', () => {
-    const fixture = render(null);
+    const fixture = render({ sourceUrl: null });
     expect(fixture.nativeElement.querySelector('a.source-link')).toBeNull();
+  });
+
+  it('renders a playable video with its thumbnail instead of the image hero', () => {
+    const fixture = render({
+      videoUrl: 'https://media.example.com/soup.mp4',
+      videoThumbnailUrl: 'https://media.example.com/soup.jpg',
+    });
+
+    const video = fixture.nativeElement.querySelector('app-recipe-video video') as HTMLVideoElement;
+    expect(video).not.toBeNull();
+    expect(video.getAttribute('src')).toBe('https://media.example.com/soup.mp4');
+    expect(video.getAttribute('poster')).toBe('https://media.example.com/soup.jpg');
+    expect(fixture.nativeElement.querySelector('app-image-gallery')).toBeNull();
   });
 });
 

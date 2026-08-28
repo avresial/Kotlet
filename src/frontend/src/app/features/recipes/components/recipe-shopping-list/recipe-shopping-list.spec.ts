@@ -35,6 +35,8 @@ const recipe: RecipeDetail = {
   canEdit: true,
   isAiAssisted: false,
   sourceUrl: null,
+  videoUrl: null,
+  videoThumbnailUrl: null,
   createdAtUtc: '2026-06-28T00:00:00Z',
   updatedAtUtc: '2026-06-28T00:00:00Z',
 };

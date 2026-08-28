@@ -26,6 +26,8 @@ internal sealed class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         builder.Property(r => r.MealType).HasColumnName("meal_type");
         builder.Property(r => r.IsAiAssisted).HasColumnName("is_ai_assisted").HasDefaultValue(false).IsRequired();
         builder.Property(r => r.SourceUrl).HasColumnName("source_url").HasMaxLength(2000);
+        builder.Property(r => r.VideoUrl).HasColumnName("video_url").HasMaxLength(2000);
+        builder.Property(r => r.VideoThumbnailUrl).HasColumnName("video_thumbnail_url").HasMaxLength(2000);
         builder.Property(r => r.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
         builder.Property(r => r.UpdatedAtUtc).HasColumnName("updated_at_utc").IsRequired();
 

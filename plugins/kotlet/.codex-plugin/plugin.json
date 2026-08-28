@@ -1,6 +1,6 @@
 {
   "name": "kotlet",
-  "version": "0.2.0+codex.20260828075619",
+  "version": "0.2.0+codex.20260828110000",
   "description": "Connects Codex to your Kotlet kitchen: recipes, ingredients, pantry, shopping list, and meal plans over the hosted Kotlet MCP server.",
   "author": {
     "name": "Kotlet",
@@ -37,7 +37,7 @@
     "logo": "./assets/icon.png",
     "defaultPrompt": [
       "Import this recipe into Kotlet: <url>",
-      "Add this video link to an existing Kotlet recipe.",
+      "Attach this playable video to an existing Kotlet recipe.",
       "Check whether this recipe is already in my Kotlet kitchen.",
       "What is on my Kotlet shopping list?"
     ]

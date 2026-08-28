@@ -8,7 +8,7 @@
     </div>
   } @else if (recipe(); as r) {
     <article class="recipe-card">
-      <app-image-gallery [images]="r.images" [immersive]="true">
+      <ng-template #heroNavigation>
         <a class="back" routerLink="/recipes">← <span>{{ 'nav.recipes' | t }}</span></a>
         <div class="hero-actions">
           @if (justCreated()) {
@@ -26,6 +26,9 @@
             </details>
           }
         </div>
+      </ng-template>
+
+      <ng-template #heroHeader>
         <header class="hero-copy">
           <p class="eyebrow">Recipe · {{ r.servings }} serving{{ r.servings !== 1 ? 's' : '' }}</p>
           @if (r.mealType) { <p class="eyebrow">{{ ('meal.slot.' + r.mealType) | t }}</p> }
@@ -40,7 +43,26 @@
             }
           </p>
         </header>
-      </app-image-gallery>
+      </ng-template>
+
+      @if (r.videoUrl) {
+        <section class="video-hero">
+          <ng-container [ngTemplateOutlet]="heroNavigation"></ng-container>
+          <div class="video-hero-info">
+            <ng-container [ngTemplateOutlet]="heroHeader"></ng-container>
+          </div>
+          <app-recipe-video
+            [videoUrl]="r.videoUrl"
+            [thumbnailUrl]="r.videoThumbnailUrl"
+            [title]="r.title"
+          />
+        </section>
+      } @else {
+        <app-image-gallery [images]="r.images" [immersive]="true">
+          <ng-container [ngTemplateOutlet]="heroNavigation"></ng-container>
+          <ng-container [ngTemplateOutlet]="heroHeader"></ng-container>
+        </app-image-gallery>
+      }
 
       <div class="content-card">
         @if (error()) { <div class="error" role="alert">{{ error() }}</div> }

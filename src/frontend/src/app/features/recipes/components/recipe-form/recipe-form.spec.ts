@@ -115,4 +115,24 @@ describe('RecipeForm image picker', () => {
     fixture.componentInstance.submit();
     expect(submitted).toHaveLength(1);
   });
+
+  it('submits playable video metadata as dedicated fields', () => {
+    fixture.componentInstance.form.patchValue({
+      title: 'Tomato soup',
+      sourceUrl: 'https://example.com/tomato-soup',
+      videoUrl: 'https://media.example.com/tomato-soup.mp4',
+      videoThumbnailUrl: 'https://media.example.com/tomato-soup.jpg',
+    });
+    const submitted: Array<{ sourceUrl?: string | null; videoUrl?: string | null; videoThumbnailUrl?: string | null }> = [];
+    fixture.componentInstance.submitted.subscribe(value => submitted.push(value));
+
+    fixture.componentInstance.submit();
+
+    expect(submitted).toHaveLength(1);
+    expect(submitted[0]).toMatchObject({
+      sourceUrl: 'https://example.com/tomato-soup',
+      videoUrl: 'https://media.example.com/tomato-soup.mp4',
+      videoThumbnailUrl: 'https://media.example.com/tomato-soup.jpg',
+    });
+  });
 });

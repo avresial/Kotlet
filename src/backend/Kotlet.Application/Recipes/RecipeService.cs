@@ -101,7 +101,15 @@ public sealed class RecipeService(
     public async Task<RecipeOperationResult> CreateAsync(
         Guid ownerUserId, Guid houseId, CreateRecipeRequest request, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {
-        var errors = RecipeValidator.Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType, request.SourceUrl);
+        var errors = RecipeValidator.Validate(
+            request.Title,
+            request.DescriptionMarkdown,
+            request.Ingredients,
+            request.Servings,
+            request.MealType,
+            request.SourceUrl,
+            request.VideoUrl,
+            request.VideoThumbnailUrl);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
@@ -130,6 +138,8 @@ public sealed class RecipeService(
             MealType = ParseMealType(request.MealType),
             IsAiAssisted = request.IsAiAssisted,
             SourceUrl = RecipeSourceUrl.Normalize(request.SourceUrl),
+            VideoUrl = RecipeSourceUrl.Normalize(request.VideoUrl),
+            VideoThumbnailUrl = RecipeSourceUrl.Normalize(request.VideoThumbnailUrl),
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
             Ingredients = mappedIngredients.Items
@@ -144,7 +154,15 @@ public sealed class RecipeService(
     public async Task<RecipeOperationResult> UpdateAsync(
         Guid id, Guid houseId, UpdateRecipeRequest request, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {
-        var errors = RecipeValidator.Validate(request.Title, request.DescriptionMarkdown, request.Ingredients, request.Servings, request.MealType, request.SourceUrl);
+        var errors = RecipeValidator.Validate(
+            request.Title,
+            request.DescriptionMarkdown,
+            request.Ingredients,
+            request.Servings,
+            request.MealType,
+            request.SourceUrl,
+            request.VideoUrl,
+            request.VideoThumbnailUrl);
         if (errors.Count > 0)
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
 
@@ -169,6 +187,8 @@ public sealed class RecipeService(
         recipe.Servings = ServingCount.FromInt32(request.Servings);
         recipe.MealType = ParseMealType(request.MealType);
         recipe.SourceUrl = RecipeSourceUrl.Normalize(request.SourceUrl);
+        recipe.VideoUrl = RecipeSourceUrl.Normalize(request.VideoUrl);
+        recipe.VideoThumbnailUrl = RecipeSourceUrl.Normalize(request.VideoThumbnailUrl);
         recipe.UpdatedAtUtc = DateTimeOffset.UtcNow;
         recipe.Ingredients.Clear();
         foreach (var ing in mappedIngredients.Items)

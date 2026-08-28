@@ -29,6 +29,7 @@ public sealed class RecipeResponseMapper(
             images ?? [],
             canEdit,
             recipe.IsAiAssisted, recipe.SourceUrl,
+            recipe.VideoUrl, recipe.VideoThumbnailUrl,
             recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
     }
 
