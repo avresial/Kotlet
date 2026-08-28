@@ -105,7 +105,10 @@ public static class DiExtension
                 call add_recipe exactly once with title, servings, a Markdown description containing
                 numbered steps (cite the source URL when imported), and the ingredient IDs with
                 quantities.
-                Recipes cannot be edited through MCP.
+                Updating a recipe: call get_recipe first, preserve every field and ingredient that
+                should remain unchanged, then call update_recipe once with the complete replacement.
+                Follow kotlet://recipes/edit-recipe-guide. Recipe images, ownership, and AI-assisted
+                provenance remain unchanged.
 
                 Quantities always use the ingredient's base measurement unit (g or ml) unless the tool
                 says otherwise. Dates use yyyy-MM-dd.
