@@ -243,6 +243,103 @@ test("a collection wrapper becomes sections instead of one nested field list", (
   dom.window.close();
 });
 
+test("flat collection tables expose labels for the mobile card layout", () => {
+  const dom = new JSDOM(html, {
+    runScripts: "dangerously",
+    url: "https://widget.test/",
+    beforeParse(window) {
+      window.matchMedia = () => ({ matches: false });
+    },
+  });
+  dom.window.dispatchEvent(new dom.window.MessageEvent("message", {
+    data: {
+      jsonrpc: "2.0",
+      method: "ui/notifications/tool-result",
+      params: {
+        structuredContent: {
+          unmatched: [{
+            observationId: "audit-unknown",
+            rawPhrase: "mystery carton",
+            normalizedPhrase: "MYSTERY CARTON",
+            reason: "No catalogue item matched safely.",
+            identityConfidence: 0.9,
+            candidateIds: null,
+            recognitionConfidence: null,
+          }],
+        },
+      },
+    },
+  }));
+
+  const document = dom.window.document;
+  assert.ok(document.querySelector(".table-wrap"));
+  assert.equal(document.querySelectorAll(".table-wrap td").length, 7);
+  assert.deepEqual(
+    [...document.querySelectorAll(".table-wrap td")].map((cell) => cell.dataset.label),
+    ["Observation Id", "Raw Phrase", "Normalized Phrase", "Reason", "Identity Confidence", "Candidate Ids", "Recognition Confidence"],
+  );
+  dom.window.close();
+});
+
+test("prepared meal lists recognize suggested add-ons", () => {
+  const dom = new JSDOM(html, {
+    runScripts: "dangerously",
+    url: "https://widget.test/",
+    beforeParse(window) {
+      window.matchMedia = () => ({ matches: false });
+    },
+  });
+  dom.window.dispatchEvent(new dom.window.MessageEvent("message", {
+    data: {
+      jsonrpc: "2.0",
+      method: "ui/notifications/tool-result",
+      params: {
+        structuredContent: [{
+          name: "Curry",
+          servings: 2,
+          caloriesPerServing: 350,
+          price: 12.5,
+          isArchived: false,
+          suggestedAddons: [{ ingredientName: "Coriander", quantity: 10, unit: "g", required: true }],
+        }],
+      },
+    },
+  }));
+
+  assert.equal(dom.window.document.getElementById("title").textContent, "Prepared meals");
+  assert.equal(dom.window.document.querySelector(".card h2").textContent, "Curry");
+  assert.match(dom.window.document.querySelector(".chips").textContent, /Coriander · 10 g/);
+  assert.equal(dom.window.document.querySelector(".chips .tag").classList.contains("warn"), true);
+  dom.window.close();
+});
+
+test("household members use contextual cards and preserve ids in technical details", () => {
+  const dom = new JSDOM(html, {
+    runScripts: "dangerously",
+    url: "https://widget.test/",
+    beforeParse(window) {
+      window.matchMedia = () => ({ matches: false });
+    },
+  });
+  dom.window.dispatchEvent(new dom.window.MessageEvent("message", {
+    data: {
+      jsonrpc: "2.0",
+      method: "ui/notifications/tool-result",
+      params: {
+        structuredContent: [{ userId: "00000000-0000-0000-0000-000000000001", displayName: "Asik" }],
+      },
+    },
+  }));
+
+  const document = dom.window.document;
+  assert.equal(document.getElementById("title").textContent, "Household members");
+  assert.equal(document.getElementById("summary").textContent, "1 member");
+  assert.equal(document.querySelector(".card h2").textContent, "Asik");
+  assert.equal(document.querySelector("table"), null);
+  assert.equal(document.querySelector("details.technical dd").textContent, "00000000-0000-0000-0000-000000000001");
+  dom.window.close();
+});
+
 test("shared MCP app renders complete UI data from result metadata", () => {
   const dom = new JSDOM(html, {
     runScripts: "dangerously",

@@ -2,76 +2,112 @@
 
 Audited 2026-08-28 from the `develop` baseline at `b55bde0`.
 
-The audit artifacts are intentionally limited to this report and the screenshots in [`docs/screenshots/mcp-ui-audit`](screenshots/mcp-ui-audit/). No application source was changed.
+The initial audit artifacts and the remediation evidence live in this report and the screenshots in [`docs/screenshots/mcp-ui-audit`](screenshots/mcp-ui-audit/).
 
 ## Executive summary
 
 - All 57 advertised MCP tools were exercised locally. The run made 60 tool calls, including stateful setup and cleanup calls.
-- Every tool returned HTTP 200. One result, `memory_search`, was an MCP error (`isError: true`) rather than a successful tool result.
+- The initial sweep returned HTTP 200 for every tool, but `memory_search` was an MCP error (`isError: true`) rather than a successful tool result.
 - Screens were captured at a 390 × 844 mobile viewport in the dark host context.
-- Most operation, recipe, meal-plan, pantry, shopping-list, and memory screens are readable. The main UI risk is the generic table renderer on narrow screens.
+- The five findings below were fixed in this remediation revision and have paired Before/After screenshots.
 
 ## Findings
 
-### F-01 — Flat tables collapse into one-character columns on mobile
+### F-01 — Flat tables collapse into one-character columns on mobile — fixed
 
 **Severity:** High · **Area:** `data-v3` responsive rendering
 
-`pantry.resolve_observations` renders seven columns inside a 366 px card. The observed header widths were approximately 40–68 px, so labels and values break one character at a time. This is the same failure mode shown in the supplied mobile screenshots.
+**Status:** Fixed by switching flat tables to labeled cards below the mobile breakpoint.
 
-Evidence: [`pantry.resolve_observations`](screenshots/mcp-ui-audit/pantry-resolve-observations.jpg)
+Before: [`pantry.resolve_observations`](screenshots/mcp-ui-audit/pantry-resolve-observations.jpg)
 
-![F-01 mobile table wrapping](screenshots/mcp-ui-audit/pantry-resolve-observations.jpg)
+![F-01 before: mobile table wrapping](screenshots/mcp-ui-audit/pantry-resolve-observations.jpg)
 
-The current renderer selects a normal table when a collection has seven or fewer flat keys, then applies aggressive wrapping to table cells ([`DataUiApp.html:168-169`](../src/backend/Kotlet.Api/Mcp/DataUiApp.html#L168)). On mobile, this should become a card layout or a genuinely scrollable table with useful minimum column widths. A table that technically fits but is unreadable is not an acceptable responsive fallback.
+The original seven-column collection collapsed into one-character labels and values inside a 366 px card.
 
-### F-02 — Recommendation table overflows its card
+After: [`pantry.resolve_observations`](screenshots/mcp-ui-audit/after-pantry-resolve-observations.jpg)
+
+![F-01 after: labeled mobile card](screenshots/mcp-ui-audit/after-pantry-resolve-observations.jpg)
+
+The renderer still uses a table on wider screens, but the mobile CSS exposes each cell label beside a readable value. The long reason and identifiers no longer force the other fields into narrow columns.
+
+### F-02 — Recommendation table overflows its card — fixed
 
 **Severity:** High · **Area:** `data-v3` responsive rendering
 
-`meal_plan_recommend_replacement` renders a recommendation table whose content width was 498 px while the table viewport was 364 px. The `Resource URI` column alone measured about 402 px because the URI chip is non-wrapping. The right side can therefore be clipped or extend beyond the card on a narrow host.
+**Status:** Fixed by using the same mobile card treatment and constraining URI chips to the value column.
 
-Evidence: [`meal_plan_recommend_replacement`](screenshots/mcp-ui-audit/meal-plan-recommend-replacement.jpg)
+Before: [`meal_plan_recommend_replacement`](screenshots/mcp-ui-audit/meal-plan-recommend-replacement.jpg)
 
-![F-02 recommendation table overflow](screenshots/mcp-ui-audit/meal-plan-recommend-replacement.jpg)
+![F-02 before: recommendation table overflow](screenshots/mcp-ui-audit/meal-plan-recommend-replacement.jpg)
 
-Long resource identifiers need a responsive treatment: cards, a wrapped/ellipsized URI, or a table with intentional horizontal scrolling and a visible affordance. The current generic table path does not provide that ([`DataUiApp.html:169`](../src/backend/Kotlet.Api/Mcp/DataUiApp.html#L169)).
+The original table’s content width was 498 px inside a 364 px viewport; the URI column alone was about 402 px.
 
-### F-03 — `get_prepared_meals` falls through to the generic result renderer
+After: [`meal_plan_recommend_replacement`](screenshots/mcp-ui-audit/after-meal-plan-recommend-replacement.jpg)
+
+![F-02 after: contained recommendation cards](screenshots/mcp-ui-audit/after-meal-plan-recommend-replacement.jpg)
+
+Recommendations are now separate mobile cards. The URI remains available through its link/title while staying inside the card.
+
+### F-03 — `get_prepared_meals` falls through to the generic result renderer — fixed
 
 **Severity:** Medium · **Area:** renderer/data contract
 
-The live `get_prepared_meals` result contains `suggestedAddons`, but the prepared-meal renderer is selected only when the payload contains `addons` ([`DataUiApp.html:188`](../src/backend/Kotlet.Api/Mcp/DataUiApp.html#L188), [`DataUiApp.html:201`](../src/backend/Kotlet.Api/Mcp/DataUiApp.html#L201)). The result therefore displays the generic `Tool result` heading instead of the prepared-meal presentation.
+**Status:** Fixed by recognizing `suggestedAddons` and rendering the list with the prepared-meal presentation.
 
-Evidence: [`get_prepared_meals`](screenshots/mcp-ui-audit/get-prepared-meals.jpg)
+Before: [`get_prepared_meals`](screenshots/mcp-ui-audit/get-prepared-meals.jpg)
 
-![F-03 generic prepared-meal result](screenshots/mcp-ui-audit/get-prepared-meals.jpg)
+![F-03 before: generic prepared-meal result](screenshots/mcp-ui-audit/get-prepared-meals.jpg)
 
-The UI predicate and the MCP output contract should agree. Either the list payload should use the renderer’s expected shape, or the renderer should recognize the list shape actually returned by the tool.
+The live list used `suggestedAddons`, so it previously displayed as generic data.
 
-### F-04 — `memory_search` fails against the local SQLite provider
+After: [`get_prepared_meals`](screenshots/mcp-ui-audit/after-get-prepared-meals.jpg)
+
+![F-03 after: prepared-meal presentation](screenshots/mcp-ui-audit/after-get-prepared-meals.jpg)
+
+The page now has the `Prepared meals` heading, meal card, nutrition stats, and the suggested add-on chip.
+
+### F-04 — `memory_search` fails against the local SQLite provider — fixed
 
 **Severity:** High · **Area:** tool execution, not styling
 
-`memory_search` returned HTTP 200 with `isError: true` and the text `An error occurred invoking 'memory_search'.` The other memory methods exercised in the same run completed successfully, including create, list, get, update, changes-since, export, bootstrap, and delete.
+**Status:** Fixed by using SQLite-compatible `LIKE` matching while retaining PostgreSQL `ILIKE` matching.
 
-Evidence: [`memory_search`](screenshots/mcp-ui-audit/memory-search.jpg)
+Before: [`memory_search`](screenshots/mcp-ui-audit/memory-search.jpg)
 
-![F-04 memory search error](screenshots/mcp-ui-audit/memory-search.jpg)
+![F-04 before: memory search error](screenshots/mcp-ui-audit/memory-search.jpg)
 
-The likely cause is the SQLite execution path for `EF.Functions.ILike` in [`AgentMemoryRepository.cs:24-29`](../src/backend/Kotlet.Infrastructure/AgentMemory/AgentMemoryRepository.cs#L24). This is an inference from the observed local-provider failure and the query implementation; the exception was intentionally not exposed in the MCP result.
+The initial local run returned HTTP 200 with `isError: true` and the text `An error occurred invoking 'memory_search'.`
 
-### F-05 — Some valid results have low-information generic chrome
+After: [`memory_search`](screenshots/mcp-ui-audit/after-memory-search.jpg)
+
+![F-04 after: successful memory search](screenshots/mcp-ui-audit/after-memory-search.jpg)
+
+The same local flow now returns one matching memory. The provider-specific query is implemented in [`AgentMemoryRepository.cs:24-32`](../src/backend/Kotlet.Infrastructure/AgentMemory/AgentMemoryRepository.cs#L24).
+
+### F-05 — Some valid results have low-information generic chrome — fixed
 
 **Severity:** Low · **Area:** discoverability/polish
 
-Several valid payloads, including `get_meal_plan_members` and simple mutation results, use the generic `Tool result` heading. Technical identifiers are intentionally hidden by the renderer, which keeps the screen cleaner but can leave a result with little visible context.
+**Status:** Fixed for household-member results with contextual heading, count, cards, and expandable identifiers.
 
-Evidence: [`get_meal_plan_members`](screenshots/mcp-ui-audit/get-meal-plan-members.jpg)
+Before: [`get_meal_plan_members`](screenshots/mcp-ui-audit/get-meal-plan-members.jpg)
 
-![F-05 generic result chrome](screenshots/mcp-ui-audit/get-meal-plan-members.jpg)
+![F-05 before: generic result chrome](screenshots/mcp-ui-audit/get-meal-plan-members.jpg)
 
-This is not a functional failure. It is a follow-up polish item after the high-severity table and renderer issues are addressed.
+The original result used the generic `Tool result` heading and showed only the display name.
+
+After: [`get_meal_plan_members`](screenshots/mcp-ui-audit/after-get-meal-plan-members.jpg)
+
+![F-05 after: contextual member cards](screenshots/mcp-ui-audit/after-get-meal-plan-members.jpg)
+
+The result now identifies itself as `Household members`, shows the count, and keeps the user id available under expandable technical details.
+
+## Post-fix verification
+
+- The five after screenshots use the same captured payloads and dark 390 × 844 viewport as the baseline; `memory_search` uses a fresh local call after the SQLite fix.
+- The UI test suite covers mobile table labels, suggested add-ons, and contextual member cards.
+- The MCP integration suite covers successful text search through the actual MCP tool path.
 
 ## MCP surface coverage
 
@@ -86,7 +122,7 @@ The local inventory and read coverage was:
 
 The four MCP App resources were also loaded by the local UI harness: `ui://kotlet/data-v3`, `ui://kotlet/recipes-v2`, `ui://kotlet/meal-plan-v1`, and `ui://kotlet/meal-plan-preview-v1`.
 
-## Method-by-method evidence
+## Initial method-by-method evidence (before fixes)
 
 `OK` means the local MCP call returned a normal result. `MCP error` means the transport returned HTTP 200 but marked the tool result as an MCP error. The renderer column identifies the MCP App resource used for the screenshot; `data-v3` includes its specialized branches for ingredients, pantry, meal plans, prepared meals, and operations.
 
