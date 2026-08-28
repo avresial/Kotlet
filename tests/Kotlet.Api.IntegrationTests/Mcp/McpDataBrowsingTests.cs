@@ -125,6 +125,44 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task MemorySearch_ReturnsMatchingMemories()
+    {
+        var (client, accessToken) = await AuthorizeMcpClientAsync();
+        var suffix = Guid.NewGuid().ToString("N");
+
+        var created = ToolResult(await CallTool(client, accessToken, "memory_create", new
+        {
+            content = $"SQLite search audit {suffix}",
+            title = $"Search audit {suffix}",
+            category = "development",
+            source = "ExplicitRequest",
+            confidence = (decimal?)null,
+            reviewStatus = "Confirmed",
+            expiresAt = (string?)null,
+            clientId = "mcp-search-test"
+        }));
+        var memory = created.GetProperty("structuredContent").GetProperty("memory");
+
+        var search = ToolResult(await CallTool(client, accessToken, "memory_search", new
+        {
+            query = suffix,
+            category = (string?)null,
+            source = (string?)null,
+            reviewStatus = (string?)null
+        }));
+
+        var match = Assert.Single(search.GetProperty("structuredContent").GetProperty("memories").EnumerateArray());
+        Assert.Equal(memory.GetProperty("id").GetGuid(), match.GetProperty("id").GetGuid());
+
+        await CallTool(client, accessToken, "memory_delete", new
+        {
+            id = memory.GetProperty("id").GetGuid(),
+            expectedVersion = memory.GetProperty("version").GetInt64(),
+            clientId = "mcp-search-test"
+        });
+    }
+
+    [Fact]
     public async Task RecipeImportFlow_CreatesMissingIngredient_ThenRecipe_AndBrowsesIt()
     {
         var (client, accessToken) = await AuthorizeMcpClientAsync();
