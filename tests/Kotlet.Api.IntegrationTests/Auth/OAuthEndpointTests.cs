@@ -130,13 +130,21 @@ public sealed class OAuthEndpointTests(TestWebApplicationFactory factory) : ICla
         Assert.Equal(HttpStatusCode.OK, recipeGuideResource.StatusCode);
         var recipeGuideBody = await recipeGuideResource.Content.ReadAsStringAsync();
         Assert.Contains("add_recipe", recipeGuideBody);
-        Assert.Contains("does not expose an edit recipe tool", recipeGuideBody);
+        Assert.Contains("update_recipe", recipeGuideBody);
+
+        var editRecipeGuideResource = await ReadResource(client, accessToken!, "kotlet://recipes/edit-recipe-guide");
+        Assert.Equal(HttpStatusCode.OK, editRecipeGuideResource.StatusCode);
+        Assert.Contains("update_recipe", await editRecipeGuideResource.Content.ReadAsStringAsync());
 
         var recipePromptResponse = await GetPrompt(client, accessToken!, "create_recipe_flow");
         Assert.Equal(HttpStatusCode.OK, recipePromptResponse.StatusCode);
         var recipePromptBody = await recipePromptResponse.Content.ReadAsStringAsync();
         Assert.Contains("one-shot operation", recipePromptBody);
         Assert.Contains("add_recipe", recipePromptBody);
+
+        var updateRecipePromptResponse = await GetPrompt(client, accessToken!, "update_recipe_flow");
+        Assert.Equal(HttpStatusCode.OK, updateRecipePromptResponse.StatusCode);
+        Assert.Contains("update_recipe", await updateRecipePromptResponse.Content.ReadAsStringAsync());
 
         var addRecipeResponse = await CallTool(client, accessToken!, "add_recipe", new
         {
