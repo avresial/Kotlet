@@ -1,0 +1,59 @@
+name: Issue triage
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Kotlet issue number to triage
+        required: true
+        type: number
+
+permissions: {}
+
+jobs:
+  local-codex:
+    name: Triage issue with local Qwen Codex
+    if: github.actor == github.repository_owner
+    runs-on: [self-hosted, macOS, ARM64, codex-lmstudio]
+    timeout-minutes: 360
+    concurrency:
+      group: codex-qwen-kotlet
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    env:
+      CODEX_HOME: /Users/a2485/.codex
+      PATH: /Applications/ChatGPT.app/Contents/Resources:/opt/homebrew/bin:/Users/a2485/.lmstudio/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      # Do not check out the repository or pass issue content to the local
+      # process. The triage skill reads the live issue through GitHub APIs.
+      - name: Verify the Qwen Codex profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v codex
+          test -f "$CODEX_HOME/qwen.config.toml"
+
+      - name: Triage the opened issue with Qwen Codex
+        shell: bash
+        run: |
+          set -euo pipefail
+          codex -a never \
+            --profile qwen \
+            exec \
+            --ephemeral \
+            --sandbox danger-full-access \
+            --skip-git-repo-check \
+            --cd "$RUNNER_TEMP" \
+            --output-last-message "$RUNNER_TEMP/codex-last-message.txt" \
+            "Use the \$gh-triage-issues skill to triage issue #${ISSUE_NUMBER} in ${REPOSITORY}. Read the complete issue conversation and the repository guidance, labels, linked dependencies, branches, and pull requests through GitHub APIs. Apply the repository's issue lifecycle and type or area labels when supported, preserve human labels and ownership, avoid duplicate comments, and report the resulting state. Process only this Kotlet issue. Do not implement code, create branches or pull requests, or modify the local working directory." \
+            < /dev/null
+          test -s "$RUNNER_TEMP/codex-last-message.txt"
