@@ -340,23 +340,33 @@ public sealed class RecipeServiceTests
         Assert.Equal(0, repo.SaveCount);
     }
 
-    // ---- Provenance (AI assistance and source URL) ----
+    // ---- Provenance and media ----
 
     [Fact]
-    public async Task Create_WithProvenance_PersistsAiFlagAndSourceUrl()
+    public async Task Create_WithProvenanceAndVideo_PersistsMediaMetadata()
     {
         var repo = new FakeRecipeRepository();
         var service = CreateService(repo);
 
-        var request = ValidCreateRequest() with { SourceUrl = "https://youtube.com/watch?v=abc/", IsAiAssisted = true };
+        var request = ValidCreateRequest() with
+        {
+            SourceUrl = "https://example.com/recipe/",
+            VideoUrl = "https://media.example.com/recipe.mp4",
+            VideoThumbnailUrl = "https://media.example.com/recipe.jpg",
+            IsAiAssisted = true
+        };
         var result = await service.CreateAsync(OwnerId, OwnerId, request, CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.Success, result.Status);
         Assert.True(result.Recipe!.IsAiAssisted);
-        Assert.Equal("https://youtube.com/watch?v=abc", result.Recipe.SourceUrl);
+        Assert.Equal("https://example.com/recipe", result.Recipe.SourceUrl);
+        Assert.Equal("https://media.example.com/recipe.mp4", result.Recipe.VideoUrl);
+        Assert.Equal("https://media.example.com/recipe.jpg", result.Recipe.VideoThumbnailUrl);
         var entity = repo.Recipes.Single();
         Assert.True(entity.IsAiAssisted);
-        Assert.Equal("https://youtube.com/watch?v=abc", entity.SourceUrl);
+        Assert.Equal("https://example.com/recipe", entity.SourceUrl);
+        Assert.Equal("https://media.example.com/recipe.mp4", entity.VideoUrl);
+        Assert.Equal("https://media.example.com/recipe.jpg", entity.VideoThumbnailUrl);
     }
 
     [Theory]
@@ -373,22 +383,58 @@ public sealed class RecipeServiceTests
         Assert.Contains("sourceUrl", result.ValidationErrors!.Keys);
     }
 
+    [Theory]
+    [InlineData("not-a-url")]
+    [InlineData("ftp://media.example.com/recipe.mp4")]
+    public async Task Create_WithInvalidVideoUrl_ReturnsValidationFailed(string videoUrl)
+    {
+        var service = CreateService(new FakeRecipeRepository());
+
+        var request = ValidCreateRequest() with { VideoUrl = videoUrl };
+        var result = await service.CreateAsync(OwnerId, OwnerId, request, CancellationToken.None);
+
+        Assert.Equal(RecipeOperationStatus.ValidationFailed, result.Status);
+        Assert.Contains("videoUrl", result.ValidationErrors!.Keys);
+    }
+
     [Fact]
-    public async Task Update_PreservesAiAssistedFlag_AndUpdatesSourceUrl()
+    public async Task Create_WithThumbnailButNoVideo_ReturnsValidationFailed()
+    {
+        var service = CreateService(new FakeRecipeRepository());
+
+        var request = ValidCreateRequest() with { VideoThumbnailUrl = "https://media.example.com/recipe.jpg" };
+        var result = await service.CreateAsync(OwnerId, OwnerId, request, CancellationToken.None);
+
+        Assert.Equal(RecipeOperationStatus.ValidationFailed, result.Status);
+        Assert.Contains("videoThumbnailUrl", result.ValidationErrors!.Keys);
+    }
+
+    [Fact]
+    public async Task Update_PreservesAiAssistedFlag_AndUpdatesSourceAndVideoUrls()
     {
         var recipe = MakeRecipe("Imported", "imported", OwnerId);
         recipe.IsAiAssisted = true;
         recipe.SourceUrl = "https://example.com/old";
+        recipe.VideoUrl = "https://media.example.com/old.mp4";
+        recipe.VideoThumbnailUrl = "https://media.example.com/old.jpg";
         var repo = new FakeRecipeRepository();
         repo.Recipes.Add(recipe);
         var service = CreateService(repo);
 
-        var request = new UpdateRecipeRequest("Imported", null, [], SourceUrl: "https://example.com/new");
+        var request = new UpdateRecipeRequest(
+            "Imported",
+            null,
+            [],
+            SourceUrl: "https://example.com/new",
+            VideoUrl: "https://media.example.com/new.mp4",
+            VideoThumbnailUrl: "https://media.example.com/new.jpg");
         var result = await service.UpdateAsync(recipe.Id, OwnerId, request, CancellationToken.None);
 
         Assert.Equal(RecipeOperationStatus.Success, result.Status);
         Assert.True(result.Recipe!.IsAiAssisted);
         Assert.Equal("https://example.com/new", result.Recipe.SourceUrl);
+        Assert.Equal("https://media.example.com/new.mp4", result.Recipe.VideoUrl);
+        Assert.Equal("https://media.example.com/new.jpg", result.Recipe.VideoThumbnailUrl);
     }
 
     [Fact]

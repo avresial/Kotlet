@@ -31,6 +31,9 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
             title = "Tomato Soup",
             descriptionMarkdown = "Simple **soup**.",
             mealType = "dinner",
+            sourceUrl = "https://example.com/tomato-soup",
+            videoUrl = "https://media.example.com/tomato-soup.mp4",
+            videoThumbnailUrl = "https://media.example.com/tomato-soup.jpg",
             ingredients = new[]
             {
                 new { ingredientId = tomatoesId, quantity = 800, unit = "g", note = (string?)"canned" },
@@ -64,6 +67,9 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         Assert.Equal(id, detail.GetProperty("id").GetGuid());
         Assert.Equal("Simple **soup**.", detail.GetProperty("descriptionMarkdown").GetString());
         Assert.Equal("dinner", detail.GetProperty("mealType").GetString());
+        Assert.Equal("https://example.com/tomato-soup", detail.GetProperty("sourceUrl").GetString());
+        Assert.Equal("https://media.example.com/tomato-soup.mp4", detail.GetProperty("videoUrl").GetString());
+        Assert.Equal("https://media.example.com/tomato-soup.jpg", detail.GetProperty("videoThumbnailUrl").GetString());
 
         // Update
         var update = await client.PutAsJsonAsync($"/api/recipes/{id}", new
@@ -71,6 +77,9 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
             title = "Cream of Tomato",
             descriptionMarkdown = "Rich and creamy.",
             mealType = "supper",
+            sourceUrl = "https://example.com/tomato-soup",
+            videoUrl = "https://media.example.com/cream-of-tomato.mp4",
+            videoThumbnailUrl = "https://media.example.com/cream-of-tomato.jpg",
             ingredients = new[]
             {
                 new { ingredientId = tomatoesId, quantity = 30, unit = "g", note = (string?)null }
@@ -80,6 +89,8 @@ public sealed class RecipeEndpointTests(TestWebApplicationFactory factory) : ICl
         var updated = await update.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("Cream of Tomato", updated.GetProperty("title").GetString());
         Assert.Equal("supper", updated.GetProperty("mealType").GetString());
+        Assert.Equal("https://media.example.com/cream-of-tomato.mp4", updated.GetProperty("videoUrl").GetString());
+        Assert.Equal("https://media.example.com/cream-of-tomato.jpg", updated.GetProperty("videoThumbnailUrl").GetString());
         Assert.Equal(1, updated.GetProperty("ingredients").GetArrayLength());
         Assert.Equal(2m, updated.GetProperty("ingredients")[0].GetProperty("quantity").GetDecimal());
         Assert.Equal("tbsp", updated.GetProperty("ingredients")[0].GetProperty("unit").GetString());

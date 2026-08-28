@@ -28,8 +28,14 @@ public sealed class Recipe
     /// </summary>
     public bool IsAiAssisted { get; set; }
 
-    /// <summary>Original source of the recipe (e.g. the video or web page it was imported from).</summary>
+    /// <summary>Original page or social post from which the recipe was imported.</summary>
     public string? SourceUrl { get; set; }
+
+    /// <summary>Direct URL of a video that can be played in the recipe view.</summary>
+    public string? VideoUrl { get; set; }
+
+    /// <summary>Optional poster image displayed before the recipe video starts.</summary>
+    public string? VideoThumbnailUrl { get; set; }
 
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset UpdatedAtUtc { get; set; }
