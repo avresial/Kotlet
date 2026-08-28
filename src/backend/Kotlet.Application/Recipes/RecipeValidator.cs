@@ -15,6 +15,15 @@ public static class RecipeValidator
         IReadOnlyList<RecipeIngredientRequest> ingredients,
         int servings,
         string? mealType,
+        string? sourceUrl) =>
+        Validate(title, descriptionMarkdown, ingredients, servings, mealType, sourceUrl, null, null);
+
+    public static Dictionary<string, string[]> Validate(
+        string title,
+        string? descriptionMarkdown,
+        IReadOnlyList<RecipeIngredientRequest> ingredients,
+        int servings,
+        string? mealType,
         string? sourceUrl,
         string? videoUrl,
         string? videoThumbnailUrl)

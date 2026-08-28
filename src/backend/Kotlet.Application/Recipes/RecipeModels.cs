@@ -17,9 +17,9 @@ public sealed record CreateRecipeRequest(
     int Servings = 1,
     string? MealType = null,
     string? SourceUrl = null,
+    bool IsAiAssisted = false,
     string? VideoUrl = null,
-    string? VideoThumbnailUrl = null,
-    bool IsAiAssisted = false);
+    string? VideoThumbnailUrl = null);
 
 // No IsAiAssisted here: the flag records provenance and survives human edits.
 public sealed record UpdateRecipeRequest(
