@@ -40,7 +40,7 @@
               <input type="number" min="0.001" step="0.001" [value]="display(item).quantity" [disabled]="isSaving()" (change)="updateDisplayQuantity(item, +$any($event.target).value)" [attr.aria-label]="('common.quantity' | t) + ': ' + (item.customName || item.ingredientName)" />
               <span class="unit">{{ unitLabel(display(item).unit) | t }}</span>
             </div>
-            <strong class="line-price" [attr.title]="item.totalPrice.toFixed(2) + ' zł'">{{ item.totalPrice.toFixed(2) }} zł</strong>
+            <strong class="line-price" [attr.title]="item.customName ? '—' : item.totalPrice.toFixed(2) + ' zł'">@if (item.customName) { — } @else { {{ item.totalPrice.toFixed(2) }} zł }</strong>
             @if (item.note) {
               <textarea class="note-input" rows="1" maxlength="500" [disabled]="isSaving()" (change)="updateNote(item, $any($event.target).value)" [attr.aria-label]="('shopping.note' | t) + ': ' + (item.customName || item.ingredientName)">{{ item.note }}</textarea>
             }

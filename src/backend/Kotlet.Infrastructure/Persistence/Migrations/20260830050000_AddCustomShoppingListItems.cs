@@ -38,6 +38,23 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // A downgrade would remove the only source column for custom rows. Refuse the
+            // downgrade while those rows exist instead of silently losing shopping-list data
+            // or restoring a constraint that would invalidate the rows.
+            migrationBuilder.Sql("""
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM kotlet.shopping_list_items
+                        WHERE custom_name IS NOT NULL
+                    ) THEN
+                        RAISE EXCEPTION
+                            'Cannot revert AddCustomShoppingListItems while custom shopping-list items exist.';
+                    END IF;
+                END $$;
+                """);
+
             migrationBuilder.DropCheckConstraint(
                 name: "ck_shopping_list_items_one_source",
                 schema: "kotlet",

@@ -114,7 +114,7 @@ describe('ShoppingAdd', () => {
     key('ArrowDown');
     expect(component.activeIndex()).toBe(1);
     key('ArrowDown');
-    expect(component.activeIndex()).toBe(1);
+    expect(component.activeIndex()).toBe(2);
     key('ArrowUp');
     key('ArrowUp');
     expect(component.activeIndex()).toBe(0);
@@ -235,6 +235,18 @@ describe('ShoppingAdd', () => {
       name: 'Toothpaste',
       hint: 'shopping.customItem',
     });
+  });
+
+  it('includes the custom action in keyboard navigation after catalogue suggestions', () => {
+    component.onInput('pa');
+
+    expect(component.navigableOptions().map(option => option.name)).toEqual(['Parmesan', 'Pasta', 'pa']);
+
+    component.onSearchKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    component.onSearchKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    component.onSearchKeydown(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    expect(component.selected()).toEqual({ kind: 'custom', name: 'pa', hint: 'shopping.customItem' });
   });
 
   it('renders the custom action option in the dropdown list when search is non-empty', () => {

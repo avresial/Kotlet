@@ -102,6 +102,11 @@ export class ShoppingAdd {
     return query ? { kind: 'custom', name: query, hint: 'shopping.customItem' } : null;
   });
 
+  readonly navigableOptions = computed<ShoppingAddOption[]>(() => {
+    const custom = this.customOption();
+    return custom ? [...this.suggestions(), custom] : this.suggestions();
+  });
+
   readonly units = computed<(DisplayUnit | typeof packageUnit)[]>(() => {
     const option = this.selected();
     if (!option) return [];
@@ -157,24 +162,19 @@ export class ShoppingAdd {
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
-    const suggestions = this.suggestions();
+    const options = this.navigableOptions();
     if (event.key === 'Escape') { this.query.set(''); return; }
-    if (event.key === 'Enter' && !suggestions.length && this.query().trim()) {
-      event.preventDefault();
-      const custom = this.customOption();
-      if (custom) this.select(custom);
-      return;
-    }
-    if (!suggestions.length) return;
+    if (!options.length) return;
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      this.activeIndex.update(index => Math.min(index + 1, suggestions.length - 1));
+      this.activeIndex.update(index => Math.min(index + 1, options.length - 1));
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       this.activeIndex.update(index => Math.max(index - 1, 0));
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      this.select(suggestions[this.activeIndex()]);
+      const option = options[this.activeIndex()];
+      if (option) this.select(option);
     }
   }
 
