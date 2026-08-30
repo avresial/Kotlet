@@ -25,10 +25,10 @@ public sealed class ShoppingListMcp
         .ToList();
 
     [McpServerTool(Name = "add_shopping_list_item", ReadOnly = false, Destructive = false,
-        Idempotent = true, OpenWorld = false, UseStructuredContent = true),
-     Description("Adds an ingredient to the authenticated household's shopping list. Repeating an existing ingredient does not create a duplicate.")]
+        Idempotent = false, OpenWorld = false, UseStructuredContent = true),
+     Description("Adds exactly one ingredient, ready meal, or custom free-text item to the authenticated household's shopping list. Custom names are trimmed and must be non-empty; repeating an ingredient or ready meal does not create a duplicate.")]
     public static Task<ShoppingListOperationResult> AddShoppingListItem(
-        [Description("Ingredient ID and positive quantity in the ingredient's measurement unit.")]
+        [Description("Set exactly one of IngredientId, PreparedMealId, or CustomName, together with a positive quantity. CustomName is for a shopping-list-only free-text item and does not create a catalog ingredient.")]
         CreateShoppingListItemCommand request,
         ShoppingListService service, ICurrentUser currentUser, ILanguageContext language,
         CancellationToken cancellationToken) =>

@@ -43,6 +43,47 @@ describe('groupShoppingItems', () => {
   it('omits the bought group while nothing is ticked off', () => {
     expect(groupShoppingItems([item('pear', 21)]).some(group => group.isBought)).toBe(false);
   });
+
+  it('puts unbought custom items in their own visible group', () => {
+    const customItem: ShoppingListItem = {
+      id: 'custom-1',
+      ingredientId: null,
+      preparedMealId: null,
+      customName: 'Paper towels',
+      ingredientName: 'Paper towels',
+      measurementUnit: 'package',
+      quantity: 2,
+      pricePer100BaseUnits: 0,
+      totalPrice: 0,
+      isPurchased: false,
+      category: 0,
+      note: null,
+    };
+    const groups = groupShoppingItems([item('apple', 21), customItem]);
+
+    expect(summarize(groups)).toEqual([['category-21', ['apple']], ['custom-items', ['custom-1']]]);
+    expect(groups.find(group => group.key === 'custom-items')?.label).toBe('shopping.customItems');
+  });
+
+  it('collects bought custom items into the bought group', () => {
+    const customItem: ShoppingListItem = {
+      id: 'custom-1',
+      ingredientId: null,
+      preparedMealId: null,
+      customName: 'Paper towels',
+      ingredientName: 'Paper towels',
+      measurementUnit: 'package',
+      quantity: 2,
+      pricePer100BaseUnits: 0,
+      totalPrice: 0,
+      isPurchased: true,
+      category: 0,
+      note: null,
+    };
+    const groups = groupShoppingItems([item('apple', 21), customItem]);
+
+    expect(summarize(groups)).toEqual([['category-21', ['apple']], ['bought', ['custom-1']]]);
+  });
 });
 
 const ingredient: Ingredient = {
@@ -178,6 +219,28 @@ describe('ShoppingListPage re-adding a bought item', () => {
     expect(page.items()[0]).toMatchObject({ id: 'pasta', quantity: 200, isPurchased: false, note: '' });
   });
 
+  it('resets the bought line instead of creating a duplicate for custom item', () => {
+    const boughtCustom: ShoppingListItem = {
+      id: 'custom-1', ingredientId: null, preparedMealId: null, customName: 'Napkins',
+      ingredientName: 'Napkins', measurementUnit: 'package', quantity: 1, pricePer100BaseUnits: 0,
+      totalPrice: 0, isPurchased: true, category: 0, note: 'old note',
+    };
+    const page = loadPage([boughtCustom]);
+
+    page.add({
+      option: { kind: 'custom', name: 'Napkins', hint: 'shopping.customItem' },
+      baseQuantity: 3, displayQuantity: 3, displayUnit: 'package', note: 'new note',
+    });
+
+    expect(shoppingListService.create).not.toHaveBeenCalled();
+    expect(shoppingListService.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'custom-1' }),
+      { quantity: 3, isPurchased: false, note: 'new note' },
+    );
+    expect(page.items()).toHaveLength(1);
+    expect(page.items()[0]).toMatchObject({ id: 'custom-1', quantity: 3, isPurchased: false, note: 'new note' });
+  });
+
   it('still creates a new item when nothing matching is on the list', () => {
     const page = loadPage([]);
 
@@ -201,8 +264,8 @@ describe('ShoppingListPage background adds', () => {
   let created: Subject<ShoppingListItem>;
   let shoppingListService: {
     getAll: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>;
-    createPreparedMeal: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>;
-    generate: ReturnType<typeof vi.fn>; clearChecked: ReturnType<typeof vi.fn>;
+    createPreparedMeal: ReturnType<typeof vi.fn>; createCustom: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>; generate: ReturnType<typeof vi.fn>; clearChecked: ReturnType<typeof vi.fn>;
   };
   const meal = { id: 'gyoza', name: 'Gyoza', servings: 2, caloriesPerServing: 300, isArchived: false, addons: [] } as PreparedMeal;
   const addMeal = (quantity: number, note = ''): ShoppingAddRequest => ({
@@ -216,6 +279,7 @@ describe('ShoppingListPage background adds', () => {
       getAll: vi.fn().mockReturnValue(of([])),
       create: vi.fn().mockReturnValue(created),
       createPreparedMeal: vi.fn().mockReturnValue(created),
+      createCustom: vi.fn().mockReturnValue(created),
       update: vi.fn(),
       generate: vi.fn().mockReturnValue(of([])),
       clearChecked: vi.fn().mockReturnValue(of({ removed: 0 })),
@@ -300,6 +364,96 @@ describe('ShoppingListPage background adds', () => {
     page.add(addMeal(1, 'the spicy ones'));
 
     expect(shoppingListService.createPreparedMeal).toHaveBeenCalledWith('gyoza', 1, 'the spicy ones');
+  });
+
+  it('calls createCustom with trimmed customName, package quantity, and note for custom items', () => {
+    page.add({
+      option: { kind: 'custom', name: '  Paper towels  ', hint: 'shopping.customItem' },
+      baseQuantity: 2,
+      displayQuantity: 2,
+      displayUnit: 'package',
+      note: 'recycled',
+    });
+
+    expect(shoppingListService.createCustom).toHaveBeenCalledWith('  Paper towels  ', 2, 'recycled');
+    expect(page.pending()).toEqual([
+      expect.objectContaining({
+        name: '  Paper towels  ',
+        quantity: 2,
+        unit: 'package',
+        customName: '  Paper towels  ',
+        ingredientId: null,
+        preparedMealId: null,
+      }),
+    ]);
+  });
+});
+
+describe('ShoppingListPage custom items display and quantities', () => {
+  let page: ShoppingListPage;
+  let shoppingListService: {
+    getAll: ReturnType<typeof vi.fn>; createCustom: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn>;
+  };
+  const customItem: ShoppingListItem = {
+    id: 'custom-1',
+    ingredientId: null,
+    preparedMealId: null,
+    customName: 'Paper towels',
+    ingredientName: 'Paper towels',
+    measurementUnit: 'package',
+    quantity: 2,
+    pricePer100BaseUnits: 0,
+    totalPrice: 0,
+    isPurchased: false,
+    category: 0,
+    note: null,
+  };
+
+  beforeEach(() => {
+    shoppingListService = {
+      getAll: vi.fn().mockReturnValue(of([customItem])),
+      createCustom: vi.fn(),
+      update: vi.fn().mockImplementation((existing: ShoppingListItem, changes: Partial<ShoppingListItem>) => of({ ...existing, ...changes })),
+      delete: vi.fn().mockReturnValue(of(undefined)),
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        ShoppingListPage,
+        { provide: ShoppingListService, useValue: shoppingListService },
+        { provide: IngredientService, useValue: { getAll: vi.fn().mockReturnValue(of([])) } },
+        { provide: PreparedMealService, useValue: { list: vi.fn().mockReturnValue(of([])) } },
+        { provide: TranslationService, useValue: { translate: (key: string) => key } },
+      ],
+    });
+    page = TestBed.inject(ShoppingListPage);
+    page.ngOnInit();
+  });
+
+  it('displays custom item measurement as package', () => {
+    expect(page.display(customItem)).toEqual({ quantity: 2, unit: 'package' });
+  });
+
+  it('updates display quantity directly without base unit conversion', () => {
+    page.updateDisplayQuantity(customItem, 5);
+
+    expect(shoppingListService.update).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'custom-1' }),
+      { quantity: 5, isPurchased: false, note: null },
+    );
+  });
+
+  it('safely computes zero total price for zero-price custom items', () => {
+    page.update(customItem, { quantity: 10 });
+
+    expect(page.items()[0].totalPrice).toBe(0);
+  });
+
+  it('removes custom item by item id', () => {
+    page.remove(customItem);
+
+    expect(shoppingListService.delete).toHaveBeenCalledWith('custom-1');
+    expect(page.items()).toEqual([]);
   });
 });
 

@@ -52,7 +52,7 @@
           aria-autocomplete="list"
           [attr.aria-expanded]="!!query().trim()"
           [attr.aria-controls]="query().trim() ? 'shopping-add-suggestions' : null"
-          [attr.aria-activedescendant]="suggestions().length ? 'shopping-add-option-' + activeIndex() : null"
+          [attr.aria-activedescendant]="navigableOptions().length ? 'shopping-add-option-' + activeIndex() : null"
           [attr.aria-label]="'shopping.searchProduct' | t"
           [placeholder]="'shopping.searchPlaceholder' | t"
           [value]="query()"
@@ -61,16 +61,18 @@
         />
         @if (query().trim()) {
           <ul id="shopping-add-suggestions" role="listbox">
-            @for (option of suggestions(); track option.kind + option.id; let index = $index) {
+            @for (option of navigableOptions(); track option.kind + ('id' in option ? option.id : option.name); let index = $index) {
               <li
                 id="shopping-add-option-{{ index }}"
                 role="option"
                 [attr.aria-selected]="index === activeIndex()"
                 [class.active]="index === activeIndex()"
+                [class.custom-action]="option.kind === 'custom'"
                 (mousedown)="$event.preventDefault(); select(option)"
+                [attr.aria-label]="option.kind === 'custom' ? (('shopping.addCustom' | t) + ': ' + option.name) : null"
               >
-                <span>{{ option.name }}</span>
-                <small>{{ option.kind === 'preparedMeal' ? (option.hint | t) : option.hint }}</small>
+                <span>@if (option.kind === 'custom') { + {{ 'shopping.addCustom' | t }} &ldquo;{{ option.name }}&rdquo; } @else { {{ option.name }} }</span>
+                <small>{{ option.kind === 'preparedMeal' || option.kind === 'custom' ? (option.hint | t) : option.hint }}</small>
               </li>
             }
             @for (product of listedMatches(); track product.id) {
@@ -78,9 +80,6 @@
                 <span>{{ product.name }}</span>
                 <small>{{ 'shopping.alreadyOnList' | t }} — {{ product.quantity }} {{ unitLabel(product.unit) | t }}</small>
               </li>
-            }
-            @if (!suggestions().length && !listedMatches().length) {
-              <li class="empty" role="presentation">{{ 'shopping.noMatches' | t }}</li>
             }
           </ul>
         }

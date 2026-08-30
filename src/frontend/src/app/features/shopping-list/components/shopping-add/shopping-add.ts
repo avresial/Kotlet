@@ -4,10 +4,11 @@ import { Ingredient } from '../../../ingredients/ingredient.models';
 import { DisplayUnit, shortUnitLabel, toBaseQuantity, unitsForIngredient } from '../../../ingredients/display-units';
 import { PreparedMeal } from '../../../prepared-meals/prepared-meal.models';
 
-/** A searchable product: either a catalogue ingredient or a ready meal sold by the package. */
+/** A searchable product: either a catalogue ingredient, a ready meal, or a custom free-text item. */
 export type ShoppingAddOption =
   | { kind: 'ingredient'; id: string; name: string; hint: string; ingredient: Ingredient }
-  | { kind: 'preparedMeal'; id: string; name: string; hint: string; meal: PreparedMeal };
+  | { kind: 'preparedMeal'; id: string; name: string; hint: string; meal: PreparedMeal }
+  | { kind: 'custom'; name: string; hint: string };
 
 /** A product the page keeps out of the pickable results because it is already waiting on the
     list — searched all the same, so a repeat search says how much is there. */
@@ -21,7 +22,7 @@ export interface ShoppingAddListedProduct {
 /** What the page has to save: a quantity already converted to the base unit the API stores. */
 export interface ShoppingAddRequest {
   option: ShoppingAddOption;
-  /** Grams/millilitres for ingredients, packages for ready meals. */
+  /** Grams/millilitres for ingredients, packages for ready meals and custom items. */
   baseQuantity: number;
   /** What the shopper typed, kept for the pending line while the save is in flight. */
   displayQuantity: number;
@@ -96,6 +97,16 @@ export class ShoppingAdd {
     return query ? matching(this.onList(), query, 4) : [];
   });
 
+  readonly customOption = computed<ShoppingAddOption | null>(() => {
+    const query = this.query().trim();
+    return query ? { kind: 'custom', name: query, hint: 'shopping.customItem' } : null;
+  });
+
+  readonly navigableOptions = computed<ShoppingAddOption[]>(() => {
+    const custom = this.customOption();
+    return custom ? [...this.suggestions(), custom] : this.suggestions();
+  });
+
   readonly units = computed<(DisplayUnit | typeof packageUnit)[]>(() => {
     const option = this.selected();
     if (!option) return [];
@@ -151,18 +162,19 @@ export class ShoppingAdd {
   }
 
   onSearchKeydown(event: KeyboardEvent): void {
-    const suggestions = this.suggestions();
+    const options = this.navigableOptions();
     if (event.key === 'Escape') { this.query.set(''); return; }
-    if (!suggestions.length) return;
+    if (!options.length) return;
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      this.activeIndex.update(index => Math.min(index + 1, suggestions.length - 1));
+      this.activeIndex.update(index => Math.min(index + 1, options.length - 1));
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       this.activeIndex.update(index => Math.max(index - 1, 0));
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      this.select(suggestions[this.activeIndex()]);
+      const option = options[this.activeIndex()];
+      if (option) this.select(option);
     }
   }
 

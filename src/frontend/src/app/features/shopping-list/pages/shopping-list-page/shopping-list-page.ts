@@ -26,16 +26,33 @@ export interface ShoppingListGroup {
 /** Items still to buy stay grouped by category at the top; everything already ticked off drops into a
     single group at the bottom, so the list always opens on what is left to pick up. */
 export function groupShoppingItems(items: ShoppingListItem[]): ShoppingListGroup[] {
+  const isCustom = (item: ShoppingListItem) => !item.ingredientId && !item.preparedMealId;
+  const isReadyMeal = (item: ShoppingListItem) => !!item.preparedMealId;
+  const isIngredient = (item: ShoppingListItem) => !isCustom(item) && !isReadyMeal(item);
+
   const byCategory = (include: (item: ShoppingListItem) => boolean) => foodCategories
-    .map(category => ({ key: `category-${category.value}`, label: category.label as string, isBought: false, items: items.filter(item => !item.preparedMealId && item.category === category.value && include(item)) }))
+    .map(category => ({
+      key: `category-${category.value}`,
+      label: category.label as string,
+      isBought: false,
+      items: items.filter(item => isIngredient(item) && item.category === category.value && include(item)),
+    }))
     .filter(group => group.items.length);
+
   const groups = (include: (item: ShoppingListItem) => boolean) => {
     const ingredientGroups = byCategory(include);
-    const readyMeals = items.filter(item => !!item.preparedMealId && include(item));
-    return readyMeals.length
-      ? [...ingredientGroups, { key: 'ready-meals', label: 'shopping.readyMeals', isBought: false, items: readyMeals }]
-      : ingredientGroups;
+    const readyMeals = items.filter(item => isReadyMeal(item) && include(item));
+    const customItems = items.filter(item => isCustom(item) && include(item));
+    const result = [...ingredientGroups];
+    if (readyMeals.length) {
+      result.push({ key: 'ready-meals', label: 'shopping.readyMeals', isBought: false, items: readyMeals });
+    }
+    if (customItems.length) {
+      result.push({ key: 'custom-items', label: 'shopping.customItems', isBought: false, items: customItems });
+    }
+    return result;
   };
+
   const remaining = groups(item => !item.isPurchased);
   const bought = groups(item => item.isPurchased).flatMap(group => group.items);
   return bought.length ? [...remaining, { key: 'bought', label: 'shopping.alreadyBought', isBought: true, items: bought }] : remaining;
@@ -49,6 +66,7 @@ export interface PendingAddition {
   unit: DisplayUnit | 'package';
   ingredientId: string | null;
   preparedMealId: string | null;
+  customName?: string | null;
 }
 
 interface PendingUpdate {
@@ -255,20 +273,27 @@ export class ShoppingListPage implements OnInit {
     const { option, baseQuantity, displayQuantity, displayUnit, note } = request;
     const ingredientId = option.kind === 'ingredient' ? option.id : null;
     const preparedMealId = option.kind === 'preparedMeal' ? option.id : null;
+    const customName = option.kind === 'custom' ? option.name : null;
     const addition: PendingAddition = {
       key: `pending-${++this.pendingCounter}`, name: option.name,
-      quantity: displayQuantity, unit: displayUnit, ingredientId, preparedMealId,
+      quantity: displayQuantity, unit: displayUnit, ingredientId, preparedMealId, customName,
     };
     this.pending.update(additions => [...additions, addition]);
     // Re-adding something already bought restarts that line instead of stacking a duplicate: the tick,
     // the quantity and the note all reset to what was just entered rather than keeping the old shop's values.
     const purchased = this.items().find(item => item.isPurchased
-      && (ingredientId ? item.ingredientId === ingredientId : item.preparedMealId === preparedMealId));
+      && (ingredientId
+        ? item.ingredientId === ingredientId
+        : preparedMealId
+          ? item.preparedMealId === preparedMealId
+          : (item.customName ?? item.ingredientName)?.toLowerCase() === customName?.toLowerCase()));
     const saveItem = purchased
       ? this.shoppingListService.update(purchased, { quantity: baseQuantity, isPurchased: false, note })
       : ingredientId
         ? this.shoppingListService.create(ingredientId, baseQuantity, note || null)
-        : this.shoppingListService.createPreparedMeal(preparedMealId!, baseQuantity, note || null);
+        : preparedMealId
+          ? this.shoppingListService.createPreparedMeal(preparedMealId, baseQuantity, note || null)
+          : this.shoppingListService.createCustom(customName!, baseQuantity, note || null);
     saveItem
       .pipe(finalize(() => this.pending.update(additions => additions.filter(current => current.key !== addition.key))))
       .subscribe({
@@ -454,9 +479,11 @@ export class ShoppingListPage implements OnInit {
   }
 
   private optimisticItem(item: ShoppingListItem, update: ShoppingListUpdate): ShoppingListItem {
-    const totalPrice = item.preparedMealId
-      ? update.quantity * item.pricePer100BaseUnits
-      : (update.quantity / 100) * item.pricePer100BaseUnits;
+    const isPackage = !!item.preparedMealId || (!item.ingredientId && !item.preparedMealId);
+    const unitPrice = item.pricePer100BaseUnits ?? 0;
+    const totalPrice = isPackage
+      ? update.quantity * unitPrice
+      : (update.quantity / 100) * unitPrice;
     return { ...item, ...update, totalPrice: this.roundToCents(totalPrice) };
   }
 
@@ -500,12 +527,12 @@ export class ShoppingListPage implements OnInit {
 
   unitLabel(unit: DisplayUnit | 'package'): string { return shortUnitLabel(unit); }
   display(item: ShoppingListItem) {
-    if (item.preparedMealId) return { quantity: item.quantity, unit: 'package' as const };
+    if (item.preparedMealId || (!item.ingredientId && !item.preparedMealId)) return { quantity: item.quantity, unit: 'package' as const };
     const ingredient = this.ingredients().find(value => value.id === item.ingredientId);
-    return ingredient ? displayMeasurement(item.quantity, ingredient) : { quantity: item.quantity, unit: item.measurementUnit as DisplayUnit };
+    return ingredient ? displayMeasurement(item.quantity, ingredient) : { quantity: item.quantity, unit: (item.measurementUnit || 'package') as DisplayUnit };
   }
   updateDisplayQuantity(item: ShoppingListItem, quantity: number): void {
-    if (item.preparedMealId) { this.update(item, { quantity }); return; }
+    if (item.preparedMealId || (!item.ingredientId && !item.preparedMealId)) { this.update(item, { quantity }); return; }
     const ingredient = this.ingredients().find(value => value.id === item.ingredientId);
     if (ingredient) this.update(item, { quantity: toBaseQuantity(quantity, this.display(item).unit as DisplayUnit, ingredient) });
   }
