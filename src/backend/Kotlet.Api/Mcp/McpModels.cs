@@ -203,11 +203,12 @@ public sealed record McpShoppingListItem(
     decimal TotalPrice,
     bool IsPurchased,
     string Category,
-    string? Note)
+    string? Note,
+    string? CustomName = null)
 {
     public static McpShoppingListItem From(ShoppingListItemDto dto) => new(
         dto.Id, dto.IngredientId, dto.PreparedMealId, dto.IngredientName, dto.MeasurementUnit,
-        dto.Quantity, dto.TotalPrice, dto.IsPurchased, dto.Category.ToString(), dto.Note);
+        dto.Quantity, dto.TotalPrice, dto.IsPurchased, dto.Category.ToString(), dto.Note, dto.CustomName);
 }
 
 public sealed record McpPantryItem(

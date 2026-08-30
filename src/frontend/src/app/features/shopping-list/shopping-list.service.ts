@@ -11,6 +11,13 @@ export class ShoppingListService {
   createPreparedMeal(preparedMealId: string, quantity: number, note?: string | null) {
     return this.http.post<ShoppingListItem>(apiUrl('/api/shopping-list'), { preparedMealId, quantity, note: note ?? null });
   }
+  createCustom(customName: string, quantity: number, note?: string | null) {
+    return this.http.post<ShoppingListItem>(apiUrl('/api/shopping-list'), {
+      customName: customName.trim(),
+      quantity,
+      note: note ?? null,
+    });
+  }
   update(item: ShoppingListItem, changes: Partial<Pick<ShoppingListItem, 'quantity' | 'isPurchased' | 'note'>>) {
     return this.http.put<ShoppingListItem>(apiUrl(`/api/shopping-list/${item.id}`), {
       quantity: changes.quantity ?? item.quantity,

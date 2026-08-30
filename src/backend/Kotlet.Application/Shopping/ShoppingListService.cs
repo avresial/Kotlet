@@ -25,10 +25,19 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
             return InvalidNote();
         }
 
-        if ((command.IngredientId is null) == (command.PreparedMealId is null))
+        var customName = NormalizeCustomName(command.CustomName);
+        if (!ValidCustomName(command.CustomName, customName))
+        {
+            return InvalidCustomName();
+        }
+
+        var sourceCount = (command.IngredientId is not null ? 1 : 0)
+            + (command.PreparedMealId is not null ? 1 : 0)
+            + (customName is not null ? 1 : 0);
+        if (sourceCount != 1)
         {
             return new(ShoppingListOperationStatus.ValidationFailed, ValidationErrors:
-                new Dictionary<string, string[]> { ["item"] = ["Choose either an ingredient or a ready meal."] });
+                new Dictionary<string, string[]> { ["item"] = ["Choose exactly one of an ingredient, a ready meal, or a custom item."] });
         }
 
         if (command.IngredientId is { } ingredientId && !await repository.IngredientExistsAsync(ingredientId, cancellationToken))
@@ -41,7 +50,7 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
             return new(ShoppingListOperationStatus.NotFound);
         }
 
-        if (await repository.ItemExistsAsync(houseId, command.IngredientId, command.PreparedMealId, cancellationToken))
+        if (customName is null && await repository.ItemExistsAsync(houseId, command.IngredientId, command.PreparedMealId, cancellationToken))
         {
             return new(ShoppingListOperationStatus.Conflict, Message: "This product is already on the shopping list.");
         }
@@ -52,6 +61,7 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
             HouseId = houseId,
             IngredientId = command.IngredientId,
             PreparedMealId = command.PreparedMealId,
+            CustomName = customName,
             Quantity = Quantity.FromAmount(command.Quantity),
             Note = NormalizeNote(command.Note)
         };
@@ -156,6 +166,7 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
     }
 
     private const int MaxNoteLength = 500;
+    private const int MaxCustomNameLength = 500;
     private static bool ValidQuantity(decimal quantity) => quantity > 0 && quantity <= 99999999.999m;
     private static ShoppingListOperationResult InvalidQuantity() => new(ShoppingListOperationStatus.ValidationFailed,
         ValidationErrors: new Dictionary<string, string[]> { ["quantity"] = ["Quantity must be greater than 0 and no more than 99999999.999."] });
@@ -163,6 +174,11 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
     private static ShoppingListOperationResult InvalidNote() => new(ShoppingListOperationStatus.ValidationFailed,
         ValidationErrors: new Dictionary<string, string[]> { ["note"] = [$"Note must be no more than {MaxNoteLength} characters."] });
     private static string? NormalizeNote(string? note) => string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+    private static string? NormalizeCustomName(string? customName) => customName?.Trim();
+    private static bool ValidCustomName(string? original, string? normalized) =>
+        original is null || normalized is { Length: > 0 and <= MaxCustomNameLength };
+    private static ShoppingListOperationResult InvalidCustomName() => new(ShoppingListOperationStatus.ValidationFailed,
+        ValidationErrors: new Dictionary<string, string[]> { ["customName"] = [$"Custom item name must be between 1 and {MaxCustomNameLength} characters."] });
     private async Task<ShoppingListItemDto> ToLocalizedDtoAsync(ShoppingListItem item, string languageCode, CancellationToken cancellationToken)
     {
         var dictionary = await LoadTranslationsAsync(languageCode, cancellationToken);
@@ -176,6 +192,11 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
 
     private static string ResolveName(ShoppingListItem item, string languageCode, IReadOnlyDictionary<string, string> dictionary)
     {
+        if (item.CustomName is { } customName)
+        {
+            return customName;
+        }
+
         if (item.PreparedMeal is { } preparedMeal)
         {
             return preparedMeal.Name;
@@ -192,6 +213,12 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
 
     private static ShoppingListItemDto ToDto(ShoppingListItem item, string name)
     {
+        if (item.CustomName is not null)
+        {
+            return new(item.Id, null, null, name, "package", item.Quantity.Amount, 0m, 0m,
+                item.IsPurchased, Kotlet.Domain.Ingredients.FoodCategory.Unknown, item.Note, item.CustomName);
+        }
+
         if (item.PreparedMeal is { } meal)
         {
             var unitPrice = meal.Price ?? 0m;

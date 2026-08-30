@@ -15,6 +15,9 @@ internal sealed class ShoppingListItemConfiguration : IEntityTypeConfiguration<S
         builder.Property(x => x.HouseId).HasColumnName("house_id");
         builder.Property(x => x.IngredientId).HasColumnName("ingredient_id");
         builder.Property(x => x.PreparedMealId).HasColumnName("prepared_meal_id");
+        builder.Property(x => x.CustomName)
+            .HasColumnName("custom_name")
+            .HasMaxLength(500);
         builder.Property(item => item.Quantity)
             .HasColumnName("quantity")
             .HasConversion(quantity => quantity.Amount, amount => Quantity.FromAmount(amount))
@@ -35,7 +38,7 @@ internal sealed class ShoppingListItemConfiguration : IEntityTypeConfiguration<S
         builder.ToTable(table =>
             table.HasCheckConstraint(
                 "ck_shopping_list_items_one_source",
-                "(CASE WHEN ingredient_id IS NULL THEN 0 ELSE 1 END + CASE WHEN prepared_meal_id IS NULL THEN 0 ELSE 1 END) = 1"));
+                "(CASE WHEN ingredient_id IS NULL THEN 0 ELSE 1 END + CASE WHEN prepared_meal_id IS NULL THEN 0 ELSE 1 END + CASE WHEN custom_name IS NULL THEN 0 ELSE 1 END) = 1"));
 
         builder.HasOne(item => item.House)
             .WithMany(house => house.ShoppingListItems)

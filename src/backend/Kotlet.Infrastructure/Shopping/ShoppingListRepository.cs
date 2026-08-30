@@ -14,7 +14,11 @@ internal sealed class ShoppingListRepository(KotletDbContext dbContext) : IShopp
             .Include(item => item.PreparedMeal)
             .Where(item => item.HouseId == houseId)
             .OrderBy(item => item.IsPurchased)
-            .ThenBy(item => item.Ingredient != null ? item.Ingredient.Name : item.PreparedMeal!.Name)
+            .ThenBy(item => item.Ingredient != null
+                ? item.Ingredient.Name
+                : item.PreparedMeal != null
+                    ? item.PreparedMeal.Name
+                    : item.CustomName)
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyCollection<ShoppingListItem>> GetAllTrackedAsync(Guid houseId, CancellationToken cancellationToken) =>

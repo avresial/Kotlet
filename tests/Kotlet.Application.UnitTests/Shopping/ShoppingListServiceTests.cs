@@ -140,6 +140,92 @@ public sealed class ShoppingListServiceTests
         Assert.Equal(25m, result.Item.TotalPrice);
     }
 
+    [Fact]
+    public async Task Create_AddsCustomItemWithTrimmedNameAndNoCatalogReference()
+    {
+        var repo = new FakeRepository(Apples);
+        var service = new ShoppingListService(repo, new FakeTranslationRepository());
+
+        var result = await service.CreateAsync(HouseId,
+            new CreateShoppingListItemCommand(null, null, 2m, CustomName: "  Paper towels  "),
+            English, CancellationToken.None);
+
+        Assert.Equal(ShoppingListOperationStatus.Success, result.Status);
+        Assert.NotNull(result.Item);
+        Assert.Equal("Paper towels", result.Item!.CustomName);
+        Assert.Equal("Paper towels", result.Item.IngredientName);
+        Assert.Null(result.Item.IngredientId);
+        Assert.Null(result.Item.PreparedMealId);
+        Assert.Equal("package", result.Item.MeasurementUnit);
+        Assert.Equal(0m, result.Item.PricePer100BaseUnits);
+        Assert.Equal(0m, result.Item.TotalPrice);
+        Assert.Equal("Paper towels", Assert.Single(repo.Items).CustomName);
+        Assert.Equal(1, repo.SaveCount);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t\n")]
+    public async Task Create_WithBlankCustomName_FailsValidation(string customName)
+    {
+        var repo = new FakeRepository(Apples);
+        var service = new ShoppingListService(repo, new FakeTranslationRepository());
+
+        var result = await service.CreateAsync(HouseId,
+            new CreateShoppingListItemCommand(null, null, 1m, CustomName: customName),
+            English, CancellationToken.None);
+
+        Assert.Equal(ShoppingListOperationStatus.ValidationFailed, result.Status);
+        Assert.True(result.ValidationErrors!.ContainsKey("customName"));
+        Assert.Empty(repo.Items);
+        Assert.Equal(0, repo.SaveCount);
+    }
+
+    [Fact]
+    public async Task Create_WithMultipleSources_FailsValidation()
+    {
+        var repo = new FakeRepository(Apples);
+        var service = new ShoppingListService(repo, new FakeTranslationRepository());
+
+        var result = await service.CreateAsync(HouseId,
+            new CreateShoppingListItemCommand(Apples.Id, null, 1m, CustomName: "Paper towels"),
+            English, CancellationToken.None);
+
+        Assert.Equal(ShoppingListOperationStatus.ValidationFailed, result.Status);
+        Assert.True(result.ValidationErrors!.ContainsKey("item"));
+        Assert.Empty(repo.Items);
+    }
+
+    [Fact]
+    public async Task Create_WithNoSource_FailsValidation()
+    {
+        var repo = new FakeRepository(Apples);
+        var service = new ShoppingListService(repo, new FakeTranslationRepository());
+
+        var result = await service.CreateAsync(HouseId,
+            new CreateShoppingListItemCommand(null, null, 1m), English, CancellationToken.None);
+
+        Assert.Equal(ShoppingListOperationStatus.ValidationFailed, result.Status);
+        Assert.True(result.ValidationErrors!.ContainsKey("item"));
+        Assert.Empty(repo.Items);
+    }
+
+    [Fact]
+    public async Task GetAll_ReturnsCustomItemWithoutIngredientLookup()
+    {
+        var repo = new FakeRepository(Apples);
+        repo.SeedCustomItem(HouseId, "Dish soap", 1m);
+        var service = new ShoppingListService(repo, new FakeTranslationRepository());
+
+        var item = Assert.Single(await service.GetAllAsync(HouseId, English, CancellationToken.None));
+
+        Assert.Equal("Dish soap", item.CustomName);
+        Assert.Equal("Dish soap", item.IngredientName);
+        Assert.Equal(FoodCategory.Unknown, item.Category);
+        Assert.Equal(0m, item.TotalPrice);
+    }
+
     // ---- Update ----
 
     [Fact]
@@ -271,6 +357,19 @@ public sealed class ShoppingListServiceTests
                 IngredientId = ingredient.Id,
                 Quantity = Quantity.FromAmount(quantity),
                 Ingredient = ingredient
+            };
+            Items.Add(item);
+            return item;
+        }
+
+        public ShoppingListItem SeedCustomItem(Guid houseId, string customName, decimal quantity)
+        {
+            var item = new ShoppingListItem
+            {
+                Id = Guid.NewGuid(),
+                HouseId = houseId,
+                CustomName = customName,
+                Quantity = Quantity.FromAmount(quantity)
             };
             Items.Add(item);
             return item;

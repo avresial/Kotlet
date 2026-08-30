@@ -101,6 +101,72 @@ public sealed class ShoppingListEndpointTests(TestWebApplicationFactory factory)
         Assert.Equal(25m, created.GetProperty("totalPrice").GetDecimal());
     }
 
+    [Fact]
+    public async Task CustomItem_CanBeAddedReloadedUpdatedAndRemoved()
+    {
+        var client = await CreateAuthenticatedClient();
+
+        var createResponse = await client.PostAsJsonAsync("/api/shopping-list", new
+        {
+            customName = "  Paper towels  ",
+            quantity = 2m
+        });
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var id = created.GetProperty("id").GetGuid();
+        Assert.Equal("Paper towels", created.GetProperty("customName").GetString());
+        Assert.Equal("Paper towels", created.GetProperty("ingredientName").GetString());
+        Assert.Equal("package", created.GetProperty("measurementUnit").GetString());
+        Assert.Equal(0m, created.GetProperty("totalPrice").GetDecimal());
+        Assert.Equal(JsonValueKind.Null, created.GetProperty("ingredientId").ValueKind);
+        Assert.Equal(JsonValueKind.Null, created.GetProperty("preparedMealId").ValueKind);
+
+        var listed = await client.GetFromJsonAsync<JsonElement[]>("/api/shopping-list");
+        var listedItem = Assert.Single(listed!);
+        Assert.Equal(id, listedItem.GetProperty("id").GetGuid());
+        Assert.Equal("Paper towels", listedItem.GetProperty("customName").GetString());
+
+        var markPurchasedResponse = await client.PutAsJsonAsync($"/api/shopping-list/{id}", new
+        {
+            quantity = 3m,
+            isPurchased = true
+        });
+        Assert.Equal(HttpStatusCode.OK, markPurchasedResponse.StatusCode);
+        var markedPurchased = await markPurchasedResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(markedPurchased.GetProperty("isPurchased").GetBoolean());
+        Assert.Equal(0m, markedPurchased.GetProperty("totalPrice").GetDecimal());
+
+        var unmarkPurchasedResponse = await client.PutAsJsonAsync($"/api/shopping-list/{id}", new
+        {
+            quantity = 1m,
+            isPurchased = false
+        });
+        Assert.Equal(HttpStatusCode.OK, unmarkPurchasedResponse.StatusCode);
+        var unmarkedPurchased = await unmarkPurchasedResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(unmarkedPurchased.GetProperty("isPurchased").GetBoolean());
+
+        var deleteResponse = await client.DeleteAsync($"/api/shopping-list/{id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleteResponse.StatusCode);
+        Assert.Empty((await client.GetFromJsonAsync<JsonElement[]>("/api/shopping-list"))!);
+    }
+
+    [Fact]
+    public async Task CustomItem_WithBlankName_ReturnsValidationProblem()
+    {
+        var client = await CreateAuthenticatedClient();
+
+        var response = await client.PostAsJsonAsync("/api/shopping-list", new
+        {
+            customName = "   ",
+            quantity = 1m
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains("customName", problem.GetProperty("errors").EnumerateObject().Select(property => property.Name));
+    }
+
     private static async Task<Guid> CreateIngredient(HttpClient client, decimal price)
     {
         var response = await client.PostAsJsonAsync("/api/ingredients", new

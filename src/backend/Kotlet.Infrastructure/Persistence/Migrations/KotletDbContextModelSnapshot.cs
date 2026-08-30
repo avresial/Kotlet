@@ -1403,6 +1403,11 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("ingredient_id");
 
+                    b.Property<string>("CustomName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("custom_name");
+
                     b.Property<bool>("IsPurchased")
                         .HasColumnType("boolean")
                         .HasColumnName("is_purchased");
@@ -1439,7 +1444,7 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
 
                     b.ToTable("shopping_list_items", "kotlet", t =>
                         {
-                            t.HasCheckConstraint("ck_shopping_list_items_one_source", "(CASE WHEN ingredient_id IS NULL THEN 0 ELSE 1 END + CASE WHEN prepared_meal_id IS NULL THEN 0 ELSE 1 END) = 1");
+                            t.HasCheckConstraint("ck_shopping_list_items_one_source", "(CASE WHEN ingredient_id IS NULL THEN 0 ELSE 1 END + CASE WHEN prepared_meal_id IS NULL THEN 0 ELSE 1 END + CASE WHEN custom_name IS NULL THEN 0 ELSE 1 END) = 1");
                         });
                 });
 
