@@ -34,7 +34,10 @@ public static class TestDatabaseTemplate
         {
             try
             {
-                if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+                if (Directory.Exists(directory))
+                {
+                    Directory.Delete(directory, recursive: true);
+                }
             }
             catch (IOException)
             {
@@ -47,16 +50,25 @@ public static class TestDatabaseTemplate
     /// <summary>Builds the template if this process has not built it yet, and returns its path.</summary>
     public static async Task<string> EnsureBuiltAsync(CancellationToken cancellationToken = default)
     {
-        if (templatePath is { } existing) return existing;
+        if (templatePath is { } existing)
+        {
+            return existing;
+        }
 
         await BuildLock.WaitAsync(cancellationToken);
         try
         {
-            if (templatePath is { } built) return built;
+            if (templatePath is { } built)
+            {
+                return built;
+            }
 
             Directory.CreateDirectory(WorkingDirectory);
             var path = Path.Combine(WorkingDirectory, "template.db");
-            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
 
             await using (var dbContext = CreateContext(ConnectionStringFor(path)))
             {
@@ -99,7 +111,10 @@ public static class TestDatabaseTemplate
     {
         try
         {
-            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
         }
         catch (IOException)
         {

@@ -24,6 +24,7 @@ public sealed class RecipeImportService(
     /// <summary>Provider recorded on AiAssisted sources; all AI extraction goes through OpenRouter.</summary>
     public const string AiSourceProvider = "OpenRouter";
 
+    private const string DefaultImportedRecipeSlug = "imported-recipe";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<RecipeImportOperationResult> CreateJobAsync(
@@ -56,7 +57,10 @@ public sealed class RecipeImportService(
         Guid id, Guid houseId, Guid userId, CancellationToken cancellationToken)
     {
         var job = await jobs.GetAsync(id, houseId, false, cancellationToken);
-        if (job is null || job.UserId != userId) return null;
+        if (job is null || job.UserId != userId)
+        {
+            return null;
+        }
         var draft = job.DraftJson is null ? null : JsonSerializer.Deserialize<RecipeImportDraft>(job.DraftJson, JsonOptions);
         return new(job.Id, job.Status, draft, job.ErrorReason);
     }
@@ -64,7 +68,10 @@ public sealed class RecipeImportService(
     public async Task ProcessAsync(Guid id, CancellationToken cancellationToken)
     {
         var job = await jobs.GetAsync(id, null, true, cancellationToken);
-        if (job is null || job.Status is RecipeImportJobStatus.ReadyForReview or RecipeImportJobStatus.Failed) return;
+        if (job is null || job.Status is RecipeImportJobStatus.ReadyForReview or RecipeImportJobStatus.Failed)
+        {
+            return;
+        }
 
         await SetStatusAsync(job, RecipeImportJobStatus.FetchingTranscript, cancellationToken);
         var transcript = await transcripts.GetAsync(new Uri(job.Url), cancellationToken);
@@ -93,7 +100,10 @@ public sealed class RecipeImportService(
     public async Task FailAsync(Guid id, string reason, CancellationToken cancellationToken)
     {
         var job = await jobs.GetAsync(id, null, true, cancellationToken);
-        if (job is not null) await FailAsync(job, reason, cancellationToken);
+        if (job is not null)
+        {
+            await FailAsync(job, reason, cancellationToken);
+        }
     }
 
     public async Task<RecipeImportOperationResult> CreateReviewJobAsync(
@@ -124,10 +134,18 @@ public sealed class RecipeImportService(
         Guid id, Guid houseId, Guid userId, RecipeImportDraft draft, CancellationToken cancellationToken)
     {
         var job = await jobs.GetAsync(id, houseId, true, cancellationToken);
-        if (job is null) return new(RecipeImportOperationStatus.NotFound);
-        if (job.UserId != userId) return new(RecipeImportOperationStatus.NotFound);
+        if (job is null)
+        {
+            return new(RecipeImportOperationStatus.NotFound);
+        }
+        if (job.UserId != userId)
+        {
+            return new(RecipeImportOperationStatus.NotFound);
+        }
         if (job.Status != RecipeImportJobStatus.ReadyForReview)
+        {
             return new(RecipeImportOperationStatus.InvalidState);
+        }
         if (string.IsNullOrWhiteSpace(draft.Title) || draft.Servings is < 1 or > 99 || draft.Ingredients.Count == 0 ||
             draft.Ingredients.Any(x => string.IsNullOrWhiteSpace(x.Name) || x.Quantity is null or <= 0 ||
                 string.IsNullOrWhiteSpace(x.Unit) || (!x.IsProposedNew && x.IngredientId is null)))
@@ -137,13 +155,18 @@ public sealed class RecipeImportService(
             .Select(x => x.IngredientId!.Value).Distinct().ToArray();
         var catalog = (await ingredients.GetByIdsAsync(existingIds, cancellationToken)).ToDictionary();
         if (catalog.Count != existingIds.Length)
+        {
             return Validation("ingredients", "One or more matched ingredients no longer exist.");
+        }
 
         var proposed = new Dictionary<string, Ingredient>(StringComparer.OrdinalIgnoreCase);
         foreach (var line in draft.Ingredients.Where(x => x.IsProposedNew))
         {
             var name = line.Name.Trim();
-            if (proposed.ContainsKey(name)) continue;
+            if (proposed.ContainsKey(name))
+            {
+                continue;
+            }
             var unit = CanonicalUnit(line.Unit!);
             var ingredient = new Ingredient
             {
@@ -171,7 +194,9 @@ public sealed class RecipeImportService(
             var ingredient = line.IsProposedNew ? proposed[line.Name.Trim()] : catalog[line.IngredientId!.Value];
             var normalized = Normalize(line.Quantity!.Value, line.Unit!, ingredient);
             if (normalized is null)
+            {
                 return Validation("ingredients", $"Unsupported measurement '{line.Unit}' for {line.Name}.");
+            }
             recipeIngredients.Add(new RecipeIngredient
             {
                 Id = Guid.NewGuid(),
@@ -238,18 +263,37 @@ public sealed class RecipeImportService(
 
     private async Task<string> UniqueSlugAsync(Guid houseId, string baseSlug, CancellationToken cancellationToken)
     {
-        if (baseSlug.Length == 0) baseSlug = "imported-recipe";
-        if (!await recipes.SlugExistsAsync(houseId, baseSlug, null, cancellationToken)) return baseSlug;
+        if (baseSlug.Length == 0)
+        {
+            baseSlug = DefaultImportedRecipeSlug;
+        }
+        if (!await recipes.SlugExistsAsync(houseId, baseSlug, null, cancellationToken))
+        {
+            return baseSlug;
+        }
+
         for (var i = 2; i <= 1000; i++)
-            if (!await recipes.SlugExistsAsync(houseId, $"{baseSlug}-{i}", null, cancellationToken)) return $"{baseSlug}-{i}";
+        {
+            if (!await recipes.SlugExistsAsync(houseId, $"{baseSlug}-{i}", null, cancellationToken))
+            {
+                return $"{baseSlug}-{i}";
+            }
+        }
+
         return $"{baseSlug}-{Guid.NewGuid():N}";
     }
 
     private NormalizedMeasurement? Normalize(decimal quantity, string rawUnit, Ingredient ingredient)
     {
         var unit = CanonicalUnit(rawUnit);
-        if (unit == "kg") return measurements.Normalize(quantity * 1000, "g", ingredient);
-        if (unit == "l") return measurements.Normalize(quantity * 1000, "ml", ingredient);
+        if (unit == "kg")
+        {
+            return measurements.Normalize(quantity * 1000, "g", ingredient);
+        }
+        if (unit == "l")
+        {
+            return measurements.Normalize(quantity * 1000, "ml", ingredient);
+        }
         return measurements.Normalize(quantity, unit, ingredient);
     }
 

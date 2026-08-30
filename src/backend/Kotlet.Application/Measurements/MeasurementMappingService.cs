@@ -13,11 +13,16 @@ public sealed class MeasurementMappingService
 
     public NormalizedMeasurement? Normalize(decimal quantity, string unit, Ingredient ingredient)
     {
-        if (quantity <= 0 || string.IsNullOrWhiteSpace(unit)) return null;
+        if (quantity <= 0 || string.IsNullOrWhiteSpace(unit))
+        {
+            return null;
+        }
 
         var normalizedUnit = unit.Trim().ToLowerInvariant();
         if (normalizedUnit == ingredient.MeasurementUnit)
+        {
             return new(quantity, ingredient.MeasurementUnit);
+        }
 
         if (normalizedUnit == "piece")
         {
@@ -42,12 +47,16 @@ public sealed class MeasurementMappingService
         }
 
         if (normalizedQuantity >= 1000 && normalizedUnit is "g" or "ml")
+        {
             return new(normalizedQuantity / 1000, normalizedUnit == "g" ? "kg" : "l");
+        }
 
         foreach (var mapping in KitchenUnits)
         {
             if (DividesToWholeNumber(normalizedQuantity, mapping.Factor, out var quantity))
+            {
                 return new(quantity, mapping.Unit);
+            }
         }
 
         return new(normalizedQuantity, normalizedUnit);

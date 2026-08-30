@@ -21,7 +21,9 @@ export class ShoppingListIntegrationService {
     noCatalogueIngredientMessage: string
   ): Observable<ShoppingListItem[]> {
     const quantities = this.calculateShoppingQuantities(item, recipeDetails, ingredients);
-    if (!quantities.length) throw new Error(noCatalogueIngredientMessage);
+    if (!quantities.length) {
+      throw new Error(noCatalogueIngredientMessage);
+    }
 
     return this.mergeWithCurrentShoppingList(quantities);
   }
@@ -33,20 +35,28 @@ export class ShoppingListIntegrationService {
   ): { ingredient: Ingredient; quantity: number }[] {
     if (item.type === 'ingredient') {
       const ingredient = ingredients.find((candidate) => candidate.id === item.ingredientId);
-      if (!ingredient) return [];
+      if (!ingredient) {
+        return [];
+      }
       const quantity = directIngredientQuantity(ingredient, item.servings);
       return quantity > 0 ? [{ ingredient, quantity }] : [];
     }
 
     const detail = item.recipeId ? recipeDetails[item.recipeId] : undefined;
+    if (!detail) {
+      return [];
+    }
+
     const totals = new Map<string, { ingredient: Ingredient; quantity: number }>();
-    for (const recipeIngredient of detail?.ingredients ?? []) {
+    for (const recipeIngredient of detail.ingredients) {
       const ingredient = ingredients.find((candidate) => candidate.id === recipeIngredient.ingredientId);
-      if (!ingredient) continue;
+      if (!ingredient) {
+        continue;
+      }
       const existing = totals.get(ingredient.id);
       const quantity = scaleRecipeQuantity(
         recipeIngredient.normalizedQuantity,
-        detail!.servings,
+        detail.servings,
         item.servings,
       );
       totals.set(ingredient.id, { ingredient, quantity: (existing?.quantity ?? 0) + quantity });

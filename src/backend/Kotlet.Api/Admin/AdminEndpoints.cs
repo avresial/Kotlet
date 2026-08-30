@@ -39,7 +39,10 @@ public static class AdminEndpoints
         AdminUserService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } currentUserId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } currentUserId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.UpdateAsync(id, currentUserId, request, cancellationToken);
         return result.Status switch
         {
@@ -75,12 +78,16 @@ public static class AdminEndpoints
         {
             var existing = await settings.GetAsync(SystemSettingKeys.SupadataApiKey, cancellationToken) ?? options.ApiKey;
             if (string.IsNullOrWhiteSpace(existing))
+            {
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["apiKey"] = ["API key is required."] });
+            }
         }
         else
         {
             if (apiKey.Length > 4096)
+            {
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["apiKey"] = ["API key cannot exceed 4096 characters."] });
+            }
             await settings.SetAsync(SystemSettingKeys.SupadataApiKey, apiKey, cancellationToken);
         }
 

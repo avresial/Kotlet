@@ -46,11 +46,16 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
 
         if (!DateOnly.TryParse(date, out var parsedDate))
+        {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             { ["date"] = ["date query parameter is required and must be in yyyy-MM-dd format."] });
+        }
 
         return Results.Ok(await service.GetForDateAsync(userId, houseId, parsedDate, cancellationToken));
     }
@@ -60,7 +65,10 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         return Results.Ok(await service.GetHouseMembersAsync(houseId, cancellationToken));
     }
 
@@ -71,13 +79,20 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         if (!DateOnly.TryParse(from, out var parsedFrom))
+        {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             { ["from"] = ["from query parameter is required and must be in yyyy-MM-dd format."] });
+        }
         if (days is < 1 or > 62)
+        {
             return Results.ValidationProblem(new Dictionary<string, string[]>
             { ["days"] = ["days must be between 1 and 62."] });
+        }
 
         return Results.Ok(await service.GetOverviewAsync(userId, houseId, parsedFrom, days, cancellationToken));
     }
@@ -88,7 +103,10 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.AddItemAsync(userId, houseId, request, cancellationToken);
         return result.Status switch
         {
@@ -105,7 +123,10 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.MoveItemAsync(userId, houseId, id, request, cancellationToken);
         return ToResult(result);
     }
@@ -116,7 +137,10 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         return await service.RemoveItemAsync(houseId, id, cancellationToken) is MealPlannerOperationStatus.Success
             ? Results.NoContent()
             : Results.NotFound();
@@ -128,7 +152,10 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.CopyDayAsync(userId, houseId, request, cancellationToken);
         return result.Status switch
         {
@@ -147,7 +174,10 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.SetParticipantsAsync(userId, houseId, id, request.UserIds ?? [], cancellationToken);
         return ToResult(result);
     }
@@ -158,7 +188,10 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.CopyWeekAsync(userId, houseId, request, cancellationToken);
         return result.Status switch
         {
@@ -178,7 +211,10 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         return ToResult(await service.SetParticipantPortionAsync(
             userId, houseId, id, participantUserId, request.PortionPercent, cancellationToken));
     }
@@ -190,7 +226,10 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.SetServingsAsync(userId, houseId, id, request.Servings, cancellationToken);
         return ToResult(result);
     }
@@ -202,7 +241,10 @@ public static class MealPlannerEndpoints
         MealPlannerService service,
         CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.SetGuestsAsync(userId, houseId, id, request.Guests, cancellationToken);
         return ToResult(result);
     }

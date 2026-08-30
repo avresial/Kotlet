@@ -26,7 +26,10 @@ public sealed class StoredImageService(IStoredImageRepository repository, IImage
         string? altText, StoredImageSourceData? source, CancellationToken ct)
     {
         var errors = Validate(fileName, contentType, content, altText, source);
-        if (errors.Count > 0) return new(null, errors);
+        if (errors.Count > 0)
+        {
+            return new(null, errors);
+        }
         ImageProcessingResult processed;
         try
         {
@@ -65,7 +68,10 @@ public sealed class StoredImageService(IStoredImageRepository repository, IImage
 
     public async Task<bool> UpdateAltTextAsync(Guid id, string? altText, CancellationToken ct)
     {
-        if (altText?.Trim().Length > 300 || await repository.GetAsync(id, false, ct) is null) return false;
+        if (altText?.Trim().Length > 300 || await repository.GetAsync(id, false, ct) is null)
+        {
+            return false;
+        }
         await repository.UpdateAltTextAsync(id, string.IsNullOrWhiteSpace(altText) ? null : altText.Trim(), DateTimeOffset.UtcNow, ct);
         return true;
     }
@@ -75,19 +81,52 @@ public sealed class StoredImageService(IStoredImageRepository repository, IImage
     private static Dictionary<string, string[]> Validate(string fileName, string contentType, byte[] content, string? altText, StoredImageSourceData? source)
     {
         var errors = new Dictionary<string, string[]>();
-        if (content.Length == 0) errors["file"] = ["Image file must not be empty."];
-        else if (content.LongLength > MaxFileSizeBytes) errors["file"] = ["Image file cannot exceed 5 MB."];
-        if (!AllowedTypes.Contains(contentType)) errors["contentType"] = ["Only JPEG, PNG, and WebP images are supported."];
-        else if (!AllowedExtensions[contentType].Contains(Path.GetExtension(fileName), StringComparer.OrdinalIgnoreCase)) errors["fileName"] = ["File extension does not match its content type."];
-        if (Path.GetFileName(fileName).Length > 260) errors["fileName"] = ["File name cannot exceed 260 characters."];
-        if (altText?.Trim().Length > 300) errors["altText"] = ["Alt text cannot exceed 300 characters."];
+        if (content.Length == 0)
+        {
+            errors["file"] = ["Image file must not be empty."];
+        }
+        else if (content.LongLength > MaxFileSizeBytes)
+        {
+            errors["file"] = ["Image file cannot exceed 5 MB."];
+        }
+        if (!AllowedTypes.Contains(contentType))
+        {
+            errors["contentType"] = ["Only JPEG, PNG, and WebP images are supported."];
+        }
+        else if (!AllowedExtensions[contentType].Contains(Path.GetExtension(fileName), StringComparer.OrdinalIgnoreCase))
+        {
+            errors["fileName"] = ["File extension does not match its content type."];
+        }
+        if (Path.GetFileName(fileName).Length > 260)
+        {
+            errors["fileName"] = ["File name cannot exceed 260 characters."];
+        }
+        if (altText?.Trim().Length > 300)
+        {
+            errors["altText"] = ["Alt text cannot exceed 300 characters."];
+        }
         if (source is not null)
         {
-            if (string.IsNullOrWhiteSpace(source.Provider) || source.Provider.Trim().Length > 100) errors["sourceProvider"] = ["Image source provider is required and cannot exceed 100 characters."];
-            if (source.ExternalId?.Trim().Length > 200) errors["sourceExternalId"] = ["Image source id cannot exceed 200 characters."];
-            if (source.Url is not null && (!Uri.TryCreate(source.Url.Trim(), UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))) errors["sourceUrl"] = ["Image source URL must be an absolute http(s) URL."];
-            if (source.AuthorName?.Trim().Length > 200) errors["sourceAuthorName"] = ["Image author name cannot exceed 200 characters."];
-            if (source.AuthorUrl is not null && (!Uri.TryCreate(source.AuthorUrl.Trim(), UriKind.Absolute, out var authorUri) || authorUri.Scheme is not ("http" or "https"))) errors["sourceAuthorUrl"] = ["Image author URL must be an absolute http(s) URL."];
+            if (string.IsNullOrWhiteSpace(source.Provider) || source.Provider.Trim().Length > 100)
+            {
+                errors["sourceProvider"] = ["Image source provider is required and cannot exceed 100 characters."];
+            }
+            if (source.ExternalId?.Trim().Length > 200)
+            {
+                errors["sourceExternalId"] = ["Image source id cannot exceed 200 characters."];
+            }
+            if (source.Url is not null && (!Uri.TryCreate(source.Url.Trim(), UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https")))
+            {
+                errors["sourceUrl"] = ["Image source URL must be an absolute http(s) URL."];
+            }
+            if (source.AuthorName?.Trim().Length > 200)
+            {
+                errors["sourceAuthorName"] = ["Image author name cannot exceed 200 characters."];
+            }
+            if (source.AuthorUrl is not null && (!Uri.TryCreate(source.AuthorUrl.Trim(), UriKind.Absolute, out var authorUri) || authorUri.Scheme is not ("http" or "https")))
+            {
+                errors["sourceAuthorUrl"] = ["Image author URL must be an absolute http(s) URL."];
+            }
         }
         return errors;
     }

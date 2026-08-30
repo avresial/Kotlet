@@ -110,11 +110,26 @@ public sealed class AgentMemoryServiceTests
         {
             var now = DateTimeOffset.UtcNow;
             IEnumerable<AgentMemoryEntity> result = Items.Where(item => item.UserId == userId && item.HouseId == houseId && !item.IsDeleted);
-            if (!includeExpired) result = result.Where(item => item.ExpiresAt is null || item.ExpiresAt > now);
-            if (!string.IsNullOrWhiteSpace(query)) result = result.Where(item => item.Content.Contains(query, StringComparison.OrdinalIgnoreCase));
-            if (category is not null) result = result.Where(item => item.Category == category);
-            if (source is { } sourceValue) result = result.Where(item => item.Source == sourceValue);
-            if (reviewStatus is { } statusValue) result = result.Where(item => item.ReviewStatus == statusValue);
+            if (!includeExpired)
+            {
+                result = result.Where(item => item.ExpiresAt is null || item.ExpiresAt > now);
+            }
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                result = result.Where(item => item.Content.Contains(query, StringComparison.OrdinalIgnoreCase));
+            }
+            if (category is not null)
+            {
+                result = result.Where(item => item.Category == category);
+            }
+            if (source is { } sourceValue)
+            {
+                result = result.Where(item => item.Source == sourceValue);
+            }
+            if (reviewStatus is { } statusValue)
+            {
+                result = result.Where(item => item.ReviewStatus == statusValue);
+            }
             return Task.FromResult<IReadOnlyList<AgentMemoryEntity>>(result.OrderByDescending(item => item.UpdatedAt).ToList());
         }
 

@@ -129,7 +129,10 @@ public sealed class AiRecipeExtractionServiceTests
             ChatOptions? options = null,
             CancellationToken cancellationToken = default)
         {
-            if (throwOnCall) throw new InvalidOperationException("test failure");
+            if (throwOnCall)
+            {
+                throw new InvalidOperationException("test failure");
+            }
             LastUserMessage = messages.Last().Text;
             return Task.FromResult(new ChatResponse(new ChatMessage(ChatRole.Assistant, responseText)));
         }

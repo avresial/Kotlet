@@ -32,7 +32,9 @@ public sealed class PreparedMealImageService(IPreparedMealImageRepository reposi
         CancellationToken ct)
     {
         if (!await repository.MealExistsAsync(mealId, houseId, ct))
+        {
             return (PreparedMealOperationStatus.NotFound, null, null);
+        }
 
         var images = await repository.ListAsync(mealId, ct);
         if (images.Count >= MaxImages)
@@ -46,7 +48,9 @@ public sealed class PreparedMealImageService(IPreparedMealImageRepository reposi
 
         var stored = await imageStorage.CreateAsync(fileName, contentType, content, altText, null, ct);
         if (stored.Errors is not null)
+        {
             return (PreparedMealOperationStatus.ValidationFailed, null, stored.Errors);
+        }
 
         var image = new PreparedMealImage
         {
@@ -66,7 +70,9 @@ public sealed class PreparedMealImageService(IPreparedMealImageRepository reposi
         CancellationToken ct)
     {
         if (!await repository.MealExistsAsync(mealId, houseId, ct))
+        {
             return null;
+        }
 
         return (await repository.ListAsync(mealId, ct)).Select(ToResponse).ToList();
     }
@@ -111,7 +117,9 @@ public sealed class PreparedMealImageService(IPreparedMealImageRepository reposi
         CancellationToken ct)
     {
         if (!await repository.MealExistsAsync(mealId, houseId, ct))
+        {
             return PreparedMealOperationStatus.NotFound;
+        }
 
         var images = await repository.ListAsync(mealId, ct);
         if (ids.Count != images.Count

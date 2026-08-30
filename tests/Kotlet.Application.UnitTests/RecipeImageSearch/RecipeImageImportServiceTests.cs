@@ -102,7 +102,10 @@ public sealed class RecipeImageImportServiceTests
         public Task<ImageProcessingResult> ProcessAsync(Stream image, ImageProcessingOptions options, CancellationToken cancellationToken = default)
         {
             Options = options;
-            if (throwInvalidImage) throw new InvalidImageException("not an image");
+            if (throwInvalidImage)
+            {
+                throw new InvalidImageException("not an image");
+            }
             return Task.FromResult(new ImageProcessingResult([9, 8, 7], "image/webp", 1200, 900));
         }
     }

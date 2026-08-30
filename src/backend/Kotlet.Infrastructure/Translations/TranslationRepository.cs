@@ -17,7 +17,9 @@ internal sealed class TranslationRepository(KotletDbContext dbContext, IMemoryCa
     public async Task<IReadOnlyDictionary<string, string>> GetAllAsync(CancellationToken cancellationToken)
     {
         if (cache.TryGetValue(TranslationCache.Key, out IReadOnlyDictionary<string, string>? cached) && cached is not null)
+        {
             return cached;
+        }
 
         var dictionary = await dbContext.Translations
             .AsNoTracking()
@@ -31,9 +33,13 @@ internal sealed class TranslationRepository(KotletDbContext dbContext, IMemoryCa
     {
         var existing = await dbContext.Translations.FirstOrDefaultAsync(translation => translation.Key == key, cancellationToken);
         if (existing is null)
+        {
             dbContext.Translations.Add(new Translation { Key = key, Value = value });
+        }
         else
+        {
             existing.Value = value;
+        }
     }
 
     public async Task RemoveByPrefixAsync(string keyPrefix, CancellationToken cancellationToken)
@@ -42,7 +48,9 @@ internal sealed class TranslationRepository(KotletDbContext dbContext, IMemoryCa
             .Where(translation => translation.Key.StartsWith(keyPrefix))
             .ToListAsync(cancellationToken);
         if (matches.Count > 0)
+        {
             dbContext.Translations.RemoveRange(matches);
+        }
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken) => dbContext.SaveChangesAsync(cancellationToken);

@@ -9,7 +9,10 @@ public sealed class HouseSessionService(IAuthSessionRepository sessions, TokenSe
         Guid userId, Guid? houseId, HttpContext context, CancellationToken cancellationToken)
     {
         var user = await sessions.GetUserAsync(userId, cancellationToken);
-        if (user is null) return null;
+        if (user is null)
+        {
+            return null;
+        }
 
         var rawRefreshToken = tokens.ReadRefreshToken(context.Request);
         if (!string.IsNullOrEmpty(rawRefreshToken))

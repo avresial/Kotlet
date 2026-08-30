@@ -44,7 +44,9 @@ internal sealed class TranslationCacheInterceptor(IMemoryCache cache) : SaveChan
     private void Detect(DbContext? context)
     {
         if (context is null)
+        {
             return;
+        }
         _translationsChanged |= context.ChangeTracker.Entries<Translation>()
             .Any(entry => entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted);
     }
@@ -52,7 +54,9 @@ internal sealed class TranslationCacheInterceptor(IMemoryCache cache) : SaveChan
     private void Evict()
     {
         if (!_translationsChanged)
+        {
             return;
+        }
         cache.Remove(TranslationCache.Key);
         _translationsChanged = false;
     }

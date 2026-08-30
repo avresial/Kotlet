@@ -18,7 +18,9 @@ internal sealed class OpenAiChatClientFactory : IChatClientFactory
     {
         var clientOptions = new OpenAIClientOptions();
         if (!string.IsNullOrWhiteSpace(options.BaseUrl))
+        {
             clientOptions.Endpoint = new Uri(options.BaseUrl);
+        }
 
         var model = string.IsNullOrWhiteSpace(options.Model) ? FallbackModel : options.Model;
         var chatClient = new OpenAIClient(new ApiKeyCredential(options.ApiKey), clientOptions)

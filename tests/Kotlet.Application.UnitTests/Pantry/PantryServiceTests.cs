@@ -276,7 +276,10 @@ public sealed class PantryServiceTests
 
         public Task RemoveByPrefixAsync(string keyPrefix, CancellationToken cancellationToken)
         {
-            foreach (var key in Entries.Keys.Where(k => k.StartsWith(keyPrefix)).ToList()) Entries.Remove(key);
+            foreach (var key in Entries.Keys.Where(k => k.StartsWith(keyPrefix)).ToList())
+            {
+                Entries.Remove(key);
+            }
             return Task.CompletedTask;
         }
 

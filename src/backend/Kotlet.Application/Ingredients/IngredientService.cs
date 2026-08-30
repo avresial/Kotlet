@@ -37,7 +37,9 @@ public sealed class IngredientService(
     {
         var ingredient = await repository.GetByIdAsync(id, tracked: false, cancellationToken);
         if (ingredient is null)
+        {
             return null;
+        }
         var dictionary = await LoadTranslationsAsync(languageCode, cancellationToken);
         return ToDto(ingredient, ResolveTranslation(ingredient, languageCode, dictionary));
     }
@@ -49,13 +51,17 @@ public sealed class IngredientService(
     {
         var errors = Validate(command);
         if (errors.Count > 0)
+        {
             return new(IngredientOperationStatus.ValidationFailed, ValidationErrors: errors);
+        }
 
         var isDefaultLanguage = TranslationKeys.IsDefaultLanguage(languageCode);
         var (canonicalName, persistedTranslation) = ResolveNames(command, isDefaultLanguage);
         var displayName = isDefaultLanguage ? canonicalName : persistedTranslation!;
         if (await IsDisplayNameTakenAsync(displayName, languageCode, null, cancellationToken))
+        {
             return Conflict();
+        }
 
         var ingredient = new Ingredient
         {
@@ -77,7 +83,9 @@ public sealed class IngredientService(
         // Stage the translation (when any) so the ingredient row and its translation are persisted
         // in a single commit on the shared DbContext, keeping the two writes atomic.
         if (persistedTranslation is not null)
+        {
             await translations.SetAsync(TranslationKeys.Ingredient(ingredient.Id, languageCode), persistedTranslation, cancellationToken);
+        }
         await repository.SaveChangesAsync(cancellationToken);
 
         // Wake the background worker so the languages this ingredient still lacks get translated.
@@ -94,27 +102,37 @@ public sealed class IngredientService(
     {
         var errors = Validate(command);
         if (errors.Count > 0)
+        {
             return new(IngredientOperationStatus.ValidationFailed, ValidationErrors: errors);
+        }
 
         var ingredient = await repository.GetByIdAsync(id, tracked: true, cancellationToken);
         if (ingredient is null)
+        {
             return new(IngredientOperationStatus.NotFound);
+        }
 
         var isDefaultLanguage = TranslationKeys.IsDefaultLanguage(languageCode);
         var (canonicalName, persistedTranslation) = ResolveNames(command, isDefaultLanguage);
         var displayName = isDefaultLanguage ? canonicalName : persistedTranslation!;
         if (await IsDisplayNameTakenAsync(displayName, languageCode, id, cancellationToken))
+        {
             return Conflict();
+        }
         var measurementUnit = NormalizeUnit(command.MeasurementUnit);
         if (ingredient.MeasurementUnit != measurementUnit && await repository.IsInUseAsync(id, cancellationToken))
+        {
             return new(IngredientOperationStatus.Conflict,
                 Message: "The base measurement unit cannot be changed while the ingredient is in use.");
+        }
 
         // The canonical (default-language) name is only set when we know it: when editing in the
         // default language, or when a non-default editor also supplied the canonical name alongside
         // the translation. A legacy translation-only edit leaves the existing canonical name intact.
         if (isDefaultLanguage || !string.IsNullOrWhiteSpace(command.Translation))
+        {
             ingredient.Name = canonicalName;
+        }
         ingredient.MeasurementUnit = measurementUnit;
         ingredient.IsCountable = command.IsCountable;
         ingredient.MeasurementUnitsPerPiece = command.IsCountable ? command.MeasurementUnitsPerPiece : null;
@@ -126,7 +144,9 @@ public sealed class IngredientService(
         ingredient.Suitability = command.Suitability;
         ingredient.IsAiModified = false;
         if (persistedTranslation is not null)
+        {
             await translations.SetAsync(TranslationKeys.Ingredient(ingredient.Id, languageCode), persistedTranslation, cancellationToken);
+        }
         await repository.SaveChangesAsync(cancellationToken);
 
         return new(IngredientOperationStatus.Success, ToDto(ingredient, isDefaultLanguage ? null : persistedTranslation));
@@ -136,9 +156,13 @@ public sealed class IngredientService(
     {
         var ingredient = await repository.GetByIdAsync(id, tracked: true, cancellationToken);
         if (ingredient is null)
+        {
             return IngredientOperationStatus.NotFound;
+        }
         if (await repository.IsInUseAsync(id, cancellationToken))
+        {
             return IngredientOperationStatus.Conflict;
+        }
 
         repository.Remove(ingredient);
         // Remove the ingredient and all of its translations in a single commit.
@@ -168,11 +192,15 @@ public sealed class IngredientService(
     {
         var inputName = command.Name.Trim();
         if (isDefaultLanguage)
+        {
             return (inputName, null);
+        }
         var translation = command.Translation?.Trim();
         // The editor supplied both the canonical name and its translation (the new edit flow).
         if (!string.IsNullOrWhiteSpace(translation))
+        {
             return (inputName, translation);
+        }
         // Legacy flow: only a name was supplied in a non-default language, so it *is* the translation
         // and the canonical name stays the "Unknown" placeholder until an English name is provided.
         return (UnknownName, inputName);
@@ -184,7 +212,9 @@ public sealed class IngredientService(
     private static string? ResolveTranslation(Ingredient ingredient, string languageCode, IReadOnlyDictionary<string, string> dictionary)
     {
         if (TranslationKeys.IsDefaultLanguage(languageCode))
+        {
             return null;
+        }
         return dictionary.TryGetValue(TranslationKeys.Ingredient(ingredient.Id, languageCode), out var translated)
                && !string.IsNullOrWhiteSpace(translated)
             ? translated
@@ -195,24 +225,42 @@ public sealed class IngredientService(
     {
         var errors = new Dictionary<string, string[]>();
         if (string.IsNullOrWhiteSpace(command.Name) || command.Name.Trim().Length > 150)
+        {
             errors["name"] = ["Name is required and cannot exceed 150 characters."];
+        }
         var unit = command.MeasurementUnit?.Trim().ToLowerInvariant();
         if (unit is null || !MeasurementUnits.Contains(unit))
+        {
             errors["measurementUnit"] = [$"Measurement unit must be one of: {string.Join(", ", MeasurementUnits)}."];
+        }
         if (command.IsCountable && (!command.MeasurementUnitsPerPiece.HasValue || command.MeasurementUnitsPerPiece <= 0 || command.MeasurementUnitsPerPiece > 999999999.999m))
+        {
             errors["measurementUnitsPerPiece"] = ["A countable ingredient must define a positive number of measurement units per piece."];
+        }
         if (command.CaloriesPer100BaseUnits < 0 || command.CaloriesPer100BaseUnits > 999999.99m)
+        {
             errors["caloriesPer100BaseUnits"] = ["Calories per 100 base units must be between 0 and 999999.99."];
+        }
         if (command.PricePer100BaseUnits < 0 || command.PricePer100BaseUnits > 99999999.99m)
+        {
             errors["pricePer100BaseUnits"] = ["Price per 100 base units must be between 0 and 99999999.99."];
+        }
         if (!Enum.IsDefined(command.Category))
+        {
             errors["category"] = ["Category is invalid."];
+        }
         if ((command.Allergens & ~KnownAllergens) != 0)
+        {
             errors["allergens"] = ["Allergens contain unsupported values."];
+        }
         if ((command.Attributes & ~KnownAttributes) != 0)
+        {
             errors["attributes"] = ["Attributes contain unsupported values."];
+        }
         if ((command.Suitability & ~KnownSuitability) != 0)
+        {
             errors["suitability"] = ["Suitability contains unsupported values."];
+        }
         return errors;
     }
 

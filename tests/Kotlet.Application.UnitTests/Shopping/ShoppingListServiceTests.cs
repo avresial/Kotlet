@@ -409,7 +409,10 @@ public sealed class ShoppingListServiceTests
         public Task<int> RemovePurchasedAsync(Guid houseId, CancellationToken cancellationToken)
         {
             var purchased = Items.Where(i => i.HouseId == houseId && i.IsPurchased).ToList();
-            foreach (var item in purchased) Items.Remove(item);
+            foreach (var item in purchased)
+            {
+                Items.Remove(item);
+            }
             return Task.FromResult(purchased.Count);
         }
 
@@ -436,7 +439,10 @@ public sealed class ShoppingListServiceTests
 
         public Task RemoveByPrefixAsync(string keyPrefix, CancellationToken cancellationToken)
         {
-            foreach (var key in Entries.Keys.Where(k => k.StartsWith(keyPrefix)).ToList()) Entries.Remove(key);
+            foreach (var key in Entries.Keys.Where(k => k.StartsWith(keyPrefix)).ToList())
+            {
+                Entries.Remove(key);
+            }
             return Task.CompletedTask;
         }
 

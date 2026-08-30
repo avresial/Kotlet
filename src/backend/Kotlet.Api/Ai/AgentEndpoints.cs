@@ -26,14 +26,24 @@ public static class AgentEndpoints
     private static async Task<IResult> Chat(AgentChatRequest request, ICurrentUser user,
         IUserChatClientResolver resolver, IServiceProvider services, ILoggerFactory loggerFactory, CancellationToken ct)
     {
-        if (user.UserId is not { } userId) return Results.Unauthorized();
+        if (user.UserId is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
         if (string.IsNullOrWhiteSpace(request.Model) || request.Messages is not { Count: > 0 } or { Count: > 50 })
+        {
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["messages"] = ["Choose a model and provide 1 to 50 messages."] });
+        }
         if (request.Messages.Any(x => x.Content.Length > 20_000 || x.Role is not ("user" or "assistant")))
+        {
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["messages"] = ["Messages are invalid or too long."] });
+        }
 
         using var client = await resolver.ResolveAsync(userId, request.Model, ct);
-        if (client is null) return Results.NotFound();
+        if (client is null)
+        {
+            return Results.NotFound();
+        }
         var messages = new List<ChatMessage> { new(ChatRole.System, SystemPrompt) };
         messages.AddRange(request.Messages.Select(x => new ChatMessage(x.Role == "user" ? ChatRole.User : ChatRole.Assistant, x.Content)));
         try
@@ -45,7 +55,10 @@ public static class AgentEndpoints
         {
             loggerFactory.CreateLogger(typeof(AgentEndpoints)).LogError(exception, "Agent provider request failed");
             var providerMessage = exception.Message.Trim();
-            if (providerMessage.Length > 1_000) providerMessage = providerMessage[..1_000];
+            if (providerMessage.Length > 1_000)
+            {
+                providerMessage = providerMessage[..1_000];
+            }
             return Results.Problem($"The AI provider rejected model '{request.Model}': {providerMessage}",
                 statusCode: StatusCodes.Status502BadGateway);
         }

@@ -117,7 +117,9 @@ public static class PreparedMealEndpoints
         CancellationToken ct)
     {
         if (user.HouseId is not { } houseId)
+        {
             return Results.Unauthorized();
+        }
         if (file.Length > PreparedMealImageService.MaxFileSizeBytes)
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -164,11 +166,15 @@ public static class PreparedMealEndpoints
         CancellationToken ct)
     {
         if (user.HouseId is not { } houseId)
+        {
             return Results.Unauthorized();
+        }
 
         var image = await service.GetContentAsync(id, imageId, houseId, ct);
         if (image is null)
+        {
             return Results.NotFound();
+        }
 
         context.Response.Headers.CacheControl = "private,max-age=86400";
         return Results.File(image.Content, image.ContentType, image.FileName);

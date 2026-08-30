@@ -20,7 +20,10 @@ internal sealed class UserChatClientResolver(
             return null;
 
         var models = UserAiProviderService.ParseModels(configuration);
-        if (model.Length > 0 && !models.Contains(model, StringComparer.Ordinal)) return null;
+        if (model.Length > 0 && !models.Contains(model, StringComparer.Ordinal))
+        {
+            return null;
+        }
         return factory.Create(new AiChatClientOptions(
             configuration.BaseUrl, configuration.ApiKey, model.Length > 0 ? model : configuration.DefaultModel ?? models.FirstOrDefault()));
     }

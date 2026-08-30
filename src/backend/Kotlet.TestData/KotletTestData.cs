@@ -62,7 +62,9 @@ public static class KotletTestData
     public static async Task SeedAsync(KotletDbContext dbContext, CancellationToken cancellationToken = default)
     {
         if (await dbContext.Houses.AnyAsync(house => house.Id == HouseId, cancellationToken))
+        {
             return;
+        }
 
         var ingredients = await SeedIngredientsAsync(dbContext, cancellationToken);
         var users = SeedAccounts(dbContext);
@@ -126,12 +128,14 @@ public static class KotletTestData
     {
         dbContext.Houses.Add(new House { Id = HouseId, Name = HouseName });
         foreach (var user in users.Values)
+        {
             dbContext.HouseMemberships.Add(new HouseMembership
             {
                 UserId = user.Id,
                 HouseId = HouseId,
                 JoinedAtUtc = Anchor.UtcDateTime
             });
+        }
     }
 
     private static List<Recipe> SeedRecipes(KotletDbContext dbContext, IReadOnlyList<Ingredient> ingredients)
@@ -256,6 +260,7 @@ public static class KotletTestData
         var housemateId = TestIds.User(Housemate.Email);
 
         for (var day = 0; day < PlannedDays; day++)
+        {
             for (var slotIndex = 0; slotIndex < PlannedSlots.Length; slotIndex++)
             {
                 var date = PlanStart.AddDays(day);
@@ -281,14 +286,17 @@ public static class KotletTestData
 
                 item.Participants.Add(new MealPlanItemParticipant { UserId = ownerId, PortionPercent = 100 });
                 if (position % 2 == 0)
+                {
                     item.Participants.Add(new MealPlanItemParticipant
                     {
                         UserId = housemateId,
                         PortionPercent = position % 4 == 0 ? 75 : 100
                     });
+                }
 
                 dbContext.MealPlanItems.Add(item);
             }
+        }
     }
 
     private static MealSlot SlotFor(string slot) => slot switch

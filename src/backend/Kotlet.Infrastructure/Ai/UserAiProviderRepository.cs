@@ -10,7 +10,10 @@ internal sealed class UserAiProviderRepository(KotletDbContext dbContext) : IUse
     public Task<UserAiProviderConfiguration?> GetAsync(Guid userId, bool tracked, CancellationToken cancellationToken)
     {
         IQueryable<UserAiProviderConfiguration> query = dbContext.UserAiProviderConfigurations;
-        if (!tracked) query = query.AsNoTracking();
+        if (!tracked)
+        {
+            query = query.AsNoTracking();
+        }
         return query.SingleOrDefaultAsync(x => x.UserId == userId, cancellationToken);
     }
 

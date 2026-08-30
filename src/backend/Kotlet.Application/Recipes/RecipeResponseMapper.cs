@@ -9,6 +9,8 @@ public sealed class RecipeResponseMapper(
     MeasurementMappingService measurementMappingService,
     ITranslationRepository translations)
 {
+    private static readonly IReadOnlyDictionary<string, string> NoTranslations = new Dictionary<string, string>();
+
     public async Task<RecipeDetailResponse> ToDetailResponseAsync(
         Recipe recipe, string languageCode, IReadOnlyList<RecipeImageResponse>? images = null, bool canEdit = false, CancellationToken cancellationToken = default)
     {
@@ -42,7 +44,9 @@ public sealed class RecipeResponseMapper(
     {
         string? firstImageUrl = null;
         if (firstImageIds is not null && firstImageIds.TryGetValue(summary.Id, out var imageId))
+        {
             firstImageUrl = $"/api/recipes/{summary.Id}/images/{imageId}/content";
+        }
         return new(summary.Id, summary.Title, summary.Slug, summary.OwnerUserId, summary.IngredientCount, summary.Servings.Value,
             summary.MealType?.ToApiValue(), summary.DescriptionMarkdown, firstImageUrl, summary.IsAiAssisted,
             summary.CreatedAtUtc, summary.UpdatedAtUtc);
@@ -55,7 +59,7 @@ public sealed class RecipeResponseMapper(
 
     private Task<IReadOnlyDictionary<string, string>> LoadTranslationsAsync(string languageCode, CancellationToken cancellationToken) =>
         TranslationKeys.IsDefaultLanguage(languageCode)
-            ? Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>())
+            ? Task.FromResult(NoTranslations)
             : translations.GetAllAsync(cancellationToken);
 
     private static string ResolveName(Guid ingredientId, string fallback, string languageCode, IReadOnlyDictionary<string, string> dictionary) =>

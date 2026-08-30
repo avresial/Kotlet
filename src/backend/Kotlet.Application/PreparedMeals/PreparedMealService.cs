@@ -25,7 +25,9 @@ public sealed class PreparedMealService(IPreparedMealRepository repository, IIng
     {
         var errors = await ValidateAsync(request, ct);
         if (errors.Count > 0)
+        {
             return new(PreparedMealOperationStatus.ValidationFailed, ValidationErrors: errors);
+        }
 
         var now = DateTimeOffset.UtcNow;
         var meal = new PreparedMeal
@@ -50,11 +52,15 @@ public sealed class PreparedMealService(IPreparedMealRepository repository, IIng
     {
         var meal = await repository.GetAsync(id, houseId, true, ct);
         if (meal is null)
+        {
             return new(PreparedMealOperationStatus.NotFound);
+        }
 
         var errors = await ValidateAsync(request, ct);
         if (errors.Count > 0)
+        {
             return new(PreparedMealOperationStatus.ValidationFailed, ValidationErrors: errors);
+        }
 
         meal.Addons.Clear();
         Apply(meal, request);
@@ -71,7 +77,9 @@ public sealed class PreparedMealService(IPreparedMealRepository repository, IIng
     {
         var meal = await repository.GetAsync(id, houseId, true, ct);
         if (meal is null)
+        {
             return PreparedMealOperationStatus.NotFound;
+        }
 
         meal.IsArchived = archived;
         meal.UpdatedAtUtc = DateTimeOffset.UtcNow;
@@ -85,33 +93,55 @@ public sealed class PreparedMealService(IPreparedMealRepository repository, IIng
     {
         var errors = new Dictionary<string, string[]>();
         if (string.IsNullOrWhiteSpace(request.Name))
+        {
             errors["name"] = ["Name is required."];
+        }
         if (request.Servings <= 0)
+        {
             errors["servings"] = ["Servings must be greater than zero."];
+        }
         if (request.Price < 0)
+        {
             errors["price"] = ["Price cannot be negative."];
+        }
         if (request.CaloriesPerServing is null)
+        {
             errors["caloriesPerServing"] = ["Calories per serving are required."];
+        }
         else if (request.CaloriesPerServing < 0)
+        {
             errors["caloriesPerServing"] = ["Calories cannot be negative."];
+        }
         if (request.PackageQuantity <= 0)
+        {
             errors["packageQuantity"] = ["Package quantity must be greater than zero."];
+        }
         if (request.Addons.GroupBy(addon => addon.IngredientId).Any(group => group.Count() > 1))
+        {
             errors["addons"] = ["Duplicate ingredients are not allowed."];
+        }
 
         for (var i = 0; i < request.Addons.Count; i++)
         {
             var addon = request.Addons[i];
             if (addon.Quantity <= 0)
+            {
                 errors[$"addons[{i}].quantity"] = ["Quantity must be greater than zero."];
+            }
             if (string.IsNullOrWhiteSpace(addon.Unit))
+            {
                 errors[$"addons[{i}].unit"] = ["Unit is required."];
+            }
             if (await ingredients.GetByIdAsync(addon.IngredientId, false, ct) is null)
+            {
                 errors[$"addons[{i}].ingredientId"] = ["Ingredient not found."];
+            }
         }
 
         if (request.ShoppingIngredientId is { } id && await ingredients.GetByIdAsync(id, false, ct) is null)
+        {
             errors["shoppingIngredientId"] = ["Ingredient not found."];
+        }
         return errors;
     }
 

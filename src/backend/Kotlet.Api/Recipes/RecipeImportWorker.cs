@@ -15,21 +15,33 @@ public sealed class RecipeImportWorker(
         await using (var scope = scopeFactory.CreateAsyncScope())
         {
             var jobs = scope.ServiceProvider.GetRequiredService<IRecipeImportJobRepository>();
-            foreach (var id in await jobs.ListActiveIdsAsync(stoppingToken)) signal.Enqueue(id);
+            foreach (var id in await jobs.ListActiveIdsAsync(stoppingToken))
+            {
+                signal.Enqueue(id);
+            }
         }
 
         while (!stoppingToken.IsCancellationRequested)
         {
             Guid id;
-            try { id = await signal.WaitAsync(stoppingToken); }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
+            try
+            {
+                id = await signal.WaitAsync(stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
 
             try
             {
                 await using var scope = scopeFactory.CreateAsyncScope();
                 await scope.ServiceProvider.GetRequiredService<RecipeImportService>().ProcessAsync(id, stoppingToken);
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
             catch (Exception exception)
             {
                 logger.LogError(exception, "Recipe import {JobId} failed.", id);

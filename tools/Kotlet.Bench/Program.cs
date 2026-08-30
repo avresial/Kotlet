@@ -50,9 +50,11 @@ public static class BenchProgram
 
         var scenario = new McpScenario(session, counter);
         if (!options.SeedsData)
+        {
             Console.Error.WriteLine(
                 "Read-only run: payload sizes reflect whatever this household already holds, " +
                 "so compare remote runs against each other rather than against an in-process baseline.");
+        }
 
         // Faults collected while measuring. A failed call still produces a small, fast, cheap
         // measurement, which would read as an improvement — so a run that hit one is not a
@@ -98,7 +100,9 @@ public static class BenchProgram
             Console.Error.WriteLine();
             Console.Error.WriteLine("This run measured failed calls, so its numbers are not comparable:");
             foreach (var fault in faults)
+            {
                 Console.Error.WriteLine($"  {fault}");
+            }
             Console.Error.WriteLine("Nothing was written. Fix the failures and run again.");
             return 3;
         }
@@ -116,7 +120,9 @@ public static class BenchProgram
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             await File.WriteAllTextAsync(path, result.ToJson());
             if (!options.JsonToStdout)
+            {
                 Console.WriteLine($"Baseline written to {path}");
+            }
         }
 
         return Verdict(result, baseline, options);
@@ -202,11 +208,15 @@ public static class BenchProgram
                             && 100.0 * (entry.Current - entry.Baseline) / entry.Baseline > threshold)
             .ToArray();
         if (regressions.Length == 0)
+        {
             return 0;
+        }
 
         Console.Error.WriteLine($"Regressed by more than {threshold}%:");
         foreach (var (label, current, before) in regressions)
+        {
             Console.Error.WriteLine($"  {label}: {before:N0} -> {current:N0}");
+        }
         return 1;
     }
 
@@ -217,9 +227,15 @@ public static class BenchProgram
 
     private static async Task<BenchResult?> LoadBaselineAsync(BenchOptions options)
     {
-        if (options.NoCompare) return null;
+        if (options.NoCompare)
+        {
+            return null;
+        }
         var path = Path.GetFullPath(options.BaselinePath);
-        if (!File.Exists(path)) return null;
+        if (!File.Exists(path))
+        {
+            return null;
+        }
         try
         {
             var baseline = BenchResult.FromJson(await File.ReadAllTextAsync(path));

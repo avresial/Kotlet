@@ -41,7 +41,10 @@ public static class AiProviderEndpoints
         UserAiProviderService service,
         CancellationToken ct)
     {
-        if (user.UserId is not { } userId) return Results.Unauthorized();
+        if (user.UserId is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.SaveAsync(userId, command, ct);
         return result.ValidationErrors is null
             ? Results.Ok(result.Configuration)
