@@ -156,6 +156,10 @@ button {
 }
 
 @media (max-width: mobile.$breakpoint) {
-  .home-page { @include mobile.page; padding-block: 2rem; }
+  .home-page { @include mobile.page; }
+  .card { padding: var(--density-space-3); }
+  .members { gap: .35rem; }
+  .members li { min-height: var(--density-row); padding: .4rem .5rem; gap: .5rem; }
+  .card h3 { margin-top: .75rem; }
   .card { @include mobile.full-bleed; }
 }

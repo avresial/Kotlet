@@ -50,8 +50,13 @@ th { color: var(--app-text-muted); font-size: .7rem; letter-spacing: .06em; text
 td { font-size: .88rem; }
 th:last-child, td:last-child { text-align: right; }
 .row-actions { justify-content: flex-end; }
-.row-actions button { min-height: 2.1rem; padding: .35rem .65rem; font-size: .75rem; }
+.row-actions details { position: relative; }
+.row-actions summary { width: 2.2rem; height: 2.2rem; display: grid; place-items: center; border: 1px solid var(--app-border-strong); border-radius: .45rem; cursor: pointer; font-size: 1.2rem; list-style: none; }
+.row-actions summary::-webkit-details-marker { display: none; }
+.row-actions details > div { position: absolute; z-index: 10; top: calc(100% + .25rem); right: 0; min-width: 8rem; padding: .3rem; border: 1px solid var(--app-border); border-radius: .5rem; display: grid; gap: .2rem; background: var(--app-surface-raised); box-shadow: 0 .5rem 1.2rem rgb(41 37 31 / 16%); }
+.row-actions button { min-height: 2.2rem; padding: .35rem .65rem; border: 0; font-size: .75rem; text-align: left; }
 .row-actions .delete { color: #9a3024; }
+.mobile-ingredient-meta { display: none; }
 .allergens-cell { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; }
 .pagination { margin-top: 1.25rem; display: flex; align-items: center; justify-content: center; gap: 1rem; }
 .pagination span { color: var(--app-text-muted); font-size: .85rem; font-weight: 700; }
@@ -79,6 +84,26 @@ th:last-child, td:last-child { text-align: right; }
 }
 
 @media (max-width: mobile.$breakpoint) {
-  .ingredients-page { @include mobile.page; }
+  .ingredients-page { @include mobile.page; display: flex; flex-direction: column; }
+  .catalogue { order: 1; margin-top: 0; padding: var(--density-space-3); }
+  .editor { order: 2; margin-top: var(--density-space-2); padding: var(--density-space-3); }
+  .catalogue-filters { position: sticky; z-index: 4; top: 3.5rem; margin-top: .65rem; padding-block: .35rem; background: var(--app-surface); }
+  .table-wrap { margin-top: .5rem; overflow: visible; }
+  table, tbody { display: block; width: 100%; }
+  thead { display: none; }
+  tbody { display: grid; gap: 0; }
+  tr { min-height: var(--density-row); padding: .25rem 0 .25rem .15rem; border-width: 0 0 1px; border-radius: 0; display: grid; grid-template-columns: minmax(0, 1fr) var(--density-control); align-items: center; background: transparent; }
+  td { display: none; }
+  td.ingredient-summary, td.row-actions { padding: 0; border: 0; }
+  td.ingredient-summary { min-width: 0; display: block; text-align: left; }
+  .ingredient-summary strong { display: block; overflow: hidden; font-size: .9rem; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-ingredient-meta { display: block; overflow: hidden; color: var(--app-text-muted); font-size: var(--density-meta); font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+  td.row-actions { display: block; }
+  .row-actions::before { display: none; }
+  .row-actions summary { width: var(--density-control); height: var(--density-control); border: 0; }
+  .editor form { margin-top: .75rem; gap: .75rem; }
+  .field-group { gap: .65rem; padding: .75rem; }
+  .col-flags { gap: .5rem; }
+  .flags-group { padding: .65rem .75rem .75rem; }
   .editor, .catalogue { @include mobile.full-bleed; }
 }

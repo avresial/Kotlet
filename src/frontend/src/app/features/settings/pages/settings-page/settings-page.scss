@@ -34,5 +34,10 @@ select { width: 100%; min-height: 2.65rem; padding: .55rem .75rem; border: 1px s
 
 @media (max-width: mobile.$breakpoint) {
   .settings-page { @include mobile.page; }
+  .card { margin-top: var(--density-space-2); padding: var(--density-space-3); }
+  .section-heading h2 { font-size: 1.2rem; }
+  .section-heading p { font-size: .85rem; line-height: 1.3; }
+  .account dl { margin-top: .6rem; gap: .45rem; }
+  form { gap: .65rem; }
   .card { @include mobile.full-bleed; }
 }

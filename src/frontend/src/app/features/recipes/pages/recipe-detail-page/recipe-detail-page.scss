@@ -93,13 +93,25 @@ section h2 { margin: 0 0 1rem; color: var(--app-text-muted); font-size: .72rem; 
 @media (max-width: 40rem) {
   .back span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .back { width: 2.4rem; height: 2.4rem; box-sizing: border-box; padding: 0; justify-content: center; }
-  .hero-copy { right: 1.25rem; bottom: 1.4rem; left: 1.25rem; }
-  .meta { align-items: flex-start; flex-direction: column; gap: .25rem; }
-  .meta > span[aria-hidden] { display: none; }
-  .content-card { padding: 1.6rem 1rem 2.25rem; }
-  .section-heading { align-items: stretch; flex-direction: column; gap: .55rem; }
-  .ingredient-list { grid-template-columns: 1fr; padding-inline: 1rem; }
-  .recipe-totals { grid-template-columns: 1fr; }
+  .back, .edit-action, .actions-trigger { min-width: var(--density-control); min-height: var(--density-control); }
+  .hero-actions { top: .5rem; right: .5rem; }
+  .back { top: .5rem; left: .5rem; width: var(--density-control); height: var(--density-control); }
+  .edit-action { padding-inline: .75rem; }
+  .hero-copy { right: .75rem; bottom: .75rem; left: .75rem; }
+  .hero-copy .eyebrow { margin-bottom: .3rem; }
+  .hero-copy h1 { font-size: 2rem; line-height: 1.02; }
+  .meta { margin-top: .45rem; gap: .25rem .5rem; font-size: var(--density-meta); }
+  .meta > span[aria-hidden] { display: inline; }
+  .content-card { padding: var(--density-space-3) var(--density-space-3) 1.5rem; }
+  section + section { margin-top: 1.25rem; }
+  .section-heading { margin-bottom: .5rem; gap: .45rem; }
+  .ingredient-list { grid-template-columns: 1fr; padding: .25rem .75rem; border-radius: .55rem; }
+  .recipe-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  .recipe-totals div { padding: .65rem .75rem; border-radius: .55rem; }
+  .recipe-totals strong { font-size: 1.05rem; }
+  .property-groups { padding: .65rem .75rem; gap: .65rem; }
+  .ingredient-item { padding: .5rem 0; }
   .ingredient-item:nth-last-child(2) { border-bottom: 1px solid var(--app-border); }
-  .markdown-panel { padding: 1.25rem 1rem; }
+  .markdown-panel { padding: .75rem; }
+  .markdown-body { font-size: 1rem; line-height: 1.5; }
 }

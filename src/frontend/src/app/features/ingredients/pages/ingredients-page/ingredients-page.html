@@ -80,7 +80,9 @@
     <div class="catalogue-filters">
       <label class="catalogue-search"><span class="sr-only">{{ 'ingredients.search' | t }}</span><input type="search" [placeholder]="'ingredients.searchPlaceholder' | t" [value]="search()" (input)="setSearch($any($event.target).value)" /></label>
       <label><span class="sr-only">{{ 'ingredients.category' | t }}</span><select [value]="selectedCategory() ?? ''" (change)="setCategory($any($event.target).value === '' ? null : +$any($event.target).value)"><option value="">{{ 'ingredients.allCategories' | t }}</option>@for (category of categories; track category.value) { <option [value]="category.value">{{ category.label | t }}</option> }</select></label>
-      <button type="button" [disabled]="!hasFilters()" (click)="clearFilters()">{{ 'common.clear' | t }}</button>
+      @if (hasFilters()) {
+        <button type="button" (click)="clearFilters()">{{ 'common.clear' | t }}</button>
+      }
     </div>
     @if (isLoading()) { <p class="empty">{{ 'ingredients.loading' | t }}</p> }
     @else if (ingredients().length === 0) { <p class="empty">{{ 'ingredients.empty' | t }}</p> }
@@ -89,8 +91,8 @@
       <div class="table-wrap"><table>
         <thead><tr><th>{{ 'ingredients.name' | t }}</th><th>{{ 'ingredients.baseUnitShort' | t }}</th><th>{{ 'ingredients.pieceSize' | t }}</th><th>kcal / 100</th><th>{{ 'ingredients.pricePer100' | t }}</th><th>{{ 'ingredients.allergens' | t }}</th><th><span class="sr-only">{{ 'common.actions' | t }}</span></th></tr></thead>
         <tbody>@for (ingredient of pagedIngredients(); track ingredient.id) {
-          <tr><td [attr.data-label]="'ingredients.name' | t"><strong>{{ ingredient.name }}</strong>@if (ingredient.isAiModified) { <app-ai-badge [tooltip]="'ingredients.aiModified' | t" /> }</td><td [attr.data-label]="'ingredients.baseUnitShort' | t">{{ unitLabel(ingredient.measurementUnit) }}</td><td [attr.data-label]="'ingredients.pieceSize' | t">{{ ingredient.isCountable ? ingredient.measurementUnitsPerPiece + ' ' + ingredient.measurementUnit : '—' }}</td><td data-label="kcal / 100">{{ ingredient.caloriesPer100BaseUnits }}</td><td [attr.data-label]="'ingredients.pricePer100' | t">{{ ingredient.pricePer100BaseUnits.toFixed(2) }}</td><td class="allergens-cell" [attr.data-label]="'ingredients.allergens' | t" [title]="allergenNames(ingredient)">{{ allergenNames(ingredient) }}</td>
-          <td class="row-actions" [attr.data-label]="'common.actions' | t"><button type="button" (click)="edit(ingredient)">{{ 'common.edit' | t }}</button><button class="delete" type="button" [disabled]="deletingId() === ingredient.id" (click)="remove(ingredient)">{{ (deletingId() === ingredient.id ? 'common.deleting' : 'common.delete') | t }}</button></td></tr>
+          <tr><td class="ingredient-summary" [attr.data-label]="'ingredients.name' | t"><strong>{{ ingredient.name }}</strong>@if (ingredient.isAiModified) { <app-ai-badge [tooltip]="'ingredients.aiModified' | t" /> }<span class="mobile-ingredient-meta">{{ unitLabel(ingredient.measurementUnit) }} · {{ ingredient.caloriesPer100BaseUnits }} kcal · {{ ingredient.pricePer100BaseUnits.toFixed(2) }} zł</span></td><td [attr.data-label]="'ingredients.baseUnitShort' | t">{{ unitLabel(ingredient.measurementUnit) }}</td><td [attr.data-label]="'ingredients.pieceSize' | t">{{ ingredient.isCountable ? ingredient.measurementUnitsPerPiece + ' ' + ingredient.measurementUnit : '—' }}</td><td data-label="kcal / 100">{{ ingredient.caloriesPer100BaseUnits }}</td><td [attr.data-label]="'ingredients.pricePer100' | t">{{ ingredient.pricePer100BaseUnits.toFixed(2) }}</td><td class="allergens-cell" [attr.data-label]="'ingredients.allergens' | t" [title]="allergenNames(ingredient)">{{ allergenNames(ingredient) }}</td>
+          <td class="row-actions" [attr.data-label]="'common.actions' | t"><details><summary [attr.aria-label]="('common.actions' | t) + ': ' + ingredient.name">⋮</summary><div><button type="button" (click)="edit(ingredient)">{{ 'common.edit' | t }}</button><button class="delete" type="button" [disabled]="deletingId() === ingredient.id" (click)="remove(ingredient)">{{ (deletingId() === ingredient.id ? 'common.deleting' : 'common.delete') | t }}</button></div></details></td></tr>
         }</tbody>
       </table></div>
       @if (totalPages() > 1) {

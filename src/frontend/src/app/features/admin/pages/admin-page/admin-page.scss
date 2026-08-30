@@ -32,5 +32,9 @@ select { padding: .5rem; border: 1px solid var(--app-border-strong); border-radi
 
 @media (max-width: mobile.$breakpoint) {
   .admin-page { @include mobile.page; }
+  .card { margin-top: var(--density-space-2); padding: var(--density-space-3); }
+  .service, .user-row { min-height: var(--density-row); margin-top: .5rem; padding: .5rem .6rem; gap: .5rem; }
+  .user-list { gap: .35rem; }
+  .search { margin-top: .6rem; }
   .card { @include mobile.full-bleed; }
 }

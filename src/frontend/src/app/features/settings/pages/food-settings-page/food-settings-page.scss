@@ -3,5 +3,10 @@
 
 @media (max-width: mobile.$breakpoint) {
   .settings-page { @include mobile.page; }
+  form { gap: var(--density-space-2); }
+  .card { padding: var(--density-space-3); }
+  h2 { margin-bottom: .5rem; font-size: 1.2rem; }
+  .choices { margin-top: .5rem; gap: .35rem; }
+  .choices label { min-height: var(--density-control); }
   .card { @include mobile.full-bleed; }
 }

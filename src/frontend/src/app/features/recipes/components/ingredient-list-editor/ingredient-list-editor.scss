@@ -118,10 +118,10 @@
   }
 
   @media (max-width: 640px) {
-    .ingredient-rows { gap: 16px; }
+    .ingredient-rows { gap: 8px; }
     .ingredient-row {
       display: grid;
-      grid-template-columns: 1.25rem minmax(0, 1fr) 1.75rem;
+      grid-template-columns: 1.25rem minmax(0, 1fr) var(--density-control);
       gap: 6px;
     }
     .ingredient-row .row-index { min-width: 0; padding-top: .75rem; }
@@ -136,12 +136,12 @@
       padding: 0;
     }
     .ingredient-row .row-actions button {
-      width: 1.75rem;
-      min-height: 1.75rem;
+      width: var(--density-control);
+      min-height: var(--density-control);
       border-radius: 6px;
     }
     .ingredient-row .row-fields input,
-    .ingredient-row .row-fields select { min-height: 2.4rem; padding: 6px 8px; }
+    .ingredient-row .row-fields select { min-height: var(--density-control); padding: 6px 8px; }
   }
 
   .sr-only {

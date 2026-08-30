@@ -8,3 +8,14 @@ label { display: grid; gap: .45rem; font-weight: 700; }
 input[pInputText] { width: 100%; }
 .switch { margin: 1.5rem 0 0; text-align: center; color: var(--app-text-muted); }
 a { color: var(--app-accent); font-weight: 700; }
+
+@media (max-width: 30rem) {
+  .auth-page { place-items: start center; padding: .75rem; }
+  .auth-card { padding: 1rem; border-radius: .75rem; box-shadow: none; }
+  .eyebrow { margin-bottom: .4rem; }
+  h1 { font-size: 1.85rem; }
+  .intro { margin: .5rem 0 1rem; line-height: 1.35; }
+  form { gap: .65rem; }
+  label { gap: .25rem; }
+  .switch { margin-top: .85rem; }
+}
