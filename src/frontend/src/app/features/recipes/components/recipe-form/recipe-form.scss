@@ -68,6 +68,25 @@
 
   .video-fields .form-field { flex: 1 1 18rem; }
 
+  .optional-fields {
+    border: 1px solid var(--app-border);
+    border-radius: .6rem;
+    background: var(--app-surface-raised);
+
+    > summary {
+      min-height: var(--density-control);
+      padding: 0 .75rem;
+      display: flex;
+      align-items: center;
+      color: var(--app-text-soft);
+      cursor: pointer;
+      font-size: .85rem;
+      font-weight: 700;
+    }
+  }
+
+  .optional-fields-body { padding: .75rem; display: grid; gap: 1rem; }
+
   .form-actions {
     display: flex;
     gap: 10px;
@@ -121,4 +140,21 @@
 
     &.remove-image { color: var(--text-secondary, #666); }
   }
+}
+
+@media (max-width: 40rem) {
+  .recipe-form { gap: .75rem; }
+  .recipe-form .form-field { gap: .25rem; }
+  .recipe-form .form-field label { font-size: .82rem; }
+  .recipe-form .form-field input[type='text'],
+  .recipe-form .form-field input[type='number'],
+  .recipe-form .form-field input[type='url'],
+  .recipe-form .form-field select { min-height: var(--density-control); padding: .5rem .65rem; font-size: .9rem; }
+  .recipe-form .form-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .5rem; }
+  .recipe-form .form-row .form-field { min-width: 0; }
+  .recipe-form .form-row select { min-width: 0; width: 100%; }
+  .recipe-form .field-hint { font-size: var(--density-meta); }
+  .recipe-form .image-picker { margin-top: 0; }
+  .recipe-form .form-actions { position: sticky; z-index: 5; bottom: 0; margin-inline: -.75rem; padding: .5rem .75rem; background: var(--app-surface); box-shadow: 0 -.35rem 1rem rgb(41 37 31 / 10%); }
+  .recipe-form .form-actions button { min-height: var(--density-control); padding: .5rem .85rem; }
 }

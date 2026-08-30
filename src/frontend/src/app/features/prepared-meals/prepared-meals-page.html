@@ -110,10 +110,13 @@
               @if (meal.brand) { {{ meal.brand }} · }{{ meal.servings }} {{ 'preparedMeals.servings' | t }} · {{ meal.caloriesPerServing.toFixed(0) }} kcal / {{ 'recipes.perServing' | t }}@if (meal.price != null) {  ·  {{ meal.price.toFixed(2) }} }@if (meal.addons.length) {  ·  {{ meal.addons.length }} {{ 'preparedMeals.addons' | t }} }
             </span>
           </div>
-          <div class="meal-actions">
-            <button type="button" (click)="edit(meal)">{{ 'common.edit' | t }}</button>
-            <button type="button" (click)="toggleArchive(meal)">{{ (meal.isArchived ? 'preparedMeals.restore' : 'preparedMeals.archive') | t }}</button>
-          </div>
+          <details class="meal-actions">
+            <summary [attr.aria-label]="('common.actions' | t) + ': ' + meal.name">⋮</summary>
+            <div>
+              <button type="button" (click)="edit(meal)">{{ 'common.edit' | t }}</button>
+              <button type="button" (click)="toggleArchive(meal)">{{ (meal.isArchived ? 'preparedMeals.restore' : 'preparedMeals.archive') | t }}</button>
+            </div>
+          </details>
         </li>
       } @empty {
         <li class="empty">{{ 'preparedMeals.empty' | t }}</li>

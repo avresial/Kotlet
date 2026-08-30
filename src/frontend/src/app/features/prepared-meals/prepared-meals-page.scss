@@ -66,8 +66,12 @@ button:disabled { opacity: .55; cursor: default; }
 .meal-name strong { font-size: 1.02rem; }
 .badge { padding: .1rem .5rem; border-radius: 1rem; color: var(--app-text-muted); font-size: .65rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; background: var(--app-inset); }
 .meal-meta { color: var(--app-text-muted); font-size: .82rem; }
-.meal-actions { display: flex; gap: .5rem; flex-shrink: 0; }
-.meal-actions button { min-height: 2.2rem; padding: .4rem .7rem; font-size: .8rem; }
+.meal-actions { position: relative; flex-shrink: 0; }
+.meal-actions summary { width: 2.75rem; height: 2.75rem; display: grid; place-items: center; border-radius: .45rem; cursor: pointer; font-size: 1.2rem; list-style: none; }
+.meal-actions summary::-webkit-details-marker { display: none; }
+.meal-actions summary:hover { background: var(--app-inset); }
+.meal-actions > div { position: absolute; z-index: 10; top: calc(100% + .25rem); right: 0; min-width: 8rem; padding: .3rem; border: 1px solid var(--app-border); border-radius: .5rem; display: grid; gap: .2rem; background: var(--app-surface-raised); box-shadow: 0 .5rem 1.2rem rgb(41 37 31 / 16%); }
+.meal-actions button { min-height: 2.4rem; padding: .4rem .7rem; border: 0; font-size: .8rem; text-align: left; }
 .empty { padding: 1.5rem 0 0; color: var(--app-text-muted); }
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
@@ -90,6 +94,12 @@ button:disabled { opacity: .55; cursor: default; }
 }
 
 @media (max-width: mobile.$breakpoint) {
-  .prepared-meals-page { @include mobile.page; }
+  .prepared-meals-page { @include mobile.page; display: flex; flex-direction: column; }
+  .catalogue { order: 1; margin-top: 0; padding: var(--density-space-3); }
+  .editor { order: 2; margin-top: var(--density-space-2); padding: var(--density-space-3); }
+  form, .form-grid { gap: .75rem; }
+  .field-group { gap: .65rem; padding: .75rem; }
+  .meal-list { margin-top: .6rem; }
+  .meal-card { min-height: var(--density-row); padding: .4rem 0; flex-direction: row; align-items: center; gap: .5rem; border-width: 0 0 1px; border-radius: 0; background: transparent; }
   .editor, .catalogue { @include mobile.full-bleed; }
 }

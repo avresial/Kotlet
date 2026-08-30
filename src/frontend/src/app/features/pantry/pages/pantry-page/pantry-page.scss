@@ -50,6 +50,32 @@ h3 { margin: 0; overflow: hidden; font: 500 1.05rem Georgia, serif; text-overflo
 @media (max-width: 38rem) { form label, form label:first-child, form label:nth-child(2), form label:nth-child(4), form .primary { flex-basis: 100%; } .stock-card { grid-template-columns: minmax(0, 1fr) auto; } .quantity-control { grid-row: 2; grid-column: 1 / -1; } .remove { grid-row: 1; grid-column: 2; } }
 
 @media (max-width: mobile.$breakpoint) {
-  .pantry-page { @include mobile.page; }
+  .pantry-page { @include mobile.page; display: flex; flex-direction: column; }
+  .inventory { order: 1; margin-top: 0; padding: var(--density-space-3); }
+  .add-panel { order: 2; margin-top: var(--density-space-2); padding: var(--density-space-3); }
+  app-pantry-recipe-matches { order: 3; }
+  .section-heading { gap: .5rem; }
+  .filters { margin-top: .6rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; }
+  .filters input[type="search"] { grid-column: 1 / -1; }
+  .filters select { min-width: 0; }
+  .item-grid { margin-top: .6rem; gap: 0; }
+  .stock-card { min-height: var(--density-row); padding: .25rem 0; grid-template-columns: minmax(0, 1fr) auto var(--density-control); gap: .35rem; border-width: 0 0 1px; border-radius: 0; background: transparent; }
+  .product-icon { display: none; }
+  .stock-main { gap: .35rem; }
+  .stock-main p, .stock-main small { display: inline; margin-right: .4rem; }
+  .quantity-control { position: relative; grid-row: 1; grid-column: 2; min-height: var(--density-control); display: grid; grid-template-columns: repeat(3, var(--density-control)); }
+  .quantity-control::before { content: ''; position: absolute; inset: .25rem 0; border: 1px solid var(--app-border-strong); border-radius: .5rem; pointer-events: none; }
+  .quantity-control:focus-within::before { outline: 2px solid var(--app-accent); outline-offset: 1px; }
+  .quantity-control button { position: relative; z-index: 1; min-width: var(--density-control); min-height: var(--density-control); padding: 0; border: 0; border-radius: 0; background: transparent; font-size: .95rem; }
+  .quantity-control button:hover:not(:disabled) { background: var(--app-inset); }
+  .quantity-control input { position: relative; z-index: 1; width: var(--density-control); min-height: var(--density-control); padding: 0 .15rem; border: 0; border-radius: 0; appearance: textfield; background: transparent; font-size: .875rem; font-variant-numeric: tabular-nums; }
+  .quantity-control input:focus { outline: 0; }
+  .quantity-control input::-webkit-inner-spin-button,
+  .quantity-control input::-webkit-outer-spin-button { margin: 0; appearance: none; }
+  .remove { grid-row: 1; grid-column: 3; width: var(--density-control); min-height: var(--density-control); padding: 0; overflow: hidden; font-size: 0; }
+  .remove::before { content: '×'; font-size: 1.2rem; }
+  .add-panel { gap: .6rem; }
+  .add-panel > div p { display: none; }
+  .add-panel form { gap: .5rem; }
   .add-panel, .inventory { @include mobile.full-bleed; }
 }

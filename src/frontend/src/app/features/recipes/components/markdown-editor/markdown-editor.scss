@@ -54,3 +54,20 @@
     .empty-preview { color: var(--text-secondary, #999); font-style: italic; }
   }
 }
+
+@media (max-width: 40rem) {
+  .markdown-editor {
+    .editor-textarea {
+      min-height: 12rem;
+      height: 12rem;
+      padding: 10px;
+      line-height: 1.45;
+    }
+
+    .preview-pane {
+      min-height: 12rem;
+      padding: 10px 12px;
+      line-height: 1.5;
+    }
+  }
+}

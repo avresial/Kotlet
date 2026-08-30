@@ -98,7 +98,22 @@ import { ToolsService } from '../../services/tools.service';
     .card-footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--app-border); .secondary-link { color: #7d3428; font-weight: 700; text-decoration: none; &:hover { text-decoration: underline; } } }
     .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1.5rem; }
     .tool-card { padding: 1.5rem; border: 1px solid var(--app-border); border-radius: 1rem; background: var(--app-surface); box-shadow: 0 0.4rem 1.2rem rgb(70 52 31 / 4%); display: flex; flex-direction: column; .tool-icon { font-size: 1.8rem; margin-bottom: 0.6rem; } h3 { margin: 0 0 0.5rem; font-size: 1.25rem; } p { margin: 0 0 1.25rem; color: var(--app-text-muted); font-size: 0.95rem; line-height: 1.5; flex-grow: 1; } .tool-link { color: #7d3428; font-weight: 700; text-decoration: none; &:hover { text-decoration: underline; } } }
-    @media (max-width: 42rem) { .url-input-group { grid-template-columns: 1fr; } }
+    @media (max-width: 42rem) {
+      .tools-hub-page { width: 100%; box-sizing: border-box; padding: 1rem .75rem 2rem; }
+      header { margin-bottom: 1rem; h1 { margin: .3rem 0; font-size: var(--density-title); } p { margin: 0; font-size: .9rem; line-height: 1.3; } }
+      .featured-tool-card { margin-inline: -.75rem; margin-bottom: .5rem; padding: .75rem; border-inline: 0; border-radius: 0; box-shadow: none; }
+      .card-header { h2 { margin-top: .3rem; font-size: 1.25rem; } .icon { font-size: 1.5rem; } }
+      .card-description { margin: .5rem 0 .75rem; font-size: .85rem; line-height: 1.35; }
+      .url-input-group { grid-template-columns: 1fr; gap: .4rem; input, button { min-height: var(--density-control); padding: .55rem .7rem; } }
+      .card-footer { margin-top: .75rem; padding-top: .6rem; }
+      .tools-grid { margin-inline: -.75rem; grid-template-columns: 1fr; gap: .35rem; }
+      .tool-card { min-height: var(--density-row); padding: .6rem .75rem; border-inline: 0; border-radius: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .5rem; box-shadow: none; }
+      .tool-card .tool-icon { margin: 0; font-size: 1.25rem; }
+      .tool-card h3 { margin: 0; font-size: 1rem; }
+      .tool-card p { display: none; }
+      .tool-card .tool-link { font-size: 0; }
+      .tool-card .tool-link::after { content: '→'; font-size: 1rem; }
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -146,6 +146,14 @@
                   <button type="button" class="text-button" (click)="openComposer(slot, 'ingredient')">+ {{ 'common.ingredient' | t }}</button>
                   <button type="button" class="text-button" (click)="openComposer(slot, 'prepared-meal')">+ {{ 'nav.preparedMeals' | t }}</button>
                 </div>
+                <details class="slot-add-menu">
+                  <summary>{{ 'common.add' | t }}</summary>
+                  <div [attr.aria-label]="('meal.addTo' | t) + ' ' + slotLabels()[slot]">
+                    <button type="button" class="text-button" (click)="openComposer(slot, 'recipe')">{{ 'recipes.recipe' | t }}</button>
+                    <button type="button" class="text-button" (click)="openComposer(slot, 'ingredient')">{{ 'common.ingredient' | t }}</button>
+                    <button type="button" class="text-button" (click)="openComposer(slot, 'prepared-meal')">{{ 'nav.preparedMeals' | t }}</button>
+                  </div>
+                </details>
               }
             </div>
 

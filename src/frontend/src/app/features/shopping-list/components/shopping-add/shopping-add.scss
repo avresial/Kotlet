@@ -58,5 +58,14 @@ button:focus-visible { outline: 2px solid #b96554; outline-offset: 1px; }
 @media print { .add-card { display: none; } }
 
 @media (max-width: mobile.$breakpoint) {
-  .add-card { @include mobile.full-bleed; }
+  .add-card { grid-template-columns: auto minmax(0, 1fr); gap: .75rem; padding: .65rem; border-radius: .6rem; box-shadow: none; }
+  .intro h2 { margin: 0; font-size: 1rem; }
+  .intro p { display: none; }
+  .search input { min-height: var(--density-control); }
+  .chip, .unit, .primary { min-height: var(--density-control); }
+  .quantity input, .step { min-height: var(--density-control); }
+}
+
+@media (max-width: 30rem) {
+  .add-card { grid-template-columns: minmax(0, 1fr); gap: .4rem; }
 }

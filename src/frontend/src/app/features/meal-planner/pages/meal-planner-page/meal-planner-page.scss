@@ -191,6 +191,7 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 
 // On the narrowest phones the three add actions no longer fit on one line beside the slot name.
 .add-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem; }
+.slot-add-menu { display: none; }
 .text-button {
   padding: .45rem .6rem;
   border: 0;
@@ -406,7 +407,7 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 }
 
 @media (max-width: mobile.$breakpoint) {
-  .meal-planner-page { @include mobile.page; padding-block: 1rem 2.5rem; }
+  .meal-planner-page { @include mobile.page; padding-block: .5rem 2rem; }
   header { flex-wrap: nowrap; align-items: center; gap: .6rem; margin: .25rem 0 .75rem; }
   header > div:first-child { flex: 1 1 auto; min-width: 0; }
   .eyebrow { display: none; }
@@ -423,10 +424,19 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 
   .overview-heading { align-items: start; flex-direction: column; }
   .meal-overview { display: none; }
-  .planner-body { gap: .85rem; }
-  .slots { gap: .65rem; }
-  .receipt-rail { gap: .65rem; }
-  .slot-section, .day-receipt, .calorie-overview { @include mobile.full-bleed; padding: .85rem 1rem; }
+  .planner-body { gap: .5rem; }
+  .slots { gap: .35rem; }
+  .receipt-rail { gap: .35rem; }
+  .slot-section, .day-receipt, .calorie-overview { @include mobile.full-bleed; padding: .65rem .75rem; }
+  .slot-heading, .receipt-heading { gap: .4rem; }
+  .add-buttons { display: none; }
+  .slot-add-menu { position: relative; display: block; }
+  .slot-add-menu summary { min-height: var(--density-control); padding: 0 .7rem; border: 1px solid var(--app-border-strong); border-radius: .45rem; display: flex; align-items: center; justify-content: center; color: var(--app-accent); font-weight: 750; cursor: pointer; list-style: none; }
+  .slot-add-menu summary::-webkit-details-marker { display: none; }
+  .slot-add-menu summary::before { content: '+\00a0'; }
+  .slot-add-menu > div { position: absolute; z-index: 12; top: calc(100% + .25rem); right: 0; min-width: 10.5rem; padding: .3rem; border: 1px solid var(--app-border); border-radius: .5rem; display: grid; background: var(--app-surface-raised); }
+  .slot-add-menu button { width: 100%; color: var(--app-text); text-align: left; }
+  .text-button { min-height: var(--density-control); padding: .35rem .4rem; font-size: .78rem; }
   .item-list { margin-top: .5rem; }
   .meal-item { padding: .7rem 0; }
   .meal-item-header { gap: .4rem; }

@@ -446,8 +446,11 @@ header {
   .start-card,
   .status-card,
   .panel {
+    padding: var(--density-space-3);
     @include mobile.full-bleed;
   }
+
+  .url-row { gap: .4rem; }
 
   .url-row,
   .continue-banner,

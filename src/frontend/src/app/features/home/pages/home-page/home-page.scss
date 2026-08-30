@@ -147,6 +147,20 @@ h2 { margin: .4rem 0 0; font-family: Georgia, serif; font-size: clamp(1.25rem, 2
 @media (max-width: 34rem) { .audit-item { grid-template-columns: minmax(0, 1fr); align-items: start; gap: .5rem; padding: 1rem 0; } .audit-badge { justify-self: start; } .audit-visit { justify-self: start; } }
 
 @media (max-width: mobile.$breakpoint) {
-  .dashboard { @include mobile.page; padding-block: 2rem; }
+  .dashboard { @include mobile.page; padding-top: .5rem; }
+  .welcome { gap: .5rem; }
+  .welcome h1 { margin-block: .3rem; font-size: var(--density-title); }
+  .intro { font-size: .9rem; }
+  .card-grid { margin-top: 1rem; gap: var(--density-space-2); }
+  .card { padding: var(--density-space-3); }
+  .featured-tool-card { order: 90; }
+  .fact-card { order: 100; }
+  .stats-list { margin-top: .6rem; gap: var(--density-space-2); }
+  .stats-list div { padding: .65rem .75rem; }
+  .stats-list dd { font-size: 1.45rem; }
+  .card-heading { gap: .5rem; }
+  .menu-list, .recipe-list, .shopping-list, .ingredient-list,
+  .audit-list, .member-list { margin-top: .6rem; }
+  .menu-item, .recipe-item, .audit-item, .member-item { padding-block: .5rem; }
   .card { @include mobile.full-bleed; }
 }

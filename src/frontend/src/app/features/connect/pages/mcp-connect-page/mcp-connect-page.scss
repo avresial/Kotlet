@@ -29,5 +29,10 @@ dd { margin: 0; color: var(--app-text); overflow-wrap: anywhere; }
 
 @media (max-width: mobile.$breakpoint) {
   .connect-page { @include mobile.page; }
+  .card { margin-top: var(--density-space-2); padding: var(--density-space-3); }
+  .server-url, .client, dl { margin-top: .65rem; }
+  .client ol { gap: .2rem; font-size: .85rem; }
+  .manifest { max-height: 10rem; margin-top: .65rem; padding: .65rem; }
+  dl { gap: .45rem; }
   .card { @include mobile.full-bleed; }
 }

@@ -12,5 +12,6 @@
 .immersive-gallery::after { content: ''; position: absolute; z-index: 1; inset: 0; background: linear-gradient(to top, rgb(41 37 31 / 78%) 0%, rgb(41 37 31 / 26%) 45%, rgb(41 37 31 / 4%) 74%); pointer-events: none; }
 
 @media (max-width: 40rem) {
-  .immersive-gallery { height: 27rem; }
+  .immersive-gallery { height: 15rem; }
+  .immersive-empty span { font-size: 3.5rem; }
 }
