@@ -174,4 +174,75 @@ describe('ShoppingAdd', () => {
 
     expect(component.selected()).toBeNull();
   });
+
+  it('offers custom option when query is typed and gives package-style unit controls', () => {
+    component.onInput('Paper towels');
+
+    expect(component.customOption()).toEqual({
+      kind: 'custom',
+      name: 'Paper towels',
+      hint: 'shopping.customItem',
+    });
+
+    component.select(component.customOption()!);
+
+    expect(component.selected()).toEqual({
+      kind: 'custom',
+      name: 'Paper towels',
+      hint: 'shopping.customItem',
+    });
+    expect(component.units()).toEqual(['package']);
+    expect(component.unit()).toBe('package');
+    expect(component.quantity()).toBe(1);
+    expect(component.canSubmit()).toBe(true);
+  });
+
+  it('steps custom item quantity by package', () => {
+    component.onInput('Paper towels');
+    component.select(component.customOption()!);
+
+    component.step(1);
+    expect(component.quantity()).toBe(2);
+
+    component.step(-1);
+    expect(component.quantity()).toBe(1);
+  });
+
+  it('submits a custom item request with package unit and trimmed note', () => {
+    component.onInput('  Paper towels  ');
+    component.select(component.customOption()!);
+    component.setQuantity(3);
+    component.note.set('  recycled  ');
+    component.submit();
+
+    expect(added).toEqual([
+      expect.objectContaining({
+        option: { kind: 'custom', name: 'Paper towels', hint: 'shopping.customItem' },
+        baseQuantity: 3,
+        displayQuantity: 3,
+        displayUnit: 'package',
+        note: 'recycled',
+      }),
+    ]);
+  });
+
+  it('picks custom item on Enter when no catalogue suggestions match', () => {
+    component.onInput('Toothpaste');
+    component.onSearchKeydown(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+    expect(component.selected()).toEqual({
+      kind: 'custom',
+      name: 'Toothpaste',
+      hint: 'shopping.customItem',
+    });
+  });
+
+  it('renders the custom action option in the dropdown list when search is non-empty', () => {
+    component.onInput('Toothpaste');
+    fixture.detectChanges();
+
+    const customAction = fixture.nativeElement.querySelector('.custom-action');
+    expect(customAction).not.toBeNull();
+    expect(customAction.textContent).toContain('Toothpaste');
+  });
 });

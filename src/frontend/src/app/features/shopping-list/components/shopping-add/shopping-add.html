@@ -61,7 +61,7 @@
         />
         @if (query().trim()) {
           <ul id="shopping-add-suggestions" role="listbox">
-            @for (option of suggestions(); track option.kind + option.id; let index = $index) {
+            @for (option of suggestions(); track option.kind + ('id' in option ? option.id : option.name); let index = $index) {
               <li
                 id="shopping-add-option-{{ index }}"
                 role="option"
@@ -79,8 +79,16 @@
                 <small>{{ 'shopping.alreadyOnList' | t }} — {{ product.quantity }} {{ unitLabel(product.unit) | t }}</small>
               </li>
             }
-            @if (!suggestions().length && !listedMatches().length) {
-              <li class="empty" role="presentation">{{ 'shopping.noMatches' | t }}</li>
+            @if (customOption(); as custom) {
+              <li
+                class="custom-action"
+                role="option"
+                (mousedown)="$event.preventDefault(); select(custom)"
+                [attr.aria-label]="('shopping.addCustom' | t) + ': ' + custom.name"
+              >
+                <span>+ {{ 'shopping.addCustom' | t }} &ldquo;{{ custom.name }}&rdquo;</span>
+                <small>{{ 'shopping.customItem' | t }}</small>
+              </li>
             }
           </ul>
         }

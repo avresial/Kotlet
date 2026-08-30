@@ -2,6 +2,7 @@ export interface ShoppingListItem {
   id: string;
   ingredientId?: string | null;
   preparedMealId?: string | null;
+  customName?: string | null;
   ingredientName: string;
   measurementUnit: string;
   quantity: number;
