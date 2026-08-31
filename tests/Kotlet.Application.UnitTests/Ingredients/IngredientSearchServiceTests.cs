@@ -119,6 +119,19 @@ public sealed class IngredientSearchServiceTests
         Assert.Equal(lowerId, result.IngredientId);
     }
 
+    [Fact]
+    public async Task FindClosest_CandidateLongerThanInput_PreservesDistance()
+    {
+        var pineapple = new Ingredient { Id = Guid.NewGuid(), Name = "Pineapple", MeasurementUnit = "g" };
+        var service = new IngredientSearchService(
+            new FakeIngredientRepository(pineapple), new FakeTranslationRepository());
+
+        var result = Assert.Single(await service.FindClosestAsync(["Apple"], CancellationToken.None));
+
+        Assert.Equal(pineapple.Id, result.IngredientId);
+        Assert.Equal(4, result.Distance);
+    }
+
     private sealed class FakeIngredientRepository(params Ingredient[] values) : IIngredientRepository
     {
         public Task<IReadOnlyCollection<Ingredient>> GetAllAsync(CancellationToken cancellationToken) =>
