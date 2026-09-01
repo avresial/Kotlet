@@ -76,6 +76,62 @@ public sealed class IngredientSearchServiceTests
         Assert.True(results[1].IsProposedNew);
     }
 
+    [Fact]
+    public async Task FindClosest_LargeCatalog_ReturnsNearestMatches()
+    {
+        var ingredients = Enumerable.Range(0, 1000)
+            .Select(index => new Ingredient
+            {
+                Id = Guid.NewGuid(),
+                Name = $"Ingredient {index}",
+                MeasurementUnit = "g"
+            })
+            .ToArray();
+        var service = new IngredientSearchService(
+            new FakeIngredientRepository(ingredients), new FakeTranslationRepository());
+        var names = Enumerable.Range(0, 100)
+            .Select(index => $"Ingredient {index}")
+            .ToArray();
+
+        var results = await service.FindClosestAsync(names, CancellationToken.None);
+
+        Assert.Equal(names, results.Select(result => result.MatchedName).ToArray());
+        Assert.All(results, result =>
+        {
+            Assert.True(result.ExactMatch);
+            Assert.Equal(0, result.Distance);
+        });
+    }
+
+    [Fact]
+    public async Task FindClosest_TiesPreferLowestIdWhenNamesMatch()
+    {
+        var lowerId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var higherId = Guid.Parse("00000000-0000-0000-0000-000000000002");
+        var service = new IngredientSearchService(
+            new FakeIngredientRepository(
+                new Ingredient { Id = higherId, Name = "Salt", MeasurementUnit = "g" },
+                new Ingredient { Id = lowerId, Name = "Salt", MeasurementUnit = "g" }),
+            new FakeTranslationRepository());
+
+        var result = Assert.Single(await service.FindClosestAsync(["Salt"], CancellationToken.None));
+
+        Assert.Equal(lowerId, result.IngredientId);
+    }
+
+    [Fact]
+    public async Task FindClosest_CandidateLongerThanInput_PreservesDistance()
+    {
+        var pineapple = new Ingredient { Id = Guid.NewGuid(), Name = "Pineapple", MeasurementUnit = "g" };
+        var service = new IngredientSearchService(
+            new FakeIngredientRepository(pineapple), new FakeTranslationRepository());
+
+        var result = Assert.Single(await service.FindClosestAsync(["Apple"], CancellationToken.None));
+
+        Assert.Equal(pineapple.Id, result.IngredientId);
+        Assert.Equal(4, result.Distance);
+    }
+
     private sealed class FakeIngredientRepository(params Ingredient[] values) : IIngredientRepository
     {
         public Task<IReadOnlyCollection<Ingredient>> GetAllAsync(CancellationToken cancellationToken) =>

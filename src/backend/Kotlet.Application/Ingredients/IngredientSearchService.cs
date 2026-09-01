@@ -20,47 +20,103 @@ public sealed class IngredientSearchService(
                 .Select(entry => (ingredient.Id, Name: entry.Item1!, Language: entry.Item2, ingredient.MeasurementUnit)))
             .ToArray();
 
-        return names.Select(input =>
+        var results = new IngredientSearchResult[names.Count];
+        for (int i = 0; i < names.Count; i++)
         {
+            var input = names[i];
             var name = input?.Trim() ?? string.Empty;
-            var match = searchableNames
-                .Select(candidate => (Candidate: candidate, Distance: Distance(name, candidate.Name)))
-                .OrderBy(candidate => candidate.Distance)
-                .ThenBy(candidate => candidate.Candidate.Name, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(candidate => candidate.Candidate.Id)
-                .FirstOrDefault();
 
-            return name.Length == 0 || searchableNames.Length == 0
-                ? new IngredientSearchResult(input ?? string.Empty, null, null, null, null, null, false)
-                : new IngredientSearchResult(
-                    input ?? string.Empty,
-                    match.Candidate.Id,
-                    match.Candidate.Name,
-                    match.Candidate.Language,
-                    match.Candidate.MeasurementUnit,
-                    match.Distance,
-                    match.Distance == 0,
-                    Math.Round(1m - (decimal)match.Distance / Math.Max(name.Length, match.Candidate.Name.Length), 3));
-        }).ToArray();
+            if (name.Length == 0 || searchableNames.Length == 0)
+            {
+                results[i] = new IngredientSearchResult(input ?? string.Empty, null, null, null, null, null, false);
+                continue;
+            }
+
+            var bestCandidate = searchableNames[0];
+            var minDistance = Distance(name, bestCandidate.Name);
+
+            for (var j = 1; j < searchableNames.Length; j++)
+            {
+                var candidate = searchableNames[j];
+                var distance = Distance(name, candidate.Name);
+
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    bestCandidate = candidate;
+                    continue;
+                }
+
+                if (distance != minDistance)
+                {
+                    continue;
+                }
+
+                var nameComparison = string.Compare(candidate.Name, bestCandidate.Name, StringComparison.OrdinalIgnoreCase);
+                if (nameComparison < 0 ||
+                    (nameComparison == 0 && candidate.Id.CompareTo(bestCandidate.Id) < 0))
+                {
+                    bestCandidate = candidate;
+                }
+            }
+
+            results[i] = new IngredientSearchResult(
+                input ?? string.Empty,
+                bestCandidate.Id,
+                bestCandidate.Name,
+                bestCandidate.Language,
+                bestCandidate.MeasurementUnit,
+                minDistance,
+                minDistance == 0,
+                Math.Round(1m - (decimal)minDistance / Math.Max(name.Length, bestCandidate.Name.Length), 3));
+        }
+        return results;
     }
 
     private static int Distance(string left, string right)
     {
-        left = left.ToUpperInvariant();
-        right = right.ToUpperInvariant();
-        var previous = Enumerable.Range(0, right.Length + 1).ToArray();
+        var s1 = left.ToUpperInvariant();
+        var s2 = right.ToUpperInvariant();
+        var n = s1.Length;
+        var m = s2.Length;
 
-        for (var i = 1; i <= left.Length; i++)
+        if (n == 0)
         {
-            var current = new int[right.Length + 1];
-            current[0] = i;
-            for (var j = 1; j <= right.Length; j++)
-                current[j] = Math.Min(Math.Min(current[j - 1] + 1, previous[j] + 1),
-                    previous[j - 1] + (left[i - 1] == right[j - 1] ? 0 : 1));
-            previous = current;
+            return m;
         }
 
-        return previous[right.Length];
+        if (m == 0)
+        {
+            return n;
+        }
+
+        if (n < m)
+        {
+            (s1, s2) = (s2, s1);
+            (n, m) = (m, n);
+        }
+
+        var d = new int[m + 1];
+        for (var j = 0; j <= m; j++)
+        {
+            d[j] = j;
+        }
+
+        for (var i = 1; i <= n; i++)
+        {
+            var prevDiag = d[0];
+            d[0] = i;
+            var character = s1[i - 1];
+            for (var j = 1; j <= m; j++)
+            {
+                var oldD = d[j];
+                var cost = character == s2[j - 1] ? 0 : 1;
+                d[j] = Math.Min(Math.Min(d[j] + 1, d[j - 1] + 1), prevDiag + cost);
+                prevDiag = oldD;
+            }
+        }
+
+        return d[m];
     }
 }
 
