@@ -213,13 +213,10 @@ export class ShoppingListPage implements OnInit {
   private handleLoadError(error: unknown, cached: ShoppingListOfflineState | null): void {
     this.loaded = true;
     const networkFailure = this.isNetworkFailure(error);
-    if (cached?.snapshot) {
-      this.syncState.set(networkFailure ? 'offline' : 'failed');
-      if (!networkFailure) this.error.set(getApiError(error, this.translations.translate('shopping.loadError')));
-      return;
-    }
     this.syncState.set(networkFailure ? 'offline' : 'failed');
-    this.error.set(getApiError(error, this.translations.translate('shopping.loadError')));
+    if (!cached?.snapshot || !networkFailure) {
+      this.error.set(getApiError(error, this.translations.translate('shopping.loadError')));
+    }
   }
 
   @HostListener('window:online')

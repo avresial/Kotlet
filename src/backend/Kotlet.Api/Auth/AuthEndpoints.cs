@@ -40,12 +40,19 @@ public static class AuthEndpoints
         TokenService tokens, HttpContext context, IWebHostEnvironment environment, CancellationToken cancellationToken)
     {
         var result = await accounts.RegisterAsync(request, cancellationToken);
-        if (result.Status == AccountOperationStatus.ValidationFailed) return Results.ValidationProblem(result.ValidationErrors!);
+        if (result.Status == AccountOperationStatus.ValidationFailed)
+        {
+            return Results.ValidationProblem(result.ValidationErrors!);
+        }
         if (result.Status == AccountOperationStatus.Conflict)
+        {
             return Results.Conflict(new { message = "An account with this email already exists." });
+        }
         var raw = await TryIssueTokens(result.User!, sessions, tokens, context, environment, cancellationToken);
         if (raw is null)
+        {
             return Results.Conflict(new { message = "An account with this email already exists." });
+        }
         return Results.Created("/api/auth/me", Response(result.User!, null, false, tokens, raw));
     }
 
@@ -53,8 +60,14 @@ public static class AuthEndpoints
         TokenService tokens, HttpContext context, IWebHostEnvironment environment, CancellationToken cancellationToken)
     {
         var result = await accounts.LoginAsync(request, cancellationToken);
-        if (result.Status == AccountOperationStatus.ValidationFailed) return Results.ValidationProblem(result.ValidationErrors!);
-        if (result.Status == AccountOperationStatus.Unauthorized) return Results.Unauthorized();
+        if (result.Status == AccountOperationStatus.ValidationFailed)
+        {
+            return Results.ValidationProblem(result.ValidationErrors!);
+        }
+        if (result.Status == AccountOperationStatus.Unauthorized)
+        {
+            return Results.Unauthorized();
+        }
         var raw = await IssueTokens(result.User!, result.ActiveHouseId, sessions, tokens, context, environment, cancellationToken);
         return Results.Ok(Response(result.User!, result.ActiveHouseId, result.HasHouse, tokens, raw));
     }
@@ -75,14 +88,21 @@ public static class AuthEndpoints
         var form = await request.ReadFormAsync(cancellationToken);
         var returnUrl = form["returnUrl"].ToString();
         if (!IsValidAuthorizeReturnUrl(returnUrl, oauthOptions.Value))
+        {
             return Results.BadRequest(new { message = "The return URL is invalid." });
+        }
 
         var principal = tokens.ValidateAccessToken(form["token"].ToString());
         if (principal is null || !Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+        {
             return Results.Unauthorized();
+        }
 
         var user = await sessions.GetUserAsync(userId, cancellationToken);
-        if (user is null) return Results.Unauthorized();
+        if (user is null)
+        {
+            return Results.Unauthorized();
+        }
 
         var activeHouseId = Guid.TryParse(principal.FindFirstValue(KotletClaimTypes.HouseId), out var houseId)
             ? houseId
@@ -96,9 +116,15 @@ public static class AuthEndpoints
     {
         var now = DateTime.UtcNow;
         var raw = tokens.ReadRefreshToken(context.Request);
-        if (string.IsNullOrEmpty(raw)) return Unauthorized(tokens, context, environment);
+        if (string.IsNullOrEmpty(raw))
+        {
+            return Unauthorized(tokens, context, environment);
+        }
         var old = await sessions.GetRefreshTokenAsync(tokens.Hash(raw), cancellationToken);
-        if (old is null || old.ExpiresAtUtc <= now) return Unauthorized(tokens, context, environment);
+        if (old is null || old.ExpiresAtUtc <= now)
+        {
+            return Unauthorized(tokens, context, environment);
+        }
         if (old.RevokedAtUtc is { } revokedAt)
         {
             var live = await Replay(old, revokedAt, now, sessions, authOptions.Value, cancellationToken);
@@ -144,7 +170,10 @@ public static class AuthEndpoints
 
     private static async Task<IResult> Me(ICurrentUser currentUser, AccountService accounts, CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await accounts.GetAsync(userId, currentUser.HouseId, cancellationToken);
         return result.Status == AccountOperationStatus.Success
             ? Results.Ok(ToResponse(result.User!, result.ActiveHouseId, result.HasHouse))
@@ -154,9 +183,15 @@ public static class AuthEndpoints
     private static async Task<IResult> UpdateProfile(UpdateProfileRequest request, ICurrentUser currentUser,
         AccountService accounts, CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await accounts.UpdateProfileAsync(userId, currentUser.HouseId, request, cancellationToken);
-        if (result.Status == AccountOperationStatus.ValidationFailed) return Results.ValidationProblem(result.ValidationErrors!);
+        if (result.Status == AccountOperationStatus.ValidationFailed)
+        {
+            return Results.ValidationProblem(result.ValidationErrors!);
+        }
         return result.Status == AccountOperationStatus.Success
             ? Results.Ok(ToResponse(result.User!, result.ActiveHouseId, result.HasHouse))
             : Results.Unauthorized();
@@ -165,9 +200,15 @@ public static class AuthEndpoints
     private static async Task<IResult> ChangePassword(ChangePasswordRequest request, ICurrentUser currentUser,
         AccountService accounts, CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await accounts.ChangePasswordAsync(userId, request, cancellationToken);
-        if (result.Status == AccountOperationStatus.ValidationFailed) return Results.ValidationProblem(result.ValidationErrors!);
+        if (result.Status == AccountOperationStatus.ValidationFailed)
+        {
+            return Results.ValidationProblem(result.ValidationErrors!);
+        }
         return result.Status == AccountOperationStatus.Success ? Results.NoContent() : Results.Unauthorized();
     }
 
@@ -180,7 +221,10 @@ public static class AuthEndpoints
     private static async Task<RefreshToken?> Replay(RefreshToken old, DateTime revokedAt, DateTime now,
         IAuthSessionRepository sessions, AuthOptions auth, CancellationToken cancellationToken)
     {
-        if (revokedAt.AddSeconds(auth.RefreshReuseGraceSeconds) < now) return null;
+        if (revokedAt.AddSeconds(auth.RefreshReuseGraceSeconds) < now)
+        {
+            return null;
+        }
         // Follow the chain rather than only the direct replacement: a session that rotates twice
         // inside the grace window leaves a revoked link in the middle, and a straggler holding the
         // first token is still the same live session. The hop limit bounds the query count.
@@ -188,8 +232,14 @@ public static class AuthEndpoints
         for (var hop = 0; hop < MaxReplayChainHops && next is { } tokenId; hop++)
         {
             var token = await sessions.GetTokenAsync(tokenId, cancellationToken);
-            if (token is null) return null;
-            if (token.RevokedAtUtc is null) return token.ExpiresAtUtc > now ? token : null;
+            if (token is null)
+            {
+                return null;
+            }
+            if (token.RevokedAtUtc is null)
+            {
+                return token.ExpiresAtUtc > now ? token : null;
+            }
             next = token.ReplacedByTokenId;
         }
         return null;
@@ -231,7 +281,10 @@ public static class AuthEndpoints
     {
         var (raw, refreshToken) = tokens.CreateRefreshToken(user, context, null);
         sessions.Add(refreshToken);
-        if (!await sessions.TrySaveChangesAsync(cancellationToken)) return null;
+        if (!await sessions.TrySaveChangesAsync(cancellationToken))
+        {
+            return null;
+        }
         tokens.SetRefreshCookie(context.Response, raw, refreshToken.ExpiresAtUtc, IsSecure(environment));
         return raw;
     }

@@ -30,7 +30,9 @@ internal sealed class PreparedMealRepository(KotletDbContext db) : IPreparedMeal
     {
         var requested = ids.Distinct().ToArray();
         if (requested.Length == 0)
+        {
             return new Dictionary<Guid, PreparedMeal>();
+        }
 
         return await db.PreparedMeals
             .AsNoTracking()

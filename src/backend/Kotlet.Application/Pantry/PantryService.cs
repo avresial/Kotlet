@@ -6,6 +6,8 @@ namespace Kotlet.Application.Pantry;
 
 public sealed class PantryService(IPantryRepository repository, ITranslationRepository translations)
 {
+    private static readonly IReadOnlyDictionary<string, string> NoTranslations = new Dictionary<string, string>();
+
     public async Task<IReadOnlyCollection<PantryItemDto>> GetAllAsync(Guid houseId, string languageCode, CancellationToken cancellationToken)
     {
         var items = await repository.GetAllAsync(houseId, cancellationToken);
@@ -16,13 +18,21 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
     public async Task<PantryOperationResult> CreateAsync(Guid houseId, SavePantryItemCommand command, string languageCode, CancellationToken cancellationToken)
     {
         if (command.Quantity < 0 || command.Quantity > 99999999.999m)
+        {
             return InvalidQuantity();
+        }
         if (command.StorageLocation.HasValue && !Enum.IsDefined(command.StorageLocation.Value))
+        {
             return new(PantryOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]> { ["storageLocation"] = ["Storage location is invalid."] });
+        }
         if (!await repository.IngredientExistsAsync(command.IngredientId, cancellationToken))
+        {
             return new(PantryOperationStatus.NotFound);
+        }
         if (await repository.ItemExistsAsync(houseId, command.IngredientId, cancellationToken))
+        {
             return new(PantryOperationStatus.Conflict, Message: "This ingredient is already in your pantry.");
+        }
 
         var item = new PantryItem { Id = Guid.NewGuid(), HouseId = houseId, IngredientId = command.IngredientId, Quantity = Quantity.FromAmount(command.Quantity), ExpirationDate = command.ExpirationDate, StorageLocation = command.StorageLocation };
         repository.Add(item);
@@ -35,9 +45,14 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
     public async Task<PantryOperationResult> UpdateAsync(Guid id, Guid houseId, decimal quantity, string languageCode, CancellationToken cancellationToken)
     {
         if (quantity < 0 || quantity > 99999999.999m)
+        {
             return InvalidQuantity();
+        }
         var item = await repository.GetByIdAsync(id, houseId, cancellationToken);
-        if (item is null) return new(PantryOperationStatus.NotFound);
+        if (item is null)
+        {
+            return new(PantryOperationStatus.NotFound);
+        }
         item.Quantity = Quantity.FromAmount(quantity);
         await repository.IncrementPantryVersionAsync(houseId, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
@@ -47,7 +62,10 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
     public async Task<PantryOperationStatus> DeleteAsync(Guid id, Guid houseId, CancellationToken cancellationToken)
     {
         var item = await repository.GetByIdAsync(id, houseId, cancellationToken);
-        if (item is null) return PantryOperationStatus.NotFound;
+        if (item is null)
+        {
+            return PantryOperationStatus.NotFound;
+        }
         repository.Remove(item);
         await repository.IncrementPantryVersionAsync(houseId, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
@@ -64,7 +82,7 @@ public sealed class PantryService(IPantryRepository repository, ITranslationRepo
 
     private Task<IReadOnlyDictionary<string, string>> LoadTranslationsAsync(string languageCode, CancellationToken cancellationToken) =>
         TranslationKeys.IsDefaultLanguage(languageCode)
-            ? Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>())
+            ? Task.FromResult(NoTranslations)
             : translations.GetAllAsync(cancellationToken);
 
     private static string ResolveName(Guid ingredientId, string fallback, string languageCode, IReadOnlyDictionary<string, string> dictionary) =>

@@ -27,7 +27,9 @@ public sealed class DatabaseSeeder(
         {
             var normalizedEmail = seedUser.Email.ToUpperInvariant();
             if (await dbContext.Users.AnyAsync(user => user.NormalizedEmail == normalizedEmail, cancellationToken))
+            {
                 continue;
+            }
 
             var now = DateTime.UtcNow;
             var user = new User
@@ -51,7 +53,9 @@ public sealed class DatabaseSeeder(
         }
 
         if (createDefaultHouse && !hasDefaultHouse)
+        {
             dbContext.Houses.Add(new House { Id = DefaultHouse.Id, Name = DefaultHouse.Name });
+        }
 
         var createdUserCount = await dbContext.SaveChangesAsync(cancellationToken);
         logger.LogInformation(

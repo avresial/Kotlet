@@ -21,7 +21,9 @@ public static class RepoPaths
         while (directory is not null)
         {
             if (File.Exists(Path.Combine(directory.FullName, SolutionFile)))
+            {
                 return directory.FullName;
+            }
             directory = directory.Parent;
         }
 

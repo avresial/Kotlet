@@ -16,15 +16,24 @@ public sealed class HouseService(IHouseRepository repository)
     public async Task<HouseOperationResult> CreateAsync(
         Guid userId, CreateHouseRequest request, CancellationToken cancellationToken)
     {
-        if (ValidateName(request.Name) is { } errors) return Validation(errors);
+        if (ValidateName(request.Name) is { } errors)
+        {
+            return Validation(errors);
+        }
         var user = await repository.GetUserAsync(userId, cancellationToken);
-        if (user is null) return new(HouseOperationStatus.UserNotFound);
+        if (user is null)
+        {
+            return new(HouseOperationStatus.UserNotFound);
+        }
 
         var hadHouse = await repository.HasAnyHouseAsync(userId, cancellationToken);
         var house = new House { Id = Guid.NewGuid(), Name = request.Name.Trim() };
         repository.AddHouse(house);
         repository.AddMembership(new HouseMembership { UserId = userId, HouseId = house.Id, JoinedAtUtc = DateTime.UtcNow });
-        if (!hadHouse) user.DefaultHouseId = house.Id;
+        if (!hadHouse)
+        {
+            user.DefaultHouseId = house.Id;
+        }
         await repository.SaveChangesAsync(cancellationToken);
 
         var summary = new HouseSummaryResponse(house.Id, house.Name, 1, user.DefaultHouseId == house.Id, !hadHouse);
@@ -37,10 +46,19 @@ public sealed class HouseService(IHouseRepository repository)
     public async Task<HouseOperationResult> RenameAsync(
         Guid userId, Guid houseId, RenameHouseRequest request, CancellationToken cancellationToken)
     {
-        if (!await repository.IsMemberAsync(userId, houseId, cancellationToken)) return new(HouseOperationStatus.NotFound);
-        if (ValidateName(request.Name) is { } errors) return Validation(errors);
+        if (!await repository.IsMemberAsync(userId, houseId, cancellationToken))
+        {
+            return new(HouseOperationStatus.NotFound);
+        }
+        if (ValidateName(request.Name) is { } errors)
+        {
+            return Validation(errors);
+        }
         var house = await repository.GetHouseAsync(houseId, cancellationToken);
-        if (house is null) return new(HouseOperationStatus.NotFound);
+        if (house is null)
+        {
+            return new(HouseOperationStatus.NotFound);
+        }
         house.Name = request.Name.Trim();
         await repository.SaveChangesAsync(cancellationToken);
         return new(HouseOperationStatus.Success);
@@ -48,14 +66,23 @@ public sealed class HouseService(IHouseRepository repository)
 
     public async Task<HouseOperationResult> DeleteAsync(Guid userId, Guid houseId, CancellationToken cancellationToken)
     {
-        if (!await repository.IsMemberAsync(userId, houseId, cancellationToken)) return new(HouseOperationStatus.NotFound);
+        if (!await repository.IsMemberAsync(userId, houseId, cancellationToken))
+        {
+            return new(HouseOperationStatus.NotFound);
+        }
         var house = await repository.GetHouseAsync(houseId, cancellationToken);
-        if (house is null) return new(HouseOperationStatus.NotFound);
+        if (house is null)
+        {
+            return new(HouseOperationStatus.NotFound);
+        }
         repository.RemoveHouse(house);
         await repository.SaveChangesAsync(cancellationToken);
 
         var user = await repository.GetUserAsync(userId, cancellationToken);
-        if (user is null) return new(HouseOperationStatus.Success);
+        if (user is null)
+        {
+            return new(HouseOperationStatus.Success);
+        }
         var activeHouseId = user.DefaultHouseId is { } defaultHouseId &&
             await repository.IsMemberAsync(userId, defaultHouseId, cancellationToken)
             ? defaultHouseId
@@ -71,15 +98,28 @@ public sealed class HouseService(IHouseRepository repository)
     public async Task<HouseOperationResult> InviteAsync(
         Guid userId, Guid houseId, InviteMemberRequest request, CancellationToken cancellationToken)
     {
-        if (!await repository.IsMemberAsync(userId, houseId, cancellationToken)) return new(HouseOperationStatus.NotFound);
+        if (!await repository.IsMemberAsync(userId, houseId, cancellationToken))
+        {
+            return new(HouseOperationStatus.NotFound);
+        }
         var email = request.Email?.Trim() ?? "";
-        if (email.Length == 0) return Validation(new() { ["email"] = ["An email is required."] });
+        if (email.Length == 0)
+        {
+            return Validation(new() { ["email"] = ["An email is required."] });
+        }
         var invitee = await repository.FindUserByNormalizedEmailAsync(email.ToUpperInvariant(), cancellationToken);
-        if (invitee is null) return new(HouseOperationStatus.NotFound, Message: "No account exists for this email.");
+        if (invitee is null)
+        {
+            return new(HouseOperationStatus.NotFound, Message: "No account exists for this email.");
+        }
         if (await repository.IsMemberAsync(invitee.Id, houseId, cancellationToken))
+        {
             return new(HouseOperationStatus.Conflict, Message: "This person is already a member.");
+        }
         if (await repository.HasInvitationAsync(houseId, invitee.Id, cancellationToken))
+        {
             return new(HouseOperationStatus.Conflict, Message: "This person has already been invited.");
+        }
 
         var invitation = new HouseInvitation
         {
@@ -98,12 +138,21 @@ public sealed class HouseService(IHouseRepository repository)
     public async Task<HouseOperationStatus> RemoveMemberAsync(
         Guid userId, Guid houseId, Guid memberUserId, CancellationToken cancellationToken)
     {
-        if (!await repository.IsMemberAsync(userId, houseId, cancellationToken)) return HouseOperationStatus.NotFound;
+        if (!await repository.IsMemberAsync(userId, houseId, cancellationToken))
+        {
+            return HouseOperationStatus.NotFound;
+        }
         var membership = await repository.GetMembershipAsync(memberUserId, houseId, cancellationToken);
-        if (membership is null) return HouseOperationStatus.NotFound;
+        if (membership is null)
+        {
+            return HouseOperationStatus.NotFound;
+        }
         repository.RemoveMembership(membership);
         var removedUser = await repository.GetUserAsync(memberUserId, cancellationToken);
-        if (removedUser?.DefaultHouseId == houseId) removedUser.DefaultHouseId = null;
+        if (removedUser?.DefaultHouseId == houseId)
+        {
+            removedUser.DefaultHouseId = null;
+        }
         await repository.SaveChangesAsync(cancellationToken);
         return HouseOperationStatus.Success;
     }
@@ -111,9 +160,15 @@ public sealed class HouseService(IHouseRepository repository)
     public async Task<HouseOperationStatus> CancelInvitationAsync(
         Guid userId, Guid houseId, Guid invitationId, CancellationToken cancellationToken)
     {
-        if (!await repository.IsMemberAsync(userId, houseId, cancellationToken)) return HouseOperationStatus.NotFound;
+        if (!await repository.IsMemberAsync(userId, houseId, cancellationToken))
+        {
+            return HouseOperationStatus.NotFound;
+        }
         var invitation = await repository.GetInvitationAsync(invitationId, houseId, null, cancellationToken);
-        if (invitation is null) return HouseOperationStatus.NotFound;
+        if (invitation is null)
+        {
+            return HouseOperationStatus.NotFound;
+        }
         repository.RemoveInvitation(invitation);
         await repository.SaveChangesAsync(cancellationToken);
         return HouseOperationStatus.Success;
@@ -126,15 +181,26 @@ public sealed class HouseService(IHouseRepository repository)
         Guid userId, Guid invitationId, CancellationToken cancellationToken)
     {
         var invitation = await repository.GetInvitationAsync(invitationId, null, userId, cancellationToken);
-        if (invitation is null) return new(HouseOperationStatus.NotFound);
+        if (invitation is null)
+        {
+            return new(HouseOperationStatus.NotFound);
+        }
         var user = await repository.GetUserAsync(userId, cancellationToken);
-        if (user is null) return new(HouseOperationStatus.UserNotFound);
+        if (user is null)
+        {
+            return new(HouseOperationStatus.UserNotFound);
+        }
         var hadHouse = await repository.HasAnyHouseAsync(userId, cancellationToken);
         var houseId = invitation.HouseId;
         if (!await repository.IsMemberAsync(userId, houseId, cancellationToken))
+        {
             repository.AddMembership(new HouseMembership { UserId = userId, HouseId = houseId, JoinedAtUtc = DateTime.UtcNow });
+        }
         repository.RemoveInvitation(invitation);
-        if (!hadHouse) user.DefaultHouseId = houseId;
+        if (!hadHouse)
+        {
+            user.DefaultHouseId = houseId;
+        }
         await repository.SaveChangesAsync(cancellationToken);
 
         var details = await repository.GetHouseSummaryAsync(houseId, cancellationToken);
@@ -147,7 +213,10 @@ public sealed class HouseService(IHouseRepository repository)
         Guid userId, Guid invitationId, CancellationToken cancellationToken)
     {
         var invitation = await repository.GetInvitationAsync(invitationId, null, userId, cancellationToken);
-        if (invitation is null) return HouseOperationStatus.NotFound;
+        if (invitation is null)
+        {
+            return HouseOperationStatus.NotFound;
+        }
         repository.RemoveInvitation(invitation);
         await repository.SaveChangesAsync(cancellationToken);
         return HouseOperationStatus.Success;

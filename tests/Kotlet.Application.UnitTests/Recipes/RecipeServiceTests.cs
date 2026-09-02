@@ -686,11 +686,18 @@ public sealed class RecipeServiceTests
         {
             var query = Recipes.Where(r => r.OwnerUserId == ownerUserId);
             if (!string.IsNullOrWhiteSpace(search))
+            {
                 query = query.Where(r => r.Title.Contains(search, StringComparison.OrdinalIgnoreCase));
-            if (mealType is not null) query = query.Where(r => r.MealType == mealType);
+            }
+            if (mealType is not null)
+            {
+                query = query.Where(r => r.MealType == mealType);
+            }
             var requiredIngredientIds = ingredientIds?.Distinct().ToArray() ?? [];
             if (requiredIngredientIds.Length > 0)
+            {
                 query = query.Where(r => requiredIngredientIds.All(id => r.Ingredients.Any(i => i.IngredientId == id)));
+            }
             var filtered = query.ToList();
             var list = filtered.OrderByDescending(r => r.UpdatedAtUtc).Skip((page - 1) * pageSize).Take(pageSize).ToList();
             return Task.FromResult<(IReadOnlyList<Recipe>, int)>((list, filtered.Count));
@@ -772,7 +779,10 @@ public sealed class RecipeServiceTests
         public Task RemoveByPrefixAsync(string keyPrefix, CancellationToken cancellationToken)
         {
             var toRemove = Data.Keys.Where(k => k.StartsWith(keyPrefix)).ToList();
-            foreach (var k in toRemove) Data.Remove(k);
+            foreach (var k in toRemove)
+            {
+                Data.Remove(k);
+            }
             return Task.CompletedTask;
         }
 

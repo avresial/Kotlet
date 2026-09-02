@@ -131,7 +131,9 @@ public sealed class McpSession(HttpClient client, string accessToken, string pro
         // select one before the OAuth token carries a house_id claim.
         var houses = (await client.GetFromJsonAsync<JsonElement>("/api/houses")).EnumerateArray().ToArray();
         if (houses.Length == 0)
+        {
             throw new InvalidOperationException("The account has no household; MCP tools need one.");
+        }
         var house = houses.FirstOrDefault(
             candidate => candidate.TryGetProperty("isDefault", out var isDefault) && isDefault.GetBoolean(),
             houses[0]);

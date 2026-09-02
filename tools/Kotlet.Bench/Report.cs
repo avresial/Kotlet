@@ -59,8 +59,14 @@ public static class Report
         {
             var added = surface.Tools.Select(tool => tool.Name).Except(before.Tools.Select(tool => tool.Name)).ToArray();
             var removed = before.Tools.Select(tool => tool.Name).Except(surface.Tools.Select(tool => tool.Name)).ToArray();
-            if (added.Length > 0) text.AppendLine($"  + added:   {string.Join(", ", added)}");
-            if (removed.Length > 0) text.AppendLine($"  - removed: {string.Join(", ", removed)}");
+            if (added.Length > 0)
+            {
+                text.AppendLine($"  + added:   {string.Join(", ", added)}");
+            }
+            if (removed.Length > 0)
+            {
+                text.AppendLine($"  - removed: {string.Join(", ", removed)}");
+            }
         }
 
         text.AppendLine();
@@ -98,21 +104,29 @@ public static class Report
 
     private static void RenderSession(StringBuilder text, BenchResult result, BenchResult? baseline)
     {
-        if (result.Session is not { } session) return;
+        if (result.Session is not { } session)
+        {
+            return;
+        }
         var before = baseline?.Session;
 
         text.AppendLine($"AGENT SESSION  \"{session.Label}\"");
         text.AppendLine($"  {"round trips",-16}{Cell(session.RoundTrips, before?.RoundTrips)}   (each one is a model turn)");
         text.AppendLine($"  {"wire bytes",-16}{Cell(session.WireBytes, before?.WireBytes)}");
         if (session.DbQueries is { } queries)
+        {
             text.AppendLine($"  {"sql queries",-16}{Cell(queries, before?.DbQueries)}");
+        }
         text.AppendLine($"  {"server ms",-16}{session.TotalMs,12:F1}");
         text.AppendLine();
     }
 
     private static void RenderApiCalls(StringBuilder text, BenchResult result, BenchResult? baseline)
     {
-        if (result.ApiCalls.Count == 0) return;
+        if (result.ApiCalls.Count == 0)
+        {
+            return;
+        }
 
         text.AppendLine("REST ENDPOINTS  (median of repeats; what a user waits on to paint a screen)");
         text.AppendLine($"  {"endpoint",-30}{"screen",-16}{"ms",7}{"bytes",9}{"sql",6}   {"bytes vs baseline",-24}");
@@ -154,7 +168,9 @@ public static class Report
 
         text.AppendLine("HEADLINE");
         foreach (var (label, current, before) in Headlines(result, baseline))
+        {
             text.AppendLine($"  {label,-28}{Delta(current, before)}");
+        }
         text.AppendLine();
     }
 
@@ -178,9 +194,15 @@ public static class Report
 
     private static string Delta(int current, int? baseline)
     {
-        if (baseline is not { } before) return string.Empty;
+        if (baseline is not { } before)
+        {
+            return string.Empty;
+        }
         var change = current - before;
-        if (change == 0) return $"= {before:N0}";
+        if (change == 0)
+        {
+            return $"= {before:N0}";
+        }
         // Signs are written by hand: composite numeric format sections apply their own literal
         // signs to the absolute value, which is easy to get doubled up.
         var sign = change < 0 ? "-" : "+";

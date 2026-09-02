@@ -8,7 +8,10 @@ public static class DiExtension
 
     public static WebApplication MapOpenApiFeature(this WebApplication app)
     {
-        if (!app.Environment.IsDevelopment()) return app;
+        if (!app.Environment.IsDevelopment())
+        {
+            return app;
+        }
         app.MapOpenApi();
         app.MapScalarApiReference(options =>
         {

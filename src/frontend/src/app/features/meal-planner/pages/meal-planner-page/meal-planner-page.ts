@@ -19,13 +19,12 @@ import { MealPlannerService } from '../../services/meal-planner.service';
 import { ShoppingListIntegrationService } from '../../services/shopping-list-integration.service';
 import {
   allocateCaloriesByPerson,
-  directIngredientCaloriesPerServing,
   directIngredientQuantity,
   isPortionPercentInRange,
+  mealCaloriesPerServing,
   MAX_PORTION_PERCENT,
   MIN_PORTION_PERCENT,
   normalizePortionPercent,
-  recipeCaloriesPerServing,
   recipePricePerServing,
   scaleRecipeQuantity,
 } from '../../meal-planner-calculations';
@@ -756,16 +755,7 @@ export class MealPlannerPage implements OnInit {
   }
 
   caloriesPerServing(item: MealPlanItem): number | null {
-    if (item.type === 'ingredient') {
-      const ingredient = this.ingredients().find((candidate) => candidate.id === item.ingredientId);
-      return ingredient ? directIngredientCaloriesPerServing(ingredient) : null;
-    }
-
-    if (item.type === 'prepared-meal')
-      return this.preparedMeals().find((meal) => meal.id === item.preparedMealId)?.caloriesPerServing ?? null;
-
-    const detail = item.recipeId ? this.recipeDetails()[item.recipeId] : undefined;
-    return detail ? recipeCaloriesPerServing(detail, this.ingredients()) : null;
+    return mealCaloriesPerServing(item, this.recipeDetails(), this.ingredients(), this.preparedMeals());
   }
 
   addToShoppingList(item: MealPlanItem): void {

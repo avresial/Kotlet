@@ -23,10 +23,18 @@ public sealed class UserFoodSettingsService(IUserFoodSettingsRepository reposito
     {
         var ids = (command.ExcludedIngredientIds ?? []).Distinct().ToArray();
         var errors = Validate(command);
-        if (ids.Length > 100) errors["excludedIngredientIds"] = ["At most 100 ingredients can be excluded."];
+        if (ids.Length > 100)
+        {
+            errors["excludedIngredientIds"] = ["At most 100 ingredients can be excluded."];
+        }
         else if ((await repository.ExistingIngredientIdsAsync(ids, ct)).Length != ids.Length)
+        {
             errors["excludedIngredientIds"] = ["One or more excluded ingredients do not exist."];
-        if (errors.Count > 0) return new(ValidationErrors: errors);
+        }
+        if (errors.Count > 0)
+        {
+            return new(ValidationErrors: errors);
+        }
 
         var settings = await repository.GetAsync(userId, true, ct);
         if (settings is null)
@@ -38,9 +46,13 @@ public sealed class UserFoodSettingsService(IUserFoodSettingsRepository reposito
         settings.AvoidedAttributes = command.AvoidedAttributes;
         settings.RequiredSuitability = command.RequiredSuitability;
         foreach (var excluded in settings.ExcludedIngredients.Where(x => !ids.Contains(x.IngredientId)).ToArray())
+        {
             settings.ExcludedIngredients.Remove(excluded);
+        }
         foreach (var id in ids.Where(id => settings.ExcludedIngredients.All(x => x.IngredientId != id)))
+        {
             settings.ExcludedIngredients.Add(new() { UserId = userId, IngredientId = id });
+        }
         await repository.SaveChangesAsync(ct);
         return new(ToDto(settings));
     }
@@ -48,9 +60,18 @@ public sealed class UserFoodSettingsService(IUserFoodSettingsRepository reposito
     private static Dictionary<string, string[]> Validate(SaveUserFoodSettingsCommand command)
     {
         var errors = new Dictionary<string, string[]>();
-        if ((command.AvoidedAllergens & ~KnownAllergens) != 0) errors["avoidedAllergens"] = ["Allergens contain unsupported values."];
-        if ((command.AvoidedAttributes & ~KnownAttributes) != 0) errors["avoidedAttributes"] = ["Attributes contain unsupported values."];
-        if ((command.RequiredSuitability & ~KnownSuitability) != 0) errors["requiredSuitability"] = ["Suitability contains unsupported values."];
+        if ((command.AvoidedAllergens & ~KnownAllergens) != 0)
+        {
+            errors["avoidedAllergens"] = ["Allergens contain unsupported values."];
+        }
+        if ((command.AvoidedAttributes & ~KnownAttributes) != 0)
+        {
+            errors["avoidedAttributes"] = ["Attributes contain unsupported values."];
+        }
+        if ((command.RequiredSuitability & ~KnownSuitability) != 0)
+        {
+            errors["requiredSuitability"] = ["Suitability contains unsupported values."];
+        }
         return errors;
     }
 

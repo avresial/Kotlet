@@ -16,9 +16,13 @@ public sealed class SystemSettingsStore(KotletDbContext dbContext) : ISystemSett
     {
         var setting = await dbContext.SystemSettings.SingleOrDefaultAsync(item => item.Key == key, cancellationToken);
         if (setting is null)
+        {
             dbContext.SystemSettings.Add(new SystemSetting { Key = key, Value = value });
+        }
         else
+        {
             setting.Value = value;
+        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }

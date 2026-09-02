@@ -1091,8 +1091,16 @@ public sealed class PantryReconciliationService(
     private static string? NormalizeDescription(string? description) =>
         string.IsNullOrWhiteSpace(description) ? null : Limit(description.Trim(), 200);
 
-    private static string Limit(string? value, int maximum) =>
-        string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim()[..Math.Min(maximum, value.Trim().Length)];
+    private static string Limit(string? value, int maximum)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = value.Trim();
+        return trimmed[..Math.Min(maximum, trimmed.Length)];
+    }
 
     private static void ValidateConfidence(
         decimal confidence,

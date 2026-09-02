@@ -17,9 +17,15 @@ public sealed class IngredientDetailsAutofillService(
 
     public async Task<IngredientDetailsSuggestion?> SuggestAsync(string name, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 150) return null;
+        if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 150)
+        {
+            return null;
+        }
         using var client = clientResolver.Resolve();
-        if (client is null) return null;
+        if (client is null)
+        {
+            return null;
+        }
         var prompt = $"Classify the food ingredient named \"{name.Trim()}\". Return JSON only with keys category, allergens, attributes, suitability. "
             + $"category: exactly one of {string.Join(", ", Enum.GetNames<FoodCategory>())}. "
             + $"allergens: zero or more of {Names<Allergen>()}. attributes: zero or more of {Names<FoodAttribute>()}. "
@@ -57,14 +63,22 @@ public sealed class IngredientDetailsAutofillService(
                     ingredient.Suitability = suggestion.Suitability;
                     ingredient.IsAiModified = true;
                     written++;
-                    if (written % BatchSize == 0) await repository.SaveChangesAsync(cancellationToken);
+                    if (written % BatchSize == 0)
+                    {
+                        await repository.SaveChangesAsync(cancellationToken);
+                    }
                 }
             }
             processed++;
             if (processed % BatchSize == 0 || processed == candidates.Length)
+            {
                 logger.LogInformation("Ingredient details autofill progress: {Processed}/{Total}, {Written} written.", processed, candidates.Length, written);
+            }
         }
-        if (written % BatchSize != 0) await repository.SaveChangesAsync(cancellationToken);
+        if (written % BatchSize != 0)
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+        }
         return written;
     }
 

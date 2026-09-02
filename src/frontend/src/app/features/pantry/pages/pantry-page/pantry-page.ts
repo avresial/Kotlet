@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
@@ -11,11 +19,19 @@ import { IngredientPicker } from '../../../ingredients/components/ingredient-pic
 import { PantryItem, storageLocations } from '../../pantry.models';
 import { PantryService } from '../../pantry.service';
 import { PantryRecipeMatches } from '../../components/pantry-recipe-matches/pantry-recipe-matches';
-import { DisplayUnit, displayMeasurement, toBaseQuantity, unitsForIngredient } from '../../../ingredients/display-units';
+import {
+  DisplayUnit,
+  displayMeasurement,
+  toBaseQuantity,
+  unitsForIngredient,
+} from '../../../ingredients/display-units';
 
 @Component({
-  selector: 'app-pantry-page', imports: [ReactiveFormsModule, RouterLink, IngredientPicker, TranslatePipe, PantryRecipeMatches],
-  templateUrl: './pantry-page.html', styleUrl: './pantry-page.scss', changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: 'app-pantry-page',
+  imports: [ReactiveFormsModule, RouterLink, IngredientPicker, TranslatePipe, PantryRecipeMatches],
+  templateUrl: './pantry-page.html',
+  styleUrl: './pantry-page.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PantryPage implements OnInit {
   private readonly pantryService = inject(PantryService);
@@ -25,83 +41,170 @@ export class PantryPage implements OnInit {
   private readonly recipeMatches = viewChild(PantryRecipeMatches);
   readonly items = signal<PantryItem[]>([]);
   readonly ingredients = signal<Ingredient[]>([]);
-  readonly availableIngredients = computed(() => this.ingredients().filter(i => !this.items().some(item => item.ingredientId === i.id)));
+  readonly availableIngredients = computed(() =>
+    this.ingredients().filter((i) => !this.items().some((item) => item.ingredientId === i.id)),
+  );
   readonly search = signal('');
   readonly locationFilter = signal<'0' | '1' | '2' | '3'>('0');
   readonly filteredItems = computed(() => {
     const term = this.search().trim().toLowerCase();
     const location = this.locationFilter();
-    return this.items().filter(item =>
-      (term === '' || item.ingredientName.toLowerCase().includes(term)) &&
-      (location === '0' || String(item.storageLocation) === location));
+    return this.items().filter(
+      (item) =>
+        (term === '' || item.ingredientName.toLowerCase().includes(term)) &&
+        (location === '0' || String(item.storageLocation) === location),
+    );
   });
-  readonly hasFilters = computed(() => this.search().trim() !== '' || this.locationFilter() !== '0');
+  readonly hasFilters = computed(
+    () => this.search().trim() !== '' || this.locationFilter() !== '0',
+  );
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
   readonly updatingId = signal<string | null>(null);
   readonly error = signal<string | null>(null);
   readonly locations = storageLocations;
-  readonly form = this.formBuilder.group({ ingredientId: ['', Validators.required], quantity: [1, [Validators.required, Validators.min(0)]], unit: ['g', Validators.required], expirationDate: [null as string | null], storageLocation: [1, Validators.required] });
+  readonly form = this.formBuilder.group({
+    ingredientId: ['', Validators.required],
+    quantity: [1, [Validators.required, Validators.min(0)]],
+    unit: ['g', Validators.required],
+    expirationDate: [null as string | null],
+    storageLocation: [1, Validators.required],
+  });
 
   ngOnInit(): void {
     forkJoin({ items: this.pantryService.getAll(), ingredients: this.ingredientService.getAll() })
-      .pipe(finalize(() => this.isLoading.set(false))).subscribe({
-        next: ({ items, ingredients }) => { this.items.set(items); this.ingredients.set(ingredients); },
-        error: error => this.error.set(getApiError(error, this.translations.translate('pantry.loadError'))),
+      .pipe(finalize(() => this.isLoading.set(false)))
+      .subscribe({
+        next: ({ items, ingredients }) => {
+          this.items.set(items);
+          this.ingredients.set(ingredients);
+        },
+        error: (error) =>
+          this.error.set(getApiError(error, this.translations.translate('pantry.loadError'))),
       });
   }
 
   add(): void {
-    if (this.form.invalid || this.isSaving()) { this.form.markAllAsTouched(); return; }
-    this.isSaving.set(true); this.error.set(null);
-    const { ingredientId, quantity, unit, expirationDate, storageLocation } = this.form.getRawValue();
+    if (this.form.invalid || this.isSaving()) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    this.isSaving.set(true);
+    this.error.set(null);
+    const { ingredientId, quantity, unit, expirationDate, storageLocation } =
+      this.form.getRawValue();
     const ingredient = this.selectedIngredient()!;
-    this.pantryService.create(ingredientId!, toBaseQuantity(quantity!, unit as DisplayUnit, ingredient), expirationDate, storageLocation!).pipe(finalize(() => this.isSaving.set(false))).subscribe({
-      next: item => { this.items.update(items => this.sort([...items, item])); this.form.reset({ ingredientId: '', quantity: 1, unit: 'g', expirationDate: null, storageLocation: 1 }); this.recipeMatches()?.reload(); },
-      error: error => this.error.set(getApiError(error, this.translations.translate('pantry.addError'))),
-    });
+    this.pantryService
+      .create(
+        ingredientId!,
+        toBaseQuantity(quantity!, unit as DisplayUnit, ingredient),
+        expirationDate,
+        storageLocation!,
+      )
+      .pipe(finalize(() => this.isSaving.set(false)))
+      .subscribe({
+        next: (item) => {
+          this.items.update((items) => this.sort([...items, item]));
+          this.form.reset({
+            ingredientId: '',
+            quantity: 1,
+            unit: 'g',
+            expirationDate: null,
+            storageLocation: 1,
+          });
+          this.recipeMatches()?.reload();
+        },
+        error: (error) =>
+          this.error.set(getApiError(error, this.translations.translate('pantry.addError'))),
+      });
   }
 
   setQuantity(item: PantryItem, quantity: number): void {
     if (!Number.isFinite(quantity)) return;
     const normalized = Math.max(0, Math.round(quantity * 1000) / 1000);
     if (this.updatingId() || normalized === item.quantity) return;
-    this.updatingId.set(item.id); this.error.set(null);
-    this.pantryService.update(item.id, normalized).pipe(finalize(() => this.updatingId.set(null))).subscribe({
-      next: updated => { this.items.update(items => this.sort(items.map(current => current.id === updated.id ? updated : current))); this.recipeMatches()?.reload(); },
-      error: error => this.error.set(getApiError(error, this.translations.translate('pantry.updateError'))),
-    });
+    this.updatingId.set(item.id);
+    this.error.set(null);
+    this.pantryService
+      .update(item.id, normalized)
+      .pipe(finalize(() => this.updatingId.set(null)))
+      .subscribe({
+        next: (updated) => {
+          this.items.update((items) =>
+            this.sort(items.map((current) => (current.id === updated.id ? updated : current))),
+          );
+          this.recipeMatches()?.reload();
+        },
+        error: (error) =>
+          this.error.set(getApiError(error, this.translations.translate('pantry.updateError'))),
+      });
   }
 
   remove(item: PantryItem): void {
-    if (this.updatingId() || !window.confirm(this.translations.translate('pantry.removeConfirm').replace('{name}', item.ingredientName))) return;
-    this.updatingId.set(item.id); this.error.set(null);
-    this.pantryService.delete(item.id).pipe(finalize(() => this.updatingId.set(null))).subscribe({
-      next: () => { this.items.update(items => items.filter(current => current.id !== item.id)); this.recipeMatches()?.reload(); },
-      error: error => this.error.set(getApiError(error, this.translations.translate('pantry.removeError'))),
-    });
+    if (
+      this.updatingId() ||
+      !window.confirm(
+        this.translations.translate('pantry.removeConfirm').replace('{name}', item.ingredientName),
+      )
+    )
+      return;
+    this.updatingId.set(item.id);
+    this.error.set(null);
+    this.pantryService
+      .delete(item.id)
+      .pipe(finalize(() => this.updatingId.set(null)))
+      .subscribe({
+        next: () => {
+          this.items.update((items) => items.filter((current) => current.id !== item.id));
+          this.recipeMatches()?.reload();
+        },
+        error: (error) =>
+          this.error.set(getApiError(error, this.translations.translate('pantry.removeError'))),
+      });
   }
 
-  clearFilters(): void { this.search.set(''); this.locationFilter.set('0'); }
+  clearFilters(): void {
+    this.search.set('');
+    this.locationFilter.set('0');
+  }
 
   selectedIngredient(): Ingredient | undefined {
-    return this.ingredients().find(ingredient => ingredient.id === this.form.controls.ingredientId.value);
+    return this.ingredients().find(
+      (ingredient) => ingredient.id === this.form.controls.ingredientId.value,
+    );
   }
 
-  selectIngredient(ingredient: Ingredient): void { this.form.controls.unit.setValue(ingredient.measurementUnit); }
-  selectedUnits(): DisplayUnit[] { return this.selectedIngredient() ? unitsForIngredient(this.selectedIngredient()!) : ['g']; }
+  selectIngredient(ingredient: Ingredient): void {
+    this.form.controls.unit.setValue(ingredient.measurementUnit);
+  }
+  selectedUnits(): DisplayUnit[] {
+    return this.selectedIngredient() ? unitsForIngredient(this.selectedIngredient()!) : ['g'];
+  }
   display(item: PantryItem) {
-    const ingredient = this.ingredients().find(value => value.id === item.ingredientId);
-    return ingredient ? displayMeasurement(item.quantity, ingredient) : { quantity: item.quantity, unit: item.measurementUnit as DisplayUnit };
+    const ingredient = this.ingredients().find((value) => value.id === item.ingredientId);
+    return ingredient
+      ? displayMeasurement(item.quantity, ingredient)
+      : { quantity: item.quantity, unit: item.measurementUnit as DisplayUnit };
   }
   setDisplayQuantity(item: PantryItem, quantity: number): void {
-    const ingredient = this.ingredients().find(value => value.id === item.ingredientId);
-    if (ingredient) this.setQuantity(item, toBaseQuantity(quantity, this.display(item).unit, ingredient));
+    const ingredient = this.ingredients().find((value) => value.id === item.ingredientId);
+    if (ingredient)
+      this.setQuantity(item, toBaseQuantity(quantity, this.display(item).unit, ingredient));
   }
 
-  step(item: PantryItem): number { return ['kg', 'l'].includes(this.display(item).unit) ? 0.1 : 1; }
-  locationLabel(value: PantryItem['storageLocation']): string {
-    return value ? this.translations.translate(this.locations.find(location => location.value === value)!.label) : '';
+  step(item: PantryItem): number {
+    return ['kg', 'l'].includes(this.display(item).unit) ? 0.1 : 1;
   }
-  private sort(items: PantryItem[]): PantryItem[] { return [...items].sort((a, b) => a.quantity - b.quantity || a.ingredientName.localeCompare(b.ingredientName)); }
+  locationLabel(value: PantryItem['storageLocation']): string {
+    return value
+      ? this.translations.translate(
+          this.locations.find((location) => location.value === value)!.label,
+        )
+      : '';
+  }
+  private sort(items: PantryItem[]): PantryItem[] {
+    return [...items].sort(
+      (a, b) => a.quantity - b.quantity || a.ingredientName.localeCompare(b.ingredientName),
+    );
+  }
 }

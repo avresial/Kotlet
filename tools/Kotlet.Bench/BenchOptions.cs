@@ -68,9 +68,13 @@ public sealed record BenchOptions
         }
 
         if (options.Url is not null && (options.Email is null || options.Password is null))
+        {
             throw new ArgumentException("--url needs --email and --password to obtain an MCP token.");
+        }
         if (options.Runs < 1)
+        {
             throw new ArgumentException("--runs must be at least 1.");
+        }
         return options;
     }
 

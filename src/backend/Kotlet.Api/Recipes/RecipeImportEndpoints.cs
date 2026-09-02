@@ -19,7 +19,10 @@ public static class RecipeImportEndpoints
     private static async Task<IResult> Start(StartRecipeImportRequest request, ICurrentUser currentUser,
         RecipeImportService service, CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.CreateJobAsync(houseId, userId, request.Url, cancellationToken);
         return result.Status == RecipeImportOperationStatus.Success
             ? Results.Accepted($"/api/recipes/import/{result.Id}", new { result.Id })
@@ -29,7 +32,10 @@ public static class RecipeImportEndpoints
     private static async Task<IResult> Get(Guid id, ICurrentUser currentUser,
         RecipeImportService service, CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.GetJobAsync(id, houseId, userId, cancellationToken);
         return result is null ? Results.NotFound() : Results.Ok(result);
     }
@@ -37,7 +43,10 @@ public static class RecipeImportEndpoints
     private static async Task<IResult> Accept(Guid id, RecipeImportDraft draft, ICurrentUser currentUser,
         RecipeImportService service, CancellationToken cancellationToken)
     {
-        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId) return Results.Unauthorized();
+        if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
+        {
+            return Results.Unauthorized();
+        }
         var result = await service.AcceptAsync(id, houseId, userId, draft, cancellationToken);
         return result.Status switch
         {

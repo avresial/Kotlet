@@ -37,12 +37,27 @@ public sealed class RecipeAuditService(
         var important = new List<string>();
         var minor = new List<string>();
 
-        if (recipe.Ingredients.Count == 0) important.Add(RecipeAuditElements.Ingredients);
-        if (string.IsNullOrWhiteSpace(recipe.DescriptionMarkdown)) important.Add(RecipeAuditElements.Description);
-        if (!hasImage) minor.Add(RecipeAuditElements.Image);
-        if (recipe.MealType is null) minor.Add(RecipeAuditElements.MealType);
+        if (recipe.Ingredients.Count == 0)
+        {
+            important.Add(RecipeAuditElements.Ingredients);
+        }
+        if (string.IsNullOrWhiteSpace(recipe.DescriptionMarkdown))
+        {
+            important.Add(RecipeAuditElements.Description);
+        }
+        if (!hasImage)
+        {
+            minor.Add(RecipeAuditElements.Image);
+        }
+        if (recipe.MealType is null)
+        {
+            minor.Add(RecipeAuditElements.MealType);
+        }
 
-        if (important.Count == 0 && minor.Count == 0) return null;
+        if (important.Count == 0 && minor.Count == 0)
+        {
+            return null;
+        }
         return new RecipeAuditItemResponse(
             recipe.Id,
             recipe.Title,

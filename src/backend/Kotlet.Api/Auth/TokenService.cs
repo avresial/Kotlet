@@ -23,7 +23,10 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions, IOptions<AuthO
             new(JwtRegisteredClaimNames.Email, user.Email)
         };
         claims.AddRange(user.Roles.Select(role => new Claim(ClaimTypes.Role, role.Name)));
-        if (activeHouseId is { } houseId) claims.Add(new Claim(KotletClaimTypes.HouseId, houseId.ToString()));
+        if (activeHouseId is { } houseId)
+        {
+            claims.Add(new Claim(KotletClaimTypes.HouseId, houseId.ToString()));
+        }
         var token = new JwtSecurityToken(_jwt.Issuer, _jwt.Audience, claims,
             now, expires, new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.SigningKey)), SecurityAlgorithms.HmacSha256));
         return (new JwtSecurityTokenHandler().WriteToken(token), expires);
@@ -54,7 +57,10 @@ public sealed class TokenService(IOptions<JwtOptions> jwtOptions, IOptions<AuthO
     /// </summary>
     public ClaimsPrincipal? ValidateAccessToken(string? token)
     {
-        if (string.IsNullOrWhiteSpace(token)) return null;
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return null;
+        }
         try
         {
             return new JwtSecurityTokenHandler().ValidateToken(token, new TokenValidationParameters

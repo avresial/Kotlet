@@ -451,7 +451,10 @@ public sealed class RecipeImageServiceTests
         public Task<ImageProcessingResult> ProcessAsync(Stream image, ImageProcessingOptions options, CancellationToken cancellationToken = default)
         {
             LastOptions = options;
-            if (throwInvalidImage) throw new InvalidImageException("Not an image.");
+            if (throwInvalidImage)
+            {
+                throw new InvalidImageException("Not an image.");
+            }
             return Task.FromResult(new ImageProcessingResult(ProcessedContent, "image/webp", 1200, 900));
         }
     }
@@ -504,7 +507,10 @@ public sealed class RecipeImageServiceTests
             for (var index = 0; index < imageIds.Count; index++)
             {
                 var image = Images.SingleOrDefault(i => i.RecipeId == recipeId && i.Id == imageIds[index]);
-                if (image is not null) image.SortOrder = index;
+                if (image is not null)
+                {
+                    image.SortOrder = index;
+                }
             }
             return Task.CompletedTask;
         }

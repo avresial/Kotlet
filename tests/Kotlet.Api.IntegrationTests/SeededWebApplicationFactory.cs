@@ -49,6 +49,9 @@ public class SeededWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     public new async Task DisposeAsync()
     {
         await base.DisposeAsync();
-        if (databasePath is { } path) TestDatabaseTemplate.Delete(path);
+        if (databasePath is { } path)
+        {
+            TestDatabaseTemplate.Delete(path);
+        }
     }
 }

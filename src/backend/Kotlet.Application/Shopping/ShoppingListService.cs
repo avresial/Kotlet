@@ -6,6 +6,8 @@ namespace Kotlet.Application.Shopping;
 
 public sealed class ShoppingListService(IShoppingListRepository repository, ITranslationRepository translations)
 {
+    private static readonly IReadOnlyDictionary<string, string> NoTranslations = new Dictionary<string, string>();
+
     public async Task<IReadOnlyCollection<ShoppingListItemDto>> GetAllAsync(Guid houseId, string languageCode, CancellationToken cancellationToken)
     {
         var items = await repository.GetAllAsync(houseId, cancellationToken);
@@ -187,7 +189,7 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
 
     private Task<IReadOnlyDictionary<string, string>> LoadTranslationsAsync(string languageCode, CancellationToken cancellationToken) =>
         TranslationKeys.IsDefaultLanguage(languageCode)
-            ? Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>())
+            ? Task.FromResult(NoTranslations)
             : translations.GetAllAsync(cancellationToken);
 
     private static string ResolveName(ShoppingListItem item, string languageCode, IReadOnlyDictionary<string, string> dictionary)

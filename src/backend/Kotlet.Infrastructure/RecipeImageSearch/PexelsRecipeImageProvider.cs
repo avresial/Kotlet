@@ -33,25 +33,35 @@ internal sealed class PexelsRecipeImageProvider(
         {
             var query = $"v1/search?query={Uri.EscapeDataString(request.Query)}&per_page={request.Limit}";
             if (!string.IsNullOrWhiteSpace(request.Orientation))
+            {
                 query += $"&orientation={Uri.EscapeDataString(request.Orientation)}";
+            }
             if (!string.IsNullOrWhiteSpace(request.Locale))
+            {
                 query += $"&locale={Uri.EscapeDataString(request.Locale)}";
+            }
 
             using var response = await SendApiRequestAsync(query, cancellationToken);
             if (!response.IsSuccessStatusCode)
+            {
                 return MapStatus(response.StatusCode, "The recipe image search request failed.");
+            }
 
             var payload = await JsonSerializer.DeserializeAsync<SearchResponse>(
                 await response.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
             if (payload?.Photos is null)
+            {
                 return Failed("The recipe image search response was malformed.");
+            }
 
             var candidates = new List<RecipeImageCandidate>(payload.Photos.Count);
             foreach (var photo in payload.Photos)
             {
                 var candidate = MapCandidate(photo);
                 if (candidate is null)
+                {
                     return Failed("The recipe image search response was malformed.");
+                }
                 candidates.Add(candidate);
             }
 
@@ -83,33 +93,45 @@ internal sealed class PexelsRecipeImageProvider(
         }
 
         if (!int.TryParse(externalImageId, NumberStyles.None, CultureInfo.InvariantCulture, out var photoId) || photoId <= 0)
+        {
             return new(RecipeImageDownloadStatus.InvalidId, Message: "The provider image id is invalid.");
+        }
 
         try
         {
             using var photoResponse = await SendApiRequestAsync(
                 $"v1/photos/{photoId.ToString(CultureInfo.InvariantCulture)}", cancellationToken);
             if (!photoResponse.IsSuccessStatusCode)
+            {
                 return MapDownloadStatus(photoResponse.StatusCode, "The recipe image could not be found.");
+            }
 
             var photo = await JsonSerializer.DeserializeAsync<Photo>(
                 await photoResponse.Content.ReadAsStreamAsync(cancellationToken), JsonOptions, cancellationToken);
             var imageUrl = photo?.Src?.Original ?? photo?.Src?.Large2x ?? photo?.Src?.Large ?? photo?.Src?.Medium;
             if (photo is null || photo.Url is null || string.IsNullOrWhiteSpace(imageUrl))
+            {
                 return new(RecipeImageDownloadStatus.Failed, Message: "The provider image response was malformed.");
+            }
 
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(RequestTimeout);
             using var imageRequest = new HttpRequestMessage(HttpMethod.Get, imageUrl);
             using var imageResponse = await httpClient.SendAsync(imageRequest, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             if (!imageResponse.IsSuccessStatusCode)
+            {
                 return MapDownloadStatus(imageResponse.StatusCode, "The provider image download failed.");
+            }
             if (imageResponse.Content.Headers.ContentLength > MaxDownloadBytes)
+            {
                 return new(RecipeImageDownloadStatus.Failed, Message: "The provider image is too large.");
+            }
 
             var content = await ReadContentAsync(imageResponse.Content, timeout.Token);
             if (content is null)
+            {
                 return new(RecipeImageDownloadStatus.Failed, Message: "The provider image is too large.");
+            }
 
             return new(RecipeImageDownloadStatus.Success, new RecipeImageContent(
                 content,
@@ -155,8 +177,14 @@ internal sealed class PexelsRecipeImageProvider(
         while (true)
         {
             var read = await stream.ReadAsync(buffer, cancellationToken);
-            if (read == 0) return output.ToArray();
-            if (output.Length + read > MaxDownloadBytes) return null;
+            if (read == 0)
+            {
+                return output.ToArray();
+            }
+            if (output.Length + read > MaxDownloadBytes)
+            {
+                return null;
+            }
             output.Write(buffer, 0, read);
         }
     }

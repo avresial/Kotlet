@@ -407,14 +407,15 @@ export class HomePage implements OnInit {
   }
 
   memberInitials(member: HouseMember): string {
-    const name = this.memberName(member);
-    const parts = name.split(/\s+/).filter(Boolean);
-    const initials = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2);
-    return initials.toUpperCase();
+    return this.initials(this.memberName(member));
   }
 
   participantInitials(displayName: string): string {
-    const name = displayName.trim();
+    return this.initials(displayName);
+  }
+
+  private initials(value: string): string {
+    const name = value.trim();
     const parts = name.split(/\s+/).filter(Boolean);
     const initials = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2);
     return initials.toUpperCase();

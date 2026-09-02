@@ -79,22 +79,26 @@ public sealed class RecipeService(
         Guid id, Guid houseId, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {
         var recipe = await repository.GetByIdAsync(id, houseId, tracked: false, cancellationToken);
-        if (recipe is null) return null;
-        var images = imageRepository is null
-            ? []
-            : await imageRepository.ListAsync(id, cancellationToken);
-        return await responseMapper.ToDetailResponseAsync(recipe, languageCode, images.Select(RecipeResponseMapper.ToImageResponse).ToList(), canEdit: true, cancellationToken);
+        if (recipe is null)
+        {
+            return null;
+        }
+
+        var images = await GetImagesAsync(id, cancellationToken);
+        return await responseMapper.ToDetailResponseAsync(recipe, languageCode, images, canEdit: true, cancellationToken);
     }
 
     public async Task<RecipeDetailResponse?> GetPublicByIdAsync(
         Guid id, Guid? currentHouseId, CancellationToken cancellationToken, string languageCode = TranslationKeys.DefaultLanguage)
     {
         var recipe = await repository.GetPublicByIdAsync(id, cancellationToken);
-        if (recipe is null) return null;
-        var images = imageRepository is null
-            ? []
-            : await imageRepository.ListAsync(id, cancellationToken);
-        return await responseMapper.ToDetailResponseAsync(recipe, languageCode, images.Select(RecipeResponseMapper.ToImageResponse).ToList(),
+        if (recipe is null)
+        {
+            return null;
+        }
+
+        var images = await GetImagesAsync(id, cancellationToken);
+        return await responseMapper.ToDetailResponseAsync(recipe, languageCode, images,
             canEdit: currentHouseId == recipe.HouseId, cancellationToken);
     }
 
@@ -111,21 +115,30 @@ public sealed class RecipeService(
             request.VideoUrl,
             request.VideoThumbnailUrl);
         if (errors.Count > 0)
+        {
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
+        }
 
         var mappedIngredients = await MapIngredientsAsync(request.Ingredients, Guid.Empty, cancellationToken);
         if (mappedIngredients.Errors.Count > 0)
+        {
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: mappedIngredients.Errors);
+        }
 
         var title = request.Title.Trim();
         var baseSlug = GenerateSlug(title);
         if (baseSlug.Length == 0)
+        {
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]> { ["title"] = ["Title must contain at least one letter or digit."] });
+        }
         var slug = await ResolveSlugAsync(houseId, baseSlug, null, cancellationToken);
         var now = DateTimeOffset.UtcNow;
 
         var recipeId = Guid.NewGuid();
-        foreach (var ingredient in mappedIngredients.Items) ingredient.RecipeId = recipeId;
+        foreach (var ingredient in mappedIngredients.Items)
+        {
+            ingredient.RecipeId = recipeId;
+        }
         var recipe = new Recipe
         {
             Id = recipeId,
@@ -164,22 +177,32 @@ public sealed class RecipeService(
             request.VideoUrl,
             request.VideoThumbnailUrl);
         if (errors.Count > 0)
+        {
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: errors);
+        }
 
         var mappedIngredients = await MapIngredientsAsync(request.Ingredients, id, cancellationToken);
         if (mappedIngredients.Errors.Count > 0)
+        {
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: mappedIngredients.Errors);
+        }
 
         var recipe = await repository.GetByIdAsync(id, houseId, tracked: true, cancellationToken);
         if (recipe is null)
+        {
             return new(RecipeOperationStatus.NotFound);
+        }
 
         var title = request.Title.Trim();
         var newSlug = GenerateSlug(title);
         if (newSlug.Length == 0)
+        {
             return new(RecipeOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]> { ["title"] = ["Title must contain at least one letter or digit."] });
+        }
         if (newSlug != recipe.Slug)
+        {
             newSlug = await ResolveSlugAsync(houseId, newSlug, id, cancellationToken);
+        }
 
         recipe.Title = title;
         recipe.Slug = newSlug;
@@ -192,7 +215,9 @@ public sealed class RecipeService(
         recipe.UpdatedAtUtc = DateTimeOffset.UtcNow;
         recipe.Ingredients.Clear();
         foreach (var ing in mappedIngredients.Items)
+        {
             recipe.Ingredients.Add(ing);
+        }
         await repository.SaveChangesAsync(cancellationToken);
         HydrateIngredientNavigation(mappedIngredients);
         return new(RecipeOperationStatus.Success, await responseMapper.ToDetailResponseAsync(recipe, languageCode, canEdit: true, cancellationToken: cancellationToken));
@@ -203,7 +228,9 @@ public sealed class RecipeService(
     {
         var recipe = await repository.GetByIdAsync(id, houseId, tracked: true, cancellationToken);
         if (recipe is null)
+        {
             return RecipeOperationStatus.NotFound;
+        }
 
         var imageIds = imageRepository is not null && imageStorage is not null
             ? (await imageRepository.ListAsync(id, cancellationToken)).Select(image => image.Id).ToList()
@@ -211,7 +238,9 @@ public sealed class RecipeService(
         repository.Remove(recipe);
         await repository.SaveChangesAsync(cancellationToken);
         foreach (var imageId in imageIds)
+        {
             await imageStorage!.DeleteAsync(imageId, cancellationToken);
+        }
         return RecipeOperationStatus.Success;
     }
 
@@ -258,20 +287,26 @@ public sealed class RecipeService(
     private static void HydrateIngredientNavigation(MappedIngredients mapped)
     {
         foreach (var item in mapped.Items)
+        {
             item.Ingredient = mapped.Ingredients[item.IngredientId];
+        }
     }
 
     private async Task<string> ResolveSlugAsync(
         Guid houseId, string baseSlug, Guid? excludedId, CancellationToken cancellationToken)
     {
         if (!await repository.SlugExistsAsync(houseId, baseSlug, excludedId, cancellationToken))
+        {
             return baseSlug;
+        }
 
         for (var i = 2; i <= 1000; i++)
         {
             var candidate = $"{baseSlug}-{i}";
             if (!await repository.SlugExistsAsync(houseId, candidate, excludedId, cancellationToken))
+            {
                 return candidate;
+            }
         }
         return $"{baseSlug}-{Guid.NewGuid():N}";
     }
@@ -290,8 +325,22 @@ public sealed class RecipeService(
         IReadOnlyList<Guid> recipeIds, CancellationToken cancellationToken)
     {
         if (imageRepository is null || recipeIds.Count == 0)
+        {
             return new Dictionary<Guid, Guid>();
+        }
         return await imageRepository.GetFirstImageIdsAsync(recipeIds, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<RecipeImageResponse>> GetImagesAsync(
+        Guid recipeId, CancellationToken cancellationToken)
+    {
+        if (imageRepository is null)
+        {
+            return [];
+        }
+
+        var images = await imageRepository.ListAsync(recipeId, cancellationToken);
+        return images.Select(RecipeResponseMapper.ToImageResponse).ToList();
     }
 
     private static MealSlot? ParseMealType(string? value) =>

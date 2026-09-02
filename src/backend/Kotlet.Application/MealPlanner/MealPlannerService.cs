@@ -46,28 +46,18 @@ public sealed class MealPlannerService(
         {
             var date = from.AddDays(offset);
             var responses = items.Where(item => item.Date == date).Select(item =>
-                item.RecipeId is { } recipeId
-                    ? ToResponse(item, userId, members, recipes.GetValueOrDefault(recipeId, "Unknown recipe"), "recipe")
-                    : item.IngredientId is { } ingredientId
-                        ? ToResponse(item, userId, members, ingredients.GetValueOrDefault(ingredientId, "Unknown ingredient"), "ingredient")
-                        : item.FreeText is { } freeText
-                            ? ToResponse(item, userId, members, freeText, "free-text")
-                            : ToResponse(item, userId, members,
-                                item.PreparedMealId is { } preparedMealId
-                                    ? preparedMeals.GetValueOrDefault(preparedMealId, "Unknown prepared meal")
-                                    : "Unknown meal",
-                                item.PreparedMealId.HasValue ? "prepared-meal" : "unknown"))
+                ToResponse(item, userId, members, ResolveDisplay(item, recipes, ingredients, preparedMeals)))
                 .ToList();
             return new DailyMealPlanResponse(
                 date.ToString("yyyy-MM-dd"),
-            new Dictionary<string, IReadOnlyList<MealPlanItemResponse>>
-            {
-                ["breakfast"] = responses.Where(r => r.Slot == "breakfast").OrderBy(r => r.SortOrder).ToList(),
-                ["second-breakfast"] = responses.Where(r => r.Slot == "second-breakfast").OrderBy(r => r.SortOrder).ToList(),
-                ["dinner"] = responses.Where(r => r.Slot == "dinner").OrderBy(r => r.SortOrder).ToList(),
-                ["snack"] = responses.Where(r => r.Slot == "snack").OrderBy(r => r.SortOrder).ToList(),
-                ["supper"] = responses.Where(r => r.Slot == "supper").OrderBy(r => r.SortOrder).ToList()
-            });
+                new Dictionary<string, IReadOnlyList<MealPlanItemResponse>>
+                {
+                    ["breakfast"] = responses.Where(r => r.Slot == "breakfast").OrderBy(r => r.SortOrder).ToList(),
+                    ["second-breakfast"] = responses.Where(r => r.Slot == "second-breakfast").OrderBy(r => r.SortOrder).ToList(),
+                    ["dinner"] = responses.Where(r => r.Slot == "dinner").OrderBy(r => r.SortOrder).ToList(),
+                    ["snack"] = responses.Where(r => r.Slot == "snack").OrderBy(r => r.SortOrder).ToList(),
+                    ["supper"] = responses.Where(r => r.Slot == "supper").OrderBy(r => r.SortOrder).ToList()
+                });
         }).ToList();
     }
 
@@ -97,7 +87,9 @@ public sealed class MealPlannerService(
     {
         var errors = await ValidateAddAsync(houseId, request, cancellationToken);
         if (errors.Count > 0)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: errors);
+        }
 
         var slot = ParseSlot(request.Slot);
         var existingCount = (await repository.GetByDateAsync(houseId, request.Date, cancellationToken))
@@ -122,6 +114,7 @@ public sealed class MealPlannerService(
 
         repository.Add(item);
         foreach (var addon in request.Addons ?? [])
+        {
             repository.Add(new MealPlanItem
             {
                 Id = Guid.NewGuid(),
@@ -137,6 +130,7 @@ public sealed class MealPlannerService(
                 CreatedAt = item.CreatedAt,
                 UpdatedAt = item.UpdatedAt
             });
+        }
         await repository.SaveChangesAsync(cancellationToken);
 
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
@@ -151,7 +145,9 @@ public sealed class MealPlannerService(
             houseId, request, requireMeals: false, cancellationToken);
         var errors = validation.Errors;
         if (errors.Count > 0)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: errors);
+        }
 
         var existing = await repository.GetByDateRangeAsync(
             houseId, request.WeekStart, request.WeekStart.AddDays(6), cancellationToken);
@@ -213,7 +209,9 @@ public sealed class MealPlannerService(
         }
 
         if (added.Count > 0)
+        {
             await repository.SaveChangesAsync(cancellationToken);
+        }
 
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
         var responses = added
@@ -232,7 +230,9 @@ public sealed class MealPlannerService(
         var validation = await ValidateWeekAsync(
             houseId, request, requireMeals: true, cancellationToken);
         if (validation.Errors.Count > 0)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: validation.Errors);
+        }
 
         var meals = request.Meals
             .OrderBy(meal => meal.Date)
@@ -248,13 +248,20 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, CopyMealPlanDayRequest request, CancellationToken cancellationToken)
     {
         if (request.SourceDate == request.TargetDate)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors:
                 new Dictionary<string, string[]> { ["targetDate"] = ["Target date must differ from source date."] });
+        }
 
         var source = await repository.GetByDateAsync(houseId, request.SourceDate, cancellationToken);
-        if (source.Count == 0) return new(MealPlannerOperationStatus.NotFound);
+        if (source.Count == 0)
+        {
+            return new(MealPlannerOperationStatus.NotFound);
+        }
         if ((await repository.GetByDateAsync(houseId, request.TargetDate, cancellationToken)).Count > 0)
+        {
             return new(MealPlannerOperationStatus.Conflict);
+        }
 
         AddCopies(source, userId, houseId, _ => request.TargetDate);
 
@@ -267,16 +274,25 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, CopyMealPlanWeekRequest request, CancellationToken cancellationToken)
     {
         if (request.SourceWeekStart.DayOfWeek != DayOfWeek.Monday || request.TargetWeekStart.DayOfWeek != DayOfWeek.Monday)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors:
                 new Dictionary<string, string[]> { ["weekStart"] = ["Source and target weeks must start on Monday."] });
+        }
         if (request.SourceWeekStart == request.TargetWeekStart)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors:
                 new Dictionary<string, string[]> { ["targetWeekStart"] = ["Target week must differ from source week."] });
+        }
 
         var source = await repository.GetByDateRangeAsync(houseId, request.SourceWeekStart, request.SourceWeekStart.AddDays(6), cancellationToken);
-        if (source.Count == 0) return new(MealPlannerOperationStatus.NotFound);
+        if (source.Count == 0)
+        {
+            return new(MealPlannerOperationStatus.NotFound);
+        }
         if ((await repository.GetByDateRangeAsync(houseId, request.TargetWeekStart, request.TargetWeekStart.AddDays(6), cancellationToken)).Count > 0)
+        {
             return new(MealPlannerOperationStatus.Conflict);
+        }
 
         var offset = request.TargetWeekStart.DayNumber - request.SourceWeekStart.DayNumber;
         AddCopies(source, userId, houseId, original => original.Date.AddDays(offset));
@@ -294,10 +310,15 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, Guid itemId, MoveMealPlanItemRequest request, CancellationToken cancellationToken)
     {
         if (SlotError(request.Slot) is { } slotError)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: slotError);
+        }
 
         var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
-        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+        if (item is null)
+        {
+            return new(MealPlannerOperationStatus.NotFound);
+        }
 
         var targetSlot = ParseSlot(request.Slot);
         if (item.Date != request.Date || item.Slot != targetSlot)
@@ -328,24 +349,35 @@ public sealed class MealPlannerService(
     {
         var sourceErrors = await ValidateSourceAsync(houseId, request.Source, cancellationToken);
         if (sourceErrors.Count > 0)
+        {
             return ValidationMutation(sourceErrors);
+        }
 
         MealPlanItem? item;
         if (request.MealId is { } mealId)
         {
             item = await repository.GetByIdAsync(mealId, houseId, cancellationToken);
-            if (item is null) return new("NotFound");
+            if (item is null)
+            {
+                return new("NotFound");
+            }
         }
         else
         {
             if (!request.Date.HasValue)
+            {
                 return ValidationMutation(new Dictionary<string, string[]> { ["date"] = ["Date is required when mealId is omitted."] });
+            }
             if (SlotError(request.Slot) is { } slotError)
+            {
                 return ValidationMutation(slotError);
+            }
 
             var candidates = await GetSlotItemsAsync(houseId, request.Date.Value, ParseSlot(request.Slot!), cancellationToken);
             if (candidates.Count > 1)
+            {
                 return await AmbiguousMutationAsync(userId, houseId, candidates, cancellationToken);
+            }
             var candidate = candidates.SingleOrDefault();
             item = candidate is null
                 ? null
@@ -353,7 +385,9 @@ public sealed class MealPlannerService(
             if (item is null)
             {
                 if (!request.CreateIfMissing)
+                {
                     return new("NotFound");
+                }
 
                 var now = DateTimeOffset.UtcNow;
                 item = NewItem(userId, houseId, request.Date.Value, ParseSlot(request.Slot!), candidates.Count, request.Source, now);
@@ -367,18 +401,28 @@ public sealed class MealPlannerService(
         }
 
         if (item.ParentMealPlanItemId.HasValue)
+        {
             return ValidationMutation(new Dictionary<string, string[]> { ["mealId"] = ["Meal-plan add-ons cannot be replaced directly."] });
+        }
         if (!string.IsNullOrWhiteSpace(request.IdempotencyKey) &&
             string.Equals(item.LastMutationKey, request.IdempotencyKey.Trim(), StringComparison.Ordinal))
+        {
             return await SuccessMutationAsync(userId, houseId, item, cancellationToken);
+        }
         if (request.ExpectedVersion is { } expectedVersion && item.Version != expectedVersion)
+        {
             return VersionConflict(item.Version);
+        }
         if (SourceMatches(item, request.Source))
+        {
             return new("Success", await ToResponseAsync(item, userId, houseId,
                 await GetMemberNamesAsync(houseId, cancellationToken), cancellationToken));
+        }
 
         foreach (var addon in item.AddonItems.ToList())
+        {
             repository.Remove(addon);
+        }
         item.AddonItems.Clear();
         ApplySource(item, request.Source);
         item.Version++;
@@ -395,17 +439,26 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, MoveMealPlanMutationRequest request, CancellationToken cancellationToken)
     {
         if (SlotError(request.Slot) is { } slotError)
+        {
             return ValidationMutation(slotError);
+        }
         var targetSlot = ParseSlot(request.Slot);
         var behavior = (request.DestinationBehavior ?? "reject").Trim().ToLowerInvariant();
         if (behavior is not ("reject" or "replace" or "swap"))
+        {
             return ValidationMutation(new Dictionary<string, string[]> { ["destinationBehavior"] = ["Destination behavior must be reject, replace, or swap."] });
+        }
         var mutationKey = request.IdempotencyKey?.Trim();
 
         var item = await repository.GetByIdAsync(request.MealId, houseId, cancellationToken);
-        if (item is null) return new("NotFound");
+        if (item is null)
+        {
+            return new("NotFound");
+        }
         if (item.ParentMealPlanItemId.HasValue)
+        {
             return ValidationMutation(new Dictionary<string, string[]> { ["mealId"] = ["Meal-plan add-ons cannot be moved directly."] });
+        }
         if (!string.IsNullOrWhiteSpace(mutationKey) &&
             string.Equals(item.LastMutationKey, mutationKey, StringComparison.Ordinal))
         {
@@ -417,15 +470,21 @@ public sealed class MealPlannerService(
                         candidate.ParentMealPlanItemId is null &&
                         string.Equals(candidate.LastMutationKey, mutationKey, StringComparison.Ordinal));
                 if (pairedItem is not null)
+                {
                     return await SuccessPairMutationAsync(userId, houseId, item, pairedItem, cancellationToken);
+                }
             }
             return await SuccessMutationAsync(userId, houseId, item, cancellationToken);
         }
         if (request.ExpectedVersion is { } expectedVersion && item.Version != expectedVersion)
+        {
             return VersionConflict(item.Version);
+        }
 
         if (item.Date == request.Date && item.Slot == targetSlot)
+        {
             return await SuccessMutationAsync(userId, houseId, item, cancellationToken);
+        }
 
         var candidates = (await GetSlotItemsAsync(houseId, request.Date, targetSlot, cancellationToken))
             .Where(candidate => candidate.Id != item.Id)
@@ -434,12 +493,19 @@ public sealed class MealPlannerService(
         if (behavior == "swap")
         {
             if (candidates.Count != 1)
+            {
                 return await AmbiguousDestinationAsync(userId, houseId, candidates, request.Date, request.Slot, cancellationToken);
+            }
 
             var destination = await repository.GetByIdAsync(candidates[0].Id, houseId, cancellationToken);
-            if (destination is null) return new("NotFound");
+            if (destination is null)
+            {
+                return new("NotFound");
+            }
             if (request.DestinationExpectedVersion is { } destinationVersion && destination.Version != destinationVersion)
+            {
                 return VersionConflict(destination.Version);
+            }
 
             var originalDate = item.Date;
             var originalSlot = item.Slot;
@@ -469,12 +535,19 @@ public sealed class MealPlannerService(
         if (candidates.Count > 0)
         {
             if (behavior == "reject" || candidates.Count > 1)
+            {
                 return await AmbiguousDestinationAsync(userId, houseId, candidates, request.Date, request.Slot, cancellationToken);
+            }
 
             var destination = await repository.GetByIdAsync(candidates[0].Id, houseId, cancellationToken);
-            if (destination is null) return new("NotFound");
+            if (destination is null)
+            {
+                return new("NotFound");
+            }
             if (request.DestinationExpectedVersion is { } destinationVersion && destination.Version != destinationVersion)
+            {
                 return VersionConflict(destination.Version);
+            }
             RemoveWithAddons(destination);
         }
 
@@ -493,24 +566,39 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, SwapMealPlanRequest request, CancellationToken cancellationToken)
     {
         if (request.FirstMealId == request.SecondMealId)
+        {
             return ValidationMutation(new Dictionary<string, string[]> { ["mealId"] = ["The two meals must be different."] });
+        }
 
         var first = await repository.GetByIdAsync(request.FirstMealId, houseId, cancellationToken);
         var second = await repository.GetByIdAsync(request.SecondMealId, houseId, cancellationToken);
-        if (first is null || second is null) return new("NotFound");
+        if (first is null || second is null)
+        {
+            return new("NotFound");
+        }
         if (first.ParentMealPlanItemId.HasValue || second.ParentMealPlanItemId.HasValue)
+        {
             return ValidationMutation(new Dictionary<string, string[]> { ["mealId"] = ["Meal-plan add-ons cannot be swapped directly."] });
+        }
         var mutationKey = request.IdempotencyKey?.Trim();
         if (!string.IsNullOrWhiteSpace(mutationKey) &&
             string.Equals(first.LastMutationKey, mutationKey, StringComparison.Ordinal) &&
             string.Equals(second.LastMutationKey, mutationKey, StringComparison.Ordinal))
+        {
             return await SuccessPairMutationAsync(userId, houseId, first, second, cancellationToken);
+        }
         if (request.FirstExpectedVersion is { } firstVersion && first.Version != firstVersion)
+        {
             return VersionConflict(first.Version);
+        }
         if (request.SecondExpectedVersion is { } secondVersion && second.Version != secondVersion)
+        {
             return VersionConflict(second.Version);
+        }
         if (first.Date == second.Date && first.Slot == second.Slot)
+        {
             return await SuccessPairMutationAsync(userId, houseId, first, second, cancellationToken);
+        }
 
         (first.Date, second.Date) = (second.Date, first.Date);
         (first.Slot, second.Slot) = (second.Slot, first.Slot);
@@ -535,16 +623,24 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, ClearMealPlanSlotRequest request, CancellationToken cancellationToken)
     {
         if (SlotError(request.Slot) is { } slotError)
+        {
             return ValidationMutation(slotError);
+        }
 
         var candidates = await GetSlotItemsAsync(houseId, request.Date, ParseSlot(request.Slot), cancellationToken);
         if (candidates.Count == 0)
+        {
             return new("Success", Items: [], Message: "The meal-plan slot is already empty.");
+        }
 
         var tracked = new List<MealPlanItem>();
         foreach (var candidate in candidates)
+        {
             if (await repository.GetByIdAsync(candidate.Id, houseId, cancellationToken) is { } item)
+            {
                 tracked.Add(item);
+            }
+        }
 
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
         var responses = new List<MealPlanItemResponse>();
@@ -561,7 +657,9 @@ public sealed class MealPlannerService(
         Guid houseId, DateOnly date, string slot, CancellationToken cancellationToken)
     {
         if (SlotError(slot) is not null)
+        {
             throw new ArgumentException("Invalid meal-plan slot.", nameof(slot));
+        }
 
         var candidates = await GetSlotItemsAsync(houseId, date, ParseSlot(slot), cancellationToken);
         var recommendations = (await recipeRepository.GetAllForDuplicateCheckAsync(houseId, cancellationToken))
@@ -571,12 +669,14 @@ public sealed class MealPlannerService(
                 "Household recipe; options are not ranked by preferences.", $"kotlet://recipes/{recipe.Id}"))
             .ToList();
         if (preparedMealRepository is not null && recommendations.Count < 5)
+        {
             recommendations.AddRange((await preparedMealRepository.ListAsync(houseId, includeArchived: false, cancellationToken))
                 .Take(5 - recommendations.Count)
                 .Select(meal => new MealPlanRecommendation(
                     "prepared-meal", null, null, meal.Id, null, meal.Name,
                     "Prepared household meal; options are not ranked by preferences.",
                     $"kotlet://prepared-meals/{meal.Id}")));
+        }
 
         return new(date, slot.ToLowerInvariant(), recommendations, candidates.Count == 0);
     }
@@ -591,7 +691,10 @@ public sealed class MealPlannerService(
         Guid houseId, Guid itemId, CancellationToken cancellationToken)
     {
         var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
-        if (item is null) return MealPlannerOperationStatus.NotFound;
+        if (item is null)
+        {
+            return MealPlannerOperationStatus.NotFound;
+        }
 
         repository.Remove(item);
         await repository.SaveChangesAsync(cancellationToken);
@@ -607,24 +710,33 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, Guid itemId, IReadOnlyList<Guid> userIds, CancellationToken cancellationToken)
     {
         var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
-        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+        if (item is null)
+        {
+            return new(MealPlannerOperationStatus.NotFound);
+        }
 
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
         var desired = userIds.Distinct().ToHashSet();
 
         var unknown = desired.Where(id => !members.ContainsKey(id)).ToList();
         if (unknown.Count > 0)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
             {
                 ["userIds"] = ["One or more selected people are not members of your house."]
             });
+        }
 
         foreach (var participant in item.Participants.Where(p => !desired.Contains(p.UserId)).ToList())
+        {
             item.Participants.Remove(participant);
+        }
 
         var current = item.Participants.Select(p => p.UserId).ToHashSet();
         foreach (var id in desired.Where(id => !current.Contains(id)))
+        {
             item.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = item.Id, UserId = id });
+        }
 
         item.UpdatedAt = DateTimeOffset.UtcNow;
         item.Version++;
@@ -643,21 +755,28 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, Guid itemId, IReadOnlyList<Guid> userIds, CancellationToken cancellationToken)
     {
         var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
-        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+        if (item is null)
+        {
+            return new(MealPlannerOperationStatus.NotFound);
+        }
 
         var members = await GetMemberNamesAsync(houseId, cancellationToken);
         var requested = userIds.Distinct().ToList();
 
         var unknown = requested.Where(id => !members.ContainsKey(id)).ToList();
         if (unknown.Count > 0)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
             {
                 ["userIds"] = ["One or more selected people are not members of your house."]
             });
+        }
 
         var current = item.Participants.Select(p => p.UserId).ToHashSet();
         foreach (var id in requested.Where(id => !current.Contains(id)))
+        {
             item.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = item.Id, UserId = id });
+        }
 
         item.UpdatedAt = DateTimeOffset.UtcNow;
         item.Version++;
@@ -672,16 +791,24 @@ public sealed class MealPlannerService(
         CancellationToken cancellationToken)
     {
         if (portionPercent is < MealPlanItemParticipant.MinPortionPercent or > MealPlanItemParticipant.MaxPortionPercent)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
             {
                 ["portionPercent"] = ["Portion percent must be between 50 and 150."]
             });
+        }
 
         var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
-        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+        if (item is null)
+        {
+            return new(MealPlannerOperationStatus.NotFound);
+        }
 
         var participant = item.Participants.SingleOrDefault(value => value.UserId == participantUserId);
-        if (participant is null) return new(MealPlannerOperationStatus.NotFound);
+        if (participant is null)
+        {
+            return new(MealPlannerOperationStatus.NotFound);
+        }
 
         participant.PortionPercent = portionPercent;
         item.UpdatedAt = DateTimeOffset.UtcNow;
@@ -701,13 +828,18 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, Guid itemId, int? servings, CancellationToken cancellationToken)
     {
         if (servings is < 0 or > MaxServings)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
             {
                 ["servings"] = [$"Servings must be between 0 and {MaxServings}."]
             });
+        }
 
         var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
-        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+        if (item is null)
+        {
+            return new(MealPlannerOperationStatus.NotFound);
+        }
 
         item.Servings = servings;
         item.UpdatedAt = DateTimeOffset.UtcNow;
@@ -727,13 +859,18 @@ public sealed class MealPlannerService(
         Guid userId, Guid houseId, Guid itemId, int guests, CancellationToken cancellationToken)
     {
         if (guests is < 0 or > MaxGuests)
+        {
             return new(MealPlannerOperationStatus.ValidationFailed, ValidationErrors: new Dictionary<string, string[]>
             {
                 ["guests"] = [$"Guests must be between 0 and {MaxGuests}."]
             });
+        }
 
         var item = await repository.GetByIdAsync(itemId, houseId, cancellationToken);
-        if (item is null) return new(MealPlannerOperationStatus.NotFound);
+        if (item is null)
+        {
+            return new(MealPlannerOperationStatus.NotFound);
+        }
 
         item.Guests = guests;
         item.UpdatedAt = DateTimeOffset.UtcNow;
@@ -749,7 +886,9 @@ public sealed class MealPlannerService(
         Guid houseId, MealPlanSourceRequest? source, CancellationToken cancellationToken)
     {
         if (source is null)
+        {
             return new() { ["source"] = ["A meal source is required."] };
+        }
 
         var request = new AddMealPlanItemRequest(
             DateOnly.MinValue,
@@ -841,7 +980,9 @@ public sealed class MealPlannerService(
     private void RemoveWithAddons(MealPlanItem item)
     {
         foreach (var addon in item.AddonItems.ToList())
+        {
             repository.Remove(addon);
+        }
         item.AddonItems.Clear();
         repository.Remove(item);
     }
@@ -922,7 +1063,9 @@ public sealed class MealPlannerService(
     private static void SetMutationKey(MealPlanItem item, string? mutationKey)
     {
         if (!string.IsNullOrWhiteSpace(mutationKey))
+        {
             item.LastMutationKey = mutationKey.Trim();
+        }
     }
 
     private async Task<Dictionary<string, string[]>> ValidateAddAsync(
@@ -931,7 +1074,9 @@ public sealed class MealPlannerService(
         var errors = new Dictionary<string, string[]>();
 
         if (validateSlot && SlotError(request.Slot) is { } slotError)
+        {
             errors["slot"] = slotError["slot"];
+        }
 
         var hasRecipe = request.RecipeId.HasValue;
         var hasIngredient = request.IngredientId.HasValue;
@@ -957,17 +1102,29 @@ public sealed class MealPlannerService(
         else if (hasRecipe)
         {
             var recipe = await recipeRepository.GetByIdAsync(request.RecipeId!.Value, houseId, tracked: false, cancellationToken);
-            if (recipe is null) errors["recipeId"] = ["Recipe not found."];
+            if (recipe is null)
+            {
+                errors["recipeId"] = ["Recipe not found."];
+            }
         }
         else if (hasIngredient)
         {
             var ingredient = await ingredientRepository.GetByIdAsync(request.IngredientId!.Value, tracked: false, cancellationToken);
-            if (ingredient is null) errors["ingredientId"] = ["Ingredient not found."];
+            if (ingredient is null)
+            {
+                errors["ingredientId"] = ["Ingredient not found."];
+            }
         }
         else if (hasFreeText)
         {
-            if (string.IsNullOrWhiteSpace(request.FreeText)) errors["freeText"] = ["Free text is required."];
-            else if (request.FreeText.Trim().Length > 500) errors["freeText"] = ["Free text cannot exceed 500 characters."];
+            if (string.IsNullOrWhiteSpace(request.FreeText))
+            {
+                errors["freeText"] = ["Free text is required."];
+            }
+            else if (request.FreeText.Trim().Length > 500)
+            {
+                errors["freeText"] = ["Free text cannot exceed 500 characters."];
+            }
         }
         else if (preparedMealRepository is null || await preparedMealRepository.GetAsync(request.PreparedMealId!.Value, houseId, false, cancellationToken) is not { IsArchived: false } meal)
         {
@@ -976,12 +1133,24 @@ public sealed class MealPlannerService(
         else
         {
             var selected = request.Addons ?? [];
-            if (selected.GroupBy(a => a.IngredientId).Any(g => g.Count() > 1)) errors["addons"] = ["Duplicate add-ons are not allowed."];
-            if (meal.Addons.Where(a => a.IsRequired).Any(required => selected.All(a => a.IngredientId != required.IngredientId))) errors["addons"] = ["Required add-ons must be selected."];
+            if (selected.GroupBy(a => a.IngredientId).Any(g => g.Count() > 1))
+            {
+                errors["addons"] = ["Duplicate add-ons are not allowed."];
+            }
+            if (meal.Addons.Where(a => a.IsRequired).Any(required => selected.All(a => a.IngredientId != required.IngredientId)))
+            {
+                errors["addons"] = ["Required add-ons must be selected."];
+            }
             foreach (var addon in selected)
             {
-                if (addon.Quantity <= 0 || string.IsNullOrWhiteSpace(addon.Unit)) errors["addons"] = ["Add-on quantity and unit are required."];
-                if (meal.Addons.All(a => a.IngredientId != addon.IngredientId)) errors["addons"] = ["Selected add-on is not configured for this prepared meal."];
+                if (addon.Quantity <= 0 || string.IsNullOrWhiteSpace(addon.Unit))
+                {
+                    errors["addons"] = ["Add-on quantity and unit are required."];
+                }
+                if (meal.Addons.All(a => a.IngredientId != addon.IngredientId))
+                {
+                    errors["addons"] = ["Selected add-on is not configured for this prepared meal."];
+                }
             }
         }
 
@@ -996,9 +1165,13 @@ public sealed class MealPlannerService(
     {
         var errors = new Dictionary<string, string[]>();
         if (requireMeals && request.Meals.Count == 0)
+        {
             errors["meals"] = ["Add at least one meal to the weekly plan."];
+        }
         else if (request.Meals.Count > 35)
+        {
             errors["meals"] = ["A weekly plan cannot contain more than 35 meals."];
+        }
 
         var recipeIds = request.Meals
             .Where(meal => meal.RecipeId.HasValue)
@@ -1027,9 +1200,13 @@ public sealed class MealPlannerService(
         {
             var meal = request.Meals[index];
             if (meal.Date < request.WeekStart || meal.Date > request.WeekStart.AddDays(6))
+            {
                 errors[$"meals[{index}].date"] = ["Date must be within the seven-day week starting at weekStart."];
+            }
             if (SlotError(meal.Slot) is { } slotError)
+            {
                 errors[$"meals[{index}].slot"] = slotError["slot"];
+            }
 
             var hasRecipe = meal.RecipeId.HasValue;
             var hasIngredient = meal.IngredientId.HasValue;
@@ -1056,17 +1233,29 @@ public sealed class MealPlannerService(
             }
 
             if (!hasPreparedMeal && meal.Addons is { Count: > 0 })
+            {
                 errors[$"meals[{index}].addons"] = ["Add-ons can only be selected for a prepared meal."];
+            }
             else if (hasRecipe && !recipes.ContainsKey(meal.RecipeId!.Value))
+            {
                 errors[$"meals[{index}].recipeId"] = ["Recipe not found."];
+            }
             else if (hasIngredient && !ingredients.ContainsKey(meal.IngredientId!.Value))
+            {
                 errors[$"meals[{index}].ingredientId"] = ["Ingredient not found."];
+            }
             else if (hasFreeText && string.IsNullOrWhiteSpace(meal.FreeText))
+            {
                 errors[$"meals[{index}].freeText"] = ["Free text is required."];
+            }
             else if (hasFreeText && meal.FreeText!.Trim().Length > 500)
+            {
                 errors[$"meals[{index}].freeText"] = ["Free text cannot exceed 500 characters."];
+            }
             else if (hasPreparedMeal)
+            {
                 ValidatePreparedMeal(index, meal, preparedMeals, errors);
+            }
         }
 
         return new(errors, context);
@@ -1086,16 +1275,24 @@ public sealed class MealPlannerService(
 
         var selected = request.Addons ?? [];
         if (selected.GroupBy(addon => addon.IngredientId).Any(group => group.Count() > 1))
+        {
             errors[$"meals[{index}].addons"] = ["Duplicate add-ons are not allowed."];
+        }
         if (meal.Addons.Where(addon => addon.IsRequired)
             .Any(required => selected.All(addon => addon.IngredientId != required.IngredientId)))
+        {
             errors[$"meals[{index}].addons"] = ["Required add-ons must be selected."];
+        }
         foreach (var addon in selected)
         {
             if (addon.Quantity <= 0 || string.IsNullOrWhiteSpace(addon.Unit))
+            {
                 errors[$"meals[{index}].addons"] = ["Add-on quantity and unit are required."];
+            }
             if (meal.Addons.All(configured => configured.IngredientId != addon.IngredientId))
+            {
                 errors[$"meals[{index}].addons"] = ["Selected add-on is not configured for this prepared meal."];
+            }
         }
     }
 
@@ -1184,12 +1381,43 @@ public sealed class MealPlannerService(
         MealPlanItem item, WeekLookupContext context)
     {
         if (item.RecipeId is { } recipeId)
+        {
             return (context.Recipes[recipeId].Title, "recipe");
+        }
         if (item.IngredientId is { } ingredientId)
+        {
             return (context.Ingredients[ingredientId].Name, "ingredient");
+        }
         if (item.FreeText is { } freeText)
+        {
             return (freeText, "free-text");
+        }
         return (context.PreparedMeals[item.PreparedMealId!.Value].Name, "prepared-meal");
+    }
+
+    private static (string DisplayName, string Type) ResolveDisplay(
+        MealPlanItem item,
+        IReadOnlyDictionary<Guid, string> recipes,
+        IReadOnlyDictionary<Guid, string> ingredients,
+        IReadOnlyDictionary<Guid, string> preparedMeals)
+    {
+        if (item.RecipeId is { } recipeId)
+        {
+            return (recipes.GetValueOrDefault(recipeId, "Unknown recipe"), "recipe");
+        }
+        if (item.IngredientId is { } ingredientId)
+        {
+            return (ingredients.GetValueOrDefault(ingredientId, "Unknown ingredient"), "ingredient");
+        }
+        if (item.FreeText is { } freeText)
+        {
+            return (freeText, "free-text");
+        }
+        if (item.PreparedMealId is { } preparedMealId)
+        {
+            return (preparedMeals.GetValueOrDefault(preparedMealId, "Unknown prepared meal"), "prepared-meal");
+        }
+        return ("Unknown meal", "unknown");
     }
 
     private async Task<Dictionary<Guid, string>> GetMemberNamesAsync(Guid houseId, CancellationToken cancellationToken)

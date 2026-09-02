@@ -24,6 +24,26 @@ export function isPortionPercentInRange(value: number): boolean {
   return Number.isFinite(value) && value >= MIN_PORTION_PERCENT && value <= MAX_PORTION_PERCENT;
 }
 
+/** Resolves the calories for one serving of any item shown in the meal planner. */
+export function mealCaloriesPerServing(
+  item: MealPlanItem,
+  recipeDetails: Record<string, RecipeDetail>,
+  ingredients: readonly Ingredient[],
+  preparedMeals: readonly PreparedMeal[],
+): number | null {
+  if (item.type === 'ingredient') {
+    const ingredient = ingredients.find((candidate) => candidate.id === item.ingredientId);
+    return ingredient ? directIngredientCaloriesPerServing(ingredient) : null;
+  }
+
+  if (item.type === 'prepared-meal') {
+    return preparedMeals.find((meal) => meal.id === item.preparedMealId)?.caloriesPerServing ?? null;
+  }
+
+  const detail = item.recipeId ? recipeDetails[item.recipeId] : undefined;
+  return detail ? recipeCaloriesPerServing(detail, ingredients) : null;
+}
+
 export function allocateCaloriesByPerson(
   items: MealPlanItem[],
   recipeDetails: Record<string, RecipeDetail>,
@@ -32,19 +52,6 @@ export function allocateCaloriesByPerson(
   guestLabel: string,
   unassignedLabel: string,
 ): PersonCalories[] {
-  function getCaloriesPerServing(item: MealPlanItem): number | null {
-    if (item.type === 'ingredient') {
-      const ingredient = ingredients.find((candidate) => candidate.id === item.ingredientId);
-      return ingredient ? directIngredientCaloriesPerServing(ingredient) : null;
-    }
-
-    if (item.type === 'prepared-meal')
-      return preparedMeals.find((meal) => meal.id === item.preparedMealId)?.caloriesPerServing ?? null;
-
-    const detail = item.recipeId ? recipeDetails[item.recipeId] : undefined;
-    return detail ? recipeCaloriesPerServing(detail, ingredients) : null;
-  }
-
   const emptyMeals = (): Record<MealSlot, number> => ({
     breakfast: 0, 'second-breakfast': 0, dinner: 0, snack: 0, supper: 0,
   });
@@ -58,7 +65,7 @@ export function allocateCaloriesByPerson(
   }
 
   for (const item of items) {
-    const caloriesPerServing = getCaloriesPerServing(item);
+    const caloriesPerServing = mealCaloriesPerServing(item, recipeDetails, ingredients, preparedMeals);
     if (caloriesPerServing === null || item.servings === 0) continue;
     if (item.participants.length + item.guests === 0) {
       add('unassigned', unassignedLabel, item.slot, caloriesPerServing * item.servings);

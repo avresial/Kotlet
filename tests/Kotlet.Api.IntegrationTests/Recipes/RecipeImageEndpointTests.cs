@@ -142,7 +142,10 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
         var file = new ByteArrayContent(bytes);
         file.Headers.ContentType = new MediaTypeHeaderValue(type);
         form.Add(file, "file", name);
-        if (alt is not null) form.Add(new StringContent(alt, Encoding.UTF8), "altText");
+        if (alt is not null)
+        {
+            form.Add(new StringContent(alt, Encoding.UTF8), "altText");
+        }
         Add(sourceProvider, "sourceProvider");
         Add(sourceExternalId, "sourceExternalId");
         Add(sourceUrl, "sourceUrl");
@@ -152,7 +155,10 @@ public sealed class RecipeImageEndpointTests(TestWebApplicationFactory factory) 
 
         void Add(string? value, string name)
         {
-            if (value is not null) form.Add(new StringContent(value, Encoding.UTF8), name);
+            if (value is not null)
+            {
+                form.Add(new StringContent(value, Encoding.UTF8), name);
+            }
         }
     }
 
