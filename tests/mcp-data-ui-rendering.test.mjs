@@ -376,5 +376,13 @@ test("shared MCP app renders complete UI data from result metadata", () => {
 
   assert.equal(dom.window.document.getElementById("title").textContent, "Ingredient matches");
   assert.match(dom.window.document.getElementById("content").textContent, /83%/);
+  assert.equal(dom.window.document.querySelectorAll(".match").length, 1);
+  assert.equal(dom.window.document.querySelector(".match.card"), null);
+  assert.equal(dom.window.document.querySelector("meter.confidence"), null);
+  assert.equal(dom.window.document.querySelector(".match-input").textContent, "Tomto");
+  assert.equal(dom.window.document.querySelector(".match-separator").textContent, "→");
+  assert.equal(dom.window.document.querySelector(".match-name").textContent, "Tomato");
+  assert.equal(dom.window.document.querySelector(".match .tag").textContent, "Review");
+  assert.equal(dom.window.document.querySelector(".confidence").textContent, "83%");
   dom.window.close();
 });
