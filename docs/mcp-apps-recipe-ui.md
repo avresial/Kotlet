@@ -51,6 +51,12 @@ are copied from `src/frontend/src/styles.scss` (light and dark palettes), and th
 mirrors `recipe-list-page` and `recipe-detail-page` class-for-class. The host's reported theme
 (`hostContext.theme`) switches the palette, falling back to `prefers-color-scheme`.
 
+Every embedded MCP UI header uses a transparent wrapper, a title color bound to the document's theme
+foreground token, and a theme-aware foreground color for its eyebrow label. Keep this convention in
+`DataUiApp.html`, `MealPlanUiApp.html`, `MealPlannerUiApp.html`, and `RecipeUiApp.html`; the strict
+`default-src 'none'` CSP and embedded-resource model do not provide a shared stylesheet or header
+partial.
+
 Language works the same way: English and Polish both ship inside the document, and the app picks
 one from the tool result's `_meta["kotlet/locale"]` (the language the server negotiated from
 `Accept-Language`), then `hostContext.locale`, then the browser. Each candidate is normalized to
