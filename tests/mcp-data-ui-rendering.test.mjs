@@ -125,6 +125,71 @@ test("meal operation result prioritizes useful content and hides identifiers", (
   dom.window.close();
 });
 
+test("single ingredient results keep metadata in collapsed details", () => {
+  const dom = new JSDOM(html, {
+    runScripts: "dangerously",
+    url: "https://widget.test/",
+    beforeParse(window) {
+      window.matchMedia = () => ({ matches: false });
+    },
+  });
+  dom.window.dispatchEvent(new dom.window.MessageEvent("message", {
+    data: {
+      jsonrpc: "2.0",
+      method: "ui/notifications/tool-result",
+      params: {
+        structuredContent: {
+          status: "Success",
+          ingredientId: "00000000-0000-0000-0000-000000000001",
+          name: "Skyr",
+          measurementUnit: "g",
+        },
+        _meta: {
+          "kotlet/uiData": {
+            status: "Success",
+            ingredient: {
+              id: "00000000-0000-0000-0000-000000000001",
+              name: "Skyr",
+              defaultName: "Skyr",
+              measurementUnit: "g",
+              isCountable: false,
+              measurementUnitsPerPiece: null,
+              caloriesPer100BaseUnits: 63,
+              pricePer100BaseUnits: 1.2,
+              category: "Dairy",
+              allergens: ["Milk"],
+              attributes: ["ContainsLactose"],
+              suitability: ["Vegetarian"],
+            },
+          },
+        },
+      },
+    },
+  }));
+
+  const document = dom.window.document;
+  assert.equal(document.querySelector(".ingredient-title").textContent, "Skyr · Dairy");
+  assert.equal(document.getElementById("summary").textContent, "");
+  const details = document.querySelector("details.ingredient-details");
+  assert.ok(details);
+  assert.equal(details.open, false);
+  assert.equal(document.querySelector(".operation-hero"), null);
+  assert.equal(details.querySelector("dt").textContent, "Status");
+  assert.match(details.textContent, /Success/);
+  assert.match(details.textContent, /00000000-0000-0000-0000-000000000001/);
+  assert.match(details.textContent, /Calories per 100 base units/);
+  assert.match(details.textContent, /Milk/);
+  assert.match(details.textContent, /ContainsLactose/);
+  assert.match(details.textContent, /Vegetarian/);
+  details.open = true;
+  assert.equal(details.open, true);
+  assert.equal(
+    document.querySelector(".ingredient-title").closest(".ingredient-result").querySelectorAll("details").length,
+    1,
+  );
+  dom.window.close();
+});
+
 test("resource links render as compact link cards instead of field lists", () => {
   const dom = new JSDOM(html, {
     runScripts: "dangerously",
