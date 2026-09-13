@@ -304,6 +304,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains("function prepared", body);
         Assert.Contains("function mealPlan", body);
         Assert.Contains("function ingredientMatches", body);
+        Assert.Contains("function renderIngredient", body);
         Assert.Contains("function duplicates", body);
         Assert.Contains(".tag{", body);
         Assert.DoesNotContain("src=\"http", body);
