@@ -8,6 +8,9 @@ h1 { margin: .45rem 0; font: 500 clamp(2.2rem, 5vw, 3.5rem)/1.05 Georgia, serif;
 header p:last-child { margin: 0; color: var(--app-text-muted); }
 .error { margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid var(--app-danger-border); border-radius: .6rem; color: var(--app-danger); background: var(--app-danger-bg); }
 .editor, .catalogue { padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--app-border); border-radius: 1rem; background: var(--app-surface); box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%); }
+.editor-collapsed { width: 100%; display: flex; align-items: center; gap: .5rem; border-style: dashed; }
+.editor-collapsed:hover { background: var(--app-inset); }
+.editor-collapsed .chevron { width: 1rem; height: 1rem; flex: 0 0 auto; margin-left: auto; color: var(--app-text-muted); }
 h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
 form { margin-top: 1.25rem; display: grid; gap: 1.5rem; }
 .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 1.5rem; }
@@ -102,6 +105,7 @@ th:last-child, td:last-child { text-align: right; }
   .row-actions::before { display: none; }
   .row-actions summary { width: var(--density-control); height: var(--density-control); border: 0; }
   .editor form { margin-top: .75rem; gap: .75rem; }
+  .editor-collapsed { min-height: var(--density-control); }
   .field-group { gap: .65rem; padding: .75rem; }
   .col-flags { gap: .5rem; }
   .flags-group { padding: .65rem .75rem .75rem; }

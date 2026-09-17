@@ -60,6 +60,8 @@ export class IngredientsPage implements OnInit {
   readonly attributes = signal(0);
   readonly suitability = signal(0);
   readonly editingId = signal<string | null>(null);
+  /** The creation form is large, so it stays collapsed until the user asks for it. Editing opens it. */
+  readonly isEditorOpen = signal(false);
   readonly isLoading = signal(true);
   readonly isSaving = signal(false);
   readonly isAutofilling = signal(false);
@@ -145,7 +147,16 @@ export class IngredientsPage implements OnInit {
     });
   }
 
+  openEditor(): void {
+    this.isEditorOpen.set(true);
+  }
+
+  closeEditor(): void {
+    this.isEditorOpen.set(false);
+  }
+
   edit(ingredient: Ingredient): void {
+    this.isEditorOpen.set(true);
     this.editingId.set(ingredient.id);
     this.error.set(null);
     this.allergens.set(ingredient.allergens);
@@ -208,6 +219,7 @@ export class IngredientsPage implements OnInit {
           ? items.map((item) => item.id === id ? ingredient : item).sort(this.sortByName)
           : [...items, ingredient].sort(this.sortByName));
         this.cancelEdit();
+        if (!id) this.isEditorOpen.set(false);
       },
       error: (error) => this.error.set(getApiError(error, this.translation.translate('ingredients.saveError'))),
     });
