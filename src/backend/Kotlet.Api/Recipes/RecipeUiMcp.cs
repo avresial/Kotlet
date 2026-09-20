@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Kotlet.Api.Auth;
 using Kotlet.Api.Mcp;
 using Kotlet.Application.Recipes;
@@ -354,12 +355,13 @@ public sealed record RecipeUiPresentationCard(
     int Servings,
     int IngredientCount,
     string? ImageUrl,
-    bool CanEdit)
+    bool CanEdit,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? IsAiAssisted = null)
 {
     public static RecipeUiPresentationCard From(RecipeUiCard card) => new(
         card.Id, card.Title,
         RecipeUiMcp.SummaryText(card.Description), card.MealType, card.Servings,
-        card.IngredientCount, card.ImageUrl, CanEdit: false);
+        card.IngredientCount, card.ImageUrl, CanEdit: false, IsAiAssisted: card.IsAiAssisted);
 }
 
 /// <summary>Search result data consumed by the dedicated MCP App.</summary>
@@ -386,6 +388,7 @@ public sealed record RecipeUiDetail(
     string? MealType,
     RecipeUiImage? Image,
     IReadOnlyList<RecipeUiIngredient> Ingredients,
+    bool IsAiAssisted,
     bool CanEdit,
     bool IsIncomplete,
     string? EditUrl)
@@ -419,6 +422,7 @@ public sealed record RecipeUiDetail(
             response.MealType,
             image,
             ingredients,
+            response.IsAiAssisted,
             response.CanEdit,
             isIncomplete,
             response.CanEdit ? $"{frontendOrigin}/recipes/{response.Id}/edit" : null);

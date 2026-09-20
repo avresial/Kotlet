@@ -65,7 +65,8 @@ internal static class AgentRecipeResultAdapter
                 presentation.Servings,
                 presentation.Ingredients.Count,
                 presentation.Image?.Url,
-                presentation.CanEdit);
+                presentation.CanEdit,
+                presentation.IsAiAssisted);
             return new AgentStructuredResult("recipes", [card], 1);
         }
 

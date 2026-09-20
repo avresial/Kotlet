@@ -1,5 +1,6 @@
 using Kotlet.Api.Ai;
 using Kotlet.Api.Mcp;
+using Kotlet.Application.Recipes;
 using Microsoft.Extensions.AI;
 using Xunit;
 
@@ -38,6 +39,40 @@ public sealed class AgentRecipeResultAdapterTests
         Assert.Equal("Tomato soup", card.Title);
         Assert.Equal("https://api.example/api/recipes/recipe-1/images/cover/content", card.ImageUrl);
         Assert.True(card.CanEdit);
+        Assert.Null(card.IsAiAssisted);
+    }
+
+    [Fact]
+    public void Adapt_PreservesAiAssistanceForRecipeDetails()
+    {
+        var recipeId = Guid.NewGuid();
+        var detail = new RecipeDetailResponse(
+            recipeId,
+            "AI soup",
+            "ai-soup",
+            Guid.NewGuid(),
+            "A generated soup.",
+            2,
+            "dinner",
+            [],
+            [],
+            CanEdit: true,
+            IsAiAssisted: true,
+            SourceUrl: null,
+            VideoUrl: null,
+            VideoThumbnailUrl: null,
+            CreatedAtUtc: DateTimeOffset.UtcNow,
+            UpdatedAtUtc: DateTimeOffset.UtcNow);
+        var response = new ChatResponse(new ChatMessage(ChatRole.Assistant,
+        [
+            new FunctionCallContent("call-1", "get_recipe", new Dictionary<string, object?>()),
+            new FunctionResultContent("call-1", detail)
+        ]));
+
+        var result = AgentRecipeResultAdapter.Adapt(
+            response, "https://api.example", "https://app.example");
+
+        Assert.True(Assert.Single(Assert.Single(result).Recipes).IsAiAssisted);
     }
 
     [Fact]

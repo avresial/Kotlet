@@ -190,6 +190,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
                 title,
                 servings = 2,
                 mealType = "dinner",
+                isAiAssisted = true,
                 descriptionMarkdown = "A warm lentil bowl.\n\n1. Simmer the lentils.",
                 ingredients = new[] { new { ingredientId, quantity = 180, unit = "g" } }
             }
@@ -212,7 +213,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         AssertDoesNotContainKey(detail, "createdByUserId");
         AssertDoesNotContainKey(detail, "slug");
         AssertDoesNotContainKey(detail, "sourceUrl");
-        AssertDoesNotContainKey(detail, "isAiAssisted");
+        Assert.True(detail.GetProperty("isAiAssisted").GetBoolean());
         AssertDoesNotContainKey(detail, "preparationTimeMinutes");
         AssertDoesNotContainKey(detail, "cookingTimeMinutes");
         AssertDoesNotContainKey(detail, "totalTimeMinutes");
@@ -233,6 +234,9 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         var showPresentation = showResult.GetProperty("_meta").GetProperty("kotlet/recipeUi");
         Assert.Equal("list", showPresentation.GetProperty("kind").GetString());
         Assert.Equal(title, showPresentation.GetProperty("detail").GetProperty("title").GetString());
+        Assert.True(showPresentation.GetProperty("detail").GetProperty("isAiAssisted").GetBoolean());
+        Assert.True(Assert.Single(showPresentation.GetProperty("recipes").EnumerateArray())
+            .GetProperty("isAiAssisted").GetBoolean());
     }
 
     [Fact]
