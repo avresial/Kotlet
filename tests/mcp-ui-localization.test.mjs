@@ -14,6 +14,10 @@ const apps = {
 };
 const html = Object.fromEntries(Object.entries(apps)
   .map(([name, path]) => [name, readFileSync(new URL(path, import.meta.url), "utf8")]));
+const sharedRecipeCard = readFileSync(
+  new URL("../src/frontend/src/app/shared/ui/recipe-card/recipe-card.js", import.meta.url),
+  "utf8",
+);
 
 /**
  * Loads an app, optionally announcing a host locale, then delivers a tool result. The returned
@@ -25,6 +29,7 @@ function open(app, { serverLocale, hostLocale, structuredContent, meta } = {}) {
     url: "https://widget.test/",
     beforeParse(window) {
       window.matchMedia = () => ({ matches: false });
+      window.eval(sharedRecipeCard);
     },
   });
   const notify = (method, params) => dom.window.dispatchEvent(

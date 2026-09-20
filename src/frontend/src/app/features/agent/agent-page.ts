@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -8,20 +8,23 @@ import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { getApiError } from '../../core/http/api-error';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 import { AiProviderService } from '../settings/ai-provider.service';
 import { AgentMessage, AgentService } from './agent.service';
+import { RecipeCardModel } from '../../shared/ui/recipe-card/recipe-card.models';
 
 const storageKey = 'kotlet.agent.messages';
 const maxAgeMs = 24 * 60 * 60 * 1000;
 
 @Component({
-  selector: 'app-agent-page', imports: [FormsModule, CommonModule, TranslatePipe],
+  selector: 'app-agent-page', imports: [FormsModule, CommonModule, TranslatePipe], schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './agent-page.html', styleUrl: './agent-page.scss', changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AgentPage {
   private readonly provider = inject(AiProviderService);
   private readonly agent = inject(AgentService);
   private readonly router = inject(Router);
+  private readonly translations = inject(TranslationService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly document = inject(DOCUMENT);
   readonly models = signal<string[]>([]);
@@ -70,13 +73,47 @@ export class AgentPage {
     this.scrollToBottom();
     const startTime = Date.now();
     this.agent.chat(selectedModel, history).pipe(finalize(() => this.sending.set(false))).subscribe({
-      next: response => { this.append({ role: 'assistant', content: response.content.trim(), model: selectedModel, responseTimeMs: Date.now() - startTime }); },
+      next: response => {
+        this.append({
+          role: 'assistant',
+          content: response.content.trim(),
+          model: selectedModel,
+          responseTimeMs: Date.now() - startTime,
+          structuredResults: response.structuredResults,
+        });
+      },
       error: error => { this.append({ role: 'assistant', content: getApiError(error, 'The agent could not answer. Check your provider and model settings.'), error: true }); },
     });
   }
 
   keydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.send(); }
+  }
+
+  recipeCardJson(recipe: RecipeCardModel): string {
+    const mealTypeLabel = recipe.mealType
+      ? this.translations.translate(`meal.slot.${recipe.mealType}`)
+      : null;
+    return JSON.stringify({
+      ...recipe,
+      mealTypeLabel: mealTypeLabel?.startsWith('meal.slot.') ? null : mealTypeLabel,
+      servingsLabel: recipe.servings ? this.countLabel(recipe.servings, 'serving') : null,
+      ingredientCountLabel: recipe.ingredientCount ? this.countLabel(recipe.ingredientCount, 'ingredient') : null,
+      viewLabel: this.translations.translate('agent.viewRecipe'),
+    });
+  }
+
+  private countLabel(count: number, unit: 'serving' | 'ingredient'): string {
+    const category = new Intl.PluralRules(this.translations.language()).select(count);
+    const key = `agent.card.${unit}.${category}`;
+    const translated = this.translations.translate(key);
+    if (translated !== key) return `${count} ${translated}`;
+    return `${count} ${count === 1 ? unit : `${unit}s`}`;
+  }
+
+  openRecipe(event: Event): void {
+    const id = (event as CustomEvent<{ id?: string }>).detail?.id;
+    if (id) void this.router.navigate(['/recipes', id]);
   }
 
   autogrow(): void {

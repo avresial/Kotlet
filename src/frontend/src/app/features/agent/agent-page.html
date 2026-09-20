@@ -13,6 +13,18 @@
           <p role="alert">{{ message.content }}</p>
         } @else {
           <div class="markdown" [innerHTML]="renderMarkdown(message.content)"></div>
+          @if (message.structuredResults?.length) {
+            <div class="structured-results" role="list" [attr.aria-label]="'agent.recipeResults' | t">
+              @for (result of message.structuredResults; track $index) {
+                @for (recipe of result.recipes; track recipe.id) {
+                  <kotlet-recipe-card
+                    [attr.data-recipe]="recipeCardJson(recipe)"
+                    (recipe-view)="openRecipe($event)"
+                  />
+                }
+              }
+            </div>
+          }
           @if (message.model || message.responseTimeMs !== undefined) {
             <div class="metadata">
               @if (message.model) { <span>{{ message.model }}</span> }

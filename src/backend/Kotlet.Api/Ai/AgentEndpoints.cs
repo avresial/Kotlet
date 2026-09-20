@@ -1,6 +1,8 @@
 using Kotlet.Api.Auth;
+using Kotlet.Api.Recipes;
 using Kotlet.Application.Ai;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using System.ClientModel;
 using System.ComponentModel;
@@ -10,7 +12,9 @@ namespace Kotlet.Api.Ai;
 
 public sealed record AgentMessage(string Role, string Content);
 public sealed record AgentChatRequest(string Model, IReadOnlyList<AgentMessage> Messages);
-public sealed record AgentChatResponse(string Content);
+public sealed record AgentChatResponse(
+    string Content,
+    IReadOnlyList<AgentStructuredResult>? StructuredResults = null);
 
 public static class AgentEndpoints
 {
@@ -24,7 +28,8 @@ public static class AgentEndpoints
     }
 
     private static async Task<IResult> Chat(AgentChatRequest request, ICurrentUser user,
-        IUserChatClientResolver resolver, IServiceProvider services, ILoggerFactory loggerFactory, CancellationToken ct)
+        IUserChatClientResolver resolver, IServiceProvider services, IOptions<OAuthOptions> oauth,
+        ILoggerFactory loggerFactory, CancellationToken ct)
     {
         if (user.UserId is not { } userId)
         {
@@ -49,7 +54,13 @@ public static class AgentEndpoints
         try
         {
             var response = await client.GetResponseAsync(messages, new ChatOptions { Tools = CreateTools(services) }, ct);
-            return Results.Ok(new AgentChatResponse(response.Text ?? ""));
+            var structuredResults = AgentRecipeResultAdapter.Adapt(
+                response,
+                RecipeUiMcp.ApiOrigin(oauth.Value),
+                RecipeUiMcp.FrontendOrigin(oauth.Value));
+            return Results.Ok(new AgentChatResponse(
+                response.Text ?? "",
+                structuredResults.Count == 0 ? null : structuredResults));
         }
         catch (ClientResultException exception)
         {

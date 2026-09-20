@@ -27,6 +27,11 @@
               {
                 "glob": "**/*",
                 "input": "public"
+              },
+              {
+                "glob": "recipe-card.js",
+                "input": "src/app/shared/ui/recipe-card",
+                "output": "shared-ui"
               }
             ],
             "styles": [

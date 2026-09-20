@@ -99,48 +99,51 @@ public static class RecipeUiMcp
             }
         });
 
-    public static McpServerResource CreateRecipesUiResource(string apiOrigin) =>
-        McpServerResource.Create(() => AppHtml.Value, new McpServerResourceCreateOptions
-        {
-            UriTemplate = ResourceUri,
-            Name = "recipes-ui",
-            Title = "Kotlet recipe cards",
-            Description = "Interactive recipe-card UI rendered by MCP hosts that support MCP Apps.",
-            MimeType = ResourceMimeType,
-            Meta = new JsonObject
+    public static McpServerResource CreateRecipesUiResource(string apiOrigin, string frontendOrigin) =>
+        McpServerResource.Create(
+            () => AppHtml.Value.Replace("__KOTLET_FRONTEND_ORIGIN__", frontendOrigin.TrimEnd('/')),
+            new McpServerResourceCreateOptions
             {
-                ["ui"] = new JsonObject
+                UriTemplate = ResourceUri,
+                Name = "recipes-ui",
+                Title = "Kotlet recipe cards",
+                Description = "Interactive recipe-card UI rendered by MCP hosts that support MCP Apps.",
+                MimeType = ResourceMimeType,
+                Meta = new JsonObject
                 {
-                    // The iframe CSP the host enforces. Recipe images are served by this API
-                    // (anonymous content endpoint), so the API origin must be allowed as a
-                    // static-resource source; the UI makes no fetch/XHR/WebSocket or nested-frame
-                    // calls, so connectDomains and frameDomains stay empty.
-                    ["csp"] = new JsonObject
+                    ["ui"] = new JsonObject
                     {
-                        ["connectDomains"] = new JsonArray(),
-                        ["resourceDomains"] = new JsonArray(apiOrigin),
-                        ["frameDomains"] = new JsonArray()
+                        // The iframe CSP the host enforces. Recipe images are served by this API
+                        // (anonymous content endpoint), so the API origin must be allowed as a
+                        // static-resource source; the UI makes no fetch/XHR/WebSocket or nested-frame
+                        // calls, so connectDomains and frameDomains stay empty.
+                        ["csp"] = new JsonObject
+                        {
+                            ["connectDomains"] = new JsonArray(),
+                            ["resourceDomains"] = new JsonArray(apiOrigin, frontendOrigin),
+                            ["frameDomains"] = new JsonArray()
+                        },
+                        // Required by ChatGPT for plugin submission. The host derives a unique
+                        // web-sandbox origin from this application-owned HTTPS origin.
+                        ["domain"] = apiOrigin,
+                        ["prefersBorder"] = true
                     },
-                    // Required by ChatGPT for plugin submission. The host derives a unique
-                    // web-sandbox origin from this application-owned HTTPS origin.
-                    ["domain"] = apiOrigin,
-                    ["prefersBorder"] = true
-                },
-                // ChatGPT's Apps SDK reads the same CSP/domain info from its own (snake_case)
-                // metadata namespace, provided alongside _meta.ui so the widget is recognized in
-                // ChatGPT as well as in SEP-1865 MCP Apps hosts. widgetDomain is the origin the
-                // widget loads static resources (images) from.
-                ["openai/widgetCSP"] = new JsonObject
-                {
-                    ["connect_domains"] = new JsonArray(),
-                    ["resource_domains"] = new JsonArray(apiOrigin)
-                },
-                ["openai/widgetDomain"] = apiOrigin,
-                ["openai/widgetDescription"] =
-                    "Interactive recipe cards showing the household's recipes, with actions to open recipe details.",
-                ["openai/widgetPrefersBorder"] = true
+                    // ChatGPT's Apps SDK reads the same CSP/domain info from its own (snake_case)
+                    // metadata namespace, provided alongside _meta.ui so the widget is recognized in
+                    // ChatGPT as well as in SEP-1865 MCP Apps hosts. widgetDomain is the origin the
+                    // widget loads static resources (images) from.
+                    ["openai/widgetCSP"] = new JsonObject
+                    {
+                        ["connect_domains"] = new JsonArray(),
+                        ["resource_domains"] = new JsonArray(apiOrigin, frontendOrigin)
+                    },
+                    ["openai/widgetDomain"] = apiOrigin,
+                    ["openai/widgetDescription"] =
+                        "Interactive recipe cards showing the household's recipes, with actions to open recipe details.",
+                    ["openai/widgetPrefersBorder"] = true
+                }
             }
-        });
+        );
 
     [Description("Shows household recipes as interactive cards in MCP hosts that support MCP Apps. " +
                  "Hosts without MCP Apps support receive a plain text list instead. " +
@@ -342,7 +345,7 @@ public sealed record RecipeUiListData(
     int PageSize,
     string ApiOrigin);
 
-/// <summary>Small, user-facing recipe card data used only by the dedicated MCP App.</summary>
+/// <summary>Normalized recipe-card data shared by MCP and built-in Agent adapters.</summary>
 public sealed record RecipeUiPresentationCard(
     Guid Id,
     string Title,
