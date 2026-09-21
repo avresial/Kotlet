@@ -3,6 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostL
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, finalize, Observable, of, switchMap } from 'rxjs';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { CurrentUser } from '../../../../core/auth/auth.models';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
@@ -32,6 +34,45 @@ import {
 /** The three editable numeric columns of the portion table, all of which drive a participant's portion percentage. */
 type ParticipantField = 'calories' | 'quantity' | 'portion';
 
+const mealPlanCacheVersion = 1;
+const mealPlanCacheStoragePrefix = 'kotlet.mealPlanner';
+const mealPlanSlots: MealSlot[] = ['breakfast', 'second-breakfast', 'dinner', 'snack', 'supper'];
+
+interface MealPlanCacheRecord {
+  version: number;
+  userKey: string;
+  weekStart: string;
+  plans: Record<string, DailyMealPlan>;
+}
+
+export function mealPlannerCacheKey(user: Pick<CurrentUser, 'id' | 'activeHouseId'> | null): string | null {
+  return user?.activeHouseId ? `${user.id}:${user.activeHouseId}` : null;
+}
+
+export function mealPlannerCacheStorageKey(cacheKey: string): string {
+  return `${mealPlanCacheStoragePrefix}:${cacheKey}`;
+}
+
+function isDailyMealPlan(value: unknown): value is DailyMealPlan {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<DailyMealPlan>;
+  return typeof candidate.date === 'string'
+    && !!candidate.meals
+    && mealPlanSlots.every((slot) => Array.isArray(candidate.meals?.[slot]));
+}
+
+function isMealPlanCacheRecord(value: unknown): value is MealPlanCacheRecord {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<MealPlanCacheRecord>;
+  const week = candidate.weekStart;
+  return candidate.version === mealPlanCacheVersion
+    && typeof candidate.userKey === 'string'
+    && typeof week === 'string'
+    && isValidDateString(week)
+    && !!candidate.plans
+    && typeof candidate.plans === 'object';
+}
+
 export function weekStart(date: string): string {
   const value = new Date(`${date}T00:00:00`);
   value.setDate(value.getDate() - (value.getDay() + 6) % 7);
@@ -54,6 +95,7 @@ export function isValidDateString(value: string | null): value is string {
 })
 export class MealPlannerPage implements OnInit {
   readonly weekStart = weekStart;
+  private readonly auth = inject(AuthService, { optional: true });
   private readonly service = inject(MealPlannerService);
   private readonly recipeService = inject(RecipeService);
   private readonly ingredientService = inject(IngredientService);
@@ -130,6 +172,7 @@ export class MealPlannerPage implements OnInit {
   readonly shoppingItemState = signal<Record<string, 'adding' | 'added'>>({});
   /** Inline validation messages for out-of-range portion inputs, keyed by item/participant/field. */
   readonly fieldErrors = signal<Record<string, string>>({});
+  private planRequestId = 0;
 
   readonly dayTotal = computed(() => this.allItems().reduce((total, item) => total + (this.itemCost(item) ?? 0), 0));
   readonly dayServings = computed(() => this.allItems().reduce((total, item) => total + item.servings, 0));
@@ -261,16 +304,31 @@ export class MealPlannerPage implements OnInit {
   loadPlan(): void {
     const date = this.selectedDate();
     if (!date) return;
-    this.isLoadingPlan.set(true);
+    const requestId = ++this.planRequestId;
+    const cacheKey = mealPlannerCacheKey(this.auth?.currentUser() ?? null);
+    const cachedPlan = this.readCachedPlan(cacheKey, date);
+    const hasCachedPlan = cachedPlan !== null;
+
+    this.isLoadingPlan.set(!hasCachedPlan);
     this.planError.set(null);
+    this.plan.set(cachedPlan);
+    if (cachedPlan) this.loadRecipeDetails(cachedPlan);
+
     this.service.getForDate(date)
-      .pipe(finalize(() => this.isLoadingPlan.set(false)))
+      .pipe(finalize(() => {
+        if (requestId === this.planRequestId && !hasCachedPlan) this.isLoadingPlan.set(false);
+      }))
       .subscribe({
         next: (plan) => {
-          this.plan.set(plan);
-          this.loadRecipeDetails(plan);
+          if (requestId !== this.planRequestId || this.selectedDate() !== date) return;
+          this.applyFreshPlan(plan);
+          this.cachePlan(cacheKey, date, plan);
         },
-        error: (err) => this.planError.set(getApiError(err, this.translations.translate('meal.loadError'))),
+        error: (err) => {
+          if (requestId === this.planRequestId) {
+            this.planError.set(getApiError(err, this.translations.translate('meal.loadError')));
+          }
+        },
       });
   }
 
@@ -815,6 +873,87 @@ export class MealPlannerPage implements OnInit {
 
   private cacheRecipeDetail(detail: RecipeDetail): void {
     this.recipeDetails.update((details) => ({ ...details, [detail.id]: detail }));
+  }
+
+  private applyFreshPlan(plan: DailyMealPlan): void {
+    const current = this.plan();
+    if (current && JSON.stringify(current) === JSON.stringify(plan)) return;
+    this.plan.set(plan);
+    this.loadRecipeDetails(plan);
+  }
+
+  private readCachedPlan(cacheKey: string | null, date: string): DailyMealPlan | null {
+    if (!cacheKey) return null;
+    const storage = this.getStorage();
+    if (!storage) return null;
+
+    try {
+      const record = this.readCacheRecord(storage, cacheKey);
+      if (!record) return null;
+
+      const visibleWeek = weekStart(date);
+      if (record.weekStart !== visibleWeek) {
+        storage.removeItem(mealPlannerCacheStorageKey(cacheKey));
+        return null;
+      }
+
+      const cachedPlan = record.plans[date];
+      return isDailyMealPlan(cachedPlan)
+        && cachedPlan.date === date
+        && weekStart(cachedPlan.date) === visibleWeek
+        ? cachedPlan
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private cachePlan(cacheKey: string | null, date: string, plan: DailyMealPlan): void {
+    if (!cacheKey || plan.date !== date) return;
+    const storage = this.getStorage();
+    if (!storage) return;
+
+    try {
+      const visibleWeek = weekStart(date);
+      const current = this.readCacheRecord(storage, cacheKey);
+      if (current?.weekStart === visibleWeek && JSON.stringify(current.plans[date]) === JSON.stringify(plan)) return;
+
+      const plans = current?.weekStart === visibleWeek ? current.plans : {};
+      storage.setItem(mealPlannerCacheStorageKey(cacheKey), JSON.stringify({
+        version: mealPlanCacheVersion,
+        userKey: cacheKey,
+        weekStart: visibleWeek,
+        plans: { ...plans, [date]: plan },
+      } satisfies MealPlanCacheRecord));
+    } catch {
+      // Persistence is best-effort; the planner remains fully online when storage is unavailable.
+    }
+  }
+
+  private readCacheRecord(storage: Storage, cacheKey: string): MealPlanCacheRecord | null {
+    const storageKey = mealPlannerCacheStorageKey(cacheKey);
+    const raw = storage.getItem(storageKey);
+    if (!raw) return null;
+
+    try {
+      const record: unknown = JSON.parse(raw);
+      if (!isMealPlanCacheRecord(record) || record.userKey !== cacheKey) {
+        storage.removeItem(storageKey);
+        return null;
+      }
+      return record;
+    } catch {
+      storage.removeItem(storageKey);
+      return null;
+    }
+  }
+
+  private getStorage(): Storage | null {
+    try {
+      return globalThis.localStorage ?? null;
+    } catch {
+      return null;
+    }
   }
 
   private appendItem(plan: DailyMealPlan, slot: MealSlot, item: MealPlanItem): DailyMealPlan {

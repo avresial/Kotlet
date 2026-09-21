@@ -1,15 +1,17 @@
 import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
-import { describe, expect, it } from 'vitest';
+import { Observable, of, Subject } from 'rxjs';
+import { describe, expect, it, vi } from 'vitest';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { Ingredient } from '../../../ingredients/ingredient.models';
 import { IngredientService } from '../../../ingredients/ingredient.service';
+import { PreparedMealService } from '../../../prepared-meals/prepared-meal.service';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { TranslationService } from '../../../../core/i18n/translation.service';
 import { DailyMealPlan, MealParticipant, MealPlanItem, MealPlanOverviewDay } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
 import { ShoppingListIntegrationService } from '../../services/shopping-list-integration.service';
-import { isValidDateString, MealPlannerPage, weekStart } from './meal-planner-page';
+import { isValidDateString, MealPlannerPage, mealPlannerCacheKey, mealPlannerCacheStorageKey, weekStart } from './meal-planner-page';
 
 describe('weekStart', () => {
   it.each([
@@ -58,6 +60,137 @@ const item: MealPlanItem = {
 
 const emptyMeals = () => ({ breakfast: [], 'second-breakfast': [], dinner: [], snack: [], supper: [] });
 const plan: DailyMealPlan = { date: '2026-07-13', meals: { ...emptyMeals(), breakfast: [item] } };
+
+describe('MealPlannerPage localStorage cache', () => {
+  const user = { id: 'user-1', activeHouseId: 'house-1' };
+  const cacheDate = '2026-07-13';
+
+  function storageKey(cacheUser = user): string {
+    const key = mealPlannerCacheKey(cacheUser);
+    if (!key) throw new Error('Expected an authenticated house user.');
+    return mealPlannerCacheStorageKey(key);
+  }
+
+  function seedCache(cachedPlan: DailyMealPlan = plan, cachedWeek = weekStart(cachedPlan.date), cacheUser = user): void {
+    const key = mealPlannerCacheKey(cacheUser);
+    if (!key) throw new Error('Expected an authenticated house user.');
+    localStorage.setItem(storageKey(cacheUser), JSON.stringify({
+      version: 1,
+      userKey: key,
+      weekStart: cachedWeek,
+      plans: { [cachedPlan.date]: cachedPlan },
+    }));
+  }
+
+  function createPage(getForDate: () => Observable<DailyMealPlan>, currentUser = user): MealPlannerPage {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        { provide: AuthService, useValue: { currentUser: () => currentUser } },
+        { provide: MealPlannerService, useValue: { getForDate, getHouseMembers: () => of([]), getOverview: () => of([]) } },
+        { provide: RecipeService, useValue: { list: () => of({ items: [], total: 0 }), get: () => of(null) } },
+        { provide: IngredientService, useValue: { getAll: () => of([]) } },
+        { provide: PreparedMealService, useValue: { list: () => of([]) } },
+        { provide: ShoppingListIntegrationService, useValue: { addToShoppingList: () => of(null) } },
+        { provide: TranslationService, useValue: { translate: (key: string) => key, language: () => 'en' } },
+      ],
+    });
+    const page = TestBed.runInInjectionContext(() => new MealPlannerPage());
+    page.selectedDate.set(cacheDate);
+    return page;
+  }
+
+  it('renders a matching cached day while refreshing and keeps identical fresh data in place', () => {
+    localStorage.clear();
+    seedCache();
+    const response = new Subject<DailyMealPlan>();
+    const getForDate = vi.fn(() => response.asObservable());
+    const page = createPage(getForDate);
+
+    page.loadPlan();
+
+    const rendered = page.plan();
+    const stored = localStorage.getItem(storageKey());
+    expect(getForDate).toHaveBeenCalledWith(cacheDate);
+    expect(rendered).toEqual(plan);
+    expect(page.isLoadingPlan()).toBe(false);
+
+    response.next({ ...plan, meals: { ...plan.meals, breakfast: [...plan.meals.breakfast] } });
+    response.complete();
+
+    expect(page.plan()).toBe(rendered);
+    expect(localStorage.getItem(storageKey())).toBe(stored);
+  });
+
+  it('purges a cached week from another week before waiting for fresh data', () => {
+    localStorage.clear();
+    seedCache(plan, '2026-07-06');
+    const response = new Subject<DailyMealPlan>();
+    const page = createPage(() => response.asObservable());
+
+    page.loadPlan();
+
+    expect(localStorage.getItem(storageKey())).toBeNull();
+    expect(page.plan()).toBeNull();
+    expect(page.isLoadingPlan()).toBe(true);
+
+    response.next(plan);
+    response.complete();
+
+    expect(page.plan()).toEqual(plan);
+    expect(page.isLoadingPlan()).toBe(false);
+  });
+
+  it('updates the visible plan and cache after a different fresh response', () => {
+    localStorage.clear();
+    const response = new Subject<DailyMealPlan>();
+    const page = createPage(() => response.asObservable());
+    const fresh = { ...plan, meals: { ...plan.meals, breakfast: [] } };
+
+    page.loadPlan();
+    response.next(fresh);
+    response.complete();
+
+    expect(page.plan()).toEqual(fresh);
+    expect(JSON.parse(localStorage.getItem(storageKey()) ?? '{}')).toMatchObject({
+      userKey: 'user-1:house-1',
+      weekStart: cacheDate,
+      plans: { [cacheDate]: fresh },
+    });
+  });
+
+  it('keeps a valid cached plan visible when refresh fails', () => {
+    localStorage.clear();
+    seedCache();
+    const response = new Subject<DailyMealPlan>();
+    const page = createPage(() => response.asObservable());
+    page.loadPlan();
+    const rendered = page.plan();
+
+    response.error(new Error('offline'));
+
+    expect(page.plan()).toBe(rendered);
+    expect(page.planError()).toBe('meal.loadError');
+    expect(page.isLoadingPlan()).toBe(false);
+  });
+
+  it('does not reuse another user or house cache', () => {
+    localStorage.clear();
+    seedCache();
+    const response = new Subject<DailyMealPlan>();
+    const page = createPage(() => response.asObservable(), { id: 'user-2', activeHouseId: 'house-2' });
+
+    page.loadPlan();
+
+    expect(page.plan()).toBeNull();
+    expect(localStorage.getItem(storageKey())).not.toBeNull();
+    expect(localStorage.getItem(storageKey({ id: 'user-2', activeHouseId: 'house-2' }))).toBeNull();
+
+    response.next(plan);
+    response.complete();
+    expect(localStorage.getItem(storageKey({ id: 'user-2', activeHouseId: 'house-2' }))).not.toBeNull();
+  });
+});
 
 function fakeInput(value: string): HTMLInputElement {
   const input = document.createElement('input');
