@@ -11,7 +11,7 @@ that itself. **MCP Apps** ([SEP-1865](https://modelcontextprotocol.io/seps/1865-
 lets a tool return a piece of your own UI instead. The flow:
 
 1. A tool (e.g. `show_recipes`) runs and returns data **plus a pointer to an HTML resource**.
-2. The host reads that resource — a self-contained HTML document you serve — and renders it
+2. The host reads that resource — an HTML UI shell you serve — and renders it
    in a **sandboxed iframe**.
 3. The host hands your data to the iframe, and the iframe can **call other MCP tools back**
    through a `postMessage` bridge (e.g. "View recipe" → calls `get_recipe`).
@@ -26,20 +26,19 @@ Host (Claude/ChatGPT)
 Two building blocks live on your server:
 
 - **A tool** that returns structured data and advertises a UI resource in its metadata.
-- **A resource** — one self-contained HTML file (inline CSS + JS, no external assets) — that
-  is the UI.
+- **A resource** — an HTML file (usually inline CSS + JS, plus only explicitly allow-listed shared
+  assets) — that is the UI.
 
 ## 2. Why plain HTML, not Blazor / an Angular app
 
 The host renders your resource under a strict Content-Security-Policy — by default
-`default-src 'none'`, inline scripts/styles only, no external network. That rules out a
-framework that downloads a runtime or bundle at load time (Blazor WASM's multi-MB
-`_framework`, an Angular SPA build, external CDN scripts).
+`default-src 'none'`. That rules out a framework that downloads a runtime or bundle at load time
+(Blazor WASM's multi-MB `_framework`, an Angular SPA build, external CDN scripts). A small shared
+browser-native asset is possible when its origin is explicitly declared in the resource CSP.
 
-**So the UI is a single hand-written HTML document** (~10–15 KB) with inline `<style>` and
-`<script>`. It renders instantly and satisfies the CSP with zero configuration. You reuse
-your Angular app's *look* by copying its CSS custom properties (color palette) into the file,
-not by reusing components. If you later want a build step, the official
+**So the UI is a small hand-written HTML shell** (~10–15 KB) with inline `<style>` and
+`<script>`, plus any small shared browser-native component that the CSP explicitly allows. It
+renders instantly and keeps framework runtimes out of the iframe. If you later want a build step, the official
 `@modelcontextprotocol/ext-apps` SDK can be bundled *inline* — but hand-rolling the bridge is
 a few dozen lines (see §6).
 
@@ -86,6 +85,8 @@ return new CallToolResult
 The resource is the HTML document, plus metadata telling the host how to sandbox it.
 
 ```csharp
+var frontendOrigin = "https://app.example.com";
+
 McpServerResource.Create(() => AppHtml, new McpServerResourceCreateOptions
 {
     UriTemplate = "ui://kotlet/recipes-v2",
@@ -98,7 +99,7 @@ McpServerResource.Create(() => AppHtml, new McpServerResourceCreateOptions
             ["csp"] = new JsonObject
             {
                 ["connectDomains"]  = new JsonArray(),                 // fetch/XHR/WS targets
-                ["resourceDomains"] = new JsonArray(apiOrigin),        // <img>/static assets
+                ["resourceDomains"] = new JsonArray(apiOrigin, frontendOrigin), // images + shared UI asset
                 ["frameDomains"]    = new JsonArray()                  // nested iframes
             },
             ["domain"] = apiOrigin,           // host derives a stable sandbox origin from this
@@ -107,7 +108,7 @@ McpServerResource.Create(() => AppHtml, new McpServerResourceCreateOptions
         // ChatGPT reads the same info from its snake_case namespace — provide both.
         ["openai/widgetCSP"] = new JsonObject {
             ["connect_domains"]  = new JsonArray(),
-            ["resource_domains"] = new JsonArray(apiOrigin) },
+            ["resource_domains"] = new JsonArray(apiOrigin, frontendOrigin) },
         ["openai/widgetDomain"] = apiOrigin
     }
 });
@@ -137,7 +138,7 @@ are registered manually as singletons:
 ```csharp
 services.AddSingleton(RecipeUiMcp.CreateShowRecipesTool);
 services.AddSingleton<McpServerResource>(_ =>
-    RecipeUiMcp.CreateRecipesUiResource(apiOrigin));
+    RecipeUiMcp.CreateRecipesUiResource(apiOrigin, frontendOrigin));
 ```
 
 ## 5. The iframe ↔ host bridge
@@ -170,12 +171,12 @@ const detail = await bridge.callTool("get_recipe", { recipeId });   // reuses an
 
 Note the UI **reuses existing MCP tools** (`get_recipe`) rather than inventing a private API.
 All data flows through the MCP tool surface; the iframe never hits your REST API directly
-(the one exception in Kotlet is loading `<img>` recipe photos, which is why `apiOrigin` is in
-`resourceDomains`).
+(recipe photos and the shared recipe-card asset are static resources, which is why their origins
+are in `resourceDomains`).
 
 ## 6. Security notes for the UI
 
-- The document runs under a tight CSP; keep everything inline.
+- The document runs under a tight CSP; keep the shell inline and allow-list only small shared assets.
 - You build DOM from tool data, so **HTML-escape all interpolated values** and render any
   Markdown through a small inert renderer. Treat all data as untrusted.
 - Only widen CSP domains for things you genuinely load (e.g. an image host). Leave
@@ -286,7 +287,8 @@ the model and are registered once at startup, not per request.
 
 1. Write the MCP tool that returns structured content **and** a text fallback; add
    `_meta.ui.resourceUri`.
-2. Write one self-contained HTML file (inline CSS/JS, reuse your app's palette).
+2. Write one lightweight HTML shell (inline CSS/JS, reuse your app's palette, and allow-list only
+   small shared browser-native assets).
 3. Register it as an MCP resource with MIME `text/html;profile=mcp-app` and a minimal CSP.
 4. Implement the `postMessage`/JSON-RPC bridge: `ui/initialize`, consume
    `ui/notifications/tool-result`, `tools/call` for interactions.

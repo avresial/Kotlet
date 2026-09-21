@@ -79,13 +79,13 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         var ui = resource.GetProperty("_meta").GetProperty("ui");
         Assert.Equal("http://localhost", ui.GetProperty("domain").GetString());
         Assert.Equal(
-            ["http://localhost"],
+            ["http://localhost", "http://localhost:4200"],
             ui.GetProperty("csp").GetProperty("resourceDomains")
                 .EnumerateArray().Select(domain => domain.GetString()));
     }
 
     [Fact]
-    public async Task RecipeUiResource_IsServedAsSelfContainedMcpAppHtml()
+    public async Task RecipeUiResource_IsServedAsMcpAppHtmlWithSharedCardAsset()
     {
         var (client, accessToken) = await AuthorizeMcpClientAsync();
 
@@ -107,8 +107,8 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         Assert.Contains("openRecipe(data.recipes[0].id)", body);
         Assert.Contains("attachImageFallback", body);
         Assert.DoesNotContain("onerror=", body);
-        // The UI must stay self-contained: no external scripts, styles, or REST calls.
-        Assert.DoesNotContain("src=\\\"http", body);
+        // The recipe card is shared with the built-in Agent and loaded from the frontend origin.
+        Assert.Contains("http://localhost:4200/shared-ui/recipe-card.js", body);
         Assert.DoesNotContain("fetch(", body);
     }
 
@@ -190,6 +190,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
                 title,
                 servings = 2,
                 mealType = "dinner",
+                isAiAssisted = true,
                 descriptionMarkdown = "A warm lentil bowl.\n\n1. Simmer the lentils.",
                 ingredients = new[] { new { ingredientId, quantity = 180, unit = "g" } }
             }
@@ -212,7 +213,7 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         AssertDoesNotContainKey(detail, "createdByUserId");
         AssertDoesNotContainKey(detail, "slug");
         AssertDoesNotContainKey(detail, "sourceUrl");
-        AssertDoesNotContainKey(detail, "isAiAssisted");
+        Assert.True(detail.GetProperty("isAiAssisted").GetBoolean());
         AssertDoesNotContainKey(detail, "preparationTimeMinutes");
         AssertDoesNotContainKey(detail, "cookingTimeMinutes");
         AssertDoesNotContainKey(detail, "totalTimeMinutes");
@@ -233,6 +234,9 @@ public sealed class McpRecipeUiTests(TestWebApplicationFactory factory)
         var showPresentation = showResult.GetProperty("_meta").GetProperty("kotlet/recipeUi");
         Assert.Equal("list", showPresentation.GetProperty("kind").GetString());
         Assert.Equal(title, showPresentation.GetProperty("detail").GetProperty("title").GetString());
+        Assert.True(showPresentation.GetProperty("detail").GetProperty("isAiAssisted").GetBoolean());
+        Assert.True(Assert.Single(showPresentation.GetProperty("recipes").EnumerateArray())
+            .GetProperty("isAiAssisted").GetBoolean());
     }
 
     [Fact]

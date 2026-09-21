@@ -29,6 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Kotlet.Api.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Self-contained MCP Apps UIs: a rich recipe view, a read-only meal plan, and a reusable data renderer. -->
     <EmbeddedResource Include="Recipes\RecipeUiApp.html" />
     <EmbeddedResource Include="MealPlanner\MealPlannerUiApp.html" />

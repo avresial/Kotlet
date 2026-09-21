@@ -14,17 +14,22 @@ const apps = {
 };
 const html = Object.fromEntries(Object.entries(apps)
   .map(([name, path]) => [name, readFileSync(new URL(path, import.meta.url), "utf8")]));
+const sharedRecipeCard = readFileSync(
+  new URL("../src/frontend/src/app/shared/ui/recipe-card/recipe-card.js", import.meta.url),
+  "utf8",
+);
 
 /**
  * Loads an app, optionally announcing a host locale, then delivers a tool result. The returned
  * DOM carries `notify`, so a test can push further notifications after the first render.
  */
-function open(app, { serverLocale, hostLocale, structuredContent, meta } = {}) {
+function open(app, { serverLocale, hostLocale, structuredContent, meta, loadRecipeCard = true } = {}) {
   const dom = new JSDOM(html[app], {
     runScripts: "dangerously",
     url: "https://widget.test/",
     beforeParse(window) {
       window.matchMedia = () => ({ matches: false });
+      if (loadRecipeCard) window.eval(sharedRecipeCard);
     },
   });
   const notify = (method, params) => dom.window.dispatchEvent(
@@ -235,6 +240,30 @@ test("the recipe app localizes cards, counts and meal types", () => {
   assert.equal(text(dom, ".card-actions button"), "Zobacz przepis");
   assert.equal(text(dom, "#list-footer"), "Pokazano 1 z 5 przepisów.");
   assert.ok(body(dom).includes("4 porcje · 5 składników"));
+  dom.window.close();
+});
+
+test("the recipe app renders localized cards when the shared asset is unavailable", () => {
+  const dom = open("recipes", {
+    serverLocale: "pl",
+    structuredContent: {
+      ...recipeList,
+      totalCount: 2,
+      recipes: [{
+        ...recipeList.recipes[0],
+        description: "Ciepła **zupa**.",
+        isAiAssisted: true,
+      }],
+    },
+    loadRecipeCard: false,
+  });
+
+  assert.equal(dom.window.customElements.get("kotlet-recipe-card"), undefined);
+  assert.equal(text(dom, ".fallback-recipe-card h2"), "Zupa AI");
+  assert.equal(text(dom, ".fallback-recipe-card .meta"), "Obiad");
+  assert.ok(body(dom).includes("4 porcje · 5 składników"));
+  assert.equal(text(dom, ".fallback-recipe-card .card-summary"), "Ciepła zupa.");
+  assert.equal(text(dom, ".fallback-recipe-card .card-actions button"), "Zobacz przepis");
   dom.window.close();
 });
 
