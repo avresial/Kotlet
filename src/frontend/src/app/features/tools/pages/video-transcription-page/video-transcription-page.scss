@@ -466,8 +466,6 @@ header {
     gap: 0.6rem;
 
     li {
-      white-space: nowrap;
-
       .step-num {
         flex-shrink: 0;
       }
@@ -482,7 +480,6 @@ header {
     .retry-button {
       width: 100%;
       text-align: center;
-      white-space: nowrap;
     }
   }
 
@@ -494,7 +491,6 @@ header {
     .primary-continue-btn {
       width: 100%;
       text-align: center;
-      white-space: nowrap;
     }
   }
 
@@ -506,7 +502,6 @@ header {
     .copy-btn {
       width: 100%;
       text-align: center;
-      white-space: nowrap;
     }
   }
 }
