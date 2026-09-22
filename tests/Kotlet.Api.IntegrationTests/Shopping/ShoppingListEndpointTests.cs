@@ -27,8 +27,21 @@ public sealed class ShoppingListEndpointTests(TestWebApplicationFactory factory)
         var id = created.GetProperty("id").GetGuid();
         Assert.Equal(14.50m, created.GetProperty("totalPrice").GetDecimal());
 
-        var duplicate = await client.PostAsJsonAsync("/api/shopping-list", new { ingredientId, quantity = 1m });
+        var duplicate = await client.PostAsJsonAsync("/api/shopping-list", new
+        {
+            ingredientId,
+            quantity = 1m,
+            requestedName = "Fresh apples"
+        });
         Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
+        var duplicateBody = await duplicate.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("This product is already on the shopping list.", duplicateBody.GetProperty("message").GetString());
+        var conflict = duplicateBody.GetProperty("conflict");
+        Assert.Equal("Fresh apples", conflict.GetProperty("requestedName").GetString());
+        Assert.Equal(ingredientId, conflict.GetProperty("existingItem").GetProperty("ingredientId").GetGuid());
+        Assert.Equal(created.GetProperty("ingredientName").GetString(), conflict.GetProperty("matchedName").GetString());
+        Assert.True(conflict.TryGetProperty("category", out _));
+        Assert.True(conflict.TryGetProperty("reason", out _));
 
         var updateResponse = await client.PutAsJsonAsync($"/api/shopping-list/{id}", new { quantity = 300m, isPurchased = true });
         Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);

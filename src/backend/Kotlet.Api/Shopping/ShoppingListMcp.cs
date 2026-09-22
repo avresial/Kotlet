@@ -26,23 +26,25 @@ public sealed class ShoppingListMcp
 
     [McpServerTool(Name = "add_shopping_list_item", ReadOnly = false, Destructive = false,
         Idempotent = false, OpenWorld = false, UseStructuredContent = true),
-     Description("Adds exactly one ingredient, ready meal, or custom free-text item to the authenticated household's shopping list. Custom names are trimmed and must be non-empty; repeating an ingredient or ready meal does not create a duplicate.")]
-    public static Task<ShoppingListOperationResult> AddShoppingListItem(
-        [Description("Set exactly one of IngredientId, PreparedMealId, or CustomName, together with a positive quantity. CustomName is for a shopping-list-only free-text item and does not create a catalog ingredient.")]
+     Description("Adds exactly one ingredient, ready meal, or custom free-text item to the authenticated household's shopping list. Custom names are trimmed and must be non-empty; repeating an ingredient or ready meal does not create a duplicate, and conflicts include the existing item.")]
+    public static async Task<McpShoppingListOperationResult> AddShoppingListItem(
+        [Description("Set exactly one of IngredientId, PreparedMealId, or CustomName, together with a positive quantity. CustomName is for a shopping-list-only free-text item and does not create a catalog ingredient. Set RequestedName to preserve the user's wording when reporting a duplicate conflict.")]
         CreateShoppingListItemCommand request,
         ShoppingListService service, ICurrentUser currentUser, ILanguageContext language,
         CancellationToken cancellationToken) =>
-        service.CreateAsync(RequireHouse(currentUser), request, language.Language, cancellationToken);
+        McpShoppingListOperationResult.From(
+            await service.CreateAsync(RequireHouse(currentUser), request, language.Language, cancellationToken));
 
     [McpServerTool(Name = "update_shopping_list_item", ReadOnly = false, Destructive = false,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
      Description("Changes the quantity or purchased state of one shopping-list item.")]
-    public static Task<ShoppingListOperationResult> UpdateShoppingListItem(
+    public static async Task<McpShoppingListOperationResult> UpdateShoppingListItem(
         [Description("Shopping-list item ID from the kotlet://shopping-list resource.")] Guid itemId,
         [Description("New positive quantity and purchased state. Omit note to keep the existing one; send an empty string to clear it.")] UpdateShoppingListItemCommand request,
         ShoppingListService service, ICurrentUser currentUser, ILanguageContext language,
         CancellationToken cancellationToken) =>
-        service.UpdateAsync(itemId, RequireHouse(currentUser), request, language.Language, cancellationToken);
+        McpShoppingListOperationResult.From(
+            await service.UpdateAsync(itemId, RequireHouse(currentUser), request, language.Language, cancellationToken));
 
     [McpServerTool(Name = "remove_shopping_list_item", ReadOnly = false, Destructive = true,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),

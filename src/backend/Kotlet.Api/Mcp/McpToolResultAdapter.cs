@@ -19,7 +19,8 @@ internal static class McpToolResultAdapter
         "get_meal_plan",
         "meal_plan_get_range",
         "add_weekly_meal_plan",
-        "set_meal_participants"
+        "set_meal_participants",
+        "add_shopping_list_item"
     ];
 
     private static readonly HashSet<string> PreserveStructuredTools =
@@ -89,6 +90,10 @@ internal static class McpToolResultAdapter
             ["set_meal_participants"] = OperationSchema(
             """
             "mealId":{"type":["string","null"],"format":"uuid"},"participantCount":{"type":"integer"},"servings":{"type":["number","null"]}
+            """),
+            ["add_shopping_list_item"] = OperationSchema(
+            """
+            "itemId":{"type":["string","null"],"format":"uuid"},"ingredientId":{"type":["string","null"],"format":"uuid"},"preparedMealId":{"type":["string","null"],"format":"uuid"},"ingredientName":{"type":["string","null"]},"measurementUnit":{"type":["string","null"]},"quantity":{"type":["number","null"]},"totalPrice":{"type":["number","null"]},"isPurchased":{"type":["boolean","null"]},"category":{"type":["string","null"]},"note":{"type":["string","null"]},"customName":{"type":["string","null"]},"requestedName":{"type":["string","null"]},"existingName":{"type":["string","null"]},"reason":{"type":["string","null"]}
             """)
         };
         schemas["meal_plan_get_range"] = schemas["get_meal_plan"];
@@ -124,6 +129,7 @@ internal static class McpToolResultAdapter
         },
         "add_weekly_meal_plan" => CompactWeeklyOperation(fullData),
         "set_meal_participants" => CompactParticipantOperation(fullData),
+        "add_shopping_list_item" => CompactShoppingListOperation(fullData),
         _ => new JsonObject()
     };
 
@@ -160,6 +166,27 @@ internal static class McpToolResultAdapter
             ("mealId", item?["id"]),
             ("participantCount", (item?["participants"] as JsonArray)?.Count ?? 0),
             ("servings", item?["servings"]));
+    }
+
+    private static JsonObject CompactShoppingListOperation(JsonNode? root)
+    {
+        var item = root?["item"];
+        var conflict = root?["conflict"];
+        return Operation(root,
+            ("itemId", item?["id"]),
+            ("ingredientId", item?["ingredientId"]),
+            ("preparedMealId", item?["preparedMealId"]),
+            ("ingredientName", item?["ingredientName"]),
+            ("measurementUnit", item?["measurementUnit"]),
+            ("quantity", item?["quantity"]),
+            ("totalPrice", item?["totalPrice"]),
+            ("isPurchased", item?["isPurchased"]),
+            ("category", conflict?["category"] ?? item?["category"]),
+            ("note", item?["note"]),
+            ("customName", item?["customName"]),
+            ("requestedName", conflict?["requestedName"]),
+            ("existingName", conflict?["matchedName"] ?? conflict?["existingItem"]?["ingredientName"]),
+            ("reason", conflict?["reason"]));
     }
 
     private static JsonObject Operation(JsonNode? root, params (string Name, object? Value)[] fields)
@@ -242,8 +269,20 @@ internal static class McpToolResultAdapter
             compact["status"]?.GetValue<string>() == "Success"
                 ? $"Updated meal participants ({compact["participantCount"] ?? 0} assigned)."
                 : $"Updating meal participants returned {compact["status"]}.",
+        "add_shopping_list_item" => ShoppingListSummary(compact),
         _ => "Kotlet tool completed."
     };
+
+    private static string ShoppingListSummary(JsonNode compact)
+    {
+        var status = compact["status"]?.GetValue<string>();
+        return status switch
+        {
+            "Success" => $"Added \"{compact["ingredientName"]?.GetValue<string>() ?? compact["customName"]?.GetValue<string>() ?? "item"}\" to the shopping list.",
+            "Conflict" => $"Tried to add \"{compact["requestedName"]?.GetValue<string>() ?? "item"}\"; already exists as \"{compact["existingName"]?.GetValue<string>() ?? "item"}\".",
+            _ => $"Adding a shopping-list item returned {status ?? "an unknown status"}."
+        };
+    }
 
     private static JsonElement OperationSchema(string fields) => Schema(
         """{"type":"object","properties":{"status":{"type":"string"},"""
