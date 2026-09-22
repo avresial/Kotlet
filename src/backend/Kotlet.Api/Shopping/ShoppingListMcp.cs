@@ -38,13 +38,12 @@ public sealed class ShoppingListMcp
     [McpServerTool(Name = "update_shopping_list_item", ReadOnly = false, Destructive = false,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),
      Description("Changes the quantity or purchased state of one shopping-list item.")]
-    public static async Task<McpShoppingListOperationResult> UpdateShoppingListItem(
+    public static Task<ShoppingListOperationResult> UpdateShoppingListItem(
         [Description("Shopping-list item ID from the kotlet://shopping-list resource.")] Guid itemId,
         [Description("New positive quantity and purchased state. Omit note to keep the existing one; send an empty string to clear it.")] UpdateShoppingListItemCommand request,
         ShoppingListService service, ICurrentUser currentUser, ILanguageContext language,
         CancellationToken cancellationToken) =>
-        McpShoppingListOperationResult.From(
-            await service.UpdateAsync(itemId, RequireHouse(currentUser), request, language.Language, cancellationToken));
+        service.UpdateAsync(itemId, RequireHouse(currentUser), request, language.Language, cancellationToken);
 
     [McpServerTool(Name = "remove_shopping_list_item", ReadOnly = false, Destructive = true,
         Idempotent = true, OpenWorld = false, UseStructuredContent = true),

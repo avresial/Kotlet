@@ -337,7 +337,7 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         var ingredientName = $"Oat milk {Guid.NewGuid():N}";
         var created = await CallTool(client, accessToken, "create_ingredient", new
         {
-            request = new { name = ingredientName, measurementUnit = "ml", caloriesPer100BaseUnits = 45 }
+            request = new { name = ingredientName, measurementUnit = "ml", caloriesPer100BaseUnits = 45, pricePer100BaseUnits = 3.25m }
         });
         var ingredientId = ExtractGuidAfter(await created.Content.ReadAsStringAsync(), "\"id\":\"");
 
@@ -382,8 +382,16 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
             request = new { ingredientId, quantity = 500 }
         }));
         AssertShortText(addedShopping, "Added");
-        Assert.Equal(ingredientName, addedShopping.GetProperty("structuredContent")
-            .GetProperty("ingredientName").GetString());
+        var addedShoppingData = addedShopping.GetProperty("structuredContent");
+        Assert.Equal(ingredientName, addedShoppingData.GetProperty("ingredientName").GetString());
+
+        var updatedShopping = ToolResult(await CallTool(client, accessToken, "update_shopping_list_item", new
+        {
+            itemId = addedShoppingData.GetProperty("itemId").GetGuid(),
+            request = new { quantity = 650, isPurchased = false }
+        }));
+        Assert.Equal(3.25m, updatedShopping.GetProperty("structuredContent").GetProperty("item")
+            .GetProperty("pricePer100BaseUnits").GetDecimal());
 
         var conflict = ToolResult(await CallTool(client, accessToken, "add_shopping_list_item", new
         {
