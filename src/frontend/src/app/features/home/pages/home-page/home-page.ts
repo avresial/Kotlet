@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal, WritableSignal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -21,6 +21,13 @@ import { DailyMealPlan, MealParticipant, MealSlot } from '../../../meal-planner/
 import { MealPlannerService } from '../../../meal-planner/services/meal-planner.service';
 import { DashboardStats, HouseMember } from '../../home.models';
 import { HomeService } from '../../home.service';
+import {
+  DashboardCacheSnapshot,
+  DashboardFact,
+  dashboardCacheKey as getDashboardCacheKey,
+  readDashboardCache,
+  writeDashboardCache,
+} from '../../dashboard-cache';
 
 interface TodaysMenuEntry {
   id: string;
@@ -31,8 +38,6 @@ interface TodaysMenuEntry {
   note: string | null;
   participants: MealParticipant[];
 }
-
-interface UselessFact { text: string; source: string; source_url: string; }
 
 export const newestIngredients = (ingredients: Ingredient[]): Ingredient[] =>
   [...ingredients].sort((left, right) => right.createdAtUtc.localeCompare(left.createdAtUtc) || left.name.localeCompare(right.name)).slice(0, 5);
@@ -154,12 +159,14 @@ export class HomePage implements OnInit {
   readonly houseMembers = signal<HouseMember[]>([]);
   readonly houseLoading = signal(true);
   readonly houseError = signal(false);
-  readonly uselessFact = signal<UselessFact | null>(null);
+  readonly uselessFact = signal<DashboardFact | null>(null);
   readonly factLoading = signal(true);
   readonly factError = signal(false);
   readonly stats = signal<DashboardStats | null>(null);
   readonly statsLoading = signal(true);
   readonly statsError = signal(false);
+  private dashboardCacheKey: string | null = null;
+  private dashboardCache: DashboardCacheSnapshot | null = null;
 
   private readonly slotMeta: Record<MealSlot, { emoji: string }> = {
     breakfast: { emoji: '🍳' },
@@ -171,6 +178,9 @@ export class HomePage implements OnInit {
   private readonly slotOrder: MealSlot[] = ['breakfast', 'second-breakfast', 'dinner', 'snack', 'supper'];
 
   ngOnInit(): void {
+    this.dashboardCacheKey = getDashboardCacheKey(this.auth.currentUser());
+    this.dashboardCache = this.dashboardCacheKey ? readDashboardCache(this.dashboardCacheKey) : null;
+    const hasCachedMenu = this.restoreDashboardCache();
     this.destroyRef.onDestroy(() => {
       if (this.dashboardDayRefreshTimer !== undefined) {
         clearTimeout(this.dashboardDayRefreshTimer);
@@ -181,24 +191,35 @@ export class HomePage implements OnInit {
     this.scheduleDashboardDayRefresh();
     this.recipeService.listRecent(4).pipe(finalize(() => this.recipesLoading.set(false))).subscribe({
       next: recipes => {
-        this.newestRecipes.set(recipes);
-        this.loadAvatars(recipes);
+        const changed = this.setIfChanged(this.newestRecipes, recipes);
+        this.saveDashboardCache({ recipes });
+        if (changed) this.loadAvatars(recipes);
       },
       error: () => this.recipesError.set(true),
     });
     this.recipeService.listAudit(5).pipe(finalize(() => this.auditLoading.set(false))).subscribe({
-      next: items => this.auditItems.set(items),
+      next: items => {
+        this.setIfChanged(this.auditItems, items);
+        this.saveDashboardCache({ audit: items });
+      },
       error: () => this.auditError.set(true),
     });
     this.homeService.getDashboardStats().pipe(finalize(() => this.statsLoading.set(false))).subscribe({
-      next: stats => this.stats.set(stats),
+      next: stats => {
+        this.setIfChanged(this.stats, stats);
+        this.saveDashboardCache({ stats });
+      },
       error: () => this.statsError.set(true),
     });
-    this.loadMenu(this.selectedDate());
+    this.loadMenu(this.selectedDate(), hasCachedMenu);
     const activeHouseId = this.auth.currentUser()?.activeHouseId;
     if (activeHouseId) {
       this.homeService.getHome(activeHouseId).pipe(finalize(() => this.houseLoading.set(false))).subscribe({
-        next: house => { this.houseName.set(house.name); this.houseMembers.set(house.members); },
+        next: house => {
+          this.setIfChanged(this.houseName, house.name);
+          this.setIfChanged(this.houseMembers, house.members);
+          this.saveDashboardCache({ home: house });
+        },
         error: () => this.houseError.set(true),
       });
     } else {
@@ -208,21 +229,84 @@ export class HomePage implements OnInit {
       .pipe(finalize(() => { this.pantryLoading.set(false); this.shoppingLoading.set(false); }))
       .subscribe({
         next: ({ pantry, ingredients, shopping }) => {
-          this.lowStock.set(pantry.slice(0, 5));
-          this.ingredients.set(ingredients);
-          this.shoppingItems.set(shopping);
+          this.setIfChanged(this.lowStock, pantry.slice(0, 5));
+          this.setIfChanged(this.ingredients, ingredients);
+          this.setIfChanged(this.shoppingItems, shopping);
+          this.saveDashboardCache({ lowStock: pantry.slice(0, 5), ingredients, shoppingItems: shopping });
         },
         error: error => this.shoppingError.set(getApiError(error, this.translations.translate('home.dashboard.loadError'))),
       });
     this.loadFact();
   }
 
+  private restoreDashboardCache(): boolean {
+    const cached = this.dashboardCache;
+    if (!cached) return false;
+
+    if (cached.stats !== undefined) {
+      this.stats.set(cached.stats);
+      this.statsLoading.set(false);
+    }
+    if (cached.recipes !== undefined) {
+      this.newestRecipes.set(cached.recipes);
+      this.recipesLoading.set(false);
+    }
+    if (cached.audit !== undefined) {
+      this.auditItems.set(cached.audit);
+      this.auditLoading.set(false);
+    }
+    if (cached.shoppingItems !== undefined) {
+      this.shoppingItems.set(cached.shoppingItems);
+      this.shoppingLoading.set(false);
+    }
+    if (cached.lowStock !== undefined) {
+      this.lowStock.set(cached.lowStock);
+      this.pantryLoading.set(false);
+    }
+    if (cached.ingredients !== undefined) {
+      this.ingredients.set(cached.ingredients);
+    }
+    if (cached.home !== undefined) {
+      this.houseName.set(cached.home.name);
+      this.houseMembers.set(cached.home.members);
+      this.houseLoading.set(false);
+    }
+    if (cached.fact !== undefined) {
+      this.uselessFact.set(cached.fact);
+      this.factLoading.set(false);
+    }
+
+    const cachedMenu = cached.menu;
+    if (!cachedMenu || cachedMenu.date !== this.selectedDate()) return false;
+    this.todaysMenu.set(this.buildMenu(cachedMenu.plan));
+    this.menuLoading.set(false);
+    return true;
+  }
+
+  private setIfChanged<T>(target: WritableSignal<T>, value: T): boolean {
+    if (JSON.stringify(target()) === JSON.stringify(value)) return false;
+    target.set(value);
+    return true;
+  }
+
+  private saveDashboardCache(update: Partial<DashboardCacheSnapshot>): void {
+    if (!this.dashboardCacheKey) return;
+    this.dashboardCache = { ...this.dashboardCache, ...update };
+    writeDashboardCache(this.dashboardCacheKey, this.dashboardCache);
+  }
+
   loadFact(): void {
     this.factLoading.set(true);
     this.factError.set(false);
-    this.http.get<UselessFact>('https://uselessfacts.jsph.pl/api/v2/facts/random?language=en')
+    this.http.get<DashboardFact>('https://uselessfacts.jsph.pl/api/v2/facts/random?language=en')
       .pipe(finalize(() => this.factLoading.set(false)), takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: fact => this.uselessFact.set(fact), error: () => this.factError.set(true) });
+      .subscribe({
+        next: fact => {
+          this.setIfChanged(this.uselessFact, fact);
+          this.saveDashboardCache({ fact });
+        },
+        error: () => this.factError.set(true),
+      });
   }
 
   relativeTime(dateStr: string): string {
@@ -289,10 +373,14 @@ export class HomePage implements OnInit {
     this.loadMenu(date);
   }
 
-  private loadMenu(date: string): void {
+  private loadMenu(date: string, keepCachedState = false): void {
     const requestId = ++this.menuRequestId;
-    this.clearMenu();
-    this.menuLoading.set(true);
+    if (keepCachedState) {
+      this.menuError.set(false);
+    } else {
+      this.clearMenu();
+      this.menuLoading.set(true);
+    }
     this.mealPlannerService.getForDate(date).pipe(
       finalize(() => {
         if (requestId === this.menuRequestId) this.menuLoading.set(false);
@@ -302,7 +390,8 @@ export class HomePage implements OnInit {
       next: plan => {
         if (requestId !== this.menuRequestId) return;
         const menu = this.buildMenu(plan);
-        this.todaysMenu.set(menu);
+        this.setIfChanged(this.todaysMenu, menu);
+        this.saveDashboardCache({ menu: { date, plan } });
         this.loadMenuDetails(menu, requestId);
       },
       error: () => {

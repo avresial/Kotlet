@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { TranslationService } from '../../../../core/i18n/translation.service';
@@ -13,7 +13,9 @@ import { PantryService } from '../../../pantry/pantry.service';
 import { RecipeDetail } from '../../../recipes/models/recipe.models';
 import { RecipeService } from '../../../recipes/services/recipe.service';
 import { ShoppingListService } from '../../../shopping-list/shopping-list.service';
+import { dashboardCacheKey, writeDashboardCache } from '../../dashboard-cache';
 import { HomeService } from '../../home.service';
+import { DashboardStats } from '../../home.models';
 import { addLocalDays, HomePage, ingredientPreview, localDayOffset, newestIngredients } from './home-page';
 
 describe('ingredientPreview', () => {
@@ -59,6 +61,7 @@ describe('dashboard date navigation', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    localStorage.clear();
   });
 
   it('requests adjacent local calendar days', () => {
@@ -135,5 +138,107 @@ describe('dashboard date navigation', () => {
   it('calculates offsets by calendar date across daylight-saving changes', () => {
     expect(localDayOffset('2026-03-28', '2026-03-30')).toBe(2);
     expect(addLocalDays('2026-03-29', 1)).toBe('2026-03-30');
+  });
+});
+
+describe('dashboard cache', () => {
+  const user = { id: 'user-1', activeHouseId: 'house-1' };
+  const cachedStats: DashboardStats = { recipeCount: 2, pantryItemCount: 3 };
+  let statsResponse: Subject<DashboardStats>;
+  let getDashboardStats: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    localStorage.clear();
+    statsResponse = new Subject<DashboardStats>();
+    getDashboardStats = vi.fn(() => statsResponse.asObservable());
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: { currentUser: signal(user) } },
+        { provide: HttpClient, useValue: { get: () => of({ text: 'Fact', source: 'Source', source_url: 'https://example.com' }) } },
+        { provide: PantryService, useValue: { getAll: () => of([]) } },
+        { provide: IngredientService, useValue: { getAll: () => of([]) } },
+        { provide: ShoppingListService, useValue: { getAll: () => of([]) } },
+        { provide: RecipeService, useValue: { listRecent: () => of([]), listAudit: () => of([]) } },
+        { provide: MealPlannerService, useValue: { getForDate: () => of({ meals: {} }) } },
+        { provide: HomeService, useValue: { getDashboardStats, getHome: () => of({ name: 'Home', members: [] }) } },
+        {
+          provide: TranslationService,
+          useValue: { language: signal('en'), translate: (key: string) => key },
+        },
+      ],
+    });
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  const createPage = (): HomePage => TestBed.runInInjectionContext(() => new HomePage());
+
+  it('scopes the cache to the authenticated user and active household', () => {
+    expect(dashboardCacheKey(user)).toBe('kotlet.dashboard.user-1:house-1');
+    expect(dashboardCacheKey({ ...user, id: 'user-2' })).not.toBe(dashboardCacheKey(user));
+    expect(dashboardCacheKey({ ...user, activeHouseId: 'house-2' })).not.toBe(dashboardCacheKey(user));
+    expect(dashboardCacheKey(null)).toBeNull();
+  });
+
+  it('keeps the normal loading state when no cache exists', () => {
+    const page = createPage();
+
+    page.ngOnInit();
+
+    expect(page.statsLoading()).toBe(true);
+    statsResponse.next(cachedStats);
+    statsResponse.complete();
+    expect(page.statsLoading()).toBe(false);
+  });
+
+  it('renders cached stats before the refresh and keeps the same value when unchanged', () => {
+    const key = dashboardCacheKey(user);
+    if (!key) throw new Error('Expected a dashboard cache key.');
+    writeDashboardCache(key, { stats: cachedStats });
+    const page = createPage();
+
+    page.ngOnInit();
+
+    const renderedStats = page.stats();
+    expect(renderedStats).toEqual(cachedStats);
+    expect(page.statsLoading()).toBe(false);
+    expect(getDashboardStats).toHaveBeenCalledOnce();
+
+    statsResponse.next({ ...cachedStats });
+    statsResponse.complete();
+
+    expect(page.stats()).toBe(renderedStats);
+    expect(JSON.parse(localStorage.getItem(key) ?? '{}').stats).toEqual(cachedStats);
+  });
+
+  it('updates the rendered stats and cache when fresh data changes', () => {
+    const key = dashboardCacheKey(user);
+    if (!key) throw new Error('Expected a dashboard cache key.');
+    writeDashboardCache(key, { stats: cachedStats });
+    const page = createPage();
+    page.ngOnInit();
+
+    statsResponse.next({ recipeCount: 4, pantryItemCount: 5 });
+    statsResponse.complete();
+
+    expect(page.stats()).toEqual({ recipeCount: 4, pantryItemCount: 5 });
+    expect(JSON.parse(localStorage.getItem(key) ?? '{}').stats).toEqual({ recipeCount: 4, pantryItemCount: 5 });
+  });
+
+  it('keeps cached stats visible and reports a refresh failure', () => {
+    const key = dashboardCacheKey(user);
+    if (!key) throw new Error('Expected a dashboard cache key.');
+    writeDashboardCache(key, { stats: cachedStats });
+    getDashboardStats.mockReturnValue(throwError(() => new Error('offline')));
+    const page = createPage();
+
+    page.ngOnInit();
+
+    expect(page.stats()).toEqual(cachedStats);
+    expect(page.statsLoading()).toBe(false);
+    expect(page.statsError()).toBe(true);
+    expect(JSON.parse(localStorage.getItem(key) ?? '{}').stats).toEqual(cachedStats);
   });
 });

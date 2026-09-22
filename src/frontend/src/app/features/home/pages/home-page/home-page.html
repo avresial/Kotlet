@@ -12,10 +12,11 @@
       <article class="card stats-card" aria-labelledby="stats-title">
         <div class="card-heading"><div><p class="section-label">{{ 'home.dashboard.quickStats' | t }}</p><h2 id="stats-title">{{ 'home.dashboard.atAGlance' | t }}</h2></div></div>
         @if (statsLoading()) { <p class="recipe-state">{{ 'home.dashboard.statsLoading' | t }}</p> }
-        @else if (statsError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.statsError' | t }}</p> }
         @else if (stats(); as dashboardStats) {
+          @if (statsError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.statsError' | t }}</p> }
           <dl class="stats-list"><div><dt>{{ 'nav.recipes' | t }}</dt><dd>{{ dashboardStats.recipeCount }}</dd></div><div><dt>{{ 'nav.pantry' | t }}</dt><dd>{{ dashboardStats.pantryItemCount }}</dd></div></dl>
         }
+        @else if (statsError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.statsError' | t }}</p> }
       </article>
       <article class="card featured-tool-card" aria-labelledby="video-tool-title">
         <div class="card-heading">
@@ -53,17 +54,18 @@
           <button type="button" class="day-nav-btn" [disabled]="!canGoToNextDay()" (click)="goToNextDay()" [attr.aria-label]="'home.dashboard.nextDay' | t">›</button>
         </div>
         @if (menuLoading()) { <p class="recipe-state">{{ (isSelectedDateToday() ? 'home.dashboard.menuLoading' : 'home.dashboard.dayLoading') | t }}</p> }
-        @else if (menuError()) { <p class="recipe-state error" role="alert">{{ (isSelectedDateToday() ? 'home.dashboard.menuError' : 'home.dashboard.dayError') | t }}</p> }
-        @else if (todaysMenu().length === 0) {
-          <div class="recipe-state empty-day">
-            <p>{{ (isSelectedDateToday() ? 'home.dashboard.menuEmpty' : 'home.dashboard.dayEmpty') | t }}</p>
-            <div class="empty-day-actions">
-              <a routerLink="/meal-planner" [queryParams]="{ date: selectedDate() }">{{ 'home.dashboard.openDay' | t }}</a>
-              <a routerLink="/meal-planner" [queryParams]="{ date: selectedDate() }">{{ 'home.dashboard.planMeals' | t }}</a>
+        @else {
+          @if (menuError()) { <p class="recipe-state error" role="alert">{{ (isSelectedDateToday() ? 'home.dashboard.menuError' : 'home.dashboard.dayError') | t }}</p> }
+          @if (todaysMenu().length === 0) {
+            <div class="recipe-state empty-day">
+              <p>{{ (isSelectedDateToday() ? 'home.dashboard.menuEmpty' : 'home.dashboard.dayEmpty') | t }}</p>
+              <div class="empty-day-actions">
+                <a routerLink="/meal-planner" [queryParams]="{ date: selectedDate() }">{{ 'home.dashboard.openDay' | t }}</a>
+                <a routerLink="/meal-planner" [queryParams]="{ date: selectedDate() }">{{ 'home.dashboard.planMeals' | t }}</a>
+              </div>
             </div>
-          </div>
-        }
-        @else { <ul class="menu-list">
+          }
+          @else { <ul class="menu-list">
           @for (meal of todaysMenu(); track meal.id) {
             <li class="menu-item">
               @if (meal.recipeId && menuAvatarUrls()[meal.recipeId]; as avatarUrl) {
@@ -91,7 +93,8 @@
               }
             </li>
           }
-        </ul> }
+          </ul> }
+        }
       </article>
 
       <!-- Newest recipes -->
@@ -104,9 +107,10 @@
           <a class="card-link" routerLink="/recipes">{{ 'home.dashboard.viewAll' | t }} →</a>
         </div>
         @if (recipesLoading()) { <p class="recipe-state">{{ 'recipes.loading' | t }}</p> }
-        @else if (recipesError()) { <p class="recipe-state error" role="alert">{{ 'recipes.loadError' | t }}</p> }
-        @else if (newestRecipes().length === 0) { <p class="recipe-state">{{ 'recipes.empty' | t }} <a routerLink="/recipes/new">{{ 'home.dashboard.addFirstRecipe' | t }}</a>.</p> }
-        @else { <ul class="recipe-list">
+        @else {
+          @if (recipesError()) { <p class="recipe-state error" role="alert">{{ 'recipes.loadError' | t }}</p> }
+          @if (newestRecipes().length === 0) { <p class="recipe-state">{{ 'recipes.empty' | t }} <a routerLink="/recipes/new">{{ 'home.dashboard.addFirstRecipe' | t }}</a>.</p> }
+          @else { <ul class="recipe-list">
           @for (recipe of newestRecipes(); track recipe.id) {
             <li>
               <a class="recipe-item" [routerLink]="['/recipes', recipe.id]">
@@ -123,7 +127,8 @@
               </a>
             </li>
           }
-        </ul> }
+          </ul> }
+        }
       </article>
 
       <!-- Recipe audit -->
@@ -136,9 +141,10 @@
           <a class="card-link" routerLink="/recipes">{{ 'home.dashboard.viewAll' | t }} →</a>
         </div>
         @if (auditLoading()) { <p class="recipe-state">{{ 'home.dashboard.audit.loading' | t }}</p> }
-        @else if (auditError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.audit.error' | t }}</p> }
-        @else if (auditItems().length === 0) { <p class="recipe-state">{{ 'home.dashboard.audit.empty' | t }}</p> }
-        @else { <ul class="audit-list">
+        @else {
+          @if (auditError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.audit.error' | t }}</p> }
+          @if (auditItems().length === 0) { <p class="recipe-state">{{ 'home.dashboard.audit.empty' | t }}</p> }
+          @else { <ul class="audit-list">
           @for (item of auditItems(); track item.id) {
             <li class="audit-item">
               <span class="audit-badge" [class.is-important]="item.importance === 'important'">
@@ -155,7 +161,8 @@
               <a class="audit-visit" [routerLink]="['/recipes', item.id]">{{ 'home.dashboard.audit.visit' | t }} →</a>
             </li>
           }
-        </ul> }
+          </ul> }
+        }
       </article>
 
       <!-- Shopping list overview -->
@@ -244,9 +251,10 @@
           }
         </div>
         @if (houseLoading()) { <p class="recipe-state">{{ 'home.dashboard.householdLoading' | t }}</p> }
-        @else if (houseError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.householdError' | t }}</p> }
-        @else if (houseMembers().length === 0) { <p class="recipe-state">{{ 'home.dashboard.householdEmpty' | t }}</p> }
-        @else { <ul class="member-list">
+        @else {
+          @if (houseError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.householdError' | t }}</p> }
+          @if (houseMembers().length === 0) { <p class="recipe-state">{{ 'home.dashboard.householdEmpty' | t }}</p> }
+          @else { <ul class="member-list">
           @for (member of houseMembers(); track member.id) {
             <li class="member-item">
               <span class="member-avatar" aria-hidden="true">{{ memberInitials(member) }}</span>
@@ -259,7 +267,8 @@
               </span>
             </li>
           }
-        </ul> }
+          </ul> }
+        }
       </article>
 
       <article class="card fact-card" aria-labelledby="fact-title">
@@ -270,11 +279,13 @@
           </div>
           <button class="fact-refresh" type="button" [disabled]="factLoading()" (click)="loadFact()">{{ 'home.dashboard.anotherFact' | t }} ↻</button>
         </div>
-        @if (factLoading()) { <p class="recipe-state">{{ 'home.dashboard.factLoading' | t }}</p> }
-        @else if (factError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.factError' | t }}</p> }
-        @else if (uselessFact(); as fact) {
-          <blockquote>{{ fact.text }}</blockquote>
-          <a class="fact-source" [href]="fact.source_url" target="_blank" rel="noopener noreferrer">{{ 'home.dashboard.source' | t }}: {{ fact.source }}</a>
+        @if (factLoading() && !uselessFact()) { <p class="recipe-state">{{ 'home.dashboard.factLoading' | t }}</p> }
+        @else {
+          @if (factError()) { <p class="recipe-state error" role="alert">{{ 'home.dashboard.factError' | t }}</p> }
+          @if (uselessFact(); as fact) {
+            <blockquote>{{ fact.text }}</blockquote>
+            <a class="fact-source" [href]="fact.source_url" target="_blank" rel="noopener noreferrer">{{ 'home.dashboard.source' | t }}: {{ fact.source }}</a>
+          }
         }
       </article>
     </section>
