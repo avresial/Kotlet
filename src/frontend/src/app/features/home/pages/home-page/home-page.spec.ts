@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, Subject, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -144,16 +144,18 @@ describe('dashboard date navigation', () => {
 describe('dashboard cache', () => {
   const user = { id: 'user-1', activeHouseId: 'house-1' };
   const cachedStats: DashboardStats = { recipeCount: 2, pantryItemCount: 3 };
+  let currentUser: WritableSignal<typeof user>;
   let statsResponse: Subject<DashboardStats>;
   let getDashboardStats: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     localStorage.clear();
+    currentUser = signal(user);
     statsResponse = new Subject<DashboardStats>();
     getDashboardStats = vi.fn(() => statsResponse.asObservable());
     TestBed.configureTestingModule({
       providers: [
-        { provide: AuthService, useValue: { currentUser: signal(user) } },
+        { provide: AuthService, useValue: { currentUser } },
         { provide: HttpClient, useValue: { get: () => of({ text: 'Fact', source: 'Source', source_url: 'https://example.com' }) } },
         { provide: PantryService, useValue: { getAll: () => of([]) } },
         { provide: IngredientService, useValue: { getAll: () => of([]) } },
@@ -171,6 +173,7 @@ describe('dashboard cache', () => {
 
   afterEach(() => {
     localStorage.clear();
+    vi.restoreAllMocks();
   });
 
   const createPage = (): HomePage => TestBed.runInInjectionContext(() => new HomePage());
@@ -202,6 +205,8 @@ describe('dashboard cache', () => {
     page.ngOnInit();
 
     const renderedStats = page.stats();
+    const storedCache = localStorage.getItem(key);
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
     expect(renderedStats).toEqual(cachedStats);
     expect(page.statsLoading()).toBe(false);
     expect(getDashboardStats).toHaveBeenCalledOnce();
@@ -210,7 +215,8 @@ describe('dashboard cache', () => {
     statsResponse.complete();
 
     expect(page.stats()).toBe(renderedStats);
-    expect(JSON.parse(localStorage.getItem(key) ?? '{}').stats).toEqual(cachedStats);
+    expect(setItem).not.toHaveBeenCalled();
+    expect(localStorage.getItem(key)).toBe(storedCache);
   });
 
   it('updates the rendered stats and cache when fresh data changes', () => {
@@ -240,5 +246,41 @@ describe('dashboard cache', () => {
     expect(page.statsLoading()).toBe(false);
     expect(page.statsError()).toBe(true);
     expect(JSON.parse(localStorage.getItem(key) ?? '{}').stats).toEqual(cachedStats);
+  });
+
+  it('ignores malformed cached menu data and loads the fresh plan', () => {
+    const page = createPage();
+    const key = dashboardCacheKey(user);
+    if (!key) throw new Error('Expected a dashboard cache key.');
+    writeDashboardCache(key, {
+      menu: {
+        date: page.selectedDate(),
+        plan: { meals: { breakfast: null } } as unknown as DailyMealPlan,
+      },
+    });
+
+    expect(() => page.ngOnInit()).not.toThrow();
+    expect(page.todaysMenu()).toEqual([]);
+  });
+
+  it('replaces restored content when the authenticated user or household changes', () => {
+    const nextUser = { id: 'user-2', activeHouseId: 'house-2' };
+    const nextStats = { recipeCount: 8, pantryItemCount: 9 };
+    const firstKey = dashboardCacheKey(user);
+    const nextKey = dashboardCacheKey(nextUser);
+    if (!firstKey || !nextKey) throw new Error('Expected dashboard cache keys.');
+    writeDashboardCache(firstKey, { stats: cachedStats });
+    writeDashboardCache(nextKey, { stats: nextStats });
+    const page = createPage();
+
+    page.ngOnInit();
+    expect(page.stats()).toEqual(cachedStats);
+
+    currentUser.set(nextUser);
+    TestBed.flushEffects();
+
+    expect(page.stats()).toEqual(nextStats);
+    expect(page.stats()).not.toEqual(cachedStats);
+    expect(getDashboardStats).toHaveBeenCalledTimes(2);
   });
 });

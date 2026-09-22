@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal, WritableSignal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, OnInit, signal, WritableSignal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -167,6 +167,8 @@ export class HomePage implements OnInit {
   readonly statsError = signal(false);
   private dashboardCacheKey: string | null = null;
   private dashboardCache: DashboardCacheSnapshot | null = null;
+  private dashboardInitialized = false;
+  private dashboardLoadId = 0;
 
   private readonly slotMeta: Record<MealSlot, { emoji: string }> = {
     breakfast: { emoji: '🍳' },
@@ -177,10 +179,24 @@ export class HomePage implements OnInit {
   };
   private readonly slotOrder: MealSlot[] = ['breakfast', 'second-breakfast', 'dinner', 'snack', 'supper'];
 
+  constructor() {
+    effect(() => {
+      const cacheKey = getDashboardCacheKey(this.auth.currentUser());
+      if (!this.dashboardInitialized || cacheKey === this.dashboardCacheKey) return;
+
+      this.dashboardCacheKey = cacheKey;
+      this.dashboardCache = cacheKey ? readDashboardCache(cacheKey) : null;
+      this.clearDashboardState();
+      const hasCachedMenu = this.restoreDashboardCache();
+      this.loadDashboardData(hasCachedMenu);
+    });
+  }
+
   ngOnInit(): void {
     this.dashboardCacheKey = getDashboardCacheKey(this.auth.currentUser());
     this.dashboardCache = this.dashboardCacheKey ? readDashboardCache(this.dashboardCacheKey) : null;
     const hasCachedMenu = this.restoreDashboardCache();
+    this.dashboardInitialized = true;
     this.destroyRef.onDestroy(() => {
       if (this.dashboardDayRefreshTimer !== undefined) {
         clearTimeout(this.dashboardDayRefreshTimer);
@@ -189,54 +205,89 @@ export class HomePage implements OnInit {
       Object.values(this.menuAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
     });
     this.scheduleDashboardDayRefresh();
-    this.recipeService.listRecent(4).pipe(finalize(() => this.recipesLoading.set(false))).subscribe({
+    this.loadDashboardData(hasCachedMenu);
+  }
+
+  private loadDashboardData(keepCachedMenu = false): void {
+    const loadId = ++this.dashboardLoadId;
+    this.recipeService.listRecent(4).pipe(finalize(() => {
+      if (loadId === this.dashboardLoadId) this.recipesLoading.set(false);
+    })).subscribe({
       next: recipes => {
+        if (loadId !== this.dashboardLoadId) return;
         const changed = this.setIfChanged(this.newestRecipes, recipes);
         this.saveDashboardCache({ recipes });
         if (changed) this.loadAvatars(recipes);
       },
-      error: () => this.recipesError.set(true),
+      error: () => {
+        if (loadId === this.dashboardLoadId) this.recipesError.set(true);
+      },
     });
-    this.recipeService.listAudit(5).pipe(finalize(() => this.auditLoading.set(false))).subscribe({
+    this.recipeService.listAudit(5).pipe(finalize(() => {
+      if (loadId === this.dashboardLoadId) this.auditLoading.set(false);
+    })).subscribe({
       next: items => {
+        if (loadId !== this.dashboardLoadId) return;
         this.setIfChanged(this.auditItems, items);
         this.saveDashboardCache({ audit: items });
       },
-      error: () => this.auditError.set(true),
+      error: () => {
+        if (loadId === this.dashboardLoadId) this.auditError.set(true);
+      },
     });
-    this.homeService.getDashboardStats().pipe(finalize(() => this.statsLoading.set(false))).subscribe({
+    this.homeService.getDashboardStats().pipe(finalize(() => {
+      if (loadId === this.dashboardLoadId) this.statsLoading.set(false);
+    })).subscribe({
       next: stats => {
+        if (loadId !== this.dashboardLoadId) return;
         this.setIfChanged(this.stats, stats);
         this.saveDashboardCache({ stats });
       },
-      error: () => this.statsError.set(true),
+      error: () => {
+        if (loadId === this.dashboardLoadId) this.statsError.set(true);
+      },
     });
-    this.loadMenu(this.selectedDate(), hasCachedMenu);
+    this.loadMenu(this.selectedDate(), keepCachedMenu);
     const activeHouseId = this.auth.currentUser()?.activeHouseId;
     if (activeHouseId) {
-      this.homeService.getHome(activeHouseId).pipe(finalize(() => this.houseLoading.set(false))).subscribe({
+      this.homeService.getHome(activeHouseId).pipe(finalize(() => {
+        if (loadId === this.dashboardLoadId) this.houseLoading.set(false);
+      })).subscribe({
         next: house => {
+          if (loadId !== this.dashboardLoadId) return;
           this.setIfChanged(this.houseName, house.name);
           this.setIfChanged(this.houseMembers, house.members);
           this.saveDashboardCache({ home: house });
         },
-        error: () => this.houseError.set(true),
+        error: () => {
+          if (loadId === this.dashboardLoadId) this.houseError.set(true);
+        },
       });
     } else {
       this.houseLoading.set(false);
     }
     forkJoin({ pantry: this.pantryService.getAll(), ingredients: this.ingredientService.getAll(), shopping: this.shoppingListService.getAll() })
-      .pipe(finalize(() => { this.pantryLoading.set(false); this.shoppingLoading.set(false); }))
+      .pipe(finalize(() => {
+        if (loadId === this.dashboardLoadId) {
+          this.pantryLoading.set(false);
+          this.shoppingLoading.set(false);
+        }
+      }))
       .subscribe({
         next: ({ pantry, ingredients, shopping }) => {
+          if (loadId !== this.dashboardLoadId) return;
           this.setIfChanged(this.lowStock, pantry.slice(0, 5));
           this.setIfChanged(this.ingredients, ingredients);
           this.setIfChanged(this.shoppingItems, shopping);
           this.saveDashboardCache({ lowStock: pantry.slice(0, 5), ingredients, shoppingItems: shopping });
         },
-        error: error => this.shoppingError.set(getApiError(error, this.translations.translate('home.dashboard.loadError'))),
+        error: error => {
+          if (loadId === this.dashboardLoadId) {
+            this.shoppingError.set(getApiError(error, this.translations.translate('home.dashboard.loadError')));
+          }
+        },
       });
-    this.loadFact();
+    this.loadFact(loadId);
   }
 
   private restoreDashboardCache(): boolean {
@@ -277,10 +328,44 @@ export class HomePage implements OnInit {
     }
 
     const cachedMenu = cached.menu;
-    if (!cachedMenu || cachedMenu.date !== this.selectedDate()) return false;
+    if (!this.isValidCachedMenu(cachedMenu)) return false;
     this.todaysMenu.set(this.buildMenu(cachedMenu.plan));
     this.menuLoading.set(false);
     return true;
+  }
+
+  private isValidCachedMenu(menu: DashboardCacheSnapshot['menu']): menu is NonNullable<DashboardCacheSnapshot['menu']> {
+    if (!menu || menu.date !== this.selectedDate() || !menu.plan || !menu.plan.meals || typeof menu.plan.meals !== 'object') return false;
+    return this.slotOrder.every(slot => Array.isArray(menu.plan.meals[slot]));
+  }
+
+  private clearDashboardState(): void {
+    Object.values(this.recipeAvatarUrls()).forEach(url => URL.revokeObjectURL(url));
+    this.recipeAvatarUrls.set({});
+    this.clearMenu();
+    this.menuLoading.set(true);
+    this.stats.set(null);
+    this.statsLoading.set(true);
+    this.statsError.set(false);
+    this.newestRecipes.set([]);
+    this.recipesLoading.set(true);
+    this.recipesError.set(false);
+    this.auditItems.set([]);
+    this.auditLoading.set(true);
+    this.auditError.set(false);
+    this.shoppingItems.set([]);
+    this.shoppingLoading.set(true);
+    this.shoppingError.set(null);
+    this.lowStock.set([]);
+    this.pantryLoading.set(true);
+    this.ingredients.set([]);
+    this.houseName.set(null);
+    this.houseMembers.set([]);
+    this.houseLoading.set(true);
+    this.houseError.set(false);
+    this.uselessFact.set(null);
+    this.factLoading.set(true);
+    this.factError.set(false);
   }
 
   private setIfChanged<T>(target: WritableSignal<T>, value: T): boolean {
@@ -291,21 +376,30 @@ export class HomePage implements OnInit {
 
   private saveDashboardCache(update: Partial<DashboardCacheSnapshot>): void {
     if (!this.dashboardCacheKey) return;
-    this.dashboardCache = { ...this.dashboardCache, ...update };
+    const changed = Object.entries(update).some(([key, value]) =>
+      JSON.stringify(this.dashboardCache?.[key as keyof DashboardCacheSnapshot]) !== JSON.stringify(value));
+    if (!changed) return;
+    const next = { ...(this.dashboardCache ?? {}), ...update };
+    this.dashboardCache = next;
     writeDashboardCache(this.dashboardCacheKey, this.dashboardCache);
   }
 
-  loadFact(): void {
+  loadFact(loadId = this.dashboardLoadId): void {
     this.factLoading.set(true);
     this.factError.set(false);
     this.http.get<DashboardFact>('https://uselessfacts.jsph.pl/api/v2/facts/random?language=en')
-      .pipe(finalize(() => this.factLoading.set(false)), takeUntilDestroyed(this.destroyRef))
+      .pipe(finalize(() => {
+        if (loadId === this.dashboardLoadId) this.factLoading.set(false);
+      }), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: fact => {
+          if (loadId !== this.dashboardLoadId) return;
           this.setIfChanged(this.uselessFact, fact);
           this.saveDashboardCache({ fact });
         },
-        error: () => this.factError.set(true),
+        error: () => {
+          if (loadId === this.dashboardLoadId) this.factError.set(true);
+        },
       });
   }
 
