@@ -377,10 +377,27 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         Assert.Contains("ValidationFailed", invalidBody);
         Assert.Contains("Refrigerator, Freezer, Cabinet", invalidBody);
 
-        await CallTool(client, accessToken, "add_shopping_list_item", new
+        var addedShopping = ToolResult(await CallTool(client, accessToken, "add_shopping_list_item", new
         {
             request = new { ingredientId, quantity = 500 }
-        });
+        }));
+        AssertShortText(addedShopping, "Added");
+        Assert.Equal(ingredientName, addedShopping.GetProperty("structuredContent")
+            .GetProperty("ingredientName").GetString());
+
+        var conflict = ToolResult(await CallTool(client, accessToken, "add_shopping_list_item", new
+        {
+            request = new { ingredientId, quantity = 500, requestedName = "Oat drink" }
+        }));
+        AssertShortText(conflict, "Tried to add");
+        var conflictCompact = conflict.GetProperty("structuredContent");
+        Assert.Equal("Conflict", conflictCompact.GetProperty("status").GetString());
+        Assert.Equal("Oat drink", conflictCompact.GetProperty("requestedName").GetString());
+        Assert.Equal(ingredientName, conflictCompact.GetProperty("existingName").GetString());
+        Assert.Equal("sameIngredient", conflictCompact.GetProperty("reason").GetString());
+        var conflictUiData = conflict.GetProperty("_meta").GetProperty("kotlet/uiData");
+        Assert.Equal("Oat drink", conflictUiData.GetProperty("conflict").GetProperty("requestedName").GetString());
+        Assert.Equal(ingredientName, conflictUiData.GetProperty("conflict").GetProperty("matchedName").GetString());
         var shoppingList = await CallTool(client, accessToken, "get_shopping_list", new { });
         Assert.Contains(ingredientName, await shoppingList.Content.ReadAsStringAsync());
     }
@@ -550,7 +567,8 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         var compactNames = new HashSet<string>
         {
             "get_ingredients", "create_ingredient", "get_meal_plan_members",
-            "get_meal_plan", "add_weekly_meal_plan", "set_meal_participants"
+            "get_meal_plan", "add_weekly_meal_plan", "set_meal_participants",
+            "add_shopping_list_item"
         };
         var tools = result.GetProperty("tools").EnumerateArray()
             .Where(tool => compactNames.Contains(tool.GetProperty("name").GetString()!))
@@ -564,6 +582,9 @@ public sealed class McpDataBrowsingTests(TestWebApplicationFactory factory)
         Assert.True(tools["get_meal_plan"].GetProperty("properties").TryGetProperty("days", out _));
         Assert.True(tools["add_weekly_meal_plan"].GetProperty("properties").TryGetProperty("mealIds", out _));
         Assert.True(tools["set_meal_participants"].GetProperty("properties").TryGetProperty("participantCount", out _));
+        Assert.True(tools["add_shopping_list_item"].GetProperty("properties").TryGetProperty("requestedName", out _));
+        Assert.True(tools["add_shopping_list_item"].GetProperty("properties").TryGetProperty("existingName", out _));
+        Assert.True(tools["add_shopping_list_item"].GetProperty("properties").TryGetProperty("reason", out _));
     }
 
     private Task<(HttpClient Client, string AccessToken)> AuthorizeMcpClientAsync()

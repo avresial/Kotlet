@@ -10,7 +10,7 @@ public interface IShoppingListRepository
     Task LoadReferencesAsync(ShoppingListItem item, CancellationToken cancellationToken);
     Task<bool> IngredientExistsAsync(Guid ingredientId, CancellationToken cancellationToken);
     Task<bool> PreparedMealExistsAsync(Guid preparedMealId, Guid houseId, CancellationToken cancellationToken);
-    Task<bool> ItemExistsAsync(Guid houseId, Guid? ingredientId, Guid? preparedMealId, CancellationToken cancellationToken);
+    Task<ShoppingListItem?> FindExistingAsync(Guid houseId, Guid? ingredientId, Guid? preparedMealId, CancellationToken cancellationToken);
     Task<IReadOnlyList<PlannedIngredient>> GetPlannedIngredientsAsync(Guid houseId, DateOnly from, DateOnly to, CancellationToken cancellationToken);
     void Add(ShoppingListItem item);
     void Remove(ShoppingListItem item);

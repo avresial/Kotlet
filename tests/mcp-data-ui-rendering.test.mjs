@@ -27,8 +27,33 @@ const pantryReconciliation = {
   unrecognizedCount: 2,
 };
 
+const shoppingConflict = {
+  status: "Conflict",
+  message: "This product is already on the shopping list.",
+  conflict: {
+    requestedName: "serek typu skyr",
+    matchedName: "Skyr",
+    category: "Dairy",
+    reason: "sameIngredient",
+    existingItem: {
+      id: "00000000-0000-0000-0000-000000000010",
+      ingredientId: "00000000-0000-0000-0000-000000000011",
+      preparedMealId: null,
+      ingredientName: "Skyr",
+      measurementUnit: "g",
+      quantity: 250,
+      totalPrice: 4.2,
+      isPurchased: false,
+      category: "Dairy",
+      note: null,
+      customName: null,
+    },
+  },
+};
+
 const cases = [
   ["Shopping list", [{ ingredientName: "Milk", measurementUnit: "ml", quantity: 500, totalPrice: 4.2, isPurchased: false, category: "Dairy" }]],
+  ["Shopping list conflict", shoppingConflict],
   ["Pantry", [{ ingredientName: "Rice", measurementUnit: "g", quantity: 800, expirationDate: "2027-01-01", storageLocation: "Cabinet" }]],
   ["Pantry reconciliation", pantryReconciliation],
   ["Prepared meals", [{ name: "Curry", servings: 2, caloriesPerServing: 350, price: 12.5, isArchived: false, addons: [], preparationInstructions: "Heat." }]],
@@ -58,6 +83,35 @@ test("shared MCP app renders every custom data shape", () => {
     assert.ok(dom.window.document.getElementById("content").textContent.trim());
     dom.window.close();
   }
+});
+
+test("shopping list conflicts show requested and existing product details", () => {
+  const dom = new JSDOM(html, {
+    runScripts: "dangerously",
+    url: "https://widget.test/",
+    beforeParse(window) {
+      window.matchMedia = () => ({ matches: false });
+    },
+  });
+  dom.window.dispatchEvent(new dom.window.MessageEvent("message", {
+    data: {
+      jsonrpc: "2.0",
+      method: "ui/notifications/tool-result",
+      params: { structuredContent: shoppingConflict, _meta: { "kotlet/locale": "pl" } },
+    },
+  }));
+
+  const document = dom.window.document;
+  const card = document.querySelector(".shopping-conflict");
+  assert.ok(card);
+  assert.equal(document.getElementById("title").textContent, "Konflikt listy zakupów");
+  assert.equal(document.getElementById("summary").textContent, "Konflikt");
+  assert.match(card.textContent, /Próbowano dodać: serek typu skyr/);
+  assert.match(card.textContent, /Już istnieje jako: Skyr · Nabiał/);
+  assert.match(card.textContent, /Na liście: 250 g/);
+  assert.match(card.textContent, /This product is already on the shopping list\./);
+  assert.doesNotMatch(card.textContent, /00000000-0000-0000-0000-000000000010/);
+  dom.window.close();
 });
 
 test("pantry reconciliation keeps changes and review queues in separate groups", () => {

@@ -56,8 +56,11 @@ internal sealed class ShoppingListRepository(KotletDbContext dbContext) : IShopp
             meal => meal.Id == preparedMealId && meal.HouseId == houseId && !meal.IsArchived,
             cancellationToken);
 
-    public Task<bool> ItemExistsAsync(Guid houseId, Guid? ingredientId, Guid? preparedMealId, CancellationToken cancellationToken) =>
-        dbContext.ShoppingListItems.AnyAsync(
+    public Task<ShoppingListItem?> FindExistingAsync(Guid houseId, Guid? ingredientId, Guid? preparedMealId, CancellationToken cancellationToken) =>
+        dbContext.ShoppingListItems
+            .Include(item => item.Ingredient)
+            .Include(item => item.PreparedMeal)
+            .FirstOrDefaultAsync(
             item => item.HouseId == houseId
                 && (ingredientId != null ? item.IngredientId == ingredientId : item.PreparedMealId == preparedMealId),
             cancellationToken);
