@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, switchMap, takeWhile, timer } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 import {
   DetectedIngredient,
   IngredientConfidenceState,
@@ -14,22 +16,22 @@ import { ToolsService } from '../../services/tools.service';
 
 @Component({
   selector: 'app-video-transcription-page',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TranslatePipe],
   template: `
     <main class="transcription-page">
-      <a class="back-link" routerLink="/tools">← Back to Tools Hub</a>
+      <a class="back-link" routerLink="/tools">{{ 'tools.video.backToTools' | t }}</a>
 
       <header>
         <div class="title-row">
-          <span class="ai-badge">AI-Assisted</span>
-          <h1>Video Transcription</h1>
+          <span class="ai-badge">{{ 'tools.video.aiAssisted' | t }}</span>
+          <h1>{{ 'tools.video.title' | t }}</h1>
         </div>
-        <p>Extract transcripts and ingredients from YouTube or TikTok cooking videos.</p>
+        <p>{{ 'tools.video.intro' | t }}</p>
       </header>
 
       @if (!job()) {
         <form class="start-card" (ngSubmit)="start()">
-          <label for="video-url">Video URL</label>
+          <label for="video-url">{{ 'tools.video.videoUrl' | t }}</label>
           <div class="url-row">
             <input
               id="video-url"
@@ -37,25 +39,25 @@ import { ToolsService } from '../../services/tools.service';
               name="url"
               [ngModel]="url()"
               (ngModelChange)="url.set($event)"
-              placeholder="https://www.youtube.com/watch?v=… or https://tiktok.com/@…"
+              [placeholder]="'tools.video.urlPlaceholder' | t"
               autocomplete="url"
               required
             />
             <button type="submit" [disabled]="!isValidUrl() || isStarting()">
-              {{ isStarting() ? 'Starting…' : 'Transcribe' }}
+              {{ (isStarting() ? 'tools.video.starting' : 'tools.video.transcribe') | t }}
             </button>
           </div>
           @if (url() && !isValidUrl()) {
-            <p class="field-error">Enter a valid YouTube or TikTok URL.</p>
+            <p class="field-error">{{ 'tools.video.invalidUrl' | t }}</p>
           }
         </form>
       } @else if (hasFailed()) {
         <section class="status-card failed" aria-live="polite">
           <div class="status-content">
             <strong>{{ statusText() }}</strong>
-            <p>{{ job()?.errorReason || 'Check the URL or backend settings and try again.' }}</p>
+            <p>{{ job()?.errorReason || ('tools.video.failureFallback' | t) }}</p>
           </div>
-          <button type="button" class="retry-button" (click)="job.set(null)">Try another video</button>
+          <button type="button" class="retry-button" (click)="job.set(null)">{{ 'tools.video.retry' | t }}</button>
         </section>
       } @else if (!isFinished()) {
         <section class="status-card processing" aria-live="polite">
@@ -63,26 +65,26 @@ import { ToolsService } from '../../services/tools.service';
             <span class="spinner" aria-hidden="true"></span>
             <div>
               <strong>{{ statusText() }}</strong>
-              <p>Processing video transcript and detecting ingredients…</p>
+              <p>{{ 'tools.video.processing' | t }}</p>
             </div>
           </div>
 
           <ol class="stages-stepper" role="progressbar" aria-valuemin="1" aria-valuemax="5"
             [attr.aria-valuenow]="statusStageIndex()">
             <li [class.active]="statusStageIndex() === 1" [class.done]="statusStageIndex() > 1">
-              <span class="step-num">1</span> Pending
+              <span class="step-num">1</span> {{ 'tools.video.stage.pending' | t }}
             </li>
             <li [class.active]="statusStageIndex() === 2" [class.done]="statusStageIndex() > 2">
-              <span class="step-num">2</span> Transcribing
+              <span class="step-num">2</span> {{ 'tools.video.stage.transcribing' | t }}
             </li>
             <li [class.active]="statusStageIndex() === 3" [class.done]="statusStageIndex() > 3">
-              <span class="step-num">3</span> Detecting
+              <span class="step-num">3</span> {{ 'tools.video.stage.detecting' | t }}
             </li>
             <li [class.active]="statusStageIndex() === 4" [class.done]="statusStageIndex() > 4">
-              <span class="step-num">4</span> Matching
+              <span class="step-num">4</span> {{ 'tools.video.stage.matching' | t }}
             </li>
             <li [class.active]="statusStageIndex() === 5" [class.done]="statusStageIndex() > 5">
-              <span class="step-num">5</span> Ready
+              <span class="step-num">5</span> {{ 'tools.video.stage.ready' | t }}
             </li>
           </ol>
         </section>
@@ -91,32 +93,32 @@ import { ToolsService } from '../../services/tools.service';
           <!-- Video Metadata Panel -->
           <section class="panel metadata-panel">
             <div class="panel-header">
-              <h2>Video Details</h2>
+              <h2>{{ 'tools.video.videoDetails' | t }}</h2>
               @if (result.platform) {
                 <span class="platform-badge">{{ result.platform }}</span>
               }
             </div>
             <div class="metadata-grid">
               <div class="meta-item">
-                <span class="meta-label">Title</span>
-                <span class="meta-value title">{{ result.title || 'Untitled Video' }}</span>
+                <span class="meta-label">{{ 'tools.video.titleLabel' | t }}</span>
+                <span class="meta-value title">{{ result.title || ('tools.video.untitledVideo' | t) }}</span>
               </div>
               @if (result.author) {
                 <div class="meta-item">
-                  <span class="meta-label">Author</span>
+                  <span class="meta-label">{{ 'tools.video.author' | t }}</span>
                   <span class="meta-value">{{ result.author }}</span>
                 </div>
               }
               @if (result.language) {
                 <div class="meta-item">
-                  <span class="meta-label">Language</span>
+                  <span class="meta-label">{{ 'tools.video.language' | t }}</span>
                   <span class="meta-value language-tag">{{ result.language.toUpperCase() }}</span>
                 </div>
               }
               <div class="meta-item">
-                <span class="meta-label">Source</span>
+                <span class="meta-label">{{ 'tools.video.source' | t }}</span>
                 <a [href]="result.sourceUrl" target="_blank" rel="noopener noreferrer" class="source-link">
-                  View Original Video ↗
+                  {{ 'tools.video.viewOriginal' | t }}
                 </a>
               </div>
             </div>
@@ -125,11 +127,11 @@ import { ToolsService } from '../../services/tools.service';
           <!-- Action Panel: Continue as Recipe -->
           <section class="panel continue-banner">
             <div>
-              <h3>Ready to create a recipe?</h3>
-              <p>Convert this video transcription and ingredient analysis into an editable recipe draft.</p>
+              <h3>{{ 'tools.video.readyToCreateRecipe' | t }}</h3>
+              <p>{{ 'tools.video.continueDescription' | t }}</p>
             </div>
             <button type="button" class="primary-continue-btn" [disabled]="isContinuing()" (click)="continueAsRecipe()">
-              {{ isContinuing() ? 'Converting…' : 'Continue as recipe →' }}
+              {{ (isContinuing() ? 'tools.video.converting' : 'tools.video.continueAsRecipe') | t }}
             </button>
           </section>
 
@@ -137,20 +139,20 @@ import { ToolsService } from '../../services/tools.service';
           <section class="panel ingredients-panel">
             <div class="panel-header">
               <div>
-                <h2>Detected Ingredients</h2>
+                <h2>{{ 'tools.video.detectedIngredients' | t }}</h2>
                 @if (ingredientsSummary(); as summary) {
                   <p class="summary-subtext">
-                    {{ summary.total }} ingredients detected:
-                    <span class="count-confident">{{ summary.confidentCount }} confident</span>,
-                    <span class="count-uncertain">{{ summary.uncertainCount }} review needed</span>,
-                    <span class="count-new">{{ summary.newCount }} new</span>
+                    {{ summary.total }} {{ 'tools.video.ingredientsDetected' | t }}:
+                    <span class="count-confident">{{ summary.confidentCount }} {{ 'tools.video.confident' | t }}</span>,
+                    <span class="count-uncertain">{{ summary.uncertainCount }} {{ 'tools.video.reviewNeeded' | t }}</span>,
+                    <span class="count-new">{{ summary.newCount }} {{ 'tools.video.new' | t }}</span>
                   </p>
                 }
               </div>
             </div>
 
             @if (!result.detectedIngredients.length) {
-              <p class="empty-state">No ingredients were automatically detected in this transcript.</p>
+              <p class="empty-state">{{ 'tools.video.emptyIngredients' | t }}</p>
             } @else {
               <div class="ingredients-list">
                 @for (ing of result.detectedIngredients; track $index) {
@@ -158,7 +160,7 @@ import { ToolsService } from '../../services/tools.service';
                     <div class="ingredient-main">
                       <span class="ing-name">{{ ing.sourceName }}</span>
                       @if (ing.matchedIngredientName && ing.matchedIngredientName !== ing.sourceName) {
-                        <small class="matched-sub">Matched to: {{ ing.matchedIngredientName }}</small>
+                        <small class="matched-sub">{{ 'tools.video.matchedTo' | t }} {{ ing.matchedIngredientName }}</small>
                       }
                       @if (ing.note) {
                         <span class="ing-note">{{ ing.note }}</span>
@@ -177,13 +179,13 @@ import { ToolsService } from '../../services/tools.service';
                     <div class="confidence-badge-cell">
                       @switch (getConfidenceState(ing)) {
                         @case ('confident') {
-                          <span class="badge confident">✓ Confident</span>
+                          <span class="badge confident">{{ 'tools.video.badgeConfident' | t }}</span>
                         }
                         @case ('uncertain') {
-                          <span class="badge uncertain">⚠ Review Match</span>
+                          <span class="badge uncertain">{{ 'tools.video.badgeReviewMatch' | t }}</span>
                         }
                         @case ('new') {
-                          <span class="badge new-ing">+ New Ingredient</span>
+                          <span class="badge new-ing">{{ 'tools.video.badgeNewIngredient' | t }}</span>
                         }
                       }
                     </div>
@@ -196,13 +198,13 @@ import { ToolsService } from '../../services/tools.service';
           <!-- Full Transcript Panel -->
           <section class="panel transcript-panel">
             <div class="panel-header">
-              <h2>Full Transcript</h2>
+              <h2>{{ 'tools.video.fullTranscript' | t }}</h2>
               <button type="button" class="copy-btn" (click)="copyTranscript()">
-                {{ isCopied() ? '✓ Copied!' : '📋 Copy transcript' }}
+                {{ (isCopied() ? 'tools.video.copied' : 'tools.video.copyTranscript') | t }}
               </button>
             </div>
             <div class="transcript-content">
-              {{ result.transcript || 'No transcript text available.' }}
+              {{ result.transcript || ('tools.video.noTranscript' | t) }}
             </div>
           </section>
         </div>
@@ -221,6 +223,7 @@ export class VideoTranscriptionPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translations = inject(TranslationService);
 
   readonly url = signal('');
   readonly job = signal<VideoTranscriptionJob | null>(null);
@@ -250,12 +253,12 @@ export class VideoTranscriptionPage implements OnInit {
 
   readonly statusText = computed(() => {
     switch (this.job()?.status) {
-      case VideoTranscriptionStatus.Pending: return 'Initializing video transcription…';
-      case VideoTranscriptionStatus.Transcribing: return 'Transcribing audio from video…';
-      case VideoTranscriptionStatus.DetectingIngredients: return 'Detecting ingredients from transcript…';
-      case VideoTranscriptionStatus.MatchingIngredients: return 'Matching ingredients with pantry catalog…';
-      case VideoTranscriptionStatus.Ready: return 'Transcription complete';
-      case VideoTranscriptionStatus.Failed: return 'Transcription failed';
+      case VideoTranscriptionStatus.Pending: return this.translations.translate('tools.video.status.pending');
+      case VideoTranscriptionStatus.Transcribing: return this.translations.translate('tools.video.status.transcribing');
+      case VideoTranscriptionStatus.DetectingIngredients: return this.translations.translate('tools.video.status.detecting');
+      case VideoTranscriptionStatus.MatchingIngredients: return this.translations.translate('tools.video.status.matching');
+      case VideoTranscriptionStatus.Ready: return this.translations.translate('tools.video.status.ready');
+      case VideoTranscriptionStatus.Failed: return this.translations.translate('tools.video.status.failed');
       default: return '';
     }
   });
@@ -310,7 +313,7 @@ export class VideoTranscriptionPage implements OnInit {
           this.pollJob(id);
         },
         error: (err) => {
-          this.error.set(getApiError(err, 'Could not start video transcription.'));
+          this.error.set(getApiError(err, this.translations.translate('tools.video.startError')));
         },
       });
   }
@@ -338,7 +341,7 @@ export class VideoTranscriptionPage implements OnInit {
           this.router.navigate(['/recipes/import', id]);
         },
         error: (err) => {
-          this.error.set(getApiError(err, 'Could not create recipe import draft.'));
+          this.error.set(getApiError(err, this.translations.translate('tools.video.continueError')));
         },
       });
   }
@@ -393,11 +396,11 @@ export class VideoTranscriptionPage implements OnInit {
         next: (job) => {
           this.job.set(job);
           if (job.status === VideoTranscriptionStatus.Failed) {
-            this.error.set(job.errorReason ?? 'Video transcription failed.');
+            this.error.set(job.errorReason ?? this.translations.translate('tools.video.transcriptionFailed'));
           }
         },
         error: (err) => {
-          this.error.set(getApiError(err, 'Could not check video transcription status.'));
+          this.error.set(getApiError(err, this.translations.translate('tools.video.statusError')));
         },
       });
   }

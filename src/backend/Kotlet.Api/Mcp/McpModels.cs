@@ -211,6 +211,41 @@ public sealed record McpShoppingListItem(
         dto.Quantity, dto.TotalPrice, dto.IsPurchased, dto.Category.ToString(), dto.Note, dto.CustomName);
 }
 
+public sealed record McpShoppingListConflict(
+    string RequestedName,
+    McpShoppingListItem ExistingItem,
+    string MatchedName,
+    string Category,
+    string Reason)
+{
+    public static McpShoppingListConflict From(ShoppingListConflict conflict) => new(
+        conflict.RequestedName,
+        McpShoppingListItem.From(conflict.ExistingItem),
+        conflict.MatchedName,
+        conflict.Category.ToString(),
+        conflict.Reason switch
+        {
+            ShoppingListConflictReason.SameIngredient => "sameIngredient",
+            ShoppingListConflictReason.SamePreparedMeal => "samePreparedMeal",
+            _ => throw new ArgumentOutOfRangeException(nameof(conflict.Reason), conflict.Reason, null)
+        });
+}
+
+public sealed record McpShoppingListOperationResult(
+    string Status,
+    McpShoppingListItem? Item = null,
+    IReadOnlyDictionary<string, string[]>? ValidationErrors = null,
+    string? Message = null,
+    McpShoppingListConflict? Conflict = null)
+{
+    public static McpShoppingListOperationResult From(ShoppingListOperationResult result) => new(
+        result.Status.ToString(),
+        result.Item is null ? null : McpShoppingListItem.From(result.Item),
+        result.ValidationErrors,
+        result.Message,
+        result.Conflict is null ? null : McpShoppingListConflict.From(result.Conflict));
+}
+
 public sealed record McpPantryItem(
     Guid Id,
     Guid IngredientId,

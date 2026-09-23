@@ -68,7 +68,7 @@ public static class ShoppingListEndpoints
         ShoppingListOperationStatus.Success when created => Results.Created($"/api/shopping-list/{result.Item!.Id}", result.Item),
         ShoppingListOperationStatus.Success => Results.Ok(result.Items ?? (object?)result.Item),
         ShoppingListOperationStatus.NotFound => Results.NotFound(),
-        ShoppingListOperationStatus.Conflict => Results.Conflict(new { result.Message }),
+        ShoppingListOperationStatus.Conflict => Results.Conflict(new { result.Message, result.Conflict }),
         ShoppingListOperationStatus.ValidationFailed => Results.ValidationProblem(result.ValidationErrors!),
         _ => throw new InvalidOperationException()
     };

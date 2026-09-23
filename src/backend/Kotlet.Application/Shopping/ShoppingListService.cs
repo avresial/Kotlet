@@ -52,9 +52,23 @@ public sealed class ShoppingListService(IShoppingListRepository repository, ITra
             return new(ShoppingListOperationStatus.NotFound);
         }
 
-        if (customName is null && await repository.ItemExistsAsync(houseId, command.IngredientId, command.PreparedMealId, cancellationToken))
+        var existingItem = customName is null
+            ? await repository.FindExistingAsync(houseId, command.IngredientId, command.PreparedMealId, cancellationToken)
+            : null;
+        if (existingItem is not null)
         {
-            return new(ShoppingListOperationStatus.Conflict, Message: "This product is already on the shopping list.");
+            var existingDto = await ToLocalizedDtoAsync(existingItem, languageCode, cancellationToken);
+            var requestedName = command.RequestedName?.Trim() is { Length: > 0 } trimmedName
+                ? trimmedName
+                : existingDto.IngredientName;
+            var reason = existingItem.IngredientId is not null
+                ? ShoppingListConflictReason.SameIngredient
+                : ShoppingListConflictReason.SamePreparedMeal;
+            return new(
+                ShoppingListOperationStatus.Conflict,
+                Message: "This product is already on the shopping list.",
+                Conflict: new ShoppingListConflict(
+                    requestedName, existingDto, existingDto.IngredientName, existingDto.Category, reason));
         }
 
         var item = new ShoppingListItem

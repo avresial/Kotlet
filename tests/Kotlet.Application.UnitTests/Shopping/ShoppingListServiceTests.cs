@@ -106,13 +106,51 @@ public sealed class ShoppingListServiceTests
     public async Task Create_WhenIngredientAlreadyOnList_ReturnsConflict()
     {
         var repo = new FakeRepository(Apples);
-        repo.SeedItem(HouseId, Apples, 5m);
+        var existing = repo.SeedItem(HouseId, Apples, 5m);
         var service = new ShoppingListService(repo, new FakeTranslationRepository());
 
-        var result = await service.CreateAsync(HouseId, new CreateShoppingListItemCommand(Apples.Id, null, 5m), English, CancellationToken.None);
+        var result = await service.CreateAsync(HouseId,
+            new CreateShoppingListItemCommand(Apples.Id, null, 5m, RequestedName: "  Serek typu skyr  "),
+            English, CancellationToken.None);
 
         Assert.Equal(ShoppingListOperationStatus.Conflict, result.Status);
         Assert.NotNull(result.Message);
+        Assert.NotNull(result.Conflict);
+        var conflict = result.Conflict!;
+        Assert.Equal("Serek typu skyr", conflict.RequestedName);
+        Assert.Equal(existing.Id, conflict.ExistingItem.Id);
+        Assert.Equal(Apples.Name, conflict.MatchedName);
+        Assert.Equal(Apples.Category, conflict.Category);
+        Assert.Equal(ShoppingListConflictReason.SameIngredient, conflict.Reason);
+    }
+
+    [Fact]
+    public async Task Create_WhenPreparedMealAlreadyOnList_UsesCanonicalNameAndReason()
+    {
+        var meal = new PreparedMeal
+        {
+            Id = Guid.NewGuid(),
+            HouseId = HouseId,
+            Name = "Pierożki gioza",
+            Servings = 2,
+            CaloriesPerServing = 250m,
+            Price = 12.50m
+        };
+        var repo = new FakeRepository(Apples);
+        var existing = repo.SeedPreparedMealItem(HouseId, meal, 2m);
+        var service = new ShoppingListService(repo, new FakeTranslationRepository());
+
+        var result = await service.CreateAsync(HouseId,
+            new CreateShoppingListItemCommand(null, meal.Id, 2m), English, CancellationToken.None);
+
+        Assert.NotNull(result.Conflict);
+        var conflict = result.Conflict!;
+        Assert.Equal(ShoppingListOperationStatus.Conflict, result.Status);
+        Assert.Equal(meal.Name, conflict.RequestedName);
+        Assert.Equal(existing.Id, conflict.ExistingItem.Id);
+        Assert.Equal(meal.Name, conflict.MatchedName);
+        Assert.Equal(FoodCategory.Unknown, conflict.Category);
+        Assert.Equal(ShoppingListConflictReason.SamePreparedMeal, conflict.Reason);
     }
 
     [Fact]
@@ -375,6 +413,21 @@ public sealed class ShoppingListServiceTests
             return item;
         }
 
+        public ShoppingListItem SeedPreparedMealItem(Guid houseId, PreparedMeal meal, decimal quantity)
+        {
+            PreparedMeals.Add(meal);
+            var item = new ShoppingListItem
+            {
+                Id = Guid.NewGuid(),
+                HouseId = houseId,
+                PreparedMealId = meal.Id,
+                Quantity = Quantity.FromAmount(quantity),
+                PreparedMeal = meal
+            };
+            Items.Add(item);
+            return item;
+        }
+
         public Task<IReadOnlyCollection<ShoppingListItem>> GetAllAsync(Guid houseId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyCollection<ShoppingListItem>>(Items.Where(i => i.HouseId == houseId).Select(Hydrate).ToArray());
 
@@ -396,9 +449,11 @@ public sealed class ShoppingListServiceTests
         public Task<bool> PreparedMealExistsAsync(Guid preparedMealId, Guid houseId, CancellationToken cancellationToken) =>
             Task.FromResult(PreparedMeals.Any(x => x.Id == preparedMealId && x.HouseId == houseId && !x.IsArchived));
 
-        public Task<bool> ItemExistsAsync(Guid houseId, Guid? ingredientId, Guid? preparedMealId, CancellationToken cancellationToken) =>
-            Task.FromResult(Items.Any(i => i.HouseId == houseId
-                && (ingredientId is not null ? i.IngredientId == ingredientId : i.PreparedMealId == preparedMealId)));
+        public Task<ShoppingListItem?> FindExistingAsync(Guid houseId, Guid? ingredientId, Guid? preparedMealId, CancellationToken cancellationToken) =>
+            Task.FromResult(Items.SingleOrDefault(i => i.HouseId == houseId
+                && (ingredientId is not null ? i.IngredientId == ingredientId : i.PreparedMealId == preparedMealId)) is { } item
+                ? Hydrate(item)
+                : null);
 
         public Task<IReadOnlyList<PlannedIngredient>> GetPlannedIngredientsAsync(Guid houseId, DateOnly from, DateOnly to, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<PlannedIngredient>>(PlannedIngredients);

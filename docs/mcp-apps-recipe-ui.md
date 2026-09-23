@@ -18,16 +18,17 @@ UI for recipes, served by the existing ASP.NET Core MCP server.
    another chat message.
 
 All recipe data flows through the existing `RecipeService` application layer and the MCP tool
-surface — the embedded UI never talks to the REST API or the database. The only direct HTTP the
-iframe performs is loading recipe images from the API's anonymous image-content endpoint, which the
-resource declares via `_meta.ui.csp.resourceDomains` so the host's CSP allows it.
+surface — the embedded UI never talks to the REST API or the database. The iframe loads its shared
+recipe-card asset from the Angular frontend and recipe images from the API's anonymous image-content
+endpoint; both origins are declared via `_meta.ui.csp.resourceDomains` so the host's CSP allows them.
 
 ## Code layout
 
 | File | Purpose |
 | --- | --- |
 | `src/backend/Kotlet.Api/Recipes/RecipeUiMcp.cs` | `show_recipes` tool + `ui://kotlet/recipes-v2` resource, registered manually because both carry `_meta.ui` metadata that attribute scanning cannot express. |
-| `src/backend/Kotlet.Api/Recipes/RecipeUiApp.html` | The entire UI: one self-contained HTML document (embedded resource) with inline CSS/JS and a hand-rolled MCP Apps bridge. |
+| `src/backend/Kotlet.Api/Recipes/RecipeUiApp.html` | The embedded recipe UI shell with inline CSS/JS and a hand-rolled MCP Apps bridge; cards come from the shared frontend custom element. |
+| `src/frontend/src/app/shared/ui/recipe-card/recipe-card.js` | Framework-agnostic recipe-card custom element used by the MCP shell and Angular Agent page. |
 | `tests/Kotlet.Api.IntegrationTests/Mcp/McpRecipeUiTests.cs` | Verifies the tool metadata, resource MIME type, structured content, and text fallback. |
 
 ## Trying it out
@@ -47,8 +48,8 @@ the UI ships inside the API assembly.
 ## Styling
 
 The UI intentionally reuses the main Angular frontend's design language: the CSS custom properties
-are copied from `src/frontend/src/styles.scss` (light and dark palettes), and the card/detail markup
-mirrors `recipe-list-page` and `recipe-detail-page` class-for-class. The host's reported theme
+are copied from `src/frontend/src/styles.scss` (light and dark palettes), and the detail markup
+mirrors `recipe-detail-page`, while the shared card custom element owns card markup and styling. The host's reported theme
 (`hostContext.theme`) switches the palette, falling back to `prefers-color-scheme`.
 
 Every embedded MCP UI header uses a transparent wrapper, a title color bound to the document's theme
@@ -66,26 +67,25 @@ favour of the next signal, and English is the final fallback. See
 
 ## PoC decision point: Blazor WASM vs. lightweight HTML/JS
 
-The issue proposed a Blazor WebAssembly PoC. While evaluating the hosting constraints, the PoC was
-implemented as a single self-contained HTML document instead, for these reasons:
+The issue proposed a Blazor WebAssembly PoC. The recipe UI remains a lightweight HTML shell, while
+the card itself is a framework-agnostic custom element shared with the built-in Agent. This keeps
+the two recipe-result surfaces consistent without coupling the MCP resource to Angular's runtime:
 
 - **Bundle size and startup**: a minimal Blazor WASM app ships a multi-megabyte `_framework` payload
   (dotnet runtime + assemblies) and needs a visible startup delay inside every conversation turn
   that renders the UI. The HTML document here is ~13 KB and renders immediately.
-- **CSP and asset hosting**: the default MCP Apps CSP is `default-src 'none'` with only inline
-  scripts/styles allowed. Blazor's `_framework` assets would have to be hosted on a public endpoint
-  and allow-listed via `_meta.ui.csp`, adding an asset pipeline and cache-busting concerns to the
-  API for no functional gain at this scope.
+- **CSP and asset hosting**: the default MCP Apps CSP is `default-src 'none'`; the resource
+  explicitly allow-lists the frontend origin for one small shared card asset. Blazor's `_framework`
+  assets would still require a much larger runtime and asset pipeline.
 - **JS interop**: Blazor would still need the same postMessage JSON-RPC bridge, written in
   JavaScript and called through `IJSRuntime` interop — the interop layer is the bridge, so Blazor
   adds a hop without removing any JavaScript.
-- **Styling reuse**: the main frontend is Angular, so Blazor components could not be reused either
-  way. Plain HTML/CSS reuses the frontend's exact palette and markup structure directly.
+- **Styling reuse**: the custom element is plain HTML/CSS/JS, so Angular hosts it through the browser
+  custom-element contract and the MCP shell loads the same file without an Angular runtime.
 
-**Recommendation**: for future Kotlet MCP interfaces, keep this pattern — small self-contained
-HTML/TypeScript documents per feature (built with the official `@modelcontextprotocol/ext-apps` SDK
-bundled inline once a build step is worth it), sharing the frontend's CSS variables. Blazor WASM is
-not a good fit for embedded MCP Apps under current host CSP rules.
+**Recommendation**: keep MCP shells small and framework-independent, and extract UI that must look
+the same in the Angular app and an MCP iframe into browser-native shared assets. Blazor WASM is not
+a good fit for this embedded surface at the current scope.
 
 ## Out of scope (per the issue)
 

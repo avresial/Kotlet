@@ -1,9 +1,4 @@
-<section class="add-card" aria-labelledby="shopping-add-title">
-  <div class="intro">
-    <h2 id="shopping-add-title">{{ 'shopping.addTitle' | t }}</h2>
-    <p>{{ 'shopping.addHelp' | t }}</p>
-  </div>
-
+<section class="add-card" [attr.aria-label]="'shopping.addSection' | t">
   <div class="workbench">
     @if (selected(); as option) {
       <div class="picked">

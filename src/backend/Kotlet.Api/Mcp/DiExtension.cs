@@ -168,7 +168,8 @@ public static class DiExtension
         // attribute scanning cannot express, so they are registered as singletons directly.
         services.AddSingleton(RecipeUiMcp.CreateShowRecipesTool);
         services.AddSingleton<McpServerResource>(_ =>
-            RecipeUiMcp.CreateRecipesUiResource(RecipeUiMcp.ApiOrigin(oauth)));
+            RecipeUiMcp.CreateRecipesUiResource(
+                RecipeUiMcp.ApiOrigin(oauth), RecipeUiMcp.FrontendOrigin(oauth)));
         services.AddSingleton(MealPlannerUiMcp.CreateShowMealPlanTool);
         services.AddSingleton<McpServerResource>(_ =>
             MealPlannerUiMcp.CreateMealPlanUiResource(MealPlannerUiMcp.ApiOrigin(oauth)));

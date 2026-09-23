@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SecurityContext } from '@angular/core';
 import { provideHttpClient, HttpErrorResponse } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { DomSanitizer } from '@angular/platform-browser';
 import { of, throwError } from 'rxjs';
 import { AgentPage } from './agent-page';
@@ -82,6 +82,33 @@ describe('AgentPage', () => {
     expect(lastMessage.model).toBe('test-model');
     expect(typeof lastMessage.responseTimeMs).toBe('number');
     expect(lastMessage.responseTimeMs! >= 0).toBe(true);
+  });
+
+  it('should retain structured recipe results and navigate from a shared card event', () => {
+    const structuredResults = [{
+      type: 'recipes' as const,
+      totalCount: 1,
+      recipes: [{ id: 'recipe-1', title: 'Tomato soup', servings: 4, ingredientCount: 5 }],
+    }];
+    vi.mocked(agentService.chat).mockReturnValue(of({ content: 'Here is one recipe.', structuredResults }));
+    component.model = 'test-model';
+    component.prompt = 'Find a recipe';
+
+    component.send();
+
+    const lastMessage = component.messages().at(-1);
+    expect(lastMessage?.structuredResults).toEqual(structuredResults);
+    expect(JSON.parse(component.recipeCardJson(structuredResults[0].recipes[0]))).toMatchObject({
+      id: 'recipe-1',
+      viewLabel: 'agent.viewRecipe',
+      servingsLabel: '4 servings',
+      ingredientCountLabel: '5 ingredients',
+    });
+
+    const router = TestBed.inject(Router);
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    component.openRecipe(new CustomEvent('recipe-view', { detail: { id: 'recipe-1' } }));
+    expect(navigate).toHaveBeenCalledWith(['/recipes', 'recipe-1']);
   });
 
   it('should append an error message when the request fails', () => {

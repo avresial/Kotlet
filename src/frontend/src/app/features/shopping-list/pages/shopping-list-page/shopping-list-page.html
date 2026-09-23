@@ -1,20 +1,21 @@
 <main class="shopping-page">
   <a class="back" routerLink="/dashboard">← {{ 'common.backOverview' | t }}</a>
   <header>
-    <div><p class="eyebrow">{{ 'shopping.eyebrow' | t }}</p><h1>{{ 'nav.shoppingList' | t }}</h1><p>{{ 'shopping.intro' | t }}</p></div>
+    <div>
+      <p class="eyebrow">{{ 'shopping.eyebrow' | t }}</p>
+      <h1>{{ 'nav.shoppingList' | t }}</h1>
+      <p class="subtitle">{{ 'shopping.intro' | t }}</p>
+      <p class="sync-status" [class.sync-offline]="syncState() === 'offline'" [class.sync-syncing]="syncState() === 'syncing'" [class.sync-failed]="syncState() === 'failed'" role="status" aria-live="polite"><span aria-hidden="true">●</span>{{ syncLabel() | t }} @if (failedUpdateCount() > 0) { <button type="button" class="retry-sync" (click)="retryFailed()">{{ 'shopping.retrySync' | t }}</button> }</p>
+    </div>
     <div class="summary"><strong>{{ totalPrice().toFixed(2) }} zł</strong><span>{{ purchasedCount() }} {{ 'common.of' | t }} {{ items().length }} {{ 'shopping.bought' | t }}</span></div>
   </header>
 
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
-  <section class="receipt" aria-labelledby="receipt-title">
+  <app-shopping-add [ingredients]="availableIngredients()" [preparedMeals]="availablePreparedMeals()" [onList]="listedProducts()" (add)="add($event)" />
+
+  <section class="receipt" [attr.aria-label]="'shopping.listSection' | t">
     <div class="receipt-heading">
-      <div class="receipt-title">
-        <p class="eyebrow">{{ 'shopping.receipt' | t }}</p>
-        <h2 id="receipt-title">{{ 'shopping.itemsToBuy' | t }}</h2>
-        <p class="receipt-count">{{ items().length }} {{ 'common.items' | t }}</p>
-        <p class="sync-status" [class.sync-offline]="syncState() === 'offline'" [class.sync-syncing]="syncState() === 'syncing'" [class.sync-failed]="syncState() === 'failed'" role="status" aria-live="polite"><span aria-hidden="true">●</span>{{ syncLabel() | t }} @if (failedUpdateCount() > 0) { <button type="button" class="retry-sync" (click)="retryFailed()">{{ 'shopping.retrySync' | t }}</button> }</p>
-      </div>
       <div class="receipt-actions">
         <button class="pill" type="button" [disabled]="items().length === 0" (click)="print()">{{ 'shopping.print' | t }}</button>
         <button class="icon-button clear-checked" type="button" [disabled]="isSaving() || pendingUpdateCount() > 0 || failedUpdateCount() > 0 || purchasedCount() === 0" (click)="clearChecked()" [attr.aria-label]="'shopping.clearChecked' | t" [title]="'shopping.clearChecked' | t">
@@ -22,7 +23,6 @@
         </button>
       </div>
     </div>
-    <app-shopping-add [ingredients]="availableIngredients()" [preparedMeals]="availablePreparedMeals()" [onList]="listedProducts()" (add)="add($event)" />
     @if (isLoading()) { <p class="empty">{{ 'shopping.loading' | t }}</p> }
     @else if (items().length === 0 && pending().length === 0) { <p class="empty">{{ 'shopping.empty' | t }}</p> }
     @else {

@@ -27,8 +27,33 @@ const pantryReconciliation = {
   unrecognizedCount: 2,
 };
 
+const shoppingConflict = {
+  status: "Conflict",
+  message: "This product is already on the shopping list.",
+  conflict: {
+    requestedName: "serek typu skyr",
+    matchedName: "Skyr",
+    category: "Dairy",
+    reason: "sameIngredient",
+    existingItem: {
+      id: "00000000-0000-0000-0000-000000000010",
+      ingredientId: "00000000-0000-0000-0000-000000000011",
+      preparedMealId: null,
+      ingredientName: "Skyr",
+      measurementUnit: "g",
+      quantity: 250,
+      totalPrice: 4.2,
+      isPurchased: false,
+      category: "Dairy",
+      note: null,
+      customName: null,
+    },
+  },
+};
+
 const cases = [
   ["Shopping list", [{ ingredientName: "Milk", measurementUnit: "ml", quantity: 500, totalPrice: 4.2, isPurchased: false, category: "Dairy" }]],
+  ["Shopping list conflict", shoppingConflict],
   ["Pantry", [{ ingredientName: "Rice", measurementUnit: "g", quantity: 800, expirationDate: "2027-01-01", storageLocation: "Cabinet" }]],
   ["Pantry reconciliation", pantryReconciliation],
   ["Prepared meals", [{ name: "Curry", servings: 2, caloriesPerServing: 350, price: 12.5, isArchived: false, addons: [], preparationInstructions: "Heat." }]],
@@ -58,6 +83,35 @@ test("shared MCP app renders every custom data shape", () => {
     assert.ok(dom.window.document.getElementById("content").textContent.trim());
     dom.window.close();
   }
+});
+
+test("shopping list conflicts show requested and existing product details", () => {
+  const dom = new JSDOM(html, {
+    runScripts: "dangerously",
+    url: "https://widget.test/",
+    beforeParse(window) {
+      window.matchMedia = () => ({ matches: false });
+    },
+  });
+  dom.window.dispatchEvent(new dom.window.MessageEvent("message", {
+    data: {
+      jsonrpc: "2.0",
+      method: "ui/notifications/tool-result",
+      params: { structuredContent: shoppingConflict, _meta: { "kotlet/locale": "pl" } },
+    },
+  }));
+
+  const document = dom.window.document;
+  const card = document.querySelector(".shopping-conflict");
+  assert.ok(card);
+  assert.equal(document.getElementById("title").textContent, "Konflikt listy zakupów");
+  assert.equal(document.getElementById("summary").textContent, "Konflikt");
+  assert.match(card.textContent, /Próbowano dodać: serek typu skyr/);
+  assert.match(card.textContent, /Już istnieje jako: Skyr · Nabiał/);
+  assert.match(card.textContent, /Na liście: 250 g/);
+  assert.match(card.textContent, /This product is already on the shopping list\./);
+  assert.doesNotMatch(card.textContent, /00000000-0000-0000-0000-000000000010/);
+  dom.window.close();
 });
 
 test("pantry reconciliation keeps changes and review queues in separate groups", () => {
@@ -122,6 +176,71 @@ test("meal operation result prioritizes useful content and hides identifiers", (
   assert.equal(dom.window.document.querySelector(".person-main strong").textContent, "Asik");
   assert.equal(dom.window.document.querySelector(".portion strong").textContent, "100%");
   assert.equal(dom.window.document.querySelector("details.technical").open, false);
+  dom.window.close();
+});
+
+test("single ingredient results keep metadata in collapsed details", () => {
+  const dom = new JSDOM(html, {
+    runScripts: "dangerously",
+    url: "https://widget.test/",
+    beforeParse(window) {
+      window.matchMedia = () => ({ matches: false });
+    },
+  });
+  dom.window.dispatchEvent(new dom.window.MessageEvent("message", {
+    data: {
+      jsonrpc: "2.0",
+      method: "ui/notifications/tool-result",
+      params: {
+        structuredContent: {
+          status: "Success",
+          ingredientId: "00000000-0000-0000-0000-000000000001",
+          name: "Skyr",
+          measurementUnit: "g",
+        },
+        _meta: {
+          "kotlet/uiData": {
+            status: "Success",
+            ingredient: {
+              id: "00000000-0000-0000-0000-000000000001",
+              name: "Skyr",
+              defaultName: "Skyr",
+              measurementUnit: "g",
+              isCountable: false,
+              measurementUnitsPerPiece: null,
+              caloriesPer100BaseUnits: 63,
+              pricePer100BaseUnits: 1.2,
+              category: "Dairy",
+              allergens: ["Milk"],
+              attributes: ["ContainsLactose"],
+              suitability: ["Vegetarian"],
+            },
+          },
+        },
+      },
+    },
+  }));
+
+  const document = dom.window.document;
+  assert.equal(document.querySelector(".ingredient-title").textContent, "Skyr · Dairy");
+  assert.equal(document.getElementById("summary").textContent, "");
+  const details = document.querySelector("details.ingredient-details");
+  assert.ok(details);
+  assert.equal(details.open, false);
+  assert.equal(document.querySelector(".operation-hero"), null);
+  assert.equal(details.querySelector("dt").textContent, "Status");
+  assert.match(details.textContent, /Success/);
+  assert.match(details.textContent, /00000000-0000-0000-0000-000000000001/);
+  assert.match(details.textContent, /Calories per 100 base units/);
+  assert.match(details.textContent, /Milk/);
+  assert.match(details.textContent, /ContainsLactose/);
+  assert.match(details.textContent, /Vegetarian/);
+  details.open = true;
+  assert.equal(details.open, true);
+  assert.equal(
+    document.querySelector(".ingredient-title").closest(".ingredient-result").querySelectorAll("details").length,
+    1,
+  );
   dom.window.close();
 });
 
