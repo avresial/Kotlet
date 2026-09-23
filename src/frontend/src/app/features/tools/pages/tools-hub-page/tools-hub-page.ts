@@ -4,33 +4,35 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { getApiError } from '../../../../core/http/api-error';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { TranslationService } from '../../../../core/i18n/translation.service';
 import { ToolsService } from '../../services/tools.service';
 
 @Component({
   selector: 'app-tools-hub-page',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TranslatePipe],
   template: `
     <main class="tools-hub-page">
       <header>
-        <p class="eyebrow">Kitchen Utilities</p>
-        <h1>Tools Hub</h1>
-        <p>Smart tools to streamline recipe extraction, video transcription, and smart meal planning.</p>
+        <p class="eyebrow">{{ 'tools.hub.eyebrow' | t }}</p>
+        <h1>{{ 'tools.hub.title' | t }}</h1>
+        <p>{{ 'tools.hub.intro' | t }}</p>
       </header>
 
       <section class="featured-tool-card">
         <div class="card-header">
           <div>
-            <span class="ai-badge">AI-Assisted</span>
-            <h2>Video Transcription</h2>
+            <span class="ai-badge">{{ 'tools.hub.aiAssisted' | t }}</span>
+            <h2>{{ 'tools.hub.videoTranscription' | t }}</h2>
           </div>
           <span class="icon" aria-hidden="true">🎬</span>
         </div>
         <p class="card-description">
-          Transcribe YouTube or TikTok cooking videos, extract ingredients with backend confidence matching, and convert transcripts directly into editable recipe drafts.
+          {{ 'tools.hub.videoDescription' | t }}
         </p>
 
         <form class="quick-start-form" (ngSubmit)="startTranscription()">
-          <label for="hub-video-url">Video URL</label>
+          <label for="hub-video-url">{{ 'tools.hub.videoUrl' | t }}</label>
           <div class="url-input-group">
             <input
               id="hub-video-url"
@@ -38,20 +40,20 @@ import { ToolsService } from '../../services/tools.service';
               name="url"
               [ngModel]="url()"
               (ngModelChange)="url.set($event)"
-              placeholder="https://www.youtube.com/watch?v=… or https://tiktok.com/@…"
+              [placeholder]="'tools.hub.urlPlaceholder' | t"
               autocomplete="url"
             />
             <button type="submit" [disabled]="!isValidUrl() || isStarting()">
-              {{ isStarting() ? 'Starting…' : 'Transcribe' }}
+              {{ (isStarting() ? 'tools.hub.starting' : 'tools.hub.transcribe') | t }}
             </button>
           </div>
           @if (url() && !isValidUrl()) {
-            <p class="field-error">Enter a valid YouTube or TikTok video link.</p>
+            <p class="field-error">{{ 'tools.hub.invalidUrl' | t }}</p>
           }
         </form>
 
         <div class="card-footer">
-          <a routerLink="/tools/video-transcription" class="secondary-link">Open Transcriber Workflow →</a>
+          <a routerLink="/tools/video-transcription" class="secondary-link">{{ 'tools.hub.openWorkflow' | t }}</a>
         </div>
 
         @if (error()) {
@@ -62,23 +64,23 @@ import { ToolsService } from '../../services/tools.service';
       <section class="tools-grid">
         <div class="tool-card">
           <div class="tool-icon">📝</div>
-          <h3>Recipe Import Reviewer</h3>
-          <p>Inspect, edit, and refine recipe drafts extracted from video transcriptions before saving to your collection.</p>
-          <a routerLink="/recipes/import" class="tool-link">Go to Recipe Imports →</a>
+          <h3>{{ 'tools.hub.recipeImportReviewer' | t }}</h3>
+          <p>{{ 'tools.hub.recipeImportDescription' | t }}</p>
+          <a routerLink="/recipes/import" class="tool-link">{{ 'tools.hub.goToRecipeImports' | t }}</a>
         </div>
 
         <div class="tool-card">
           <div class="tool-icon">🥫</div>
-          <h3>Pantry Matcher</h3>
-          <p>Analyze your current kitchen inventory and find recipes you can make immediately without extra shopping.</p>
-          <a routerLink="/pantry" class="tool-link">Open Pantry →</a>
+          <h3>{{ 'tools.hub.pantryMatcher' | t }}</h3>
+          <p>{{ 'tools.hub.pantryDescription' | t }}</p>
+          <a routerLink="/pantry" class="tool-link">{{ 'tools.hub.openPantry' | t }}</a>
         </div>
 
         <div class="tool-card">
           <div class="tool-icon">📅</div>
-          <h3>Meal Planner</h3>
-          <p>Plan weekly meals and auto-generate grocery lists tailored to your household's dietary preferences.</p>
-          <a routerLink="/meal-planner" class="tool-link">Open Planner →</a>
+          <h3>{{ 'tools.hub.mealPlanner' | t }}</h3>
+          <p>{{ 'tools.hub.mealDescription' | t }}</p>
+          <a routerLink="/meal-planner" class="tool-link">{{ 'tools.hub.openPlanner' | t }}</a>
         </div>
       </section>
     </main>
@@ -121,6 +123,7 @@ export class ToolsHubPage {
   private readonly toolsService = inject(ToolsService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly translations = inject(TranslationService);
 
   readonly url = signal('');
   readonly isStarting = signal(false);
@@ -144,7 +147,7 @@ export class ToolsHubPage {
           this.router.navigate(['/tools/video-transcription', id]);
         },
         error: (err) => {
-          this.error.set(getApiError(err, 'Could not start video transcription.'));
+          this.error.set(getApiError(err, this.translations.translate('tools.hub.startError')));
         },
       });
   }
