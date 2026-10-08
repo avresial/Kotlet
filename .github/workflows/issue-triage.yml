@@ -65,6 +65,6 @@ jobs:
             --skip-git-repo-check \
             --cd "$RUNNER_TEMP" \
             --output-last-message "$RUNNER_TEMP/codex-last-message.txt" \
-            "Use the installed \$codebase-manage-issues skill to triage issue #${ISSUE_NUMBER} in ${REPOSITORY}. Read the complete issue conversation and the repository guidance, labels, linked dependencies, branches, and pull requests through GitHub APIs. Apply the repository's issue lifecycle and type or area labels when supported, preserve human labels and ownership, avoid duplicate comments, and report the resulting state. Process only this Kotlet issue. Do not implement code, create branches or pull requests, or modify the local working directory." \
+            "Use the installed \$codebase-manage-issues skill to triage issue #${ISSUE_NUMBER} in ${REPOSITORY}. Read the complete issue conversation and the repository guidance, labels, linked dependencies, branches, and pull requests through GitHub APIs. Change labels only with 'gh issue edit ${ISSUE_NUMBER} --add-label ... --remove-label ...', not raw 'gh api' label calls. Apply the repository's issue lifecycle and type or area labels when supported, preserve human labels and ownership, avoid duplicate comments, and report the resulting state. Process only this Kotlet issue. Do not implement code, create branches or pull requests, or modify the local working directory." \
             < /dev/null
           test -s "$RUNNER_TEMP/codex-last-message.txt"
