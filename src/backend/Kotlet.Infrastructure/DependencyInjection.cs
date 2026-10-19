@@ -1,4 +1,7 @@
 using Kotlet.Infrastructure.Admin;
+using Kotlet.Infrastructure.Products;
+using Kotlet.Application.Products;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Kotlet.Infrastructure.AgentMemory;
 using Kotlet.Infrastructure.Ai;
 using Kotlet.Infrastructure.FoodSettings;
@@ -41,6 +44,16 @@ public static class DependencyInjection
         services.AddIngredientsInfrastructure();
         services.AddMealPlannerInfrastructure();
         services.AddPantryInfrastructure();
+        services.AddScoped<IProductRepository, ProductRepository>();
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<IOpenFoodFactsClient, OpenFoodFactsClient>();
+        services.AddHttpClient(OpenFoodFactsClient.HttpClientName, client =>
+        {
+            client.BaseAddress = new Uri("https://world.openfoodfacts.org/");
+            client.Timeout = TimeSpan.FromSeconds(10);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Kotlet/1.0 (+https://github.com/avresial/Kotlet)");
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         services.AddPreparedMealsInfrastructure();
 
         services.AddRecipesInfrastructure();

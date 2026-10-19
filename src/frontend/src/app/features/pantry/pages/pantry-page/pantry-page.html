@@ -3,6 +3,8 @@
   <header><div><p class="eyebrow">{{ 'pantry.eyebrow' | t }}</p><h1>{{ 'nav.pantry' | t }}</h1><p>{{ 'pantry.intro' | t }}</p></div></header>
   @if (error()) { <div class="error" role="alert">{{ error() }}</div> }
 
+  <app-product-pantry [ingredients]="ingredients()" />
+
   <section class="add-panel" aria-labelledby="add-title">
     <div><h2 id="add-title">{{ 'pantry.addProduct' | t }}</h2><p>{{ 'pantry.addHelp' | t }}</p></div>
     <form [formGroup]="form" (ngSubmit)="add()">
@@ -42,6 +44,7 @@
       </article>
     }</div> }
   </section>
+
 
   <app-pantry-recipe-matches />
 </main>
