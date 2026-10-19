@@ -1,0 +1,25 @@
+<div class="scanner">
+  @if (!isSupported()) {
+    <p class="scanner-note" role="status">{{ 'pantry.product.scanner.unsupported' | t }}</p>
+  } @else {
+    <div class="scanner-actions">
+      @if (isScanning() || isStarting()) {
+        <button type="button" (click)="stop()">{{ 'pantry.product.scanner.stop' | t }}</button>
+      } @else {
+        <button type="button" (click)="start()">{{ 'pantry.product.scanner.start' | t }}</button>
+      }
+      <span class="scanner-note">{{ 'pantry.product.scanner.help' | t }}</span>
+    </div>
+  }
+  @if (errorKey(); as key) {
+    <p class="scanner-error" role="alert">{{ key | t }}</p>
+  }
+  <video
+    #video
+    class="scanner-video"
+    [hidden]="!isScanning()"
+    [attr.aria-label]="'pantry.product.scanner.preview' | t"
+    muted
+    playsinline
+  ></video>
+</div>

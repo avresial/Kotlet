@@ -53,6 +53,7 @@ h3 { margin: 0; overflow: hidden; font: 500 1.05rem Georgia, serif; text-overflo
   .pantry-page { @include mobile.page; display: flex; flex-direction: column; }
   .inventory { order: 1; margin-top: 0; padding: var(--density-space-3); }
   .add-panel { order: 2; margin-top: var(--density-space-2); padding: var(--density-space-3); }
+  app-product-pantry { order: 0; margin-bottom: var(--density-space-2); }
   app-pantry-recipe-matches { order: 3; }
   .section-heading { gap: .5rem; }
   .filters { margin-top: .6rem; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; }

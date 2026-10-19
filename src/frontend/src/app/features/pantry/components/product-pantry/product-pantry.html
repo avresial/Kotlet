@@ -1,0 +1,467 @@
+<section class="product-panel" aria-labelledby="product-panel-title">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">{{ 'pantry.product.eyebrow' | t }}</p>
+      <h2 id="product-panel-title">{{ 'pantry.product.title' | t }}</h2>
+      <p class="note">{{ 'pantry.product.separateNote' | t }}</p>
+    </div>
+    <button
+      type="button"
+      class="toggle"
+      [attr.aria-expanded]="isOpen()"
+      aria-controls="product-panel-body"
+      (click)="toggle()"
+      [disabled]="isSubmitting()"
+    >
+      {{ (isOpen() ? 'common.close' : 'pantry.product.open') | t }}
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="error" role="alert">{{ error() }}</div>
+  }
+  @if (success()) {
+    <div class="success" role="status">{{ success() }}</div>
+  }
+
+  @if (isOpen()) {
+    <div id="product-panel-body" class="panel-body">
+      <form class="lookup" [formGroup]="lookupForm" (ngSubmit)="lookup()">
+        <label class="code-field">
+          {{ 'pantry.product.code' | t }}
+          <input
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            formControlName="code"
+            [readonly]="isSubmitting()"
+            aria-describedby="product-code-help"
+            [attr.aria-invalid]="codeError() ? 'true' : null"
+          />
+        </label>
+        <button class="primary" type="submit" [disabled]="isLookingUp() || isSubmitting()">
+          {{ (isLookingUp() ? 'pantry.product.lookingUp' : 'pantry.product.lookup') | t }}
+        </button>
+        <small id="product-code-help" class="field-hint">{{ 'pantry.product.codeHelp' | t }}</small>
+        @if (codeError()) {
+          <small class="field-error" role="alert">{{ codeError() }}</small>
+        }
+      </form>
+
+      @if (!isSubmitting()) {
+        <app-product-barcode-scanner (codeDetected)="onCodeDetected($event)" />
+      }
+
+      @if (lookupStatus(); as status) {
+        <p
+          class="lookup-status"
+          [class.is-warning]="status !== 'local' && status !== 'open_food_facts'"
+          role="status"
+        >
+          {{ 'pantry.product.status.' + status | t }}
+        </p>
+      }
+
+      @if (draft(); as currentDraft) {
+        <form class="draft" [formGroup]="productForm" (ngSubmit)="saveProductAndAddStock()">
+          <h3>
+            {{
+              (currentDraft.isSaved ? 'pantry.product.editTitle' : 'pantry.product.newTitle') | t
+            }}
+            <span class="barcode">{{ currentDraft.barcode }}</span>
+          </h3>
+          <p class="note">{{ 'pantry.product.confirmNote' | t }}</p>
+
+          @if (currentDraft.product.source === 'OpenFoodFacts') {
+            <ng-container
+              *ngTemplateOutlet="attribution; context: { $implicit: currentDraft.product }"
+            />
+          }
+
+          <fieldset class="draft-content" [disabled]="isSubmitting()">
+            <div class="fields">
+              <label class="wide">
+                {{ 'pantry.product.name' | t }}
+                <input #productName type="text" formControlName="name" maxlength="200" required />
+                @if (productForm.controls.name.touched && productForm.controls.name.invalid) {
+                  <small class="field-error" role="alert">{{
+                    'pantry.product.nameRequired' | t
+                  }}</small>
+                }
+              </label>
+              <label>
+                {{ 'pantry.product.brand' | t }}
+                <input type="text" formControlName="brand" />
+              </label>
+              <label>
+                {{ 'pantry.product.packageDescription' | t }}
+                <input type="text" formControlName="packageDescription" />
+              </label>
+              <label>
+                {{ 'pantry.product.packageQuantity' | t }}
+                <input
+                  type="number"
+                  min="0.001"
+                  step="any"
+                  inputmode="decimal"
+                  formControlName="packageQuantity"
+                />
+              </label>
+              <label>
+                {{ 'pantry.product.unit' | t }}
+                <select formControlName="unit">
+                  @for (unit of units; track unit) {
+                    <option [value]="unit">{{ 'pantry.product.unit.' + unit | t }}</option>
+                  }
+                </select>
+              </label>
+              @if (productForm.controls.unit.disabled) {
+                <small class="field-hint wide">{{ 'pantry.product.unitLocked' | t }}</small>
+              } @else {
+                <small class="field-hint wide">{{ 'pantry.product.unitPermanent' | t }}</small>
+              }
+              @if (
+                productForm.controls.packageQuantity.touched &&
+                productForm.controls.packageQuantity.invalid
+              ) {
+                <small class="field-error wide" role="alert">{{
+                  'pantry.product.packageQuantityInvalid' | t
+                }}</small>
+              }
+
+              <label class="wide">
+                {{ 'pantry.product.ingredient' | t }}
+                <app-ingredient-picker
+                  formControlName="ingredientId"
+                  [ingredients]="ingredients()"
+                  [ariaLabel]="'pantry.product.ingredient' | t"
+                />
+                <small class="field-hint">{{ 'pantry.product.ingredientHelp' | t }}</small>
+              </label>
+            </div>
+
+            <fieldset class="stock-entry" [formGroup]="stockForm">
+              <legend>{{ 'pantry.product.addStock' | t }}</legend>
+              <p class="note">{{ 'pantry.product.addStockHelp' | t }}</p>
+              <div class="fields">
+                <label>
+                  {{ 'pantry.product.entryMode' | t }}
+                  <select formControlName="entryMode">
+                    <option value="packages">{{ 'pantry.product.mode.packages' | t }}</option>
+                    <option value="amount">{{ 'pantry.product.mode.amount' | t }}</option>
+                  </select>
+                </label>
+                @if (stockForm.controls.entryMode.value === 'packages') {
+                  <label>
+                    {{ 'pantry.product.packageCount' | t }}
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      inputmode="numeric"
+                      formControlName="packages"
+                    />
+                  </label>
+                } @else {
+                  <label>
+                    {{ 'pantry.product.amountIn' | t }} ({{
+                      'pantry.product.unitShort.' + productForm.controls.unit.value | t
+                    }})
+                    <input
+                      type="number"
+                      min="0.001"
+                      step="any"
+                      inputmode="decimal"
+                      formControlName="amount"
+                    />
+                  </label>
+                }
+                <label>
+                  {{ 'pantry.expirationDate' | t }}
+                  <input type="date" formControlName="expirationDate" />
+                </label>
+                <label>
+                  {{ 'pantry.location' | t }}
+                  <select formControlName="storageLocation">
+                    <option [ngValue]="null">{{ 'pantry.product.noLocation' | t }}</option>
+                    @for (location of locations; track location.value) {
+                      <option [ngValue]="location.value">{{ location.label | t }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
+              <p class="stock-preview" role="status">
+                @if (stockQuantity(); as quantity) {
+                  {{ 'pantry.product.willAdd' | t }}: {{ quantity }}
+                  {{ 'pantry.product.unitShort.' + productForm.controls.unit.value | t }}
+                } @else {
+                  {{ 'pantry.product.quantityRequired' | t }}
+                }
+              </p>
+            </fieldset>
+
+            <details class="optional-nutrition">
+              <summary>{{ 'pantry.product.nutrition' | t }}</summary>
+              <fieldset class="nutrition">
+                <legend>{{ 'pantry.product.nutrition' | t }}</legend>
+                <p class="note">{{ 'pantry.product.nutritionHelp' | t }}</p>
+                <div class="fields">
+                  <label>
+                    {{ 'pantry.product.calories' | t }}
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      inputmode="decimal"
+                      formControlName="caloriesPer100"
+                    />
+                  </label>
+                  <label>
+                    {{ 'pantry.product.protein' | t }}
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      inputmode="decimal"
+                      formControlName="proteinPer100"
+                    />
+                  </label>
+                  <label>
+                    {{ 'pantry.product.carbs' | t }}
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      inputmode="decimal"
+                      formControlName="carbsPer100"
+                    />
+                  </label>
+                  <label>
+                    {{ 'pantry.product.fat' | t }}
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      inputmode="decimal"
+                      formControlName="fatPer100"
+                    />
+                  </label>
+                  <label>
+                    {{ 'pantry.product.nutritionBasis' | t }}
+                    <select formControlName="nutritionBasis">
+                      <option value="">{{ 'pantry.product.basisUnknown' | t }}</option>
+                      @for (basis of nutritionBases; track basis) {
+                        <option [value]="basis">{{ 'pantry.product.basis.' + basis | t }}</option>
+                      }
+                    </select>
+                  </label>
+                </div>
+                @if (productForm.hasError('nutritionBasisRequired')) {
+                  <small class="field-error" role="alert">{{
+                    'pantry.product.basisRequired' | t
+                  }}</small>
+                }
+              </fieldset>
+            </details>
+            <div class="actions">
+              <button
+                class="primary"
+                type="submit"
+                [disabled]="isSubmitting() || stockQuantity() === null"
+              >
+                {{ (isSubmitting() ? 'common.saving' : 'pantry.product.saveAndAdd') | t }}
+              </button>
+              <button type="button" (click)="saveProductOnly()" [disabled]="isSubmitting()">
+                {{ 'pantry.product.saveOnly' | t }}
+              </button>
+              <button type="button" (click)="cancelDraft()" [disabled]="isSubmitting()">
+                {{ 'common.cancel' | t }}
+              </button>
+            </div>
+          </fieldset>
+        </form>
+      }
+    </div>
+  }
+</section>
+
+<section class="lots" aria-labelledby="lots-title">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">{{ 'pantry.product.stockEyebrow' | t }}</p>
+      <h2 id="lots-title">{{ 'pantry.product.stockTitle' | t }}</h2>
+      <p class="note">{{ 'pantry.product.stockHelp' | t }}</p>
+    </div>
+    <span>{{ 'pantry.product.lots' | t }}: {{ sortedStock().length }}</span>
+  </div>
+  @if (isLoading()) {
+    <p class="empty">{{ 'common.loading' | t }}</p>
+  } @else if (sortedStock().length === 0) {
+    <p class="empty">{{ 'pantry.product.stockEmpty' | t }}</p>
+  } @else {
+    <ul class="lot-list">
+      @for (lot of sortedStock(); track lot.id) {
+        <li class="lot" [class.is-empty]="lot.quantity === 0">
+          <div class="lot-main">
+            <h3>{{ lot.product.name }}</h3>
+            <p>
+              @if (lot.product.brand) {
+                <span>{{ lot.product.brand }}</span>
+              }
+              <span class="barcode">{{ lot.product.barcode }}</span>
+            </p>
+            @if (editingLotId() !== lot.id) {
+              <p class="lot-quantity">
+                {{ lot.quantity }} {{ 'pantry.product.unitShort.' + lot.product.unit | t }}
+              </p>
+              @if (lot.storageLocation) {
+                <small>{{ locationLabel(lot.storageLocation) }}</small>
+              }
+              @if (lot.expirationDate) {
+                <small>{{ 'pantry.expires' | t }} {{ lot.expirationDate }}</small>
+              }
+            }
+            @if (lot.product.source === 'OpenFoodFacts') {
+              <ng-container *ngTemplateOutlet="attribution; context: { $implicit: lot.product }" />
+            }
+          </div>
+
+          @if (editingLotId() === lot.id) {
+            <form class="lot-edit" [formGroup]="lotForm" (ngSubmit)="saveLot(lot)">
+              <label>
+                {{ 'common.quantity' | t }} ({{
+                  'pantry.product.unitShort.' + lot.product.unit | t
+                }})
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputmode="decimal"
+                  #lotQuantity
+                  formControlName="quantity"
+                />
+              </label>
+              <label>
+                {{ 'pantry.expirationDate' | t }}
+                <input type="date" formControlName="expirationDate" />
+              </label>
+              <label>
+                {{ 'pantry.location' | t }}
+                <select formControlName="storageLocation">
+                  <option [ngValue]="null">{{ 'pantry.product.noLocation' | t }}</option>
+                  @for (location of locations; track location.value) {
+                    <option [ngValue]="location.value">{{ location.label | t }}</option>
+                  }
+                </select>
+              </label>
+              <div class="actions">
+                <button class="primary" type="submit" [disabled]="busyLotId() !== null">
+                  {{ (busyLotId() === lot.id ? 'common.saving' : 'common.save') | t }}
+                </button>
+                <button type="button" (click)="cancelLotEdit()" [disabled]="busyLotId() !== null">
+                  {{ 'common.cancel' | t }}
+                </button>
+              </div>
+            </form>
+          } @else {
+            <div class="actions">
+              <button
+                type="button"
+                (click)="startLotEdit(lot)"
+                [disabled]="busyLotId() !== null"
+                [attr.aria-label]="('common.edit' | t) + ' ' + lot.product.name"
+              >
+                {{ 'common.edit' | t }}
+              </button>
+              <button
+                class="remove"
+                type="button"
+                (click)="removeLot(lot)"
+                [disabled]="busyLotId() !== null"
+                [attr.aria-label]="('common.remove' | t) + ' ' + lot.product.name"
+              >
+                {{ 'common.remove' | t }}
+              </button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>
+
+<section class="catalog" aria-labelledby="catalog-title">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">{{ 'pantry.product.catalogEyebrow' | t }}</p>
+      <h2 id="catalog-title">{{ 'pantry.product.catalogTitle' | t }}</h2>
+      <p class="note">{{ 'pantry.product.catalogHelp' | t }}</p>
+    </div>
+    <span>{{ 'pantry.product.catalogCount' | t }}: {{ filteredProducts().length }}</span>
+  </div>
+  @if (products().length > 0) {
+    <div class="filters" role="search">
+      <input
+        type="search"
+        [value]="catalogSearch()"
+        (input)="catalogSearch.set($any($event.target).value)"
+        [placeholder]="'pantry.product.catalogSearch' | t"
+        [attr.aria-label]="'pantry.product.catalogSearch' | t"
+      />
+    </div>
+  }
+  @if (isLoading()) {
+    <p class="empty">{{ 'common.loading' | t }}</p>
+  } @else if (products().length === 0) {
+    <p class="empty">{{ 'pantry.product.catalogEmpty' | t }}</p>
+  } @else if (filteredProducts().length === 0) {
+    <p class="empty">{{ 'pantry.noResults' | t }}</p>
+  } @else {
+    <ul class="catalog-list">
+      @for (product of filteredProducts(); track product.id) {
+        <li class="catalog-item">
+          <div class="lot-main">
+            <h3>{{ product.name }}</h3>
+            <p>
+              @if (product.brand) {
+                <span>{{ product.brand }}</span>
+              }
+              <span class="barcode">{{ product.barcode }}</span>
+              <span
+                >{{ product.packageQuantity }}
+                {{ 'pantry.product.unitShort.' + product.unit | t }}</span
+              >
+            </p>
+            <small>
+              {{ 'pantry.product.inStock' | t }}: {{ stockTotals().get(product.id) ?? 0 }}
+              {{ 'pantry.product.unitShort.' + product.unit | t }}
+            </small>
+            @if (product.source === 'OpenFoodFacts') {
+              <ng-container *ngTemplateOutlet="attribution; context: { $implicit: product }" />
+            }
+          </div>
+          <div class="actions">
+            <button
+              type="button"
+              (click)="editProduct(product)"
+              [attr.aria-label]="('pantry.product.editAddStock' | t) + ' ' + product.name"
+            >
+              {{ 'pantry.product.editAddStock' | t }}
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>
+
+<ng-template #attribution let-product>
+  <p class="attribution">
+    {{ 'pantry.product.attribution' | t }}
+    <a [href]="sourceLink(product)" target="_blank" rel="noopener noreferrer">Open Food Facts</a>
+    ·
+    <a [href]="offLicenseUrl" target="_blank" rel="noopener noreferrer">{{
+      'pantry.product.odbl' | t
+    }}</a>
+  </p>
+</ng-template>
