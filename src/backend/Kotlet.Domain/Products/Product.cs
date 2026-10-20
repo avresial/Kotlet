@@ -19,5 +19,7 @@ public sealed class Product
     public string? NutritionBasis { get; set; }
     public string Source { get; set; } = "Manual";
     public DateTimeOffset? SourceRetrievedAtUtc { get; set; }
+    public int? FoodDataCentralId { get; set; }
+    public DateTimeOffset? FoodDataCentralRetrievedAtUtc { get; set; }
     public Guid Revision { get; set; } = Guid.NewGuid();
 }

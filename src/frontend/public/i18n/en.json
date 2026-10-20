@@ -120,5 +120,8 @@
   "pantry.product.scanner.unsupported": "Camera scanning is not supported in this browser or device. Type the barcode number above instead.", "pantry.product.scanner.preview": "Camera preview for barcode scanning",
   "pantry.product.scanner.error.denied": "Camera access was denied. Allow it in your browser or type the barcode number.", "pantry.product.scanner.error.noCamera": "No camera was found. Type the barcode number instead.",
   "pantry.product.scanner.error.formats": "This browser cannot read retail barcodes. Type the barcode number instead.", "pantry.product.scanner.error.failed": "Scanning failed. Try again or type the barcode number.",
-  "pantry.product.stockHelp": "Each batch has its own amount, location and expiry date."
+  "pantry.product.stockHelp": "Each batch has its own amount, location and expiry date.",
+  "pantry.product.status.food_data_central": "Found in USDA FoodData Central. Review nutrition and package size before saving.",
+  "pantry.product.usdaAttribution": "Nutrition supplemented with data from",
+  "pantry.product.enrichNutrition": "Find missing nutrition values"
 }

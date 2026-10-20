@@ -10,13 +10,15 @@ public static class ProductEndpoints
         var products = endpoints.MapGroup("/api/products").WithTags("Products").RequireAuthorization();
         products.MapGet("", async (ICurrentUser user, ProductService service, CancellationToken ct) =>
             user.HouseId is { } houseId ? Results.Ok(await service.GetProductsAsync(houseId, ct)) : Results.Unauthorized());
-        products.MapGet("/lookup/{barcode}", async (string barcode, ICurrentUser user, ProductService service, CancellationToken ct) =>
+        products.MapGet("/lookup/{barcode}", async (string barcode, bool? refreshNutrition, ICurrentUser user, ProductService service, CancellationToken ct) =>
         {
             if (user.HouseId is not { } houseId)
             {
                 return Results.Unauthorized();
             }
-            var result = await service.LookupAsync(houseId, barcode, ct);
+            var result = refreshNutrition == true
+                ? await service.EnrichNutritionAsync(houseId, barcode, ct)
+                : await service.LookupAsync(houseId, barcode, ct);
             return result is null ? Results.ValidationProblem(new Dictionary<string, string[]> { ["barcode"] = ["Enter a valid EAN/GTIN barcode, including its check digit."] }) : Results.Ok(result);
         });
         products.MapPut("/{barcode}", async (string barcode, SaveProductCommand command, ICurrentUser user, ProductService service, CancellationToken ct) =>
@@ -24,7 +26,7 @@ public static class ProductEndpoints
         products.MapGet("/export", async (ICurrentUser user, ProductService service, CancellationToken ct) =>
             user.HouseId is { } houseId ? Results.Ok(new
             {
-                attribution = "Contains information from Open Food Facts, available under the Open Database License (ODbL).",
+                attribution = "Contains information from Open Food Facts, available under the Open Database License (ODbL). May also contain USDA FoodData Central data (public domain / CC0).",
                 license = "https://opendatacommons.org/licenses/odbl/1-0/",
                 source = "https://world.openfoodfacts.org",
                 products = await service.GetProductsAsync(houseId, ct)
