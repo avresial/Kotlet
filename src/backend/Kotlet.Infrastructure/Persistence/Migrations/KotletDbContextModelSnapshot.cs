@@ -1113,6 +1113,153 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.ToTable("prepared_meal_images", "kotlet");
                 });
 
+            modelBuilder.Entity("Kotlet.Domain.Products.Product", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Barcode")
+                        .IsRequired()
+                        .HasMaxLength(14)
+                        .HasColumnType("character varying(14)")
+                        .HasColumnName("barcode");
+
+                    b.Property<string>("Brand")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("brand");
+
+                    b.Property<decimal?>("CaloriesPer100")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)")
+                        .HasColumnName("calories_per100");
+
+                    b.Property<decimal?>("CarbsPer100")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)")
+                        .HasColumnName("carbs_per100");
+
+                    b.Property<decimal?>("FatPer100")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)")
+                        .HasColumnName("fat_per100");
+
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
+                    b.Property<Guid?>("IngredientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ingredient_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("NutritionBasis")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("nutrition_basis");
+
+                    b.Property<string>("PackageDescription")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("package_description");
+
+                    b.Property<decimal>("PackageQuantity")
+                        .HasPrecision(11, 3)
+                        .HasColumnType("numeric(11,3)")
+                        .HasColumnName("package_quantity");
+
+                    b.Property<decimal?>("ProteinPer100")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)")
+                        .HasColumnName("protein_per100");
+
+                    b.Property<Guid>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid")
+                        .HasColumnName("revision");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("source");
+
+                    b.Property<DateTimeOffset?>("SourceRetrievedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("source_retrieved_at_utc");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("unit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("HouseId", "Barcode")
+                        .IsUnique();
+
+                    b.ToTable("products", "kotlet");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Products.ProductStock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BatchKey")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("batch_key");
+
+                    b.Property<DateOnly?>("ExpirationDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expiration_date");
+
+                    b.Property<Guid>("HouseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("house_id");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(11, 3)
+                        .HasColumnType("numeric(11,3)")
+                        .HasColumnName("quantity");
+
+                    b.Property<Guid>("Revision")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid")
+                        .HasColumnName("revision");
+
+                    b.Property<int?>("StorageLocation")
+                        .HasColumnType("integer")
+                        .HasColumnName("storage_location");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HouseId", "ProductId");
+
+                    b.HasIndex("ProductId", "BatchKey")
+                        .IsUnique();
+
+                    b.ToTable("product_stock", "kotlet");
+                });
+
             modelBuilder.Entity("Kotlet.Domain.Recipes.Recipe", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1395,6 +1542,11 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("CustomName")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("custom_name");
+
                     b.Property<Guid>("HouseId")
                         .HasColumnType("uuid")
                         .HasColumnName("house_id");
@@ -1402,11 +1554,6 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("IngredientId")
                         .HasColumnType("uuid")
                         .HasColumnName("ingredient_id");
-
-                    b.Property<string>("CustomName")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("custom_name");
 
                     b.Property<bool>("IsPurchased")
                         .HasColumnType("boolean")
@@ -2112,6 +2259,32 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                     b.Navigation("Image");
 
                     b.Navigation("PreparedMeal");
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Products.Product", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Houses.House", null)
+                        .WithMany()
+                        .HasForeignKey("HouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Kotlet.Domain.Ingredients.Ingredient", null)
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Kotlet.Domain.Products.ProductStock", b =>
+                {
+                    b.HasOne("Kotlet.Domain.Products.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("HouseId", "ProductId")
+                        .HasPrincipalKey("HouseId", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("Kotlet.Domain.Recipes.Recipe", b =>

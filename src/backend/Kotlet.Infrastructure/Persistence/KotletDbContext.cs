@@ -1,4 +1,5 @@
 using Kotlet.Domain.Auth;
+using Kotlet.Domain.Products;
 using Kotlet.Domain.AgentMemory;
 using AgentMemoryEntity = Kotlet.Domain.AgentMemory.AgentMemory;
 using Kotlet.Domain.Ai;
@@ -31,6 +32,8 @@ public sealed class KotletDbContext(DbContextOptions<KotletDbContext> options) :
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductStock> ProductStock => Set<ProductStock>();
     public DbSet<PantryItem> PantryItems => Set<PantryItem>();
     public DbSet<PantryReconciliationOperation> PantryReconciliationOperations => Set<PantryReconciliationOperation>();
     public DbSet<PantryUnmatchedPhrase> PantryUnmatchedPhrases => Set<PantryUnmatchedPhrase>();
