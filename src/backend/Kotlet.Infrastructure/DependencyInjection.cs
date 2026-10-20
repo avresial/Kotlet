@@ -54,6 +54,14 @@ public static class DependencyInjection
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Kotlet/1.0 (+https://github.com/avresial/Kotlet)");
             client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
         }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+        services.AddSingleton<IFoodDataCentralClient, FoodDataCentralClient>();
+        services.AddHttpClient(FoodDataCentralClient.HttpClientName, client =>
+        {
+            client.BaseAddress = new Uri("https://api.nal.usda.gov/fdc/v1/");
+            client.Timeout = TimeSpan.FromSeconds(8);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Kotlet/1.0 (+https://github.com/avresial/Kotlet)");
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         services.AddPreparedMealsInfrastructure();
 
         services.AddRecipesInfrastructure();

@@ -120,5 +120,8 @@
   "pantry.product.scanner.unsupported": "Skanowanie aparatem nie jest obsługiwane w tej przeglądarce lub na tym urządzeniu. Wpisz numer kodu powyżej.", "pantry.product.scanner.preview": "Podgląd aparatu do skanowania kodów",
   "pantry.product.scanner.error.denied": "Odmówiono dostępu do aparatu. Zezwól na niego w przeglądarce lub wpisz numer kodu.", "pantry.product.scanner.error.noCamera": "Nie znaleziono aparatu. Wpisz numer kodu.",
   "pantry.product.scanner.error.formats": "Ta przeglądarka nie odczytuje kodów produktów. Wpisz numer kodu.", "pantry.product.scanner.error.failed": "Skanowanie nie powiodło się. Spróbuj ponownie lub wpisz numer kodu.",
-  "pantry.product.stockHelp": "Każda partia ma własną ilość, lokalizację i termin ważności."
+  "pantry.product.stockHelp": "Każda partia ma własną ilość, lokalizację i termin ważności.",
+  "pantry.product.status.food_data_central": "Znaleziono w USDA FoodData Central. Sprawdź wartości odżywcze i wielkość opakowania przed zapisem.",
+  "pantry.product.usdaAttribution": "Wartości odżywcze uzupełnione danymi z",
+  "pantry.product.enrichNutrition": "Poszukaj brakujących wartości odżywczych"
 }

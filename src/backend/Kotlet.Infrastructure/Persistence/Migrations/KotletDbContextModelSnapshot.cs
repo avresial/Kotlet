@@ -1146,6 +1146,14 @@ namespace Kotlet.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(10,3)")
                         .HasColumnName("fat_per100");
 
+                    b.Property<int?>("FoodDataCentralId")
+                        .HasColumnType("integer")
+                        .HasColumnName("food_data_central_id");
+
+                    b.Property<DateTimeOffset?>("FoodDataCentralRetrievedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("food_data_central_retrieved_at_utc");
+
                     b.Property<Guid>("HouseId")
                         .HasColumnType("uuid")
                         .HasColumnName("house_id");

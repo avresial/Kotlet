@@ -1,6 +1,6 @@
 export type ProductUnit = 'g' | 'ml' | 'pcs';
 export type NutritionBasis = 'g' | 'ml';
-export type ProductSource = 'Manual' | 'OpenFoodFacts';
+export type ProductSource = 'Manual' | 'OpenFoodFacts' | 'FoodDataCentral';
 export type StorageLocationValue = 1 | 2 | 3;
 
 export interface Product {
@@ -21,6 +21,8 @@ export interface Product {
   source: ProductSource;
   sourceUrl: string | null;
   sourceRetrievedAtUtc: string | null;
+  foodDataCentralId?: number | null;
+  foodDataCentralRetrievedAtUtc?: string | null;
 }
 
 export interface ProductRequest {
@@ -36,10 +38,11 @@ export interface ProductRequest {
   fatPer100: number | null;
   nutritionBasis: NutritionBasis | null;
   source: ProductSource;
+  foodDataCentralId?: number | null;
 }
 
 export type ProductLookupStatus =
-  'local' | 'open_food_facts' | 'not_found' | 'unavailable' | 'rate_limited';
+  'local' | 'open_food_facts' | 'food_data_central' | 'not_found' | 'unavailable' | 'rate_limited';
 
 export interface ProductLookupResult {
   status: ProductLookupStatus;

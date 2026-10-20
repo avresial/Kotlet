@@ -3,21 +3,56 @@ using Kotlet.Domain.Products;
 
 namespace Kotlet.Application.Products;
 
-public sealed class ProductService(IProductRepository repository, IOpenFoodFactsClient openFoodFacts)
+public sealed class ProductService(IProductRepository repository, IOpenFoodFactsClient openFoodFacts, IFoodDataCentralClient foodDataCentral)
 {
     public const decimal MaxQuantity = 99999999.999m;
 
     public async Task<IReadOnlyList<ProductDto>> GetProductsAsync(Guid houseId, CancellationToken cancellationToken) =>
         (await repository.GetProductsAsync(houseId, cancellationToken)).Select(ProductDto.From).ToArray();
 
-    public async Task<ProductLookupResult?> LookupAsync(Guid houseId, string barcode, CancellationToken cancellationToken)
+    public Task<ProductLookupResult?> LookupAsync(Guid houseId, string barcode, CancellationToken cancellationToken) =>
+        LookupCoreAsync(houseId, barcode, false, cancellationToken);
+
+    public Task<ProductLookupResult?> EnrichNutritionAsync(Guid houseId, string barcode, CancellationToken cancellationToken) =>
+        LookupCoreAsync(houseId, barcode, true, cancellationToken);
+
+    private async Task<ProductLookupResult?> LookupCoreAsync(Guid houseId, string barcode, bool refreshNutrition, CancellationToken cancellationToken)
     {
         if (!Barcode.TryNormalize(barcode, out var normalized))
         {
             return null;
         }
         var local = await repository.FindProductAsync(houseId, normalized, cancellationToken);
-        return local is not null ? new("local", ProductDto.From(local)) : await openFoodFacts.LookupAsync(normalized, cancellationToken);
+        var product = local is null ? null : ProductDto.From(local);
+        if (product is not null && (!refreshNutrition || HasCompleteNutrition(product)))
+        {
+            return new("local", product);
+        }
+        var result = await openFoodFacts.LookupAsync(normalized, cancellationToken);
+        if (product is not null)
+        {
+            // An explicit enrichment still preserves catalog corrections and the stock unit/package size.
+            product = result.Product is { } offProduct ? SupplementNutrition(product, offProduct) : product;
+            result = new("local", product);
+        }
+        else
+        {
+            product = result.Product;
+        }
+        if (product is not null && HasCompleteNutrition(product))
+        {
+            return result;
+        }
+        var supplement = await foodDataCentral.LookupAsync(normalized, cancellationToken);
+        if (supplement is null)
+        {
+            return result;
+        }
+        if (product is null)
+        {
+            return new("food_data_central", supplement);
+        }
+        return result with { Product = SupplementNutrition(product, supplement) };
     }
 
     public async Task<ProductResult<ProductDto>> SaveAsync(Guid houseId, string barcode, SaveProductCommand command, CancellationToken cancellationToken)
@@ -59,6 +94,16 @@ public sealed class ProductService(IProductRepository repository, IOpenFoodFacts
         {
             product.Source = "OpenFoodFacts";
             product.SourceRetrievedAtUtc ??= DateTimeOffset.UtcNow;
+        }
+        if (command.Source == "FoodDataCentral" && product.Source != "OpenFoodFacts")
+        {
+            product.Source = "FoodDataCentral";
+            product.SourceRetrievedAtUtc ??= DateTimeOffset.UtcNow;
+        }
+        if (command.FoodDataCentralId is { } foodId && product.FoodDataCentralId != foodId)
+        {
+            product.FoodDataCentralId = foodId;
+            product.FoodDataCentralRetrievedAtUtc = DateTimeOffset.UtcNow;
         }
         product.Revision = Guid.NewGuid();
         if (isNew)
@@ -122,11 +167,48 @@ public sealed class ProductService(IProductRepository repository, IOpenFoodFacts
         {
             errors["nutrition"] = ["Calories must be between 0 and 1000; macronutrients between 0 and 100."];
         }
-        if (command.Source is not ("Manual" or "OpenFoodFacts"))
+        if (command.Source is not ("Manual" or "OpenFoodFacts" or "FoodDataCentral"))
         {
             errors["source"] = ["Invalid product source."];
         }
+        if (command.FoodDataCentralId is <= 0 || (command.Source == "FoodDataCentral" && command.FoodDataCentralId is null))
+        {
+            errors["foodDataCentralId"] = ["A positive FoodData Central record id is required for USDA data."];
+        }
         return errors;
+    }
+
+    private static bool HasCompleteNutrition(ProductDto product) =>
+        product.CaloriesPer100.HasValue && product.ProteinPer100.HasValue
+        && product.CarbsPer100.HasValue && product.FatPer100.HasValue;
+
+    internal static ProductDto SupplementNutrition(ProductDto product, ProductDto supplement)
+    {
+        var hasValues = product.CaloriesPer100.HasValue || product.ProteinPer100.HasValue
+            || product.CarbsPer100.HasValue || product.FatPer100.HasValue;
+        if (supplement.NutritionBasis is null || (hasValues && product.NutritionBasis != supplement.NutritionBasis))
+        {
+            return product;
+        }
+        var contributes = (product.CaloriesPer100 is null && supplement.CaloriesPer100.HasValue)
+            || (product.ProteinPer100 is null && supplement.ProteinPer100.HasValue)
+            || (product.CarbsPer100 is null && supplement.CarbsPer100.HasValue)
+            || (product.FatPer100 is null && supplement.FatPer100.HasValue);
+        return !contributes ? product : product with
+        {
+            CaloriesPer100 = product.CaloriesPer100 ?? supplement.CaloriesPer100,
+            ProteinPer100 = product.ProteinPer100 ?? supplement.ProteinPer100,
+            CarbsPer100 = product.CarbsPer100 ?? supplement.CarbsPer100,
+            FatPer100 = product.FatPer100 ?? supplement.FatPer100,
+            NutritionBasis = hasValues ? product.NutritionBasis : supplement.NutritionBasis,
+            Source = supplement.Source == "OpenFoodFacts" ? "OpenFoodFacts" : product.Source,
+            SourceUrl = supplement.Source == "OpenFoodFacts" ? supplement.SourceUrl : product.SourceUrl,
+            SourceRetrievedAtUtc = supplement.Source == "OpenFoodFacts" && product.Source != "OpenFoodFacts"
+                ? supplement.SourceRetrievedAtUtc : product.SourceRetrievedAtUtc,
+            FoodDataCentralId = supplement.FoodDataCentralId ?? product.FoodDataCentralId,
+            FoodDataCentralRetrievedAtUtc = supplement.FoodDataCentralId.HasValue
+                ? supplement.FoodDataCentralRetrievedAtUtc : product.FoodDataCentralRetrievedAtUtc
+        };
     }
 
     private static Dictionary<string, string[]>? ValidStock(decimal quantity, StorageLocation? location, bool allowZero)

@@ -8,22 +8,24 @@ public sealed record ProductDto(
     Guid Id, string Barcode, string Name, string? Brand, string? PackageDescription,
     decimal PackageQuantity, string Unit, Guid? IngredientId,
     decimal? CaloriesPer100, decimal? ProteinPer100, decimal? CarbsPer100, decimal? FatPer100,
-    string? NutritionBasis, string Source, string? SourceUrl, DateTimeOffset? SourceRetrievedAtUtc)
+    string? NutritionBasis, string Source, string? SourceUrl, DateTimeOffset? SourceRetrievedAtUtc,
+    int? FoodDataCentralId = null, DateTimeOffset? FoodDataCentralRetrievedAtUtc = null)
 {
     public static ProductDto From(Product product) => new(
         product.Id, product.Barcode, product.Name, product.Brand, product.PackageDescription,
         product.PackageQuantity, product.Unit, product.IngredientId, product.CaloriesPer100,
         product.ProteinPer100, product.CarbsPer100, product.FatPer100, product.NutritionBasis,
         product.Source, product.Source == "OpenFoodFacts"
-            ? $"https://world.openfoodfacts.org/product/{BarcodeValue.ToOpenFoodFactsCode(product.Barcode)}" : null,
-        product.SourceRetrievedAtUtc);
+            ? $"https://world.openfoodfacts.org/product/{BarcodeValue.ToOpenFoodFactsCode(product.Barcode)}" : product.Source == "FoodDataCentral" && product.FoodDataCentralId is { } foodId
+                ? $"https://fdc.nal.usda.gov/food-details/{foodId}/nutrients" : null,
+        product.SourceRetrievedAtUtc, product.FoodDataCentralId, product.FoodDataCentralRetrievedAtUtc);
 }
 
 public sealed record SaveProductCommand(
     string Name, string? Brand = null, string? PackageDescription = null,
     decimal PackageQuantity = 1, string Unit = "pcs", Guid? IngredientId = null,
     decimal? CaloriesPer100 = null, decimal? ProteinPer100 = null, decimal? CarbsPer100 = null,
-    decimal? FatPer100 = null, string? NutritionBasis = null, string Source = "Manual");
+    decimal? FatPer100 = null, string? NutritionBasis = null, string Source = "Manual", int? FoodDataCentralId = null);
 public sealed record ProductLookupResult(string Status, ProductDto? Product = null);
 public sealed record SaveProductStockCommand(Guid ProductId, decimal Quantity, DateOnly? ExpirationDate = null, StorageLocation? StorageLocation = null);
 public sealed record UpdateProductStockCommand(decimal Quantity, DateOnly? ExpirationDate = null, StorageLocation? StorageLocation = null);
@@ -36,6 +38,11 @@ public sealed record ProductResult<T>(string Status, T? Value = default, string?
 public interface IOpenFoodFactsClient
 {
     Task<ProductLookupResult> LookupAsync(string normalizedBarcode, CancellationToken cancellationToken);
+}
+
+public interface IFoodDataCentralClient
+{
+    Task<ProductDto?> LookupAsync(string normalizedBarcode, CancellationToken cancellationToken);
 }
 
 public interface IProductRepository

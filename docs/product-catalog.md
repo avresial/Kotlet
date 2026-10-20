@@ -104,3 +104,7 @@ It does not migrate or rewrite existing pantry/recipe/shopping data. PostgreSQL 
 startup path. SQLite follows the existing repository convention (`EnsureCreated`) for development/tests;
 an already-created SQLite development database needs to be recreated or deliberately upgraded, as
 `EnsureCreated` does not apply schema changes. Never delete an existing database without preserving its data.
+
+## Supplemental nutrition
+
+Missing calorie or macro values can be supplemented from the free USDA FoodData Central API after OFF, using exact barcode matching and review before save. Existing catalog entries remain local-first; an explicit nutrition search can enrich an incomplete saved entry. See [free nutrition fallback and activation](changes/free-nutrition-fallback.md).

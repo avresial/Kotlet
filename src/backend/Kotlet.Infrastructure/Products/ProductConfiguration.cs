@@ -30,6 +30,8 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(product => product.NutritionBasis).HasColumnName("nutrition_basis").HasMaxLength(2);
         builder.Property(product => product.Source).HasColumnName("source").HasMaxLength(20).IsRequired();
         builder.Property(product => product.SourceRetrievedAtUtc).HasColumnName("source_retrieved_at_utc");
+        builder.Property(product => product.FoodDataCentralId).HasColumnName("food_data_central_id");
+        builder.Property(product => product.FoodDataCentralRetrievedAtUtc).HasColumnName("food_data_central_retrieved_at_utc");
         builder.Property(product => product.Revision).HasColumnName("revision").IsConcurrencyToken();
         builder.HasOne<House>().WithMany().HasForeignKey(product => product.HouseId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<Ingredient>().WithMany().HasForeignKey(product => product.IngredientId).OnDelete(DeleteBehavior.SetNull);

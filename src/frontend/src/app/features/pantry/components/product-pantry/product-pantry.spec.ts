@@ -636,4 +636,87 @@ describe('ProductPantry', () => {
       ).toBe(`https://world.openfoodfacts.org/product/${barcode}`);
     });
   });
+  describe('supplemental nutrition', () => {
+    it('accepts a USDA draft, saves its nutrition/provenance and reuses the saved catalog', () => {
+      const imported = product({
+        id: unsavedProductId,
+        source: 'FoodDataCentral',
+        foodDataCentralId: 2022017,
+        caloriesPer100: 267,
+        proteinPer100: 10,
+        carbsPer100: 13.333,
+        fatPer100: 20,
+        nutritionBasis: 'g',
+        unit: 'pcs',
+        packageQuantity: 1,
+      });
+      const { pantry, service } = createPantry({
+        lookup: () => of({ status: 'food_data_central', product: imported }),
+      });
+      service.saveProduct.mockImplementationOnce((_code, request) =>
+        of(product({ ...request, id: 'saved-usda' })),
+      );
+      enterCode(pantry, typedCode);
+      pantry.lookup();
+      expect(pantry.productForm.controls.caloriesPer100.value).toBe(267);
+      expect(pantry.draft()?.product.source).toBe('FoodDataCentral');
+      pantry.saveProductAndAddStock();
+      expect(service.saveProduct).toHaveBeenCalledWith(
+        barcode,
+        expect.objectContaining({
+          foodDataCentralId: 2022017,
+          caloriesPer100: 267,
+          carbsPer100: 13.333,
+          source: 'FoodDataCentral',
+        }),
+      );
+      expect(service.addStock).toHaveBeenCalledWith(
+        expect.objectContaining({ productId: 'saved-usda', quantity: 1 }),
+      );
+      pantry.onCodeDetected(typedCode);
+      expect(service.lookup).toHaveBeenCalledOnce();
+      expect(pantry.lookupStatus()).toBe('local');
+      expect(pantry.productForm.controls.proteinPer100.value).toBe(10);
+    });
+
+    it('refreshes only on explicit request and requires saving the enriched local draft', () => {
+      const saved = product({ caloriesPer100: 0, nutritionBasis: 'g' });
+      const enriched = product({ ...saved, fatPer100: 20, foodDataCentralId: 2022017 });
+      const { pantry, service } = createPantry({
+        products: [saved],
+        lookup: () => of({ status: 'local', product: enriched }),
+      });
+      enterCode(pantry, typedCode);
+      pantry.lookup();
+      expect(service.lookup).not.toHaveBeenCalled();
+      expect(pantry.canEnrichNutrition()).toBe(true);
+      pantry.lookup(true);
+      expect(service.lookup).toHaveBeenCalledWith(barcode, true);
+      expect(pantry.savedProduct()).toBeNull();
+      expect(pantry.products()[0].fatPer100).toBeNull();
+      pantry.saveProductOnly();
+      expect(service.saveProduct).toHaveBeenCalledWith(
+        barcode,
+        expect.objectContaining({
+          caloriesPer100: 0,
+          fatPer100: 20,
+          foodDataCentralId: 2022017,
+        }),
+      );
+    });
+
+    it('constructs USDA links only from a validated record id and preserves zero nutrition', () => {
+      const { pantry } = createPantry();
+      expect(
+        pantry.foodDataCentralLink(
+          product({ foodDataCentralId: 2022017, sourceUrl: 'javascript:alert(1)' }),
+        ),
+      ).toBe('https://fdc.nal.usda.gov/food-details/2022017/nutrients');
+      for (const id of [-1, 0, 1.5, Infinity, NaN, 2147483648, '2022017' as unknown as number]) {
+        expect(pantry.foodDataCentralLink(product({ foodDataCentralId: id }))).toBeNull();
+      }
+      expect(pantry.hasNutrition(product({ caloriesPer100: 0 }))).toBe(true);
+      expect(pantry.hasNutrition(product())).toBe(false);
+    });
+  });
 });
