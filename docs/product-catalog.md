@@ -47,7 +47,7 @@ All routes require authentication and an active house; all product and stock acc
 | Method | Route | Purpose |
 | --- | --- | --- |
 | GET | `/api/products` | Household catalog, including products with no stock |
-| GET | `/api/products/lookup/{barcode}` | Local first, otherwise OFF prefill |
+| GET | `/api/products/lookup/{barcode}` | Local first, otherwise OFF prefill with optional USDA nutrition fallback; `?refreshNutrition=true` enriches an incomplete saved entry |
 | PUT | `/api/products/{barcode}` | Validate and save confirmed catalog data |
 | GET | `/api/products/export` | Catalog and license attribution, without stock/house member data |
 | GET | `/api/product-stock` | Product stock with batch details |
@@ -55,7 +55,7 @@ All routes require authentication and an active house; all product and stock acc
 | PUT | `/api/product-stock/{id}` | Set quantity, expiry and location |
 | DELETE | `/api/product-stock/{id}` | Delete one batch; catalog entry remains reusable |
 
-Lookup returns `local`, `open_food_facts`, `not_found`, `unavailable`, or `rate_limited` with a nullable
+Lookup returns `local`, `open_food_facts`, `food_data_central`, `not_found`, `unavailable`, or `rate_limited` with a nullable
 product draft. Only the explicit save writes a catalog entry. Unknown codes, outages and limits allow
 manual entry. Invalid input returns 400; missing house access 401; foreign stock/product identifiers 404;
 concurrent writes and batch collisions 409. Stock quantities have at most three decimal places.
