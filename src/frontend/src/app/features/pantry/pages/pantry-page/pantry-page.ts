@@ -19,6 +19,7 @@ import { IngredientPicker } from '../../../ingredients/components/ingredient-pic
 import { PantryItem, storageLocations } from '../../pantry.models';
 import { PantryService } from '../../pantry.service';
 import { PantryRecipeMatches } from '../../components/pantry-recipe-matches/pantry-recipe-matches';
+import { ProductPantry } from '../../components/product-pantry/product-pantry';
 import {
   DisplayUnit,
   displayMeasurement,
@@ -28,7 +29,14 @@ import {
 
 @Component({
   selector: 'app-pantry-page',
-  imports: [ReactiveFormsModule, RouterLink, IngredientPicker, TranslatePipe, PantryRecipeMatches],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    IngredientPicker,
+    TranslatePipe,
+    PantryRecipeMatches,
+    ProductPantry,
+  ],
   templateUrl: './pantry-page.html',
   styleUrl: './pantry-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddMealPlannerApplication();
         services.AddMeasurementsApplication();
         services.AddPantryApplication();
+        services.AddScoped<Kotlet.Application.Products.ProductService>();
         services.AddPreparedMealsApplication();
         services.AddRecipesApplication();
         services.AddRecipeImageSearchApplication();
