@@ -116,7 +116,7 @@
   "pantry.product.lotUpdated": "Partia zapasu zaktualizowana.", "pantry.product.lotUpdateError": "Nie udało się zaktualizować partii zapasu.",
   "pantry.product.lotRemoved": "Partia zapasu usunięta.", "pantry.product.lotRemoveError": "Nie udało się usunąć partii zapasu.",
   "pantry.product.lotRemoveConfirm": "Usunąć tę partię zapasu produktu {name}?", "pantry.product.scanner.start": "Skanuj aparatem",
-  "pantry.product.scanner.stop": "Zatrzymaj skanowanie", "pantry.product.scanner.help": "Aparat uruchamia się dopiero po naciśnięciu przycisku.",
+  "pantry.product.scanner.stop": "Zatrzymaj skanowanie", "pantry.product.scanner.help": "Po uruchomieniu aparatu ustaw kod poziomo w kadrze.",
   "pantry.product.scanner.unsupported": "Skanowanie aparatem nie jest obsługiwane w tej przeglądarce lub na tym urządzeniu. Wpisz numer kodu powyżej.", "pantry.product.scanner.preview": "Podgląd aparatu do skanowania kodów",
   "pantry.product.scanner.error.denied": "Odmówiono dostępu do aparatu. Zezwól na niego w przeglądarce lub wpisz numer kodu.", "pantry.product.scanner.error.noCamera": "Nie znaleziono aparatu. Wpisz numer kodu.",
   "pantry.product.scanner.error.formats": "Ta przeglądarka nie odczytuje kodów produktów. Wpisz numer kodu.", "pantry.product.scanner.error.failed": "Skanowanie nie powiodło się. Spróbuj ponownie lub wpisz numer kodu.",
