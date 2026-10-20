@@ -116,7 +116,7 @@
   "pantry.product.lotUpdated": "Stock lot updated.", "pantry.product.lotUpdateError": "Unable to update this stock lot.",
   "pantry.product.lotRemoved": "Stock lot removed.", "pantry.product.lotRemoveError": "Unable to remove this stock lot.",
   "pantry.product.lotRemoveConfirm": "Remove this stock lot of {name}?", "pantry.product.scanner.start": "Scan with camera",
-  "pantry.product.scanner.stop": "Stop scanning", "pantry.product.scanner.help": "The camera only starts when you press the button.",
+  "pantry.product.scanner.stop": "Stop scanning", "pantry.product.scanner.help": "After starting the camera, hold the barcode horizontally in view.",
   "pantry.product.scanner.unsupported": "Camera scanning is not supported in this browser or device. Type the barcode number above instead.", "pantry.product.scanner.preview": "Camera preview for barcode scanning",
   "pantry.product.scanner.error.denied": "Camera access was denied. Allow it in your browser or type the barcode number.", "pantry.product.scanner.error.noCamera": "No camera was found. Type the barcode number instead.",
   "pantry.product.scanner.error.formats": "This browser cannot read retail barcodes. Type the barcode number instead.", "pantry.product.scanner.error.failed": "Scanning failed. Try again or type the barcode number.",
