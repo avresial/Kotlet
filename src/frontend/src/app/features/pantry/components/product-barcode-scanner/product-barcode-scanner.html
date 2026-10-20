@@ -17,7 +17,7 @@
   <video
     #video
     class="scanner-video"
-    [hidden]="!isScanning()"
+    [hidden]="!isScanning() && !isStarting()"
     [attr.aria-label]="'pantry.product.scanner.preview' | t"
     muted
     playsinline
