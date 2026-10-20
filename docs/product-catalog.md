@@ -19,6 +19,11 @@ EAN-8, UPC-A, EAN-13 and GTIN-14 are strings, checksum-validated and normalized 
 zeros are retained. Equivalent UPC/EAN forms share one catalog entry per house. UPC-E and variable-weight
 store codes requiring a retailer-specific decoder are outside this workflow.
 
+The camera scanner decodes frames with a bundled, lazy-loaded software decoder (ZXing) rather than the
+native `BarcodeDetector`, so it behaves the same in Chrome, Safari and other browsers. It needs
+`getUserMedia` on HTTPS or localhost, starts the camera only after an explicit click, and reads EAN-8,
+EAN-13, UPC-A and ITF-14. See [camera browser compatibility](changes/camera-browser-compatibility.md).
+
 A product's stock quantity is in `g`, `ml` or `pcs`. Package count is converted to that unit using a
 confirmed `PackageQuantity`. Unknown package sizes default to **1 piece**, and require user review;
 free-text package descriptions are not parsed into guessed weights. Nutrition is optional and explicitly
