@@ -82,6 +82,8 @@ it in this list before enabling uploads. There is no wildcard, suffix match or a
 For example, set `McpRecipeImages__AllowedDownloadHosts__0` to a verified hostname **without** a scheme,
 path or port. Add additional indexed entries only when their source has also been verified. Do not
 publish signed URLs or include their query strings in configuration, screenshots or support logs.
+Use ASCII hostnames; for an internationalized name, configure its ASCII/punycode form (for example,
+`bücher.example` becomes `xn--bcher-kva.example`). Matching uses the URL's `IdnHost` form and ignores case.
 
 The downloader accepts HTTPS on port 443, rejects URL credentials and fragments, resolves and checks
 public IP addresses, and connects to a checked address to prevent DNS rebinding. It disables proxies,
