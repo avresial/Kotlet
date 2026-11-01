@@ -87,6 +87,45 @@ public sealed class RecipeMcp
         CancellationToken cancellationToken) =>
         service.UpdateAsync(recipeId, RequireHouse(currentUser), request, cancellationToken, language.Language);
 
+    [McpServerTool(Name = "upload_recipe_image", ReadOnly = false, Destructive = false,
+        Idempotent = false, OpenWorld = true, UseStructuredContent = true),
+     Description("Adds one image to an existing household recipe. Pass a generated or selected image as a native file reference, not a local path or an invented URL. The client supplies download_url and file_id; mime_type and file_name are optional. Only explicitly allowed HTTPS download hosts are accepted, without redirects. Supports JPEG/PNG/WebP up to 5 MB and the existing 10-image gallery limit. Returns stored image metadata including id, contentUrl and altText; use get_recipe to verify the gallery. This adds an image on every successful call, so do not retry after success.")]
+    public static async Task<RecipeImageResponse> UploadRecipeImage(
+        [Description("Recipe ID from get_recipes or get_recipe.")] Guid recipeId,
+        [Description("Generated or selected file supplied by the client, with download_url and file_id. Sandbox paths are not accessible to Kotlet.")] RecipeImageFile file,
+        RecipeImageService service,
+        RecipeImageFileDownloader downloader,
+        ICurrentUser currentUser,
+        [Description("Optional accessible description of the image, at most 300 characters.")] string? altText = null,
+        CancellationToken cancellationToken = default)
+    {
+        var houseId = RequireHouse(currentUser);
+        var images = await service.ListAsync(recipeId, houseId, cancellationToken)
+            ?? throw new McpException("Recipe not found in the active household.");
+        if (images.Count >= RecipeImageService.MaxImages)
+        {
+            throw new McpException($"A recipe cannot have more than {RecipeImageService.MaxImages} images.");
+        }
+        if (file is null)
+        {
+            throw new McpException("Pass a generated or selected file reference.");
+        }
+        if (altText?.Trim().Length > 300)
+        {
+            throw new McpException("Alt text cannot exceed 300 characters.");
+        }
+        var content = await downloader.DownloadAsync(file, cancellationToken);
+        var result = await service.AddAsync(recipeId, houseId, content.FileName, content.ContentType,
+            content.Content, altText, cancellationToken);
+        if (result.Image is { } image)
+        {
+            return image;
+        }
+        throw new McpException(result.Status == RecipeImageOperationStatus.NotFound
+            ? "Recipe not found in the active household."
+            : string.Join(" ", result.ValidationErrors?.Values.SelectMany(errors => errors) ?? ["Image upload failed."]));
+    }
+
     [McpServerResource(UriTemplate = "kotlet://recipes/new-recipe-guide", Name = "new-recipe-guide",
         Title = "New recipe creation guide", MimeType = "text/markdown"),
      Description("Instructions for creating a new Kotlet recipe through MCP and correcting it later when needed.")]
@@ -152,6 +191,13 @@ public sealed class RecipeMcp
         film link to `descriptionMarkdown`. Recipe images, ownership, and AI-assisted provenance are
         not part of the request and remain unchanged. If validation fails, report the error instead
         of retrying with guessed values.
+
+        To attach a generated or selected image, use `upload_recipe_image` separately with the recipe
+        id and the client's native file reference (`download_url` and `file_id`, optionally `mime_type`
+        and `file_name`). Never invent a URL or pass a sandbox-local path. The server accepts only
+        operator-allowlisted HTTPS download hosts, JPEG/PNG/WebP files up to 5 MB and at most 10 images
+        per recipe. On success, retain the returned image id/contentUrl and call `get_recipe` to
+        verify the gallery. Do not retry a successful upload: each successful call adds an image.
         """;
 
     [McpServerResource(UriTemplate = "kotlet://recipes/{recipeId}", Name = "recipe",
