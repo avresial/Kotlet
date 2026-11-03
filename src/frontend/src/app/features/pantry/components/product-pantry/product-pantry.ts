@@ -250,7 +250,7 @@ export class ProductPantry implements OnInit, OnDestroy {
     this.isOpen.update((isOpen) => !isOpen);
   }
 
-  lookup(): void {
+  lookup(refreshNutrition = false): void {
     if (this.isLookingUp()) {
       return;
     }
@@ -264,7 +264,7 @@ export class ProductPantry implements OnInit, OnDestroy {
     this.error.set(null);
     this.success.set(null);
     const cached = this.products().find((product) => product.barcode === barcode);
-    if (cached) {
+    if (cached && !refreshNutrition) {
       this.lookupStatus.set('local');
       this.openDraft(cached, barcode);
       return;
@@ -272,11 +272,18 @@ export class ProductPantry implements OnInit, OnDestroy {
 
     const token = ++this.lookupToken;
     this.isLookingUp.set(true);
-    this.lookupSubscription = this.productService.lookup(barcode).subscribe({
+    const request = refreshNutrition
+      ? this.productService.lookup(barcode, true)
+      : this.productService.lookup(barcode);
+    this.lookupSubscription = request.subscribe({
       next: (result) => {
         if (token === this.lookupToken) {
           this.isLookingUp.set(false);
           this.applyLookupResult(result, barcode);
+          if (refreshNutrition && this.draft()?.isSaved) {
+            // Enrichment is a reviewable draft, not a persisted catalog correction yet.
+            this.savedProduct.set(null);
+          }
         }
       },
       error: (error: unknown) => {
@@ -406,6 +413,35 @@ export class ProductPantry implements OnInit, OnDestroy {
     return location ? this.translations.translate(location.label) : '';
   }
 
+  hasNutrition(product: Product): boolean {
+    return [
+      product.caloriesPer100,
+      product.proteinPer100,
+      product.carbsPer100,
+      product.fatPer100,
+    ].some((value) => value !== null && value !== undefined);
+  }
+
+  canEnrichNutrition(): boolean {
+    const draft = this.draft();
+    return (
+      !!draft?.isSaved &&
+      [
+        draft.product.caloriesPer100,
+        draft.product.proteinPer100,
+        draft.product.carbsPer100,
+        draft.product.fatPer100,
+      ].some((value) => value === null || value === undefined)
+    );
+  }
+
+  foodDataCentralLink(product: Product): string | null {
+    const id = product.foodDataCentralId;
+    return typeof id === 'number' && Number.isSafeInteger(id) && id > 0 && id <= 2147483647
+      ? `https://fdc.nal.usda.gov/food-details/${id}/nutrients`
+      : null;
+  }
+
   /** Only links to Open Food Facts hosts so a stored URL can never become a script link. */
   sourceLink(product: Product): string {
     const fallback = `${openFoodFactsProductBaseUrl}${product.barcode}`;
@@ -528,13 +564,19 @@ export class ProductPantry implements OnInit, OnDestroy {
       nutritionBasis: hasNutrition && value.nutritionBasis ? value.nutritionBasis : null,
       // Editing never changes provenance, so the Open Food Facts attribution stays on corrected products.
       source: draft.product.source,
+      ...(draft.product.foodDataCentralId != null
+        ? { foodDataCentralId: draft.product.foodDataCentralId }
+        : {}),
     };
   }
 
   private applyLookupResult(result: ProductLookupResult, barcode: string): void {
     this.lookupStatus.set(result.status);
     const hasDraftProduct =
-      result.product !== null && (result.status === 'local' || result.status === 'open_food_facts');
+      result.product !== null &&
+      (result.status === 'local' ||
+        result.status === 'open_food_facts' ||
+        result.status === 'food_data_central');
     this.openDraft(
       hasDraftProduct && result.product ? result.product : blankProduct(barcode),
       barcode,

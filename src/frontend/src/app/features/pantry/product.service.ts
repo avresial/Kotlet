@@ -18,9 +18,11 @@ export class ProductService {
     return this.http.get<Product[]>(apiUrl('/api/products'));
   }
 
-  lookup(barcode: string) {
+  lookup(barcode: string, refreshNutrition = false) {
     return this.http.get<ProductLookupResult>(
-      apiUrl(`/api/products/lookup/${encodeURIComponent(barcode)}`),
+      apiUrl(
+        `/api/products/lookup/${encodeURIComponent(barcode)}${refreshNutrition ? '?refreshNutrition=true' : ''}`,
+      ),
     );
   }
 

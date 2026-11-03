@@ -17,6 +17,12 @@ public static class DiExtension
 
     public static IServiceCollection AddMcpFeature(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<RecipeImageFileOptions>(configuration.GetSection(RecipeImageFileOptions.SectionName));
+        services.AddHttpClient<RecipeImageFileDownloader>(client => client.Timeout = Timeout.InfiniteTimeSpan)
+            .ConfigurePrimaryHttpMessageHandler(RecipeImageFileDownloader.CreateHandler)
+            // Signed URLs must not pass through ambient retry, discovery or logging handlers.
+            .ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear())
+            .RemoveAllLoggers();
         var oauth = configuration.GetSection(OAuthOptions.SectionName).Get<OAuthOptions>()
             ?? throw new InvalidOperationException("OAuth configuration is missing.");
         services.AddAuthentication()
@@ -111,6 +117,12 @@ public static class DiExtension
                 call update_recipe once with the complete replacement.
                 Follow kotlet://recipes/edit-recipe-guide. Recipe images, ownership, and AI-assisted
                 provenance remain unchanged.
+                To attach a generated or selected recipe image, call upload_recipe_image with the
+                recipe id and the client's native file reference. The file contains download_url and
+                file_id, with optional mime_type and file_name. Never invent a download URL or send a
+                sandbox path. Only operator-allowlisted HTTPS download hosts are accepted. Check the
+                returned id/contentUrl and read get_recipe to verify the gallery; do not retry after
+                success because each successful call adds an image.
 
                 Quantities always use the ingredient's base measurement unit (g or ml) unless the tool
                 says otherwise. Dates use yyyy-MM-dd.
@@ -141,6 +153,12 @@ public static class DiExtension
                     foreach (var tool in result.Tools.Where(tool => tool.OutputSchema is not null && !tool.Name.StartsWith("show_")))
                         tool.OutputSchema = McpToolResultAdapter.OutputSchema(tool.Name)
                             ?? JsonSerializer.SerializeToElement(new { type = "object" });
+                    var uploadTool = result.Tools.FirstOrDefault(tool => tool.Name == "upload_recipe_image");
+                    if (uploadTool is not null)
+                    {
+                        uploadTool.Meta ??= [];
+                        uploadTool.Meta["openai/fileParams"] = JsonSerializer.SerializeToNode(new[] { "file" });
+                    }
                     return result;
                 })
                 .AddCallToolFilter(next => async (request, cancellationToken) =>

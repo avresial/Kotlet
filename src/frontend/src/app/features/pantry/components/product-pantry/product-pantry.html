@@ -55,11 +55,19 @@
       @if (lookupStatus(); as status) {
         <p
           class="lookup-status"
-          [class.is-warning]="status !== 'local' && status !== 'open_food_facts'"
+          [class.is-warning]="
+            status !== 'local' && status !== 'open_food_facts' && status !== 'food_data_central'
+          "
           role="status"
         >
           {{ 'pantry.product.status.' + status | t }}
         </p>
+      }
+
+      @if (canEnrichNutrition()) {
+        <button type="button" (click)="lookup(true)" [disabled]="isLookingUp() || isSubmitting()">
+          {{ (isLookingUp() ? 'pantry.product.lookingUp' : 'pantry.product.enrichNutrition') | t }}
+        </button>
       }
 
       @if (draft(); as currentDraft) {
@@ -72,13 +80,16 @@
           </h3>
           <p class="note">{{ 'pantry.product.confirmNote' | t }}</p>
 
-          @if (currentDraft.product.source === 'OpenFoodFacts') {
+          @if (
+            currentDraft.product.source === 'OpenFoodFacts' ||
+            foodDataCentralLink(currentDraft.product)
+          ) {
             <ng-container
               *ngTemplateOutlet="attribution; context: { $implicit: currentDraft.product }"
             />
           }
 
-          <fieldset class="draft-content" [disabled]="isSubmitting()">
+          <fieldset class="draft-content" [disabled]="isSubmitting() || isLookingUp()">
             <div class="fields">
               <label class="wide">
                 {{ 'pantry.product.name' | t }}
@@ -200,7 +211,7 @@
               </p>
             </fieldset>
 
-            <details class="optional-nutrition">
+            <details class="optional-nutrition" [open]="hasNutrition(currentDraft.product)">
               <summary>{{ 'pantry.product.nutrition' | t }}</summary>
               <fieldset class="nutrition">
                 <legend>{{ 'pantry.product.nutrition' | t }}</legend>
@@ -321,7 +332,7 @@
                 <small>{{ 'pantry.expires' | t }} {{ lot.expirationDate }}</small>
               }
             }
-            @if (lot.product.source === 'OpenFoodFacts') {
+            @if (lot.product.source === 'OpenFoodFacts' || foodDataCentralLink(lot.product)) {
               <ng-container *ngTemplateOutlet="attribution; context: { $implicit: lot.product }" />
             }
           </div>
@@ -436,7 +447,7 @@
               {{ 'pantry.product.inStock' | t }}: {{ stockTotals().get(product.id) ?? 0 }}
               {{ 'pantry.product.unitShort.' + product.unit | t }}
             </small>
-            @if (product.source === 'OpenFoodFacts') {
+            @if (product.source === 'OpenFoodFacts' || foodDataCentralLink(product)) {
               <ng-container *ngTemplateOutlet="attribution; context: { $implicit: product }" />
             }
           </div>
@@ -457,11 +468,29 @@
 
 <ng-template #attribution let-product>
   <p class="attribution">
-    {{ 'pantry.product.attribution' | t }}
-    <a [href]="sourceLink(product)" target="_blank" rel="noopener noreferrer">Open Food Facts</a>
-    ·
-    <a [href]="offLicenseUrl" target="_blank" rel="noopener noreferrer">{{
-      'pantry.product.odbl' | t
-    }}</a>
+    @if (product.source === 'OpenFoodFacts') {
+      {{ 'pantry.product.attribution' | t }}
+      <a [href]="sourceLink(product)" target="_blank" rel="noopener noreferrer">Open Food Facts</a>
+      ·
+      <a [href]="offLicenseUrl" target="_blank" rel="noopener noreferrer">{{
+        'pantry.product.odbl' | t
+      }}</a>
+    }
+    @if (foodDataCentralLink(product); as url) {
+      @if (product.source === 'OpenFoodFacts') {
+        <br />
+      }
+      <span
+        >{{ 'pantry.product.usdaAttribution' | t }}
+        <a [href]="url" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a>
+        ·
+        <a
+          href="https://creativecommons.org/publicdomain/zero/1.0/"
+          target="_blank"
+          rel="noopener noreferrer"
+          >CC0</a
+        >
+      </span>
+    }
   </p>
 </ng-template>
