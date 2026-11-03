@@ -40,7 +40,7 @@ export class MealItemPeople {
   readonly members = input.required<HouseMember[]>();
   readonly ingredients = input.required<Ingredient[]>();
   readonly caloriesPerServing = input.required<number | null>();
-  /** True while a change to this meal is being saved. */
+  /** True while any meal change is being saved; the page persists one change at a time. */
   readonly isBusy = input(false);
 
   readonly participantsChange = output<string[]>();

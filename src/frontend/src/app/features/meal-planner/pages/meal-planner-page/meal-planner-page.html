@@ -130,7 +130,7 @@
                       [members]="members()"
                       [ingredients]="ingredients()"
                       [caloriesPerServing]="caloriesPerServing(item)"
-                      [isBusy]="busyItemId() === item.id"
+                      [isBusy]="busyItemId() !== null"
                       (participantsChange)="updateParticipants(item, $event)"
                       (portionChange)="saveParticipantPortion(item, $event)"
                       (guestsChange)="setGuests(item, $event)"
