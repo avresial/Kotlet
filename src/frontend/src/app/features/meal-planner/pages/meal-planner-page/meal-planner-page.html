@@ -12,103 +12,21 @@
         <input id="plan-date" type="date" [(ngModel)]="selectedDate" (ngModelChange)="onDateChange()" />
       </div>
 
-      <button
-        #copyTrigger
-        type="button"
-        class="copy-trigger"
-        aria-haspopup="dialog"
-        [attr.aria-expanded]="isCopyPanelOpen()"
-        (click)="toggleCopyPanel($event)"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        {{ 'meal.copyPlan' | t }}
-      </button>
-
-      @if (isCopyPanelOpen()) {
-        <div class="copy-panel" role="dialog" [attr.aria-label]="'meal.copyPlan' | t" (click)="$event.stopPropagation()">
-          <div class="copy-panel-heading">
-            <h2>{{ 'meal.copyPlan' | t }}</h2>
-            <button type="button" class="icon-button" (click)="closeCopyPanel(true)" [attr.aria-label]="'common.close' | t">×</button>
-          </div>
-          <p class="copy-hint">{{ 'meal.copyPlanHint' | t }}</p>
-
-          @if (copyError()) {
-            <p class="copy-error" role="alert">{{ copyError() }}</p>
-          }
-
-          <div class="copy-field">
-            <label for="copy-target">{{ 'meal.copyTo' | t }}</label>
-            <div>
-              <input #copyDayInput id="copy-target" type="date" [(ngModel)]="copyTargetDate" />
-              <button type="button" [disabled]="isCopying() || !plan() || copyTargetDate() === selectedDate()" (click)="copyDay()">{{ 'meal.copyDay' | t }}</button>
-            </div>
-          </div>
-
-          <div class="copy-field">
-            <label for="copy-week-target">{{ 'meal.copyWeekTo' | t }}</label>
-            <div>
-              <input id="copy-week-target" type="date" [(ngModel)]="copyWeekTargetDate" />
-              <button type="button" [disabled]="isCopying() || weekStart(copyWeekTargetDate()) === weekStart(selectedDate())" (click)="copyWeek()">{{ 'meal.copyWeek' | t }}</button>
-            </div>
-          </div>
-        </div>
-      }
+      <app-meal-plan-copy-panel [selectedDate]="selectedDate()" [hasPlan]="!!plan()" (copied)="onPlanCopied($event)" />
     </div>
   </header>
 
   @if (overview().length) {
-    <section class="meal-overview" aria-labelledby="meal-overview-title">
-      <div class="overview-heading">
-        <div>
-          <p class="eyebrow">{{ overviewLabel() }}</p>
-          <h2 id="meal-overview-title">{{ 'meal.plannedMeals' | t }}</h2>
-        </div>
-        <div class="overview-legend"><span aria-hidden="true"></span> {{ 'meal.mealPlanned' | t }}</div>
-      </div>
-      <div class="overview-scroll">
-        <div class="overview-grid" [style.--day-count]="overview().length">
-          <div class="overview-corner" aria-hidden="true"></div>
-          @for (day of overview(); track day.date) {
-            <button
-              type="button"
-              class="overview-day"
-              cdkDropList
-              [cdkDropListData]="day.date"
-              (cdkDropListDropped)="dropOnDay($event, day.date)"
-              [class.is-selected]="selectedDate() === day.date"
-              [attr.aria-label]="('meal.openPlanFor' | t) + ' ' + dayNumber(day.date)"
-              (click)="selectOverviewDay(day.date)"
-            >
-              <span>{{ dayName(day.date) }}</span>
-              <strong>{{ dayNumber(day.date) }}</strong>
-            </button>
-          }
-          @for (slot of overviewSlots(); track slot) {
-            <div class="overview-row-label">{{ slotLabels()[slot] }}</div>
-            @for (day of overview(); track day.date) {
-              <button
-                type="button"
-                class="overview-cell"
-                [class.is-planned]="isPlanned(day, slot)"
-                [class.is-selected]="selectedDate() === day.date"
-                [attr.aria-label]="slotLabels()[slot] + ' ' + ((isPlanned(day, slot) ? 'meal.plannedFor' : 'meal.notPlannedFor') | t) + ' ' + dayNumber(day.date) + (mealNames(day, slot).length ? ': ' + mealNames(day, slot).join(', ') : '')"
-                (click)="selectOverviewDay(day.date)"
-              >
-                @for (name of mealNames(day, slot).slice(0, 2); track $index) {
-                  <span class="overview-meal-name">{{ name }}</span>
-                }
-                @if (mealNames(day, slot).length > 2) {
-                  <span class="overview-meal-more">+{{ mealNames(day, slot).length - 2 }}</span>
-                }
-                @if (mealNames(day, slot).length) {
-                  <span class="overview-cell-preview" aria-hidden="true">{{ mealNames(day, slot).join(' · ') }}</span>
-                }
-              </button>
-            }
-          }
-        </div>
-      </div>
-    </section>
+    <app-meal-plan-overview
+      [days]="overview()"
+      [from]="overviewFrom()"
+      [dayCount]="overviewDays"
+      [slots]="overviewSlots()"
+      [slotLabels]="slotLabels()"
+      [selectedDate]="selectedDate()"
+      (daySelected)="selectOverviewDay($event)"
+      (mealDropped)="dropOnDay($event)"
+    />
   }
 
   <nav class="mobile-day-nav" [attr.aria-label]="'meal.dayNavigation' | t">
@@ -207,149 +125,16 @@
                   </div>
 
                   <div class="meal-item-details">
-                    @if (item.participants.length) {
-                      <div class="portion-table-wrap">
-                        <table class="portion-table">
-                          <thead>
-                            <tr>
-                              <th scope="col">{{ 'meal.user' | t }}</th>
-                              <th scope="col">{{ 'meal.calories' | t }}</th>
-                              @if (item.type === 'ingredient') { <th scope="col">{{ 'meal.quantity' | t }}</th> }
-                              <th scope="col">{{ 'meal.servingPercent' | t }}</th>
-                              <th scope="col"><span class="visually-hidden">{{ 'common.remove' | t }}</span></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @for (person of item.participants; track person.userId) {
-                              <tr>
-                                <th scope="row" [class.is-me]="person.isCurrentUser">{{ person.displayName }}</th>
-                                <td>
-                                  <input type="number" step="1"
-                                    [min]="(caloriesPerServing(item) ?? 0) * .5"
-                                    [max]="(caloriesPerServing(item) ?? 0) * 1.5"
-                                    [value]="participantCalories(item, person).toFixed(0)"
-                                    [disabled]="busyItemId() === item.id || !caloriesPerServing(item)"
-                                    [class.is-invalid]="fieldError(item, person, 'calories')"
-                                    [attr.aria-invalid]="!!fieldError(item, person, 'calories')"
-                                    (input)="validateParticipantField(item, person, 'calories', $any($event.target).value)"
-                                    (change)="commitParticipantField(item, person, 'calories', $any($event.target))"
-                                    [attr.aria-label]="person.displayName + ' ' + ('meal.calories' | t)" />
-                                  <span>kcal</span>
-                                </td>
-                                @if (item.type === 'ingredient') {
-                                  <td>
-                                    <input type="number" [step]="participantQuantityUnit(item) === ('units.piece' | t) ? .01 : 1"
-                                      [min]="participantQuantityForPercent(item, 50)"
-                                      [max]="participantQuantityForPercent(item, 150)"
-                                      [value]="participantQuantity(item, person)"
-                                      [disabled]="busyItemId() === item.id"
-                                      [class.is-invalid]="fieldError(item, person, 'quantity')"
-                                      [attr.aria-invalid]="!!fieldError(item, person, 'quantity')"
-                                      (input)="validateParticipantField(item, person, 'quantity', $any($event.target).value)"
-                                      (change)="commitParticipantField(item, person, 'quantity', $any($event.target))"
-                                      [attr.aria-label]="person.displayName + ' ' + ('meal.quantity' | t)" />
-                                    <span>{{ participantQuantityUnit(item) }}</span>
-                                  </td>
-                                }
-                                <td>
-                                  <input type="number" min="50" max="150" step="1"
-                                    [value]="person.portionPercent"
-                                    [disabled]="busyItemId() === item.id"
-                                    [class.is-invalid]="fieldError(item, person, 'portion')"
-                                    [attr.aria-invalid]="!!fieldError(item, person, 'portion')"
-                                    (input)="validateParticipantField(item, person, 'portion', $any($event.target).value)"
-                                    (change)="commitParticipantField(item, person, 'portion', $any($event.target))"
-                                    [attr.aria-label]="person.displayName + ' ' + ('meal.servingPercent' | t)" />
-                                  <span>%</span>
-                                </td>
-                                <td>
-                                  <button type="button" class="chip-remove"
-                                    [attr.aria-label]="('common.remove' | t) + ' ' + person.displayName"
-                                    [disabled]="busyItemId() === item.id"
-                                    (click)="removeParticipant(item, person.userId)">×</button>
-                                </td>
-                              </tr>
-                            }
-                          </tbody>
-                        </table>
-                      </div>
-                      @if (itemFieldErrors(item).length) {
-                        <ul class="portion-errors" role="alert">
-                          @for (message of itemFieldErrors(item); track $index) {
-                            <li>{{ message }}</li>
-                          }
-                        </ul>
-                      }
-                    }
-                    <div class="people-row">
-                      <span class="row-label">{{ 'meal.people' | t }}</span>
-                      <ul class="chips" [attr.aria-label]="('home.dashboard.peopleEating' | t) + ' ' + item.displayName">
-                        @for (seat of guestSeats(item); track seat) {
-                          <li class="chip is-guest">
-                            <span>{{ 'meal.guest' | t }}</span>
-                            <button
-                              type="button"
-                              class="chip-remove"
-                              [attr.aria-label]="'meal.removeGuest' | t"
-                              [disabled]="busyItemId() === item.id"
-                              (click)="removeGuest(item)"
-                            >×</button>
-                          </li>
-                        }
-
-                        @if (availableMembers(item).length) {
-                          <li class="person-picker" [title]="'meal.addPerson' | t">
-                            <span aria-hidden="true">+
-                              <svg viewBox="0 0 24 24"><path d="M15 19c0-2.8-2.2-5-5-5s-5 2.2-5 5M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M16 11h6"/></svg>
-                            </span>
-                            <select
-                              [attr.aria-label]="('meal.addPersonTo' | t) + ' ' + item.displayName"
-                              [disabled]="busyItemId() === item.id"
-                              [ngModel]="''"
-                              (ngModelChange)="addParticipant(item, $event)"
-                            >
-                              <option value="">{{ 'meal.addPerson' | t }}</option>
-                              @for (member of availableMembers(item); track member.userId) {
-                                <option [value]="member.userId">{{ member.displayName }}</option>
-                              }
-                            </select>
-                          </li>
-                        }
-                      </ul>
-
-                      <button
-                        type="button"
-                        class="icon-button"
-                        [disabled]="busyItemId() === item.id || isHouseFull(item) || !members().length"
-                        (click)="addHouse(item)"
-                        [attr.aria-label]="'meal.addHouse' | t"
-                        [title]="'meal.addHouse' | t"
-                      >
-                        <svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg>
-                      </button>
-                      <button
-                        type="button"
-                        class="icon-button"
-                        [disabled]="busyItemId() === item.id || item.guests >= 99"
-                        (click)="addGuest(item)"
-                        [attr.aria-label]="'meal.addGuest' | t"
-                        [title]="'meal.addGuest' | t"
-                      >
-                        <svg viewBox="0 0 24 24"><path d="M16 19c0-2.8-2.2-5-5-5s-5 2.2-5 5M11 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6"/></svg>
-                      </button>
-                      @if (item.participants.length) {
-                        <button
-                          type="button"
-                          class="icon-button"
-                          [disabled]="busyItemId() === item.id"
-                          (click)="clearParticipants(item)"
-                          [attr.aria-label]="'meal.clearPeople' | t"
-                          [title]="'meal.clearPeople' | t"
-                        >
-                          <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V3h8v3M19 6l-1 15H6L5 6M10 10v7M14 10v7"/></svg>
-                        </button>
-                      }
-                    </div>
+                    <app-meal-item-people
+                      [item]="item"
+                      [members]="members()"
+                      [ingredients]="ingredients()"
+                      [caloriesPerServing]="caloriesPerServing(item)"
+                      [isBusy]="busyItemId() === item.id"
+                      (participantsChange)="updateParticipants(item, $event)"
+                      (portionChange)="saveParticipantPortion(item, $event)"
+                      (guestsChange)="setGuests(item, $event)"
+                    />
 
                     <dl class="meal-summary">
                       <div>

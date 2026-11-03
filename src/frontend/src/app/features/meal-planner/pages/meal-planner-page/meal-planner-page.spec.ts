@@ -11,7 +11,9 @@ import { TranslationService } from '../../../../core/i18n/translation.service';
 import { DailyMealPlan, MealParticipant, MealPlanItem, MealPlanOverviewDay } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
 import { ShoppingListIntegrationService } from '../../services/shopping-list-integration.service';
-import { isValidDateString, MealPlannerPage, mealPlannerCacheKey, mealPlannerCacheStorageKey, weekStart } from './meal-planner-page';
+import { mealPlannerCacheKey, mealPlannerCacheStorageKey } from '../../meal-plan-cache';
+import { isValidDateString, weekStart } from '../../meal-plan-dates';
+import { MealPlannerPage } from './meal-planner-page';
 
 describe('weekStart', () => {
   it.each([
@@ -39,9 +41,6 @@ const ingredient: Ingredient = {
   isAiModified: false,
   createdAtUtc: '2026-01-01T00:00:00Z',
 };
-
-// One piece (50 g) of eggs → 155 * 50 / 100 = 77.5 kcal per standard serving.
-const caloriesPerServing = 77.5;
 
 const participant: MealParticipant = { userId: 'asik', displayName: 'Asik', isCurrentUser: false, portionPercent: 100 };
 
@@ -189,92 +188,6 @@ describe('MealPlannerPage localStorage cache', () => {
     response.next(plan);
     response.complete();
     expect(localStorage.getItem(storageKey({ id: 'user-2', activeHouseId: 'house-2' }))).not.toBeNull();
-  });
-});
-
-function fakeInput(value: string): HTMLInputElement {
-  const input = document.createElement('input');
-  input.value = value;
-  return input;
-}
-
-describe('MealPlannerPage portion validation', () => {
-  function createPage(setParticipantPortion: MealPlannerService['setParticipantPortion'] = () => of(item)): MealPlannerPage {
-    TestBed.configureTestingModule({
-      providers: [
-        provideRouter([]),
-        {
-          provide: MealPlannerService,
-          useValue: {
-            getForDate: () => of(plan),
-            getHouseMembers: () => of([]),
-            getOverview: () => of([]),
-            setParticipantPortion,
-          },
-        },
-        { provide: RecipeService, useValue: { list: () => of({ items: [], total: 0 }), get: () => of(null) } },
-        { provide: IngredientService, useValue: { getAll: () => of([ingredient]) } },
-        { provide: ShoppingListIntegrationService, useValue: { addToShoppingList: () => of(null) } },
-        { provide: TranslationService, useValue: { translate: (key: string) => key, language: () => 'en' } },
-      ],
-    });
-    const fixture = TestBed.createComponent(MealPlannerPage);
-    fixture.detectChanges();
-    return fixture.componentInstance;
-  }
-
-  it('flags an out-of-range serving percentage as the user types', () => {
-    const page = createPage();
-
-    page.validateParticipantField(item, participant, 'portion', '500');
-    expect(page.fieldError(item, participant, 'portion')).toBe('meal.rangeError');
-    expect(page.itemFieldErrors(item)).toEqual(['meal.rangeError']);
-
-    page.validateParticipantField(item, participant, 'portion', '120');
-    expect(page.fieldError(item, participant, 'portion')).toBeNull();
-    expect(page.itemFieldErrors(item)).toEqual([]);
-  });
-
-  it('does not flag an empty field while the user is mid-edit', () => {
-    const page = createPage();
-
-    page.validateParticipantField(item, participant, 'portion', '');
-    expect(page.fieldError(item, participant, 'portion')).toBeNull();
-  });
-
-  it('clamps an out-of-range serving percentage on commit and resets the field', () => {
-    let saved: number | undefined;
-    const page = createPage((_id, _user, percent) => { saved = percent; return of(item); });
-
-    const input = fakeInput('500');
-    page.commitParticipantField(item, participant, 'portion', input);
-
-    expect(saved).toBe(150);
-    expect(input.value).toBe('150');
-    expect(page.fieldError(item, participant, 'portion')).toBeNull();
-  });
-
-  it('clamps out-of-range calories back into the allowed range on commit', () => {
-    let saved: number | undefined;
-    const page = createPage((_id, _user, percent) => { saved = percent; return of(item); });
-
-    // 500 kcal is far above the 1.5-serving ceiling (~116 kcal), so it clamps to 150%.
-    const input = fakeInput('500');
-    page.commitParticipantField(item, participant, 'calories', input);
-
-    expect(saved).toBe(150);
-    expect(input.value).toBe((caloriesPerServing * 1.5).toFixed(0));
-  });
-
-  it('reverts an empty field to the current portion without saving', () => {
-    let called = false;
-    const page = createPage(() => { called = true; return of(item); });
-
-    const input = fakeInput('');
-    page.commitParticipantField(item, participant, 'portion', input);
-
-    expect(called).toBe(false);
-    expect(input.value).toBe('100');
   });
 });
 

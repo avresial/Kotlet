@@ -1,0 +1,143 @@
+@if (item().participants.length) {
+  <div class="portion-table-wrap">
+    <table class="portion-table">
+      <thead>
+        <tr>
+          <th scope="col">{{ 'meal.user' | t }}</th>
+          <th scope="col">{{ 'meal.calories' | t }}</th>
+          @if (item().type === 'ingredient') { <th scope="col">{{ 'meal.quantity' | t }}</th> }
+          <th scope="col">{{ 'meal.servingPercent' | t }}</th>
+          <th scope="col"><span class="visually-hidden">{{ 'common.remove' | t }}</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (person of item().participants; track person.userId) {
+          <tr>
+            <th scope="row" [class.is-me]="person.isCurrentUser">{{ person.displayName }}</th>
+            <td>
+              <input type="number" step="1"
+                [min]="(caloriesPerServing() ?? 0) * .5"
+                [max]="(caloriesPerServing() ?? 0) * 1.5"
+                [value]="participantCalories(person).toFixed(0)"
+                [disabled]="isBusy() || !caloriesPerServing()"
+                [class.is-invalid]="fieldError(person, 'calories')"
+                [attr.aria-invalid]="!!fieldError(person, 'calories')"
+                (input)="validateParticipantField(person, 'calories', $any($event.target).value)"
+                (change)="commitParticipantField(person, 'calories', $any($event.target))"
+                [attr.aria-label]="person.displayName + ' ' + ('meal.calories' | t)" />
+              <span>kcal</span>
+            </td>
+            @if (item().type === 'ingredient') {
+              <td>
+                <input type="number" [step]="quantityUnit() === ('units.piece' | t) ? .01 : 1"
+                  [min]="quantityForPercent(50)"
+                  [max]="quantityForPercent(150)"
+                  [value]="participantQuantity(person)"
+                  [disabled]="isBusy()"
+                  [class.is-invalid]="fieldError(person, 'quantity')"
+                  [attr.aria-invalid]="!!fieldError(person, 'quantity')"
+                  (input)="validateParticipantField(person, 'quantity', $any($event.target).value)"
+                  (change)="commitParticipantField(person, 'quantity', $any($event.target))"
+                  [attr.aria-label]="person.displayName + ' ' + ('meal.quantity' | t)" />
+                <span>{{ quantityUnit() }}</span>
+              </td>
+            }
+            <td>
+              <input type="number" min="50" max="150" step="1"
+                [value]="person.portionPercent"
+                [disabled]="isBusy()"
+                [class.is-invalid]="fieldError(person, 'portion')"
+                [attr.aria-invalid]="!!fieldError(person, 'portion')"
+                (input)="validateParticipantField(person, 'portion', $any($event.target).value)"
+                (change)="commitParticipantField(person, 'portion', $any($event.target))"
+                [attr.aria-label]="person.displayName + ' ' + ('meal.servingPercent' | t)" />
+              <span>%</span>
+            </td>
+            <td>
+              <button type="button" class="chip-remove"
+                [attr.aria-label]="('common.remove' | t) + ' ' + person.displayName"
+                [disabled]="isBusy()"
+                (click)="removeParticipant(person.userId)">×</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (itemFieldErrors().length) {
+    <ul class="portion-errors" role="alert">
+      @for (message of itemFieldErrors(); track $index) {
+        <li>{{ message }}</li>
+      }
+    </ul>
+  }
+}
+<div class="people-row">
+  <span class="row-label">{{ 'meal.people' | t }}</span>
+  <ul class="chips" [attr.aria-label]="('home.dashboard.peopleEating' | t) + ' ' + item().displayName">
+    @for (seat of guestSeats(); track seat) {
+      <li class="chip is-guest">
+        <span>{{ 'meal.guest' | t }}</span>
+        <button
+          type="button"
+          class="chip-remove"
+          [attr.aria-label]="'meal.removeGuest' | t"
+          [disabled]="isBusy()"
+          (click)="removeGuest()"
+        >×</button>
+      </li>
+    }
+
+    @if (availableMembers().length) {
+      <li class="person-picker" [title]="'meal.addPerson' | t">
+        <span aria-hidden="true">+
+          <svg viewBox="0 0 24 24"><path d="M15 19c0-2.8-2.2-5-5-5s-5 2.2-5 5M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M16 11h6"/></svg>
+        </span>
+        <select
+          [attr.aria-label]="('meal.addPersonTo' | t) + ' ' + item().displayName"
+          [disabled]="isBusy()"
+          [ngModel]="''"
+          (ngModelChange)="addParticipant($event)"
+        >
+          <option value="">{{ 'meal.addPerson' | t }}</option>
+          @for (member of availableMembers(); track member.userId) {
+            <option [value]="member.userId">{{ member.displayName }}</option>
+          }
+        </select>
+      </li>
+    }
+  </ul>
+
+  <button
+    type="button"
+    class="icon-button"
+    [disabled]="isBusy() || isHouseFull() || !members().length"
+    (click)="addHouse()"
+    [attr.aria-label]="'meal.addHouse' | t"
+    [title]="'meal.addHouse' | t"
+  >
+    <svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg>
+  </button>
+  <button
+    type="button"
+    class="icon-button"
+    [disabled]="isBusy() || item().guests >= maxGuests"
+    (click)="addGuest()"
+    [attr.aria-label]="'meal.addGuest' | t"
+    [title]="'meal.addGuest' | t"
+  >
+    <svg viewBox="0 0 24 24"><path d="M16 19c0-2.8-2.2-5-5-5s-5 2.2-5 5M11 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6"/></svg>
+  </button>
+  @if (item().participants.length) {
+    <button
+      type="button"
+      class="icon-button"
+      [disabled]="isBusy()"
+      (click)="clearParticipants()"
+      [attr.aria-label]="'meal.clearPeople' | t"
+      [title]="'meal.clearPeople' | t"
+    >
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V3h8v3M19 6l-1 15H6L5 6M10 10v7M14 10v7"/></svg>
+    </button>
+  }
+</div>

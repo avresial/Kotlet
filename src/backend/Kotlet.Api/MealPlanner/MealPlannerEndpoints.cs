@@ -43,7 +43,7 @@ public static class MealPlannerEndpoints
     private static async Task<IResult> GetForDate(
         string? date,
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealPlanQueryService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
@@ -62,7 +62,7 @@ public static class MealPlannerEndpoints
 
     private static async Task<IResult> GetMembers(
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealPlanQueryService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.HouseId is not { } houseId)
@@ -76,7 +76,7 @@ public static class MealPlannerEndpoints
         string? from,
         int days,
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealPlanQueryService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
@@ -100,7 +100,7 @@ public static class MealPlannerEndpoints
     private static async Task<IResult> AddItem(
         AddMealPlanItemRequest request,
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealPlanItemService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
@@ -120,7 +120,7 @@ public static class MealPlannerEndpoints
         Guid id,
         MoveMealPlanItemRequest request,
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealPlanItemService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
@@ -134,7 +134,7 @@ public static class MealPlannerEndpoints
     private static async Task<IResult> RemoveItem(
         Guid id,
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealPlanItemService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.HouseId is not { } houseId)
@@ -149,7 +149,7 @@ public static class MealPlannerEndpoints
     private static async Task<IResult> CopyDay(
         CopyMealPlanDayRequest request,
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealPlanCopyService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
@@ -171,7 +171,7 @@ public static class MealPlannerEndpoints
         Guid id,
         SetParticipantsRequest request,
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealParticipantService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
@@ -185,7 +185,7 @@ public static class MealPlannerEndpoints
     private static async Task<IResult> CopyWeek(
         CopyMealPlanWeekRequest request,
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealPlanCopyService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
@@ -208,7 +208,7 @@ public static class MealPlannerEndpoints
         Guid participantUserId,
         SetParticipantPortionRequest request,
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealParticipantService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
@@ -223,7 +223,7 @@ public static class MealPlannerEndpoints
         Guid id,
         SetServingsRequest request,
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealParticipantService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
@@ -238,7 +238,7 @@ public static class MealPlannerEndpoints
         Guid id,
         SetGuestsRequest request,
         ICurrentUser currentUser,
-        MealPlannerService service,
+        MealParticipantService service,
         CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)

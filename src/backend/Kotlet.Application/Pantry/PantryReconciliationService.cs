@@ -15,17 +15,11 @@ public sealed class PantryReconciliationService(
     ITranslationRepository translations,
     MeasurementMappingService measurements)
 {
-    private const string IngredientType = "ingredient";
+    private const string IngredientType = PantryReconciliationRequestValidator.IngredientType;
     private const string UiResource = "ui://kotlet/data-v3";
     private const string DefaultLocale = "en";
-    private const decimal MaximumQuantity = 99999999.999m;
     private const decimal MinimumReviewConfidence = 0.7m;
-    private const decimal MinimumCandidateConfidence = 0.55m;
-    private const decimal MinimumMatchedConfidence = 0.72m;
-    private const decimal AmbiguousConfidenceMargin = 0.08m;
     private const decimal QuantityComparisonTolerance = 0.001m;
-    private const int MaximumObservations = 200;
-    private const int MaximumUnrecognizedCount = 1000;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -41,7 +35,7 @@ public sealed class PantryReconciliationService(
         }
 
         var observations = request.Observations ?? [];
-        var validationErrors = ValidateResolutionRequest(observations, request.UnrecognizedCount);
+        var validationErrors = PantryReconciliationRequestValidator.ValidateResolution(observations, request.UnrecognizedCount);
         if (validationErrors.Count > 0)
         {
             return new("ValidationFailed", house.PantryVersion, [], [], [], request.UnrecognizedCount,
@@ -50,16 +44,17 @@ public sealed class PantryReconciliationService(
 
         var catalog = await ingredientRepository.GetAllAsync(cancellationToken);
         var dictionary = await translations.GetAllAsync(cancellationToken);
-        var searchableNames = BuildSearchableNames(catalog, dictionary);
+        var matcher = new IngredientPhraseMatcher(catalog, dictionary);
         var matched = new List<PantryMatchedObservation>();
         var ambiguous = new List<PantryAmbiguousObservation>();
         var unmatched = new List<PantryUnmatchedObservation>();
 
         foreach (var observation in observations)
         {
-            var normalizedPhrase = NormalizePhrase(observation.NormalizedName ?? observation.RawPhrase);
-            var candidates = FindCandidates(normalizedPhrase, searchableNames);
-            if (candidates.Count == 0 || candidates[0].Confidence < MinimumCandidateConfidence)
+            var normalizedPhrase = IngredientPhraseMatcher.NormalizePhrase(observation.NormalizedName ?? observation.RawPhrase);
+            var match = matcher.Match(normalizedPhrase);
+            var candidates = match.Candidates;
+            if (match.Kind == PhraseMatchKind.Unmatched)
             {
                 unmatched.Add(new(
                     observation.ObservationId.Trim(),
@@ -70,11 +65,8 @@ public sealed class PantryReconciliationService(
                 continue;
             }
 
-            var isAmbiguous = candidates[0].Confidence < MinimumMatchedConfidence
-                || observation.IdentityConfidence < MinimumReviewConfidence
-                || candidates.Count > 1
-                && candidates[1].Confidence >= MinimumCandidateConfidence
-                && candidates[0].Confidence - candidates[1].Confidence < AmbiguousConfidenceMargin;
+            var isAmbiguous = match.Kind == PhraseMatchKind.Ambiguous
+                || observation.IdentityConfidence < MinimumReviewConfidence;
             if (isAmbiguous)
             {
                 ambiguous.Add(new(
@@ -129,7 +121,7 @@ public sealed class PantryReconciliationService(
             return DeserializeResponse(existingOperation.ResponseJson);
         }
 
-        var validationErrors = ValidateReconciliationRequest(request, operationId, out var mode, out var location);
+        var validationErrors = PantryReconciliationRequestValidator.ValidateReconciliation(request, operationId, out var mode, out var location);
         var itemInputs = request.Items ?? [];
         var ingredients = await ingredientRepository.GetByIdsAsync(
             itemInputs.Select(item => item.ItemId).Where(id => id != Guid.Empty).Distinct().ToArray(),
@@ -252,7 +244,7 @@ public sealed class PantryReconciliationService(
                         continue;
                     }
 
-                    CapturePrevious(current, previousItems);
+                    PantryUndoService.CapturePrevious(current, previousItems);
                     ApplyObservation(current, prepared, groupedItem.ObservationIds, location, now);
                     current.Quantity = Quantity.FromAmount(quantity);
                     var diff = ToDiffEntry(
@@ -282,7 +274,7 @@ public sealed class PantryReconciliationService(
                                  .Where(item => !observedIngredientIds.Contains(item.IngredientId))
                                  .ToList())
                     {
-                        CapturePrevious(current, previousItems);
+                        PantryUndoService.CapturePrevious(current, previousItems);
                         removed.Add(ToDiffEntry(
                             current,
                             current.Quantity.Amount,
@@ -340,337 +332,6 @@ public sealed class PantryReconciliationService(
             var actualVersion = await repository.GetPantryVersionAsync(houseId, cancellationToken) ?? 0;
             return ConflictResponse(actualVersion, "The pantry changed while this scan was being applied. Retry with the latest pantryVersion.");
         }
-    }
-
-    public async Task<PantryUndoResponse> UndoAsync(
-        Guid houseId,
-        string undoToken,
-        CancellationToken cancellationToken)
-    {
-        var token = undoToken?.Trim() ?? string.Empty;
-        var house = await repository.GetHouseAsync(houseId, cancellationToken);
-        if (house is null)
-        {
-            return new("NotFound", 0, token, Message: "Household not found.");
-        }
-
-        var existingOperation = token.Length == 0
-            ? null
-            : await repository.GetOperationByUndoTokenAsync(houseId, token, cancellationToken);
-        if (existingOperation is null)
-        {
-            return new("NotFound", house.PantryVersion, token, Message: "Undo token was not found or has expired.");
-        }
-        if (existingOperation.UndoResponseJson is not null)
-        {
-            return DeserializeUndoResponse(existingOperation.UndoResponseJson);
-        }
-        if (existingOperation.UndoStateJson is null)
-        {
-            return new("ValidationFailed", house.PantryVersion, token,
-                Message: "This reconciliation has no destructive changes to undo.");
-        }
-
-        try
-        {
-            return await repository.ExecuteInTransactionAsync(async transactionCancellationToken =>
-            {
-                var transactionHouse = await repository.GetHouseAsync(houseId, transactionCancellationToken);
-                var operation = await repository.GetOperationByUndoTokenAsync(
-                    houseId, token, transactionCancellationToken);
-                if (transactionHouse is null || operation is null)
-                {
-                    return new PantryUndoResponse("NotFound", transactionHouse?.PantryVersion ?? 0, token,
-                        Message: "Undo token was not found or has expired.");
-                }
-                if (operation.UndoResponseJson is not null)
-                {
-                    return DeserializeUndoResponse(operation.UndoResponseJson);
-                }
-                if (transactionHouse.PantryVersion != operation.PantryVersion)
-                {
-                    return new PantryUndoResponse(
-                        "Conflict",
-                        transactionHouse.PantryVersion,
-                        token,
-                        new Dictionary<string, string[]>
-                        {
-                            ["pantryVersion"] = ["The pantry changed after this scan; undo it only from the current state."]
-                        });
-                }
-
-                var undoStateJson = operation.UndoStateJson;
-                if (undoStateJson is null)
-                {
-                    return new PantryUndoResponse("ValidationFailed", transactionHouse.PantryVersion, token,
-                        Message: "This reconciliation has no destructive changes to undo.");
-                }
-                var state = JsonSerializer.Deserialize<PantryUndoState>(undoStateJson, JsonOptions)
-                    ?? throw new InvalidOperationException("The pantry undo state is invalid.");
-                var currentItems = await repository.GetItemsAsync(houseId, transactionCancellationToken);
-                var currentById = currentItems.ToDictionary(item => item.Id);
-                var currentByIngredient = currentItems.ToDictionary(item => item.IngredientId);
-                var addedItemIds = state.AddedPantryItemIds.ToHashSet();
-                var ingredientsToRestore = new Dictionary<Guid, Ingredient>();
-                foreach (var previous in state.PreviousItems)
-                {
-                    if (currentById.ContainsKey(previous.PantryItemId))
-                    {
-                        continue;
-                    }
-                    if (currentByIngredient.TryGetValue(previous.IngredientId, out var conflictingItem)
-                        && !addedItemIds.Contains(conflictingItem.Id))
-                    {
-                        return new PantryUndoResponse(
-                            "Conflict",
-                            transactionHouse.PantryVersion,
-                            token,
-                            Message: "The pantry contains another item for a removed ingredient; undo was not applied.");
-                    }
-
-                    if (ingredientsToRestore.ContainsKey(previous.IngredientId))
-                    {
-                        continue;
-                    }
-
-                    var ingredient = await ingredientRepository.GetByIdAsync(
-                        previous.IngredientId, tracked: false, transactionCancellationToken);
-                    if (ingredient is null)
-                    {
-                        return new PantryUndoResponse(
-                            "Conflict",
-                            transactionHouse.PantryVersion,
-                            token,
-                            Message: "An ingredient needed to restore the pantry item is no longer available.");
-                    }
-
-                    ingredientsToRestore[previous.IngredientId] = ingredient;
-                }
-
-                foreach (var addedItemId in state.AddedPantryItemIds)
-                {
-                    if (currentById.TryGetValue(addedItemId, out var addedItem))
-                    {
-                        repository.Remove(addedItem);
-                    }
-                }
-
-                foreach (var previous in state.PreviousItems)
-                {
-                    if (currentById.TryGetValue(previous.PantryItemId, out var current))
-                    {
-                        Restore(current, previous);
-                        continue;
-                    }
-
-                    repository.Add(new PantryItem
-                    {
-                        Id = previous.PantryItemId,
-                        HouseId = houseId,
-                        IngredientId = previous.IngredientId,
-                        Quantity = Quantity.FromAmount(previous.Quantity),
-                        ExpirationDate = previous.ExpirationDate,
-                        StorageLocation = previous.StorageLocation,
-                        LastObservedQuantity = previous.LastObservedQuantity,
-                        LastObservedUnit = previous.LastObservedUnit,
-                        PackageDescription = previous.PackageDescription,
-                        ConversionConfidence = previous.ConversionConfidence,
-                        LastObservedAtUtc = previous.LastObservedAtUtc,
-                        LastObservationIdsJson = previous.LastObservationIdsJson,
-                        Ingredient = ingredientsToRestore[previous.IngredientId]
-                    });
-                }
-
-                transactionHouse.PantryVersion++;
-                var response = new PantryUndoResponse("Success", transactionHouse.PantryVersion, token);
-                operation.UndoneAtUtc = DateTimeOffset.UtcNow;
-                operation.UndoResponseJson = JsonSerializer.Serialize(response, JsonOptions);
-                return response;
-            }, cancellationToken);
-        }
-        catch (PantryConcurrencyException)
-        {
-            var actualVersion = await repository.GetPantryVersionAsync(houseId, cancellationToken) ?? 0;
-            return new PantryUndoResponse("Conflict", actualVersion, token,
-                Message: "The pantry changed while undo was being applied.");
-        }
-    }
-
-    private static Dictionary<string, string[]> ValidateResolutionRequest(
-        IReadOnlyList<PantryObservation> observations,
-        int unrecognizedCount)
-    {
-        var errors = new Dictionary<string, string[]>();
-        if (observations.Count == 0 && unrecognizedCount == 0)
-        {
-            errors["observations"] = ["Provide at least one observation or a positive unrecognizedCount."];
-        }
-        else if (observations.Count > MaximumObservations)
-        {
-            errors["observations"] = [$"At most {MaximumObservations} observations are allowed."];
-        }
-        if (unrecognizedCount is < 0 or > MaximumUnrecognizedCount)
-        {
-            errors["unrecognizedCount"] = [$"Unrecognized count must be between 0 and {MaximumUnrecognizedCount}."];
-        }
-
-        var ids = new HashSet<string>(StringComparer.Ordinal);
-        for (var index = 0; index < observations.Count; index++)
-        {
-            var observation = observations[index];
-            if (string.IsNullOrWhiteSpace(observation.ObservationId) || observation.ObservationId.Trim().Length > 100)
-            {
-                errors[$"observations[{index}].observationId"] = ["Observation id is required and cannot exceed 100 characters."];
-            }
-            else if (!ids.Add(observation.ObservationId.Trim()))
-            {
-                errors[$"observations[{index}].observationId"] = ["Observation ids must be unique."];
-            }
-            if (string.IsNullOrWhiteSpace(observation.RawPhrase) || observation.RawPhrase.Trim().Length > 300)
-            {
-                errors[$"observations[{index}].rawPhrase"] = ["Raw phrase is required and cannot exceed 300 characters."];
-            }
-            if (observation.NormalizedName?.Trim().Length > 300)
-            {
-                errors[$"observations[{index}].normalizedName"] = ["Normalized name cannot exceed 300 characters."];
-            }
-            ValidateConfidence(observation.IdentityConfidence, $"observations[{index}].identityConfidence", errors);
-            if (observation.QuantityConfidence is { } quantityConfidence)
-            {
-                ValidateConfidence(quantityConfidence, $"observations[{index}].quantityConfidence", errors);
-            }
-            if (observation.EstimatedQuantity is < 0 or > MaximumQuantity)
-            {
-                errors[$"observations[{index}].estimatedQuantity"] = ["Estimated quantity must be between 0 and 99999999.999."];
-            }
-            if (observation.Evidence is { Count: > 20 })
-            {
-                errors[$"observations[{index}].evidence"] = ["At most 20 evidence references are allowed."];
-            }
-        }
-        return errors;
-    }
-
-    private static Dictionary<string, string[]> ValidateReconciliationRequest(
-        PantryReconcileRequest request,
-        string operationId,
-        out ReconciliationMode mode,
-        out StorageLocation? location)
-    {
-        var errors = new Dictionary<string, string[]>();
-        mode = ParseMode(request.Mode, errors);
-        location = ParseLocation(request.Scope?.Location, errors);
-        var scope = request.Scope ?? new PantryReconciliationScope();
-        var coverage = scope.Coverage?.Trim().ToLowerInvariant();
-
-        if (operationId.Length == 0 || operationId.Length > 200)
-        {
-            errors["operationId"] = ["operationId is required and cannot exceed 200 characters."];
-        }
-        if (request.ExpectedPantryVersion is null or < 0)
-        {
-            errors["expectedPantryVersion"] = ["Read pantryVersion from resolve_observations and send it back unchanged."];
-        }
-        if (coverage is not ("partial" or "full"))
-        {
-            errors["scope.coverage"] = ["Coverage must be partial or full."];
-        }
-        else if (mode is not ReconciliationMode.Merge && coverage != "full")
-        {
-            errors["scope.coverage"] = ["Full coverage is required before decreases or removals are allowed."];
-        }
-        if (mode is not ReconciliationMode.Merge && string.IsNullOrWhiteSpace(scope.Location))
-        {
-            errors["scope.location"] = ["A location is required for a full-location reconciliation."];
-        }
-        if (mode == ReconciliationMode.ReplaceLocation
-            && !(request.Confirm || request.ConfirmDestructiveChanges || request.Confirmed))
-        {
-            errors["confirmation"] = ["replace_location requires explicit confirmation of destructive changes."];
-        }
-
-        var items = request.Items ?? [];
-        if (items.Count > MaximumObservations)
-        {
-            errors["items"] = [$"At most {MaximumObservations} resolved items are allowed."];
-        }
-        var observationIds = new HashSet<string>(StringComparer.Ordinal);
-        for (var index = 0; index < items.Count; index++)
-        {
-            var item = items[index];
-            ValidateObservationId(item.ObservationId, $"items[{index}].observationId", observationIds, errors);
-            if (!string.Equals(item.ItemType?.Trim(), IngredientType, StringComparison.OrdinalIgnoreCase))
-            {
-                errors[$"items[{index}].itemType"] = ["Only itemType 'ingredient' is supported by the pantry catalogue."];
-            }
-            ValidateConfidence(item.QuantityConfidence, $"items[{index}].quantityConfidence", errors);
-            ValidateConfidence(item.IdentityConfidence, $"items[{index}].identityConfidence", errors);
-            if (item.ConversionConfidence is { } conversionConfidence)
-            {
-                ValidateConfidence(conversionConfidence, $"items[{index}].conversionConfidence", errors);
-            }
-            if (item.ObservedQuantity is < 0 or > MaximumQuantity)
-            {
-                errors[$"items[{index}].observedQuantity"] = ["Observed quantity must be between 0 and 99999999.999."];
-            }
-            if (item.NormalizedQuantity is < 0 or > MaximumQuantity)
-            {
-                errors[$"items[{index}].normalizedQuantity"] = ["Normalized quantity must be between 0 and 99999999.999."];
-            }
-            if (item.ObservedUnit?.Trim().Length > 40)
-            {
-                errors[$"items[{index}].observedUnit"] = ["Observed unit cannot exceed 40 characters."];
-            }
-            if (item.NormalizedUnit?.Trim().Length > 10)
-            {
-                errors[$"items[{index}].normalizedUnit"] = ["Normalized unit cannot exceed 10 characters."];
-            }
-            if (item.PackageDescription?.Trim().Length > 200)
-            {
-                errors[$"items[{index}].packageDescription"] = ["Package description cannot exceed 200 characters."];
-            }
-        }
-
-        var unmatched = request.Unmatched ?? [];
-        var ambiguous = request.Ambiguous ?? [];
-        if (unmatched.Count > MaximumObservations)
-        {
-            errors["unmatched"] = [$"At most {MaximumObservations} unmatched observations are allowed."];
-        }
-        if (ambiguous.Count > MaximumObservations)
-        {
-            errors["ambiguous"] = [$"At most {MaximumObservations} ambiguous observations are allowed."];
-        }
-        if (items.Count + unmatched.Count + ambiguous.Count > MaximumObservations)
-        {
-            errors["observations"] = [$"At most {MaximumObservations} observations are allowed in a reconciliation."];
-        }
-        for (var index = 0; index < unmatched.Count; index++)
-        {
-            var observation = unmatched[index];
-            ValidateObservationId(observation.ObservationId, $"unmatched[{index}].observationId", observationIds, errors);
-            ValidatePhrase(observation.RawPhrase, $"unmatched[{index}].rawPhrase", "Raw phrase", errors);
-            ValidatePhrase(observation.NormalizedPhrase, $"unmatched[{index}].normalizedPhrase", "Normalized phrase", errors);
-            ValidateConfidence(observation.IdentityConfidence, $"unmatched[{index}].identityConfidence", errors);
-            if (observation.RecognitionConfidence is { } recognitionConfidence)
-            {
-                ValidateConfidence(recognitionConfidence, $"unmatched[{index}].recognitionConfidence", errors);
-            }
-        }
-        for (var index = 0; index < ambiguous.Count; index++)
-        {
-            var observation = ambiguous[index];
-            ValidateObservationId(observation.ObservationId, $"ambiguous[{index}].observationId", observationIds, errors);
-            ValidatePhrase(observation.RawPhrase, $"ambiguous[{index}].rawPhrase", "Raw phrase", errors);
-            ValidatePhrase(observation.NormalizedPhrase, $"ambiguous[{index}].normalizedPhrase", "Normalized phrase", errors);
-            ValidateConfidence(observation.IdentityConfidence, $"ambiguous[{index}].identityConfidence", errors);
-        }
-
-        if (request.UnrecognizedCount is < 0 or > MaximumUnrecognizedCount)
-        {
-            errors["unrecognizedCount"] = [$"Unrecognized count must be between 0 and {MaximumUnrecognizedCount}."];
-        }
-        return errors;
     }
 
     private PreparedReconcileItem? PrepareItem(
@@ -781,7 +442,7 @@ public sealed class PantryReconciliationService(
                 item.Candidates.Select(candidate => candidate.ItemId).ToArray(),
                 item.IdentityConfidence)))
             .Where(item => !string.IsNullOrWhiteSpace(item.NormalizedPhrase))
-            .GroupBy(item => Limit(NormalizePhrase(item.NormalizedPhrase), 300), StringComparer.Ordinal)
+            .GroupBy(item => Limit(IngredientPhraseMatcher.NormalizePhrase(item.NormalizedPhrase), 300), StringComparer.Ordinal)
             .Select(group => new MissedPhrase(
                 group.First().RawPhrase,
                 group.Key,
@@ -883,40 +544,6 @@ public sealed class PantryReconciliationService(
             || item.LastObservationIdsJson != observationIdsJson;
     }
 
-    private static void CapturePrevious(PantryItem item, ICollection<PantryUndoItem> previousItems)
-    {
-        if (previousItems.Any(previous => previous.PantryItemId == item.Id))
-        {
-            return;
-        }
-
-        previousItems.Add(new(
-            item.Id,
-            item.IngredientId,
-            item.Quantity.Amount,
-            item.ExpirationDate,
-            item.StorageLocation,
-            item.LastObservedQuantity,
-            item.LastObservedUnit,
-            item.PackageDescription,
-            item.ConversionConfidence,
-            item.LastObservedAtUtc,
-            item.LastObservationIdsJson));
-    }
-
-    private static void Restore(PantryItem item, PantryUndoItem previous)
-    {
-        item.Quantity = Quantity.FromAmount(previous.Quantity);
-        item.ExpirationDate = previous.ExpirationDate;
-        item.StorageLocation = previous.StorageLocation;
-        item.LastObservedQuantity = previous.LastObservedQuantity;
-        item.LastObservedUnit = previous.LastObservedUnit;
-        item.PackageDescription = previous.PackageDescription;
-        item.ConversionConfidence = previous.ConversionConfidence;
-        item.LastObservedAtUtc = previous.LastObservedAtUtc;
-        item.LastObservationIdsJson = previous.LastObservationIdsJson;
-    }
-
     private static PantryDiffEntry ToDiffEntry(
         PantryItem item,
         decimal? previousQuantity,
@@ -975,105 +602,6 @@ public sealed class PantryReconciliationService(
         return normalized is not null;
     }
 
-    private static List<CatalogName> BuildSearchableNames(
-        IReadOnlyCollection<Ingredient> ingredients,
-        IReadOnlyDictionary<string, string> translations)
-    {
-        var names = new List<CatalogName>();
-        foreach (var ingredient in ingredients)
-        {
-            AddCatalogName(names, ingredient.Id, ingredient.Name, ingredient.MeasurementUnit);
-            foreach (var language in TranslationKeys.TranslatedLanguages)
-            {
-                var translation = translations.GetValueOrDefault(TranslationKeys.Ingredient(ingredient.Id, language));
-                if (!string.IsNullOrWhiteSpace(translation))
-                {
-                    AddCatalogName(names, ingredient.Id, translation, ingredient.MeasurementUnit);
-                }
-            }
-        }
-        return names;
-    }
-
-    private static void AddCatalogName(
-        ICollection<CatalogName> names,
-        Guid ingredientId,
-        string name,
-        string measurementUnit) =>
-        names.Add(new(ingredientId, name.Trim(), measurementUnit, NormalizePhrase(name)));
-
-    private static List<ScoredCandidate> FindCandidates(
-        string normalizedPhrase,
-        IReadOnlyCollection<CatalogName> searchableNames) =>
-        searchableNames
-            .Where(candidate => normalizedPhrase.Length > 0 && candidate.NormalizedName.Length > 0)
-            .Where(candidate => CouldReachCandidateConfidence(normalizedPhrase, candidate.NormalizedName))
-            .Select(candidate => new ScoredCandidate(
-                candidate.Id,
-                candidate.Name,
-                candidate.MeasurementUnit,
-                Similarity(normalizedPhrase, candidate.NormalizedName)))
-            .GroupBy(candidate => candidate.Id)
-            .Select(group => group.OrderByDescending(candidate => candidate.Confidence)
-                .ThenBy(candidate => candidate.Name, StringComparer.OrdinalIgnoreCase)
-                .First())
-            .OrderByDescending(candidate => candidate.Confidence)
-            .ThenBy(candidate => candidate.Name, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(candidate => candidate.Id)
-            .ToList();
-
-    private static bool CouldReachCandidateConfidence(string left, string right)
-    {
-        var longestLength = Math.Max(left.Length, right.Length);
-        var lengthDifference = Math.Abs(left.Length - right.Length);
-        var maximumSimilarity = 1m - (decimal)lengthDifference / longestLength;
-        return maximumSimilarity >= MinimumCandidateConfidence;
-    }
-
-    private static decimal Similarity(string left, string right)
-    {
-        if (string.Equals(left, right, StringComparison.Ordinal))
-        {
-            return 1m;
-        }
-
-        var distance = Distance(left, right);
-        var denominator = Math.Max(left.Length, right.Length);
-        return denominator == 0 ? 0 : Math.Round(1m - (decimal)distance / denominator, 3);
-    }
-
-    private static int Distance(string left, string right)
-    {
-        var previous = Enumerable.Range(0, right.Length + 1).ToArray();
-        var current = new int[right.Length + 1];
-        for (var i = 1; i <= left.Length; i++)
-        {
-            current[0] = i;
-            for (var j = 1; j <= right.Length; j++)
-            {
-                current[j] = Math.Min(
-                    Math.Min(current[j - 1] + 1, previous[j] + 1),
-                    previous[j - 1] + (left[i - 1] == right[j - 1] ? 0 : 1));
-            }
-            (previous, current) = (current, previous);
-        }
-        return previous[right.Length];
-    }
-
-    private static string NormalizePhrase(string? phrase)
-    {
-        if (string.IsNullOrWhiteSpace(phrase))
-        {
-            return string.Empty;
-        }
-
-        var characters = phrase.Trim().ToUpperInvariant()
-            .Select(character => char.IsLetterOrDigit(character) ? character : ' ')
-            .ToArray();
-        return string.Join(' ', new string(characters)
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries));
-    }
-
     private static string NormalizeLocale(string? locale)
     {
         if (string.IsNullOrWhiteSpace(locale))
@@ -1102,98 +630,9 @@ public sealed class PantryReconciliationService(
         return trimmed[..Math.Min(maximum, trimmed.Length)];
     }
 
-    private static void ValidateConfidence(
-        decimal confidence,
-        string field,
-        IDictionary<string, string[]> errors)
-    {
-        if (confidence is < 0 or > 1)
-        {
-            errors[field] = ["Confidence must be between 0 and 1."];
-        }
-    }
-
-    private static void ValidateObservationId(
-        string? observationId,
-        string field,
-        ISet<string> observationIds,
-        IDictionary<string, string[]> errors)
-    {
-        if (string.IsNullOrWhiteSpace(observationId) || observationId.Trim().Length > 100)
-        {
-            errors[field] = ["Observation id is required and cannot exceed 100 characters."];
-        }
-        else if (!observationIds.Add(observationId.Trim()))
-        {
-            errors[field] = ["Observation ids must be unique within a reconciliation."];
-        }
-    }
-
-    private static void ValidatePhrase(
-        string? phrase,
-        string field,
-        string label,
-        IDictionary<string, string[]> errors)
-    {
-        if (string.IsNullOrWhiteSpace(phrase) || phrase.Trim().Length > 300)
-        {
-            errors[field] = [$"{label} is required and cannot exceed 300 characters."];
-        }
-    }
-
-    private static ReconciliationMode ParseMode(
-        string? value,
-        IDictionary<string, string[]> errors)
-    {
-        var normalized = value?.Trim().ToLowerInvariant();
-        if (normalized == "merge")
-        {
-            return ReconciliationMode.Merge;
-        }
-        if (normalized == "reconcile_visible_snapshot")
-        {
-            return ReconciliationMode.ReconcileVisibleSnapshot;
-        }
-        if (normalized == "replace_location")
-        {
-            return ReconciliationMode.ReplaceLocation;
-        }
-
-        errors["mode"] = ["Mode must be merge, reconcile_visible_snapshot, or replace_location."];
-        return ReconciliationMode.Merge;
-    }
-
-    private static StorageLocation? ParseLocation(
-        string? value,
-        IDictionary<string, string[]> errors)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        var normalized = value.Trim().ToLowerInvariant();
-        var location = normalized switch
-        {
-            "refrigerator" or "fridge" => StorageLocation.Refrigerator,
-            "freezer" => StorageLocation.Freezer,
-            "cabinet" or "cupboard" => StorageLocation.Cabinet,
-            _ => (StorageLocation?)null
-        };
-        if (location is null)
-        {
-            errors["scope.location"] = ["Location must be refrigerator, freezer, or cabinet."];
-        }
-        return location;
-    }
-
     private static PantryReconciliationResponse DeserializeResponse(string json) =>
         JsonSerializer.Deserialize<PantryReconciliationResponse>(json, JsonOptions)
         ?? throw new InvalidOperationException("The stored pantry reconciliation is invalid.");
-
-    private static PantryUndoResponse DeserializeUndoResponse(string json) =>
-        JsonSerializer.Deserialize<PantryUndoResponse>(json, JsonOptions)
-        ?? throw new InvalidOperationException("The stored pantry undo result is invalid.");
 
     private static PantryReconciliationResponse NotFoundResponse() =>
         EmptyResponse("NotFound", 0, "Household not found.");
@@ -1212,17 +651,6 @@ public sealed class PantryReconciliationService(
         string? message = null,
         IReadOnlyDictionary<string, string[]>? validationErrors = null) =>
         new(status, pantryVersion, [], [], [], [], [], [], [], [], 0, null, UiResource, validationErrors, message);
-
-    private enum ReconciliationMode
-    {
-        Merge,
-        ReconcileVisibleSnapshot,
-        ReplaceLocation
-    }
-
-    private sealed record CatalogName(Guid Id, string Name, string MeasurementUnit, string NormalizedName);
-
-    private sealed record ScoredCandidate(Guid Id, string Name, string MeasurementUnit, decimal Confidence);
 
     private sealed record PreparedReconcileItem(
         PantryReconcileItem Item,

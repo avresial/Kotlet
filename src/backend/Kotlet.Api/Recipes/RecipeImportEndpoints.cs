@@ -41,7 +41,7 @@ public static class RecipeImportEndpoints
     }
 
     private static async Task<IResult> Accept(Guid id, RecipeImportDraft draft, ICurrentUser currentUser,
-        RecipeImportService service, CancellationToken cancellationToken)
+        RecipeImportAcceptanceService service, CancellationToken cancellationToken)
     {
         if (currentUser.UserId is not { } userId || currentUser.HouseId is not { } houseId)
         {

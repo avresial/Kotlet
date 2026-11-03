@@ -36,7 +36,7 @@ public sealed class RecipeImportWorker(
             try
             {
                 await using var scope = scopeFactory.CreateAsyncScope();
-                await scope.ServiceProvider.GetRequiredService<RecipeImportService>().ProcessAsync(id, stoppingToken);
+                await scope.ServiceProvider.GetRequiredService<RecipeImportProcessor>().ProcessAsync(id, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -48,7 +48,7 @@ public sealed class RecipeImportWorker(
                 try
                 {
                     await using var scope = scopeFactory.CreateAsyncScope();
-                    await scope.ServiceProvider.GetRequiredService<RecipeImportService>()
+                    await scope.ServiceProvider.GetRequiredService<RecipeImportProcessor>()
                         .FailAsync(id, "Recipe import failed unexpectedly.", stoppingToken);
                 }
                 catch (Exception failException)

@@ -50,7 +50,7 @@ public sealed class PantryReconciliationMcp
      Description("Undoes changes from a successful pantry.reconcile call using its undoToken. Undo is rejected when the pantry changed after that reconciliation, so a newer scan cannot be overwritten accidentally.")]
     public static async Task<CallToolResult> UndoReconcile(
         [Description("undoToken returned by pantry.reconcile when changes can be undone.")] string undoToken,
-        PantryReconciliationService service,
+        PantryUndoService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         Result(

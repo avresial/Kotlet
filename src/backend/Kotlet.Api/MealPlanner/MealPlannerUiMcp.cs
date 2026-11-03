@@ -185,7 +185,7 @@ public static class MealPlannerUiMcp
                  "cannot change the plan — use the meal-planner tools (add_meal_to_plan, move_meal_in_plan, etc.) " +
                  "for edits, and get_meal_plan when you only need the raw data.")]
     private static async Task<CallToolResult> ShowMealPlan(
-        MealPlannerService service,
+        MealPlanQueryService service,
         ICurrentUser currentUser,
         [Description("Day to show in yyyy-MM-dd format. Defaults to today.")] string? date = null,
         CancellationToken cancellationToken = default)

@@ -90,7 +90,7 @@ public static class MealPlanUiMcp
     private static async Task<CallToolResult> PreviewMealPlan(
         [Description("Complete seven-day draft. Each meal must set exactly one of recipeId, ingredientId, or preparedMealId. Dates must fall between weekStart and weekStart + 6 days.")]
         AddWeeklyMealPlanRequest request,
-        MealPlannerService service,
+        MealPlanItemService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken = default)
     {

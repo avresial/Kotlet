@@ -11,5 +11,7 @@ public static class DiExtension
             .AddScoped<RecipeDuplicateDetectionService>()
             .AddScoped<RecipeImageService>()
             .AddScoped<RecipeImportService>()
+            .AddScoped<RecipeImportProcessor>()
+            .AddScoped<RecipeImportAcceptanceService>()
             .AddSingleton<IRecipeImportSignal, RecipeImportSignal>();
 }

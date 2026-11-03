@@ -18,6 +18,10 @@ Baseline: `dotnet test Kotlet.slnx --no-restore` passes 213 tests (143 unit, 70 
 - [x] Split `HouseEndpoints` (formerly 245 lines, 46 branches) by extracting one `HouseService`; no per-endpoint service hierarchy was added.
 - [x] Split `AuthEndpoints` (formerly 174 lines, 33 branches) by extracting `AccountService`; retain token/cookie response mapping in the endpoint adapter.
 - [x] Review `MealPlannerService` (350 lines, 30 branches): keep it cohesive. Extract response loading only if query profiling or new behavior requires it.
+- [x] Split `MealPlannerService` after it grew to ~1,600 lines: `MealPlanQueryService`, `MealPlanItemService`, `MealPlanCopyService`, `MealPlanSlotMutationService`, and `MealParticipantService`, sharing internal `MealPlanItemValidator`, `MealPlanResponseBuilder`, and `MealSlots`.
+- [x] Split `PantryReconciliationService` into reconcile orchestration, `PantryUndoService`, `IngredientPhraseMatcher`, and `PantryReconciliationRequestValidator`.
+- [x] Split `RecipeImportService` into job lifecycle, `RecipeImportProcessor`, and `RecipeImportAcceptanceService`; import unit aliases moved to `MeasurementMappingService`.
+- [x] Move refresh-token session handling out of `AuthEndpoints` into the API-layer `AuthSessionService` (token creation is bound to `HttpContext`, so it stays in API).
 - [x] Review `RecipeService` (289 lines, 32 branches): keep slugging, validation, and ingredient mapping together; they are cohesive and unit-tested.
 - [x] Keep `IngredientService` (201 lines, 23 branches) intact. Translation and ingredient writes share one transaction and splitting them would weaken that boundary.
 

@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Kotlet.Application.UnitTests.MealPlanner;
 
-public sealed class MealPlannerServiceTests
+public sealed class MealPlannerTests
 {
     private static readonly Guid HouseId = Guid.NewGuid();
     private static readonly Guid CurrentUserId = Guid.NewGuid();
@@ -26,7 +26,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, meals) = CreateService();
 
-        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+        var result = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "breakfast", SoupRecipe.Id, null, " note "), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
@@ -43,7 +43,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+        var result = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "dinner", null, Bread.Id, null), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
@@ -56,7 +56,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, meals) = CreateService();
 
-        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+        var result = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "dinner", null, null, null,
                 FreeText: "Pizza night", ConfirmUncatalogued: true),
             CancellationToken.None);
@@ -72,7 +72,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, meals) = CreateService();
 
-        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+        var result = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "dinner", null, null, null, FreeText: "Pizza night"),
             CancellationToken.None);
 
@@ -85,33 +85,33 @@ public sealed class MealPlannerServiceTests
     public async Task ReplaceAndMove_UseVersionsAndPreserveFreeText()
     {
         var (service, meals) = CreateService();
-        var added = await service.AddItemAsync(CurrentUserId, HouseId,
+        var added = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "dinner", null, null, null,
                 FreeText: "Pizza night", ConfirmUncatalogued: true),
             CancellationToken.None);
         var mealId = added.Item!.Id;
 
-        var rejected = await service.ReplaceAsync(CurrentUserId, HouseId,
+        var rejected = await service.Mutations.ReplaceAsync(CurrentUserId, HouseId,
             new ReplaceMealPlanRequest(mealId, null, null, new MealPlanSourceRequest(FreeText: "Soup night"), 1),
             CancellationToken.None);
         Assert.Equal("ValidationFailed", rejected.Status);
         Assert.Contains("confirmUncatalogued", rejected.ValidationErrors!.Keys);
 
-        var replaced = await service.ReplaceAsync(CurrentUserId, HouseId,
+        var replaced = await service.Mutations.ReplaceAsync(CurrentUserId, HouseId,
             new ReplaceMealPlanRequest(mealId, null, null,
                 new MealPlanSourceRequest(FreeText: "Soup night", ConfirmUncatalogued: true), 1),
             CancellationToken.None);
         Assert.Equal("Success", replaced.Status);
         Assert.Equal(2, replaced.Item!.Version);
 
-        var moved = await service.MoveAsync(CurrentUserId, HouseId,
+        var moved = await service.Mutations.MoveAsync(CurrentUserId, HouseId,
             new MoveMealPlanMutationRequest(mealId, Today.AddDays(1), "breakfast", ExpectedVersion: 2),
             CancellationToken.None);
         Assert.Equal("Success", moved.Status);
         Assert.Equal(Today.AddDays(1), Assert.Single(meals.Items).Date);
         Assert.Equal("Soup night", moved.Item!.FreeText);
 
-        var stale = await service.MoveAsync(CurrentUserId, HouseId,
+        var stale = await service.Mutations.MoveAsync(CurrentUserId, HouseId,
             new MoveMealPlanMutationRequest(mealId, Today.AddDays(2), "breakfast", ExpectedVersion: 2),
             CancellationToken.None);
         Assert.Equal("Conflict", stale.Status);
@@ -121,14 +121,14 @@ public sealed class MealPlannerServiceTests
     public async Task Swap_WithSameIdempotencyKeyDoesNotSwapBack()
     {
         var (service, meals) = CreateService();
-        var first = await service.AddItemAsync(CurrentUserId, HouseId,
+        var first = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "breakfast", SoupRecipe.Id, null, null), CancellationToken.None);
-        var second = await service.AddItemAsync(CurrentUserId, HouseId,
+        var second = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today.AddDays(1), "dinner", null, Bread.Id, null), CancellationToken.None);
 
         var request = new SwapMealPlanRequest(first.Item!.Id, second.Item!.Id, 1, 1, "swap-1");
-        var result = await service.SwapAsync(CurrentUserId, HouseId, request, CancellationToken.None);
-        var retry = await service.SwapAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var result = await service.Mutations.SwapAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var retry = await service.Mutations.SwapAsync(CurrentUserId, HouseId, request, CancellationToken.None);
 
         Assert.Equal("Success", result.Status);
         Assert.Equal("Success", retry.Status);
@@ -140,15 +140,15 @@ public sealed class MealPlannerServiceTests
     public async Task Move_SwapRetryReturnsBothItems()
     {
         var (service, _) = CreateService();
-        var first = await service.AddItemAsync(CurrentUserId, HouseId,
+        var first = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "breakfast", SoupRecipe.Id, null, null), CancellationToken.None);
-        var second = await service.AddItemAsync(CurrentUserId, HouseId,
+        var second = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today.AddDays(1), "dinner", null, Bread.Id, null), CancellationToken.None);
         var request = new MoveMealPlanMutationRequest(
             first.Item!.Id, Today.AddDays(1), "dinner", "swap", 1, 1, "move-swap-1");
 
-        var result = await service.MoveAsync(CurrentUserId, HouseId, request, CancellationToken.None);
-        var retry = await service.MoveAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var result = await service.Mutations.MoveAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var retry = await service.Mutations.MoveAsync(CurrentUserId, HouseId, request, CancellationToken.None);
 
         Assert.Equal("Success", result.Status);
         Assert.Equal(2, result.Items!.Count);
@@ -169,9 +169,9 @@ public sealed class MealPlannerServiceTests
             Name = "Pierogi",
             Addons = [new PreparedMealAddon { Id = Guid.NewGuid(), IngredientId = Bread.Id, Unit = "g", DefaultQuantity = new(50), IsRequired = true }]
         };
-        var service = new MealPlannerService(meals, new FakeRecipeRepository(), new FakeIngredientRepository(Bread), new FakePreparedMealRepository(preparedMeal));
+        var service = MealPlanner.Create(meals, new FakeRecipeRepository(), new FakeIngredientRepository(Bread), new FakePreparedMealRepository(preparedMeal));
 
-        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+        var result = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "dinner", null, null, null, preparedMeal.Id,
                 [new SelectedPreparedMealAddon(Bread.Id, 75, "g")]), CancellationToken.None);
 
@@ -187,8 +187,8 @@ public sealed class MealPlannerServiceTests
         var (service, _) = CreateService();
         var request = new AddMealPlanItemRequest(Today, "breakfast", SoupRecipe.Id, null, null);
 
-        var first = await service.AddItemAsync(CurrentUserId, HouseId, request, CancellationToken.None);
-        var second = await service.AddItemAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var first = await service.Items.AddItemAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var second = await service.Items.AddItemAsync(CurrentUserId, HouseId, request, CancellationToken.None);
 
         Assert.Equal(0, first.Item!.SortOrder);
         Assert.Equal(1, second.Item!.SortOrder);
@@ -199,7 +199,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+        var result = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "brunch", SoupRecipe.Id, null, null), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
@@ -211,7 +211,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+        var result = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "breakfast", null, null, null), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
@@ -223,7 +223,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+        var result = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "breakfast", SoupRecipe.Id, Bread.Id, null), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
@@ -235,7 +235,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+        var result = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "breakfast", Guid.NewGuid(), null, null), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
@@ -247,7 +247,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+        var result = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, "dinner", null, Guid.NewGuid(), null), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
@@ -261,7 +261,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, meals) = CreateService();
 
-        var result = await service.AddItemAsync(CurrentUserId, HouseId,
+        var result = await service.Items.AddItemAsync(CurrentUserId, HouseId,
             new AddMealPlanItemRequest(Today, slot, SoupRecipe.Id, null, null), CancellationToken.None);
 
         Assert.Equal(expected, Assert.Single(meals.Items).Slot);
@@ -278,8 +278,8 @@ public sealed class MealPlannerServiceTests
             new(Today.AddDays(1), "dinner", null, Bread.Id, null)
         ]);
 
-        var first = await service.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
-        var retry = await service.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var first = await service.Items.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var retry = await service.Items.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
 
         Assert.Equal(2, first.Plan!.Added.Count);
         Assert.Equal(0, first.Plan.Skipped);
@@ -298,7 +298,7 @@ public sealed class MealPlannerServiceTests
             new(Today.AddDays(7), "dinner", SoupRecipe.Id, null, null)
         ]);
 
-        var result = await service.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var result = await service.Items.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
         Assert.Empty(meals.Items);
@@ -314,7 +314,7 @@ public sealed class MealPlannerServiceTests
             new(Today.AddDays(1), "dinner", null, null, null, FreeText: "Pizza night")
         ]);
 
-        var result = await service.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
+        var result = await service.Items.AddWeekAsync(CurrentUserId, HouseId, request, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
         Assert.Contains("meals[1].confirmUncatalogued", result.ValidationErrors!.Keys);
@@ -326,7 +326,7 @@ public sealed class MealPlannerServiceTests
     {
         var meals = new FakeMealPlanRepository();
         var recipes = new FakeRecipeRepository(SoupRecipe);
-        var service = new MealPlannerService(
+        var service = MealPlanner.Create(
             meals, recipes, new FakeIngredientRepository(Bread));
         var request = new AddWeeklyMealPlanRequest(Today,
         [
@@ -335,7 +335,7 @@ public sealed class MealPlannerServiceTests
             new(Today.AddDays(2), "dinner", SoupRecipe.Id, null, null)
         ]);
 
-        var result = await service.PreviewWeekAsync(HouseId, request, CancellationToken.None);
+        var result = await service.Items.PreviewWeekAsync(HouseId, request, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
         Assert.Equal(3, result.Preview!.Meals.Count);
@@ -351,7 +351,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var result = await service.PreviewWeekAsync(
+        var result = await service.Items.PreviewWeekAsync(
             HouseId,
             new(Today, [new(Today, "dinner", Guid.NewGuid(), null, null)]),
             CancellationToken.None);
@@ -371,9 +371,9 @@ public sealed class MealPlannerServiceTests
         source.Guests = 1;
         source.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = source.Id, UserId = CurrentUserId });
 
-        var result = await service.CopyDayAsync(CurrentUserId, HouseId,
+        var result = await service.Copies.CopyDayAsync(CurrentUserId, HouseId,
             new(Today, Today.AddDays(1)), CancellationToken.None);
-        var conflict = await service.CopyDayAsync(CurrentUserId, HouseId,
+        var conflict = await service.Copies.CopyDayAsync(CurrentUserId, HouseId,
             new(Today, Today.AddDays(1)), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
@@ -393,9 +393,9 @@ public sealed class MealPlannerServiceTests
         monday.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = monday.Id, UserId = CurrentUserId });
         meals.SeedItem(Today.AddDays(2), MealSlot.Dinner, SoupRecipe.Id, 1);
 
-        var result = await service.CopyWeekAsync(CurrentUserId, HouseId,
+        var result = await service.Copies.CopyWeekAsync(CurrentUserId, HouseId,
             new(Today, Today.AddDays(7)), CancellationToken.None);
-        var conflict = await service.CopyWeekAsync(CurrentUserId, HouseId,
+        var conflict = await service.Copies.CopyWeekAsync(CurrentUserId, HouseId,
             new(Today, Today.AddDays(7)), CancellationToken.None);
 
         Assert.Equal((MealPlannerOperationStatus.Success, 2), (result.Status, result.Copied));
@@ -416,7 +416,7 @@ public sealed class MealPlannerServiceTests
         meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, sortOrder: 0);
         meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, sortOrder: 0);
 
-        var response = await service.GetForDateAsync(CurrentUserId, HouseId, Today, CancellationToken.None);
+        var response = await service.Queries.GetForDateAsync(CurrentUserId, HouseId, Today, CancellationToken.None);
 
         Assert.Equal("2026-06-29", response.Date);
         var breakfast = response.Meals["breakfast"];
@@ -437,7 +437,7 @@ public sealed class MealPlannerServiceTests
         meals.SeedItem(Today, MealSlot.Supper, SoupRecipe.Id, 0);
         meals.SeedItem(Today.AddDays(1), MealSlot.Dinner, SoupRecipe.Id, 0);
 
-        var overview = await service.GetOverviewAsync(CurrentUserId, HouseId, Today, 3, CancellationToken.None);
+        var overview = await service.Queries.GetOverviewAsync(CurrentUserId, HouseId, Today, 3, CancellationToken.None);
 
         Assert.Equal(3, overview.Count);
         // Slots come back ordered alphabetically.
@@ -462,7 +462,7 @@ public sealed class MealPlannerServiceTests
         item.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = item.Id, UserId = CurrentUserId });
         meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 0);
 
-        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+        var result = await service.Items.MoveItemAsync(CurrentUserId, HouseId, item.Id,
             new(Today, "dinner"), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
@@ -482,7 +482,7 @@ public sealed class MealPlannerServiceTests
         var target = Today.AddDays(2);
         var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 3);
 
-        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+        var result = await service.Items.MoveItemAsync(CurrentUserId, HouseId, item.Id,
             new(target, "breakfast"), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
@@ -498,7 +498,7 @@ public sealed class MealPlannerServiceTests
         var (service, meals) = CreateService();
         var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 0);
 
-        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+        var result = await service.Items.MoveItemAsync(CurrentUserId, HouseId, item.Id,
             new(Today, "brunch"), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
@@ -510,7 +510,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var result = await service.MoveItemAsync(CurrentUserId, HouseId, Guid.NewGuid(),
+        var result = await service.Items.MoveItemAsync(CurrentUserId, HouseId, Guid.NewGuid(),
             new(Today, "dinner"), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.NotFound, result.Status);
@@ -523,7 +523,7 @@ public sealed class MealPlannerServiceTests
         var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 5);
         var originalUpdatedAt = item.UpdatedAt;
 
-        var result = await service.MoveItemAsync(CurrentUserId, HouseId, item.Id,
+        var result = await service.Items.MoveItemAsync(CurrentUserId, HouseId, item.Id,
             new(Today, "breakfast"), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
@@ -541,7 +541,7 @@ public sealed class MealPlannerServiceTests
         var (service, meals) = CreateService();
         var item = meals.SeedItem(Today, MealSlot.Breakfast, SoupRecipe.Id, 0);
 
-        var status = await service.RemoveItemAsync(HouseId, item.Id, CancellationToken.None);
+        var status = await service.Items.RemoveItemAsync(HouseId, item.Id, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, status);
         Assert.Empty(meals.Items);
@@ -552,7 +552,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var status = await service.RemoveItemAsync(HouseId, Guid.NewGuid(), CancellationToken.None);
+        var status = await service.Items.RemoveItemAsync(HouseId, Guid.NewGuid(), CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.NotFound, status);
     }
@@ -565,7 +565,7 @@ public sealed class MealPlannerServiceTests
         var (service, meals) = CreateService();
         var item = meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 0);
 
-        var result = await service.SetParticipantsAsync(CurrentUserId, HouseId, item.Id,
+        var result = await service.Participants.SetParticipantsAsync(CurrentUserId, HouseId, item.Id,
             [CurrentUserId, OtherUserId], CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
@@ -585,7 +585,7 @@ public sealed class MealPlannerServiceTests
         item.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = item.Id, UserId = CurrentUserId });
         item.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = item.Id, UserId = OtherUserId });
 
-        var result = await service.SetParticipantsAsync(CurrentUserId, HouseId, item.Id, [CurrentUserId], CancellationToken.None);
+        var result = await service.Participants.SetParticipantsAsync(CurrentUserId, HouseId, item.Id, [CurrentUserId], CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
         Assert.Single(item.Participants);
@@ -598,7 +598,7 @@ public sealed class MealPlannerServiceTests
         var (service, meals) = CreateService();
         var item = meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 0);
 
-        var result = await service.SetParticipantsAsync(CurrentUserId, HouseId, item.Id,
+        var result = await service.Participants.SetParticipantsAsync(CurrentUserId, HouseId, item.Id,
             [Guid.NewGuid()], CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
@@ -610,7 +610,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var result = await service.SetParticipantsAsync(CurrentUserId, HouseId, Guid.NewGuid(),
+        var result = await service.Participants.SetParticipantsAsync(CurrentUserId, HouseId, Guid.NewGuid(),
             [CurrentUserId], CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.NotFound, result.Status);
@@ -624,7 +624,7 @@ public sealed class MealPlannerServiceTests
         var (service, meals) = CreateService();
         var item = meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 0);
 
-        var result = await service.SetServingsAsync(CurrentUserId, HouseId, item.Id, 6, CancellationToken.None);
+        var result = await service.Participants.SetServingsAsync(CurrentUserId, HouseId, item.Id, 6, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
         Assert.Equal(6, result.Item!.Servings);
@@ -638,7 +638,7 @@ public sealed class MealPlannerServiceTests
         var item = meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 0);
         item.Servings = 4;
 
-        var result = await service.SetServingsAsync(CurrentUserId, HouseId, item.Id, null, CancellationToken.None);
+        var result = await service.Participants.SetServingsAsync(CurrentUserId, HouseId, item.Id, null, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
         Assert.False(result.Item!.ServingsOverridden);
@@ -652,7 +652,7 @@ public sealed class MealPlannerServiceTests
         var (service, meals) = CreateService();
         var item = meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 0);
 
-        var result = await service.SetServingsAsync(CurrentUserId, HouseId, item.Id, servings, CancellationToken.None);
+        var result = await service.Participants.SetServingsAsync(CurrentUserId, HouseId, item.Id, servings, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
         Assert.True(result.ValidationErrors!.ContainsKey("servings"));
@@ -663,7 +663,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var result = await service.SetServingsAsync(CurrentUserId, HouseId, Guid.NewGuid(), 4, CancellationToken.None);
+        var result = await service.Participants.SetServingsAsync(CurrentUserId, HouseId, Guid.NewGuid(), 4, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.NotFound, result.Status);
     }
@@ -677,7 +677,7 @@ public sealed class MealPlannerServiceTests
         var item = meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 0);
         item.Participants.Add(new MealPlanItemParticipant { MealPlanItemId = item.Id, UserId = CurrentUserId });
 
-        var result = await service.SetGuestsAsync(CurrentUserId, HouseId, item.Id, 3, CancellationToken.None);
+        var result = await service.Participants.SetGuestsAsync(CurrentUserId, HouseId, item.Id, 3, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.Success, result.Status);
         Assert.Equal(3, result.Item!.Guests);
@@ -693,7 +693,7 @@ public sealed class MealPlannerServiceTests
         var (service, meals) = CreateService();
         var item = meals.SeedItem(Today, MealSlot.Dinner, SoupRecipe.Id, 0);
 
-        var result = await service.SetGuestsAsync(CurrentUserId, HouseId, item.Id, guests, CancellationToken.None);
+        var result = await service.Participants.SetGuestsAsync(CurrentUserId, HouseId, item.Id, guests, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.ValidationFailed, result.Status);
         Assert.True(result.ValidationErrors!.ContainsKey("guests"));
@@ -704,7 +704,7 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var result = await service.SetGuestsAsync(CurrentUserId, HouseId, Guid.NewGuid(), 2, CancellationToken.None);
+        var result = await service.Participants.SetGuestsAsync(CurrentUserId, HouseId, Guid.NewGuid(), 2, CancellationToken.None);
 
         Assert.Equal(MealPlannerOperationStatus.NotFound, result.Status);
     }
@@ -716,22 +716,46 @@ public sealed class MealPlannerServiceTests
     {
         var (service, _) = CreateService();
 
-        var members = await service.GetHouseMembersAsync(HouseId, CancellationToken.None);
+        var members = await service.Queries.GetHouseMembersAsync(HouseId, CancellationToken.None);
 
         Assert.Equal(2, members.Count);
         Assert.Contains(members, m => m.UserId == CurrentUserId);
     }
 
-    private static (MealPlannerService Service, FakeMealPlanRepository Meals) CreateService()
+    private static (MealPlanner Service, FakeMealPlanRepository Meals) CreateService()
     {
         var meals = new FakeMealPlanRepository(
             new MealHouseMember(CurrentUserId, "Alice"),
             new MealHouseMember(OtherUserId, "Bob"));
-        var service = new MealPlannerService(
+        var service = MealPlanner.Create(
             meals,
             new FakeRecipeRepository(SoupRecipe),
             new FakeIngredientRepository(Bread));
         return (service, meals);
+    }
+
+    /// <summary>The meal-planner services wired to the same fakes, as DI would scope them.</summary>
+    private sealed record MealPlanner(
+        MealPlanQueryService Queries,
+        MealPlanItemService Items,
+        MealPlanCopyService Copies,
+        MealPlanSlotMutationService Mutations,
+        MealParticipantService Participants)
+    {
+        public static MealPlanner Create(
+            IMealPlanRepository meals,
+            IRecipeRepository recipes,
+            IIngredientRepository ingredients,
+            IPreparedMealRepository? preparedMeals = null)
+        {
+            var queries = new MealPlanQueryService(meals, recipes, ingredients, preparedMeals);
+            return new(
+                queries,
+                new MealPlanItemService(meals, recipes, ingredients, preparedMeals),
+                new MealPlanCopyService(meals, queries),
+                new MealPlanSlotMutationService(meals, recipes, ingredients, preparedMeals),
+                new MealParticipantService(meals, recipes, ingredients, preparedMeals));
+        }
     }
 
     private static Recipe MakeRecipe(string title) => new()
