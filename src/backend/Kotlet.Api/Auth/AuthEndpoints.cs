@@ -1,16 +1,11 @@
 using System.Security.Claims;
 using Kotlet.Application.Auth;
-using Kotlet.Domain.Auth;
 using Microsoft.Extensions.Options;
 
 namespace Kotlet.Api.Auth;
 
 public static class AuthEndpoints
 {
-    // How far Replay follows the replacement chain. A handful of rotations can legitimately pile up
-    // inside the grace window; anything longer is not a straggler and is left to reuse detection.
-    private const int MaxReplayChainHops = 8;
-
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var auth = endpoints
@@ -36,8 +31,8 @@ public static class AuthEndpoints
         return endpoints;
     }
 
-    private static async Task<IResult> Register(RegisterRequest request, AccountService accounts, IAuthSessionRepository sessions,
-        TokenService tokens, HttpContext context, IWebHostEnvironment environment, CancellationToken cancellationToken)
+    private static async Task<IResult> Register(RegisterRequest request, AccountService accounts,
+        AuthSessionService authSessions, HttpContext context, CancellationToken cancellationToken)
     {
         var result = await accounts.RegisterAsync(request, cancellationToken);
         if (result.Status == AccountOperationStatus.ValidationFailed)
@@ -48,16 +43,16 @@ public static class AuthEndpoints
         {
             return Results.Conflict(new { message = "An account with this email already exists." });
         }
-        var raw = await TryIssueTokens(result.User!, sessions, tokens, context, environment, cancellationToken);
-        if (raw is null)
+        var response = await authSessions.TrySignInNewUserAsync(result.User!, context, cancellationToken);
+        if (response is null)
         {
             return Results.Conflict(new { message = "An account with this email already exists." });
         }
-        return Results.Created("/api/auth/me", Response(result.User!, null, false, tokens, raw));
+        return Results.Created("/api/auth/me", response);
     }
 
-    private static async Task<IResult> Login(LoginRequest request, AccountService accounts, IAuthSessionRepository sessions,
-        TokenService tokens, HttpContext context, IWebHostEnvironment environment, CancellationToken cancellationToken)
+    private static async Task<IResult> Login(LoginRequest request, AccountService accounts,
+        AuthSessionService authSessions, HttpContext context, CancellationToken cancellationToken)
     {
         var result = await accounts.LoginAsync(request, cancellationToken);
         if (result.Status == AccountOperationStatus.ValidationFailed)
@@ -68,8 +63,8 @@ public static class AuthEndpoints
         {
             return Results.Unauthorized();
         }
-        var raw = await IssueTokens(result.User!, result.ActiveHouseId, sessions, tokens, context, environment, cancellationToken);
-        return Results.Ok(Response(result.User!, result.ActiveHouseId, result.HasHouse, tokens, raw));
+        return Results.Ok(await authSessions.SignInAsync(
+            result.User!, result.ActiveHouseId, result.HasHouse, context, cancellationToken));
     }
 
     /// <summary>
@@ -81,9 +76,9 @@ public static class AuthEndpoints
     /// first-party to the API origin, the cookie set below is stored even on mobile. The endpoint
     /// then redirects back to <c>/connect/authorize</c>, which now finds the session.
     /// </summary>
-    private static async Task<IResult> OAuthBridge(HttpRequest request, IAuthSessionRepository sessions,
+    private static async Task<IResult> OAuthBridge(HttpRequest request, AuthSessionService authSessions,
         TokenService tokens, IOptions<OAuthOptions> oauthOptions, HttpContext context,
-        IWebHostEnvironment environment, CancellationToken cancellationToken)
+        CancellationToken cancellationToken)
     {
         var form = await request.ReadFormAsync(cancellationToken);
         var returnUrl = form["returnUrl"].ToString();
@@ -98,73 +93,27 @@ public static class AuthEndpoints
             return Results.Unauthorized();
         }
 
-        var user = await sessions.GetUserAsync(userId, cancellationToken);
-        if (user is null)
-        {
-            return Results.Unauthorized();
-        }
-
         var activeHouseId = Guid.TryParse(principal.FindFirstValue(KotletClaimTypes.HouseId), out var houseId)
             ? houseId
             : (Guid?)null;
-        await IssueTokens(user, activeHouseId, sessions, tokens, context, environment, cancellationToken);
+        if (!await authSessions.StartSessionAsync(userId, activeHouseId, context, cancellationToken))
+        {
+            return Results.Unauthorized();
+        }
         return Results.Redirect(returnUrl);
     }
 
-    private static async Task<IResult> Refresh(IAuthSessionRepository sessions, TokenService tokens, HttpContext context,
-        IOptions<AuthOptions> authOptions, IWebHostEnvironment environment, CancellationToken cancellationToken)
+    private static async Task<IResult> Refresh(AuthSessionService authSessions, HttpContext context,
+        CancellationToken cancellationToken)
     {
-        var now = DateTime.UtcNow;
-        var raw = tokens.ReadRefreshToken(context.Request);
-        if (string.IsNullOrEmpty(raw))
-        {
-            return Unauthorized(tokens, context, environment);
-        }
-        var old = await sessions.GetRefreshTokenAsync(tokens.Hash(raw), cancellationToken);
-        if (old is null || old.ExpiresAtUtc <= now)
-        {
-            return Unauthorized(tokens, context, environment);
-        }
-        if (old.RevokedAtUtc is { } revokedAt)
-        {
-            var live = await Replay(old, revokedAt, now, sessions, authOptions.Value, cancellationToken);
-            if (live is null)
-            {
-                // Reuse outside the grace window ends this device's session only. Revoking every
-                // token the user owned (the old behaviour) meant one stale replay — a phone waking
-                // up with a token whose rotation response never arrived — signed the user out on
-                // every other device and browser too.
-                await sessions.RevokeChainAsync(old, now, cancellationToken);
-                return Unauthorized(tokens, context, environment);
-            }
-            // A benign race, not theft. Rotate off the live tail rather than answering with no
-            // token at all: the caller's stored copy is the rotated one, and without a fresh
-            // replacement it would expire out of the grace window and strand the device.
-            var replayed = await ActiveHouse(live.HouseId, old.UserId, sessions, cancellationToken);
-            var replayRaw = await Rotate(live, old.User, replayed, sessions, tokens, context, environment, cancellationToken);
-            return Results.Ok(Response(old.User, replayed,
-                await sessions.HasHouseAsync(old.UserId, cancellationToken), tokens, replayRaw));
-        }
-        var active = await ActiveHouse(old.HouseId, old.UserId, sessions, cancellationToken);
-        var newRaw = await Rotate(old, old.User, active, sessions, tokens, context, environment, cancellationToken);
-        var hasHome = await sessions.HasHouseAsync(old.UserId, cancellationToken);
-        return Results.Ok(Response(old.User, active, hasHome, tokens, newRaw));
+        var response = await authSessions.RefreshAsync(context, cancellationToken);
+        return response is null ? Results.Unauthorized() : Results.Ok(response);
     }
 
-    private static async Task<IResult> Logout(IAuthSessionRepository sessions, TokenService tokens, HttpContext context,
-        IWebHostEnvironment environment, CancellationToken cancellationToken)
+    private static async Task<IResult> Logout(AuthSessionService authSessions, HttpContext context,
+        CancellationToken cancellationToken)
     {
-        var raw = tokens.ReadRefreshToken(context.Request);
-        if (!string.IsNullOrEmpty(raw))
-        {
-            var token = await sessions.GetRefreshTokenAsync(tokens.Hash(raw), cancellationToken);
-            if (token is { RevokedAtUtc: null })
-            {
-                token.RevokedAtUtc = DateTime.UtcNow;
-                await sessions.SaveChangesAsync(cancellationToken);
-            }
-        }
-        tokens.ClearRefreshCookie(context.Response, IsSecure(environment));
+        await authSessions.SignOutAsync(context, cancellationToken);
         return Results.NoContent();
     }
 
@@ -176,7 +125,7 @@ public static class AuthEndpoints
         }
         var result = await accounts.GetAsync(userId, currentUser.HouseId, cancellationToken);
         return result.Status == AccountOperationStatus.Success
-            ? Results.Ok(ToResponse(result.User!, result.ActiveHouseId, result.HasHouse))
+            ? Results.Ok(CurrentUserResponse.From(result.User!, result.ActiveHouseId, result.HasHouse))
             : Results.Unauthorized();
     }
 
@@ -193,7 +142,7 @@ public static class AuthEndpoints
             return Results.ValidationProblem(result.ValidationErrors!);
         }
         return result.Status == AccountOperationStatus.Success
-            ? Results.Ok(ToResponse(result.User!, result.ActiveHouseId, result.HasHouse))
+            ? Results.Ok(CurrentUserResponse.From(result.User!, result.ActiveHouseId, result.HasHouse))
             : Results.Unauthorized();
     }
 
@@ -212,89 +161,6 @@ public static class AuthEndpoints
         return result.Status == AccountOperationStatus.Success ? Results.NoContent() : Results.Unauthorized();
     }
 
-    /// <summary>
-    /// Decides whether an already-rotated refresh token is a replay of a concurrent refresh rather
-    /// than a stolen token. It counts as a replay only inside the configured grace window and only
-    /// while the line of succession it started is still alive: a thief who turns up later, or after
-    /// the session ended, still trips reuse detection and takes the whole family down.
-    /// </summary>
-    private static async Task<RefreshToken?> Replay(RefreshToken old, DateTime revokedAt, DateTime now,
-        IAuthSessionRepository sessions, AuthOptions auth, CancellationToken cancellationToken)
-    {
-        if (revokedAt.AddSeconds(auth.RefreshReuseGraceSeconds) < now)
-        {
-            return null;
-        }
-        // Follow the chain rather than only the direct replacement: a session that rotates twice
-        // inside the grace window leaves a revoked link in the middle, and a straggler holding the
-        // first token is still the same live session. The hop limit bounds the query count.
-        var next = old.ReplacedByTokenId;
-        for (var hop = 0; hop < MaxReplayChainHops && next is { } tokenId; hop++)
-        {
-            var token = await sessions.GetTokenAsync(tokenId, cancellationToken);
-            if (token is null)
-            {
-                return null;
-            }
-            if (token.RevokedAtUtc is null)
-            {
-                return token.ExpiresAtUtc > now ? token : null;
-            }
-            next = token.ReplacedByTokenId;
-        }
-        return null;
-    }
-
-    // Carry the active home from the rotated token so a session switch survives silent refreshes,
-    // but drop it if that home is no longer one the user belongs to.
-    private static async Task<Guid?> ActiveHouse(Guid? houseId, Guid userId, IAuthSessionRepository sessions,
-        CancellationToken cancellationToken) =>
-        houseId is { } value && await sessions.IsMemberAsync(userId, value, cancellationToken) ? houseId : null;
-
-    // Retires the presented token and issues its successor, linking the two so replay detection
-    // can follow the line of succession later.
-    private static async Task<string> Rotate(RefreshToken current, User user, Guid? activeHouseId,
-        IAuthSessionRepository sessions, TokenService tokens, HttpContext context,
-        IWebHostEnvironment environment, CancellationToken cancellationToken)
-    {
-        var (raw, replacement) = tokens.CreateRefreshToken(user, context, activeHouseId);
-        current.RevokedAtUtc = DateTime.UtcNow;
-        current.ReplacedByTokenId = replacement.Id;
-        sessions.Add(replacement);
-        await sessions.SaveChangesAsync(cancellationToken);
-        tokens.SetRefreshCookie(context.Response, raw, replacement.ExpiresAtUtc, IsSecure(environment));
-        return raw;
-    }
-
-    private static async Task<string> IssueTokens(User user, Guid? activeHouseId, IAuthSessionRepository sessions,
-        TokenService tokens, HttpContext context, IWebHostEnvironment environment, CancellationToken ct)
-    {
-        var (raw, refresh) = tokens.CreateRefreshToken(user, context, activeHouseId);
-        sessions.Add(refresh);
-        await sessions.SaveChangesAsync(ct);
-        tokens.SetRefreshCookie(context.Response, raw, refresh.ExpiresAtUtc, IsSecure(environment));
-        return raw;
-    }
-
-    private static async Task<string?> TryIssueTokens(User user, IAuthSessionRepository sessions,
-        TokenService tokens, HttpContext context, IWebHostEnvironment environment, CancellationToken cancellationToken)
-    {
-        var (raw, refreshToken) = tokens.CreateRefreshToken(user, context, null);
-        sessions.Add(refreshToken);
-        if (!await sessions.TrySaveChangesAsync(cancellationToken))
-        {
-            return null;
-        }
-        tokens.SetRefreshCookie(context.Response, raw, refreshToken.ExpiresAtUtc, IsSecure(environment));
-        return raw;
-    }
-
-    private static AuthResponse Response(User user, Guid? activeHouseId, bool hasHome, TokenService tokens, string refreshToken)
-    {
-        var accessToken = tokens.CreateAccessToken(user, activeHouseId);
-        return new(ToResponse(user, activeHouseId, hasHome), accessToken.Token, accessToken.ExpiresAtUtc, refreshToken);
-    }
-
     // The bridge only ever hands control back to the authorization endpoint on the API's own
     // origin; anything else (a foreign host or a different path) is rejected so the endpoint can
     // never be turned into an open redirect.
@@ -304,21 +170,4 @@ public static class AuthEndpoints
         string.Equals(target.GetLeftPart(UriPartial.Authority),
             issuer.GetLeftPart(UriPartial.Authority), StringComparison.OrdinalIgnoreCase) &&
         string.Equals(target.AbsolutePath, "/connect/authorize", StringComparison.Ordinal);
-
-    private static bool IsSecure(IWebHostEnvironment environment) =>
-        !environment.IsDevelopment() && !environment.IsEnvironment("Test");
-
-    private static IResult Unauthorized(TokenService tokens, HttpContext context, IWebHostEnvironment environment)
-    {
-        tokens.ClearRefreshCookie(context.Response, IsSecure(environment));
-        return Results.Unauthorized();
-    }
-
-    private static CurrentUserResponse ToResponse(User user, Guid? activeHouseId, bool hasHome) => new(
-        user.Id, user.Email, ResolveDisplayName(user.DisplayName, user.Email), user.PreferredLanguage, user.Theme,
-        user.CreatedAtUtc, user.LastLoginAtUtc, user.DefaultHouseId, activeHouseId, hasHome,
-        user.Roles.Select(role => role.Name).ToArray());
-
-    private static string ResolveDisplayName(string? displayName, string email) =>
-        string.IsNullOrWhiteSpace(displayName) ? email.Split('@', 2)[0] : displayName.Trim();
 }

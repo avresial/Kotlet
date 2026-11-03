@@ -1,0 +1,86 @@
+@use '../../../../shared/styles/mobile-page' as mobile;
+// The trigger and popover sit directly in the page's toolbar flex row, which also anchors the popover.
+:host { display: contents; }
+
+h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
+label { color: var(--app-text-soft); font-size: .78rem; font-weight: 750; }
+input:focus { outline: 2px solid #b96554; outline-offset: 1px; }
+button { font: inherit; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+
+.copy-trigger, .copy-field input, .copy-field button {
+  padding: .6rem .75rem;
+  border: 1px solid var(--app-border-strong);
+  border-radius: .55rem;
+  color: var(--app-text);
+  background: var(--app-surface-raised);
+}
+
+.copy-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  color: var(--app-text-soft);
+  font-size: .82rem;
+  font-weight: 750;
+
+  &:hover { background: var(--app-inset); }
+  svg { width: .95rem; height: .95rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+}
+
+.copy-panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + .5rem);
+  right: 0;
+  width: min(21rem, calc(100vw - 2rem));
+  padding: .9rem;
+  box-sizing: border-box;
+  display: grid;
+  gap: .75rem;
+  border: 1px solid var(--app-border);
+  border-radius: .75rem;
+  background: var(--app-surface-raised);
+  box-shadow: 0 .8rem 2rem rgb(65 49 35 / 18%);
+  text-align: left;
+}
+.copy-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.copy-panel-heading h2 { font-size: 1.15rem; }
+.copy-hint { margin: -.4rem 0 0; color: var(--app-text-muted); font-size: .76rem; line-height: 1.45; }
+.copy-error { margin: 0; padding: .5rem .65rem; border: 1px solid var(--app-danger-border); border-radius: .5rem; color: var(--app-danger); background: var(--app-danger-bg); font-size: .76rem; line-height: 1.45; }
+.copy-field {
+  display: grid;
+  gap: .35rem;
+
+  > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; }
+  input { min-width: 0; }
+  button { border-color: #d9a99c; color: #9a3a2a; background: transparent; font-size: .82rem; font-weight: 750; }
+  button:hover:not(:disabled) { background: var(--app-inset); }
+}
+.copy-field + .copy-field { padding-top: .75rem; border-top: 1px dashed var(--app-border); }
+
+.icon-button {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  padding: .38rem;
+  place-items: center;
+  border: 1px solid var(--app-border-strong);
+  border-radius: .45rem;
+  color: var(--app-text-soft);
+  background: transparent;
+  font-size: 1.1rem;
+  line-height: 1;
+
+  &:hover:not(:disabled) { background: var(--app-inset); }
+}
+
+@media (max-width: mobile.$breakpoint) {
+  h2 { font-size: 1.2rem; }
+  .copy-field input, .copy-field button { padding: .45rem .6rem; font-size: .88rem; }
+  // Copying a plan stays a desktop action.
+  .copy-trigger { display: none; }
+  .copy-panel { width: 100%; }
+  .icon-button { width: 1.8rem; height: 1.8rem; padding: .3rem; }
+}

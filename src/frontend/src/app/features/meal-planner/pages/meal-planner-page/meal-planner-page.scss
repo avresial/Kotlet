@@ -14,82 +14,6 @@ header { display: flex; flex-wrap: wrap; align-items: end; justify-content: spac
 h1 { margin: .45rem 0; font: 500 clamp(2.2rem, 5vw, 3.5rem)/1.05 Georgia, serif; }
 h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
 
-.meal-overview {
-  margin-bottom: 1.5rem;
-  padding: 1.25rem;
-  border: 1px solid var(--app-border);
-  border-radius: 1rem;
-  background: var(--app-surface);
-  box-shadow: 0 .7rem 2rem rgb(70 52 31 / 5%);
-}
-.overview-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-.overview-heading h2 { margin-top: .25rem; }
-.overview-legend { display: flex; align-items: center; gap: .4rem; color: var(--app-text-muted); font-size: .72rem; }
-.overview-legend span { width: .75rem; height: .75rem; border-radius: .18rem; background: #9a3a2a; }
-.overview-scroll { overflow-x: auto; padding-bottom: .25rem; }
-.overview-grid {
-  display: grid;
-  grid-template-columns: 6rem repeat(var(--day-count), minmax(4rem, 1fr));
-  gap: .28rem;
-}
-.overview-corner { grid-column: 1; }
-.overview-day {
-  width: 100%;
-  padding: 0 0 .35rem;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  color: var(--app-text-muted);
-  background: transparent;
-  line-height: 1.1;
-
-  span, strong { display: block; }
-  span { margin-bottom: .2rem; font-size: .62rem; text-transform: uppercase; }
-  strong { font-size: .62rem; font-weight: 700; white-space: nowrap; }
-  &:hover, &.is-selected { border-color: #9a3a2a; color: #7d3428; }
-}
-.overview-row-label { display: flex; align-items: center; color: var(--app-text-soft); font-size: .72rem; font-weight: 700; }
-.overview-cell {
-  display: grid;
-  position: relative;
-  width: 100%;
-  min-height: 2.75rem;
-  padding: .3rem .4rem;
-  align-content: center;
-  gap: .08rem;
-  border: 1px solid var(--app-border);
-  border-radius: .3rem;
-  background: var(--app-inset);
-  text-align: left;
-
-  &.is-planned { border-color: #8d392b; color: #fff7f2; background: #9a3a2a; }
-  &:hover { outline: 2px solid #c48273; outline-offset: 1px; }
-  &.is-selected { box-shadow: inset 0 0 0 2px #c48273; }
-  &.is-planned.is-selected { box-shadow: inset 0 0 0 2px var(--app-surface); }
-}
-.overview-cell-preview {
-  display: none;
-  position: absolute;
-  z-index: 5;
-  right: 0;
-  bottom: calc(100% + .35rem);
-  left: 0;
-  padding: .4rem .5rem;
-  border-radius: .4rem;
-  color: var(--app-text);
-  background: var(--app-surface-raised);
-  font-size: .65rem;
-}
-.overview-cell.is-planned:is(:hover, :focus) .overview-cell-preview { display: block; }
-.overview-meal-name {
-  overflow: hidden;
-  font-size: .58rem;
-  font-weight: 650;
-  line-height: 1.15;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.overview-meal-more { font-size: .55rem; font-weight: 800; opacity: .8; }
-
 // Day toolbar: the date the page is showing, plus the copy actions tucked into a popover.
 .plan-toolbar {
   position: relative;
@@ -101,56 +25,13 @@ h2 { margin: 0; font: 500 1.5rem Georgia, serif; }
   label { color: var(--app-text-soft); font-size: .78rem; font-weight: 750; }
 }
 .date-field { display: flex; align-items: center; gap: .5rem; }
-.date-field input, .copy-trigger, .copy-field input, .copy-field button {
+.date-field input {
   padding: .6rem .75rem;
   border: 1px solid var(--app-border-strong);
   border-radius: .55rem;
   color: var(--app-text);
   background: var(--app-surface-raised);
 }
-
-.copy-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  color: var(--app-text-soft);
-  font-size: .82rem;
-  font-weight: 750;
-
-  &:hover { background: var(--app-inset); }
-  svg { width: .95rem; height: .95rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
-}
-
-.copy-panel {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + .5rem);
-  right: 0;
-  width: min(21rem, calc(100vw - 2rem));
-  padding: .9rem;
-  box-sizing: border-box;
-  display: grid;
-  gap: .75rem;
-  border: 1px solid var(--app-border);
-  border-radius: .75rem;
-  background: var(--app-surface-raised);
-  box-shadow: 0 .8rem 2rem rgb(65 49 35 / 18%);
-  text-align: left;
-}
-.copy-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.copy-panel-heading h2 { font-size: 1.15rem; }
-.copy-hint { margin: -.4rem 0 0; color: var(--app-text-muted); font-size: .76rem; line-height: 1.45; }
-.copy-error { margin: 0; padding: .5rem .65rem; border: 1px solid var(--app-danger-border); border-radius: .5rem; color: var(--app-danger); background: var(--app-danger-bg); font-size: .76rem; line-height: 1.45; }
-.copy-field {
-  display: grid;
-  gap: .35rem;
-
-  > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem; }
-  input { min-width: 0; }
-  button { border-color: #d9a99c; color: #9a3a2a; background: transparent; font-size: .82rem; font-weight: 750; }
-  button:hover:not(:disabled) { background: var(--app-inset); }
-}
-.copy-field + .copy-field { padding-top: .75rem; border-top: 1px dashed var(--app-border); }
 
 input:focus, select:focus { outline: 2px solid #b96554; outline-offset: 1px; }
 button, select { font: inherit; }
@@ -252,11 +133,6 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   outline-offset: 4px;
 }
 .slot-section-compact.cdk-drop-list-receiving { outline: 2px dashed #c58b53; outline-offset: 2px; }
-.overview-day.cdk-drop-list-receiving {
-  border-color: #9a3a2a;
-  color: #c47256;
-  background: var(--app-inset);
-}
 
 .icon-button {
   display: inline-grid;
@@ -278,50 +154,6 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
 }
 
 .meal-item-details { margin: .85rem 0 0 1.65rem; }
-
-// Positioned so the visually hidden header label resolves inside the scroller rather than against
-// the page, which otherwise leaves the document a few pixels wider than the viewport.
-.portion-table-wrap { position: relative; overflow-x: auto; }
-.portion-table { width: 100%; border-collapse: collapse; font-size: .76rem; }
-.portion-table th, .portion-table td { padding: .35rem .3rem; border-bottom: 1px solid var(--app-border); text-align: left; white-space: nowrap; }
-.portion-table thead th { color: var(--app-text-muted); font-size: .65rem; text-transform: uppercase; }
-.portion-table tbody th { font-weight: 650; }
-.portion-table tbody th.is-me { color: #c47256; }
-.portion-table input { width: 4.25rem; box-sizing: border-box; padding: .3rem .35rem; border: 1px solid var(--app-border-strong); border-radius: .35rem; color: var(--app-text); background: var(--app-input); font: inherit; font-variant-numeric: tabular-nums; }
-.portion-table input.is-invalid { border-color: var(--app-danger-border); box-shadow: 0 0 0 1px var(--app-danger-border); }
-.portion-table td span { margin-left: .2rem; color: var(--app-text-muted); }
-.portion-table td:last-child { width: 1%; }
-.portion-errors { margin: .4rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .2rem; }
-.portion-errors li { color: var(--app-danger); font-size: .72rem; }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.people-row { display: flex; min-height: 2rem; align-items: center; gap: .4rem; }
-.row-label { margin-right: .25rem; color: var(--app-text-muted); font-size: .7rem; font-weight: 750; text-transform: uppercase; }
-.chips { display: flex; flex: 0 1 auto; flex-wrap: wrap; gap: .35rem; margin: 0; padding: 0; list-style: none; }
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: .3rem;
-  padding: .2rem .22rem .2rem .6rem;
-  border: 1px solid var(--app-border-strong);
-  border-radius: 99rem;
-  color: var(--app-text);
-  background: var(--app-inset);
-  font-size: .76rem;
-}
-.chip.is-me { border-color: #d9a99c; color: #c47256; background: var(--app-inset-strong); font-weight: 650; }
-.chip.is-guest { border-style: dashed; border-color: var(--app-border-strong); color: var(--app-text-muted); background: var(--app-inset); font-style: italic; }
-.chip-remove { width: 1.2rem; height: 1.2rem; padding: 0; border: 0; border-radius: 50%; color: inherit; background: transparent; line-height: 1; }
-.chip-remove:hover:not(:disabled) { background: rgb(0 0 0 / 8%); }
-
-.person-picker {
-  position: relative;
-  width: 2rem;
-  height: 2rem;
-
-  > span { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; gap: .05rem; border: 1px dashed var(--app-border-strong); border-radius: 99rem; color: #c47256; font-size: .8rem; }
-  svg { width: .9rem; height: .9rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
-  select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
-}
 
 .meal-summary {
   display: grid;
@@ -418,12 +250,8 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   .plan-toolbar { flex: 0 0 auto; }
   .date-field label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .date-field input { min-width: 0; }
-  .date-field input, .copy-field input, .copy-field button { padding: .45rem .6rem; font-size: .88rem; }
-  .copy-trigger { display: none; }
-  .copy-panel { width: 100%; }
+  .date-field input { padding: .45rem .6rem; font-size: .88rem; }
 
-  .overview-heading { align-items: start; flex-direction: column; }
-  .meal-overview { display: none; }
   .planner-body { gap: .5rem; }
   .slots { gap: .35rem; }
   .receipt-rail { gap: .35rem; }
@@ -443,8 +271,6 @@ button:disabled, select:disabled { opacity: .5; cursor: default; }
   .item-title { width: auto; min-width: 0; }
   .icon-button { width: 1.8rem; height: 1.8rem; padding: .3rem; }
   .meal-item-details { margin: .55rem 0 0; }
-  .people-row { align-items: flex-start; flex-wrap: wrap; gap: .3rem; min-height: 0; }
-  .row-label { width: 100%; }
   .meal-summary { margin-top: .6rem; padding-top: .5rem; }
   .meal-summary > div { padding: 0 .55rem; }
   .meal-summary dt { min-height: 2em; }

@@ -37,6 +37,35 @@ public sealed class MeasurementMappingService
             : new(quantity * mapping.Factor, ingredient.MeasurementUnit);
     }
 
+    /// <summary>
+    /// Normalizes a free-form unit as written in imported recipes: accepts plural and long-form
+    /// kitchen units and converts kilograms and litres before the regular mapping.
+    /// </summary>
+    public NormalizedMeasurement? NormalizeWithAliases(decimal quantity, string rawUnit, Ingredient ingredient)
+    {
+        var unit = CanonicalUnit(rawUnit);
+        if (unit == "kg")
+        {
+            return Normalize(quantity * 1000, "g", ingredient);
+        }
+        if (unit == "l")
+        {
+            return Normalize(quantity * 1000, "ml", ingredient);
+        }
+        return Normalize(quantity, unit, ingredient);
+    }
+
+    public static string CanonicalUnit(string unit) => unit.Trim().ToLowerInvariant() switch
+    {
+        "cups" => "cup",
+        "tablespoon" or "tablespoons" => "tbsp",
+        "teaspoon" or "teaspoons" => "tsp",
+        "pieces" => "piece",
+        var value => value
+    };
+
+    public static bool IsVolumeUnit(string unit) => unit is "ml" or "l" or "cup" or "tbsp" or "tsp";
+
     public DisplayMeasurement ToDisplay(decimal normalizedQuantity, string normalizedUnit, Ingredient ingredient)
     {
         if (ingredient.IsCountable && ingredient.MeasurementUnitsPerPiece is > 0)

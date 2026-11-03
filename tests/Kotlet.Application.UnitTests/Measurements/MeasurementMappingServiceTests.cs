@@ -21,6 +21,30 @@ public sealed class MeasurementMappingServiceTests
         Assert.Equal("g", result.Unit);
     }
 
+    [Theory]
+    [InlineData(1.5, "kg", 1500)]
+    [InlineData(2, " Tablespoons ", 30)]
+    [InlineData(3, "teaspoon", 15)]
+    [InlineData(2, "cups", 500)]
+    public void NormalizeWithAliases_AcceptsImportedUnitSpellings(decimal quantity, string unit, decimal expected)
+    {
+        var result = _service.NormalizeWithAliases(quantity, unit, Ingredient());
+
+        Assert.NotNull(result);
+        Assert.Equal(expected, result.Quantity);
+        Assert.Equal("g", result.Unit);
+    }
+
+    [Theory]
+    [InlineData("l", true)]
+    [InlineData("tsp", true)]
+    [InlineData("g", false)]
+    [InlineData("piece", false)]
+    public void IsVolumeUnit_RecognizesCanonicalVolumeUnits(string unit, bool expected)
+    {
+        Assert.Equal(expected, MeasurementMappingService.IsVolumeUnit(unit));
+    }
+
     [Fact]
     public void ToDisplay_ChoosesLargestUnitWithWholeQuantity()
     {

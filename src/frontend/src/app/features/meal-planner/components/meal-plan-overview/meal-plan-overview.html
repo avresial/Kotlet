@@ -1,0 +1,52 @@
+<section class="meal-overview" aria-labelledby="meal-overview-title">
+  <div class="overview-heading">
+    <div>
+      <p class="eyebrow">{{ label() }}</p>
+      <h2 id="meal-overview-title">{{ 'meal.plannedMeals' | t }}</h2>
+    </div>
+    <div class="overview-legend"><span aria-hidden="true"></span> {{ 'meal.mealPlanned' | t }}</div>
+  </div>
+  <div class="overview-scroll">
+    <div class="overview-grid" [style.--day-count]="days().length">
+      <div class="overview-corner" aria-hidden="true"></div>
+      @for (day of days(); track day.date) {
+        <button
+          type="button"
+          class="overview-day"
+          cdkDropList
+          [cdkDropListData]="day.date"
+          (cdkDropListDropped)="dropOnDay($event, day.date)"
+          [class.is-selected]="selectedDate() === day.date"
+          [attr.aria-label]="('meal.openPlanFor' | t) + ' ' + dayNumber(day.date)"
+          (click)="daySelected.emit(day.date)"
+        >
+          <span>{{ dayName(day.date) }}</span>
+          <strong>{{ dayNumber(day.date) }}</strong>
+        </button>
+      }
+      @for (slot of slots(); track slot) {
+        <div class="overview-row-label">{{ slotLabels()[slot] }}</div>
+        @for (day of days(); track day.date) {
+          <button
+            type="button"
+            class="overview-cell"
+            [class.is-planned]="isPlanned(day, slot)"
+            [class.is-selected]="selectedDate() === day.date"
+            [attr.aria-label]="slotLabels()[slot] + ' ' + ((isPlanned(day, slot) ? 'meal.plannedFor' : 'meal.notPlannedFor') | t) + ' ' + dayNumber(day.date) + (mealNames(day, slot).length ? ': ' + mealNames(day, slot).join(', ') : '')"
+            (click)="daySelected.emit(day.date)"
+          >
+            @for (name of mealNames(day, slot).slice(0, 2); track $index) {
+              <span class="overview-meal-name">{{ name }}</span>
+            }
+            @if (mealNames(day, slot).length > 2) {
+              <span class="overview-meal-more">+{{ mealNames(day, slot).length - 2 }}</span>
+            }
+            @if (mealNames(day, slot).length) {
+              <span class="overview-cell-preview" aria-hidden="true">{{ mealNames(day, slot).join(' · ') }}</span>
+            }
+          </button>
+        }
+      }
+    </div>
+  </div>
+</section>

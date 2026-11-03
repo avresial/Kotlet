@@ -32,7 +32,7 @@ public sealed class RecipeImportServiceTests
     public async Task AcceptAsync_RejectsJobThatIsNotReady()
     {
         var jobs = new FakeJobs { Job = NewJob(RecipeImportJobStatus.Extracting) };
-        var result = await CreateService(jobs, new FakeSignal()).AcceptAsync(
+        var result = await CreateAcceptanceService(jobs).AcceptAsync(
             jobs.Job.Id, jobs.Job.HouseId, jobs.Job.UserId,
             new RecipeImportDraft("Soup", 1, "Cook.", [], [], []), default);
 
@@ -43,7 +43,7 @@ public sealed class RecipeImportServiceTests
     public async Task AcceptAsync_HidesAnotherUsersJob()
     {
         var jobs = new FakeJobs { Job = NewJob(RecipeImportJobStatus.ReadyForReview) };
-        var result = await CreateService(jobs, new FakeSignal()).AcceptAsync(
+        var result = await CreateAcceptanceService(jobs).AcceptAsync(
             jobs.Job.Id, jobs.Job.HouseId, Guid.NewGuid(),
             new RecipeImportDraft("Soup", 1, "Cook.", [], [], []), default);
 
@@ -55,8 +55,8 @@ public sealed class RecipeImportServiceTests
     {
         var jobs = new FakeJobs { Job = NewJob(RecipeImportJobStatus.ReadyForReview) };
         var recipes = new FakeRecipes();
-        var service = new RecipeImportService(
-            jobs, recipes, null!, new FakeIngredients(), null!, new MeasurementMappingService(), null!, null!, new FakeSignal());
+        var service = new RecipeImportAcceptanceService(
+            jobs, recipes, new FakeIngredients(), new MeasurementMappingService());
         var draft = new RecipeImportDraft("Soup", 2, "Cook.", [],
             [new("Tomato", 400, "g", null, null, null, IsProposedNew: true)], []);
 
@@ -67,7 +67,7 @@ public sealed class RecipeImportServiceTests
         var association = Assert.Single(recipe.Sources);
         Assert.Equal(recipe.Id, association.RecipeId);
         Assert.Equal(SourceType.AiAssisted, association.Source.Type);
-        Assert.Equal(RecipeImportService.AiSourceProvider, association.Source.Provider);
+        Assert.Equal(RecipeImportAcceptanceService.AiSourceProvider, association.Source.Provider);
         Assert.Equal("https://youtu.be/test", association.Source.Url);
         Assert.True((DateTimeOffset.UtcNow - association.Source.RetrievedAtUtc).Duration() < TimeSpan.FromMinutes(1));
     }
@@ -95,7 +95,10 @@ public sealed class RecipeImportServiceTests
     }
 
     private static RecipeImportService CreateService(FakeJobs jobs, IRecipeImportSignal signal) =>
-        new(jobs, null!, null!, null!, null!, null!, null!, null!, signal);
+        new(jobs, signal);
+
+    private static RecipeImportAcceptanceService CreateAcceptanceService(FakeJobs jobs) =>
+        new(jobs, new FakeRecipes(), new FakeIngredients(), new MeasurementMappingService());
 
     private static RecipeImportJob NewJob(RecipeImportJobStatus status) => new()
     {

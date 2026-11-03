@@ -1,10 +1,9 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, OnInit, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, finalize, Observable, of, switchMap } from 'rxjs';
 import { AuthService } from '../../../../core/auth/auth.service';
-import { CurrentUser } from '../../../../core/auth/auth.models';
 import { getApiError } from '../../../../core/http/api-error';
 import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 import { TranslationService } from '../../../../core/i18n/translation.service';
@@ -16,85 +15,32 @@ import { RecipeService } from '../../../recipes/services/recipe.service';
 import { RecipePicker } from '../../../recipes/components/recipe-picker/recipe-picker';
 import { PreparedMeal } from '../../../prepared-meals/prepared-meal.models';
 import { PreparedMealService } from '../../../prepared-meals/prepared-meal.service';
-import { DailyMealPlan, HouseMember, MealParticipant, MealPlanItem, MealPlanItemType, MealPlanOverviewDay, MealSlot } from '../../models/meal-planner.models';
+import { MealItemPeople, ParticipantPortionChange } from '../../components/meal-item-people/meal-item-people';
+import { MealPlanCopyPanel } from '../../components/meal-plan-copy-panel/meal-plan-copy-panel';
+import { MealDroppedOnDay, MealPlanOverview } from '../../components/meal-plan-overview/meal-plan-overview';
+import { DailyMealPlan, HouseMember, MealPlanItem, MealPlanItemType, MealPlanOverviewDay, MealSlot } from '../../models/meal-planner.models';
 import { MealPlannerService } from '../../services/meal-planner.service';
 import { ShoppingListIntegrationService } from '../../services/shopping-list-integration.service';
+import { cachePlan, mealPlannerCacheKey, readCachedPlan } from '../../meal-plan-cache';
+import { addDays, isValidDateString, todayString, weekStart } from '../../meal-plan-dates';
 import {
   allocateCaloriesByPerson,
   directIngredientQuantity,
-  isPortionPercentInRange,
   mealCaloriesPerServing,
-  MAX_PORTION_PERCENT,
-  MIN_PORTION_PERCENT,
-  normalizePortionPercent,
   recipePricePerServing,
-  scaleRecipeQuantity,
 } from '../../meal-planner-calculations';
-
-/** The three editable numeric columns of the portion table, all of which drive a participant's portion percentage. */
-type ParticipantField = 'calories' | 'quantity' | 'portion';
-
-const mealPlanCacheVersion = 1;
-const mealPlanCacheStoragePrefix = 'kotlet.mealPlanner';
-const mealPlanSlots: MealSlot[] = ['breakfast', 'second-breakfast', 'dinner', 'snack', 'supper'];
-
-interface MealPlanCacheRecord {
-  version: number;
-  userKey: string;
-  weekStart: string;
-  plans: Record<string, DailyMealPlan>;
-}
-
-export function mealPlannerCacheKey(user: Pick<CurrentUser, 'id' | 'activeHouseId'> | null): string | null {
-  return user?.activeHouseId ? `${user.id}:${user.activeHouseId}` : null;
-}
-
-export function mealPlannerCacheStorageKey(cacheKey: string): string {
-  return `${mealPlanCacheStoragePrefix}:${cacheKey}`;
-}
-
-function isDailyMealPlan(value: unknown): value is DailyMealPlan {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<DailyMealPlan>;
-  return typeof candidate.date === 'string'
-    && !!candidate.meals
-    && mealPlanSlots.every((slot) => Array.isArray(candidate.meals?.[slot]));
-}
-
-function isMealPlanCacheRecord(value: unknown): value is MealPlanCacheRecord {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<MealPlanCacheRecord>;
-  const week = candidate.weekStart;
-  return candidate.version === mealPlanCacheVersion
-    && typeof candidate.userKey === 'string'
-    && typeof week === 'string'
-    && isValidDateString(week)
-    && !!candidate.plans
-    && typeof candidate.plans === 'object';
-}
-
-export function weekStart(date: string): string {
-  const value = new Date(`${date}T00:00:00`);
-  value.setDate(value.getDate() - (value.getDay() + 6) % 7);
-  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
-}
-
-export function isValidDateString(value: string | null): value is string {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
-}
 
 @Component({
   selector: 'app-meal-planner-page',
-  imports: [FormsModule, RouterLink, IngredientPicker, RecipePicker, TranslatePipe, CdkDropListGroup, CdkDropList, CdkDrag, CdkDragHandle],
+  imports: [
+    FormsModule, RouterLink, IngredientPicker, RecipePicker, TranslatePipe, CdkDropListGroup, CdkDropList, CdkDrag, CdkDragHandle,
+    MealPlanOverview, MealPlanCopyPanel, MealItemPeople,
+  ],
   templateUrl: './meal-planner-page.html',
   styleUrl: './meal-planner-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MealPlannerPage implements OnInit {
-  readonly weekStart = weekStart;
   private readonly auth = inject(AuthService, { optional: true });
   private readonly service = inject(MealPlannerService);
   private readonly recipeService = inject(RecipeService);
@@ -106,7 +52,7 @@ export class MealPlannerPage implements OnInit {
   private readonly router = inject(Router);
   private readonly initialDate = isValidDateString(this.route.snapshot.queryParamMap.get('date'))
     ? this.route.snapshot.queryParamMap.get('date')!
-    : this.todayString();
+    : todayString();
   private lastValidDate = this.initialDate;
 
   readonly slots: MealSlot[] = ['breakfast', 'second-breakfast', 'dinner', 'snack', 'supper'];
@@ -127,30 +73,16 @@ export class MealPlannerPage implements OnInit {
   /** Optional slots the user opened by hand; cleared whenever the shown day changes. */
   private readonly openedSlots = signal<MealSlot[]>([]);
 
-  private readonly overviewDays = 7;
+  readonly overviewDays = 7;
   readonly selectedDate = signal(this.initialDate);
   readonly overviewFrom = signal(weekStart(this.initialDate));
   readonly overview = signal<MealPlanOverviewDay[]>([]);
   /** Grid rows: an optional slot only earns a row when a day in the shown range plans something in it. */
   readonly overviewSlots = computed(() => this.slots.filter((slot) =>
     !this.optionalSlots.includes(slot) || this.overview().some((day) => day.plannedSlots.includes(slot))));
-  readonly overviewLabel = computed(() => {
-    const from = this.overviewFrom();
-    const to = this.addDays(from, this.overviewDays - 1);
-    return `${this.dayNumber(from)} – ${this.dayNumber(to)}`;
-  });
   readonly plan = signal<DailyMealPlan | null>(null);
   readonly isLoadingPlan = signal(false);
   readonly planError = signal<string | null>(null);
-  readonly copyTargetDate = signal(this.addDays(this.initialDate, 1));
-  readonly isCopying = signal(false);
-  readonly copyWeekTargetDate = signal(this.addDays(weekStart(this.initialDate), 7));
-  /** Copying is a rare, destructive-feeling action, so it lives behind a popover instead of the day toolbar. */
-  readonly isCopyPanelOpen = signal(false);
-  /** Copy failures are reported inside the popover so the message stays next to the controls that caused it. */
-  readonly copyError = signal<string | null>(null);
-  private readonly copyTrigger = viewChild<ElementRef<HTMLButtonElement>>('copyTrigger');
-  private readonly copyDayInput = viewChild<ElementRef<HTMLInputElement>>('copyDayInput');
 
   readonly recipes = signal<RecipeSummary[]>([]);
   readonly recipeDetails = signal<Record<string, RecipeDetail>>({});
@@ -170,8 +102,6 @@ export class MealPlannerPage implements OnInit {
   readonly movingId = signal<string | null>(null);
   readonly composer = signal<Record<MealSlot, MealPlanItemType | null>>({ breakfast: null, 'second-breakfast': null, dinner: null, snack: null, supper: null });
   readonly shoppingItemState = signal<Record<string, 'adding' | 'added'>>({});
-  /** Inline validation messages for out-of-range portion inputs, keyed by item/participant/field. */
-  readonly fieldErrors = signal<Record<string, string>>({});
   private planRequestId = 0;
 
   readonly dayTotal = computed(() => this.allItems().reduce((total, item) => total + (this.itemCost(item) ?? 0), 0));
@@ -190,35 +120,6 @@ export class MealPlannerPage implements OnInit {
       this.translations.translate('meal.unassignedServings'),
     )
   );
-
-  constructor() {
-    // Move focus into the copy popover as soon as it is rendered.
-    effect(() => this.copyDayInput()?.nativeElement.focus());
-  }
-
-  toggleCopyPanel(event: MouseEvent): void {
-    event.stopPropagation();
-    this.copyError.set(null);
-    this.isCopyPanelOpen.update((isOpen) => !isOpen);
-  }
-
-  /** Closes the popover, returning focus to its trigger when the user dismissed it deliberately. */
-  closeCopyPanel(restoreFocus = false): void {
-    if (!this.isCopyPanelOpen()) return;
-    this.isCopyPanelOpen.set(false);
-    this.copyError.set(null);
-    if (restoreFocus) this.copyTrigger()?.nativeElement.focus();
-  }
-
-  @HostListener('document:click')
-  closeCopyPanelFromDocument(): void {
-    this.closeCopyPanel();
-  }
-
-  @HostListener('document:keydown.escape')
-  closeCopyPanelFromEscape(): void {
-    this.closeCopyPanel(true);
-  }
 
   ngOnInit(): void {
     this.loadOptions();
@@ -252,22 +153,6 @@ export class MealPlannerPage implements OnInit {
 
   selectOverviewDay(date: string): void {
     this.navigateToDate(date);
-  }
-
-  isPlanned(day: MealPlanOverviewDay, slot: MealSlot): boolean {
-    return day.plannedSlots.includes(slot);
-  }
-
-  mealNames(day: MealPlanOverviewDay, slot: MealSlot): string[] {
-    return day.plannedMeals?.[slot] ?? [];
-  }
-
-  dayName(date: string): string {
-    return new Intl.DateTimeFormat(this.translations.language(), { weekday: 'short' }).format(this.localDate(date));
-  }
-
-  dayNumber(date: string): string {
-    return new Intl.DateTimeFormat(this.translations.language(), { day: 'numeric', month: 'short' }).format(this.localDate(date));
   }
 
   private loadMembers(): void {
@@ -306,7 +191,7 @@ export class MealPlannerPage implements OnInit {
     if (!date) return;
     const requestId = ++this.planRequestId;
     const cacheKey = mealPlannerCacheKey(this.auth?.currentUser() ?? null);
-    const cachedPlan = this.readCachedPlan(cacheKey, date);
+    const cachedPlan = readCachedPlan(cacheKey, date);
     const hasCachedPlan = cachedPlan !== null;
 
     this.isLoadingPlan.set(!hasCachedPlan);
@@ -322,7 +207,7 @@ export class MealPlannerPage implements OnInit {
         next: (plan) => {
           if (requestId !== this.planRequestId || this.selectedDate() !== date) return;
           this.applyFreshPlan(plan);
-          this.cachePlan(cacheKey, date, plan);
+          cachePlan(cacheKey, date, plan);
         },
         error: (err) => {
           if (requestId === this.planRequestId) {
@@ -338,33 +223,11 @@ export class MealPlannerPage implements OnInit {
     else this.selectedDate.set(this.lastValidDate);
   }
 
-  copyDay(): void {
-    const target = this.copyTargetDate();
-    if (!target || target === this.selectedDate() || this.isCopying()) return;
-    this.isCopying.set(true); this.copyError.set(null);
-    this.service.copyDay(this.selectedDate(), target).pipe(finalize(() => this.isCopying.set(false))).subscribe({
-      next: () => {
-        this.closeCopyPanel();
-        this.navigateToDate(target);
-        this.overviewFrom.set(weekStart(target)); this.loadOverview();
-      },
-      error: (error) => this.copyError.set(getApiError(error, this.translations.translate('meal.copyDayError'))),
-    });
-  }
-
-  copyWeek(): void {
-    const source = weekStart(this.selectedDate());
-    const target = weekStart(this.copyWeekTargetDate());
-    if (source === target || this.isCopying()) return;
-    this.isCopying.set(true); this.copyError.set(null);
-    this.service.copyWeek(source, target).pipe(finalize(() => this.isCopying.set(false))).subscribe({
-      next: () => {
-        this.closeCopyPanel();
-        this.navigateToDate(target);
-        this.overviewFrom.set(target); this.loadOverview();
-      },
-      error: (error) => this.copyError.set(getApiError(error, this.translations.translate('meal.copyWeekError'))),
-    });
+  /** After a copy, show the target day and the week around it. */
+  onPlanCopied(target: string): void {
+    this.navigateToDate(target);
+    this.overviewFrom.set(weekStart(target));
+    this.loadOverview();
   }
 
   navigateToDate(date: string, replaceUrl = false): void {
@@ -381,27 +244,20 @@ export class MealPlannerPage implements OnInit {
     this.selectedDate.set(date);
     this.lastValidDate = date;
     this.openedSlots.set([]);
-    this.updateCopyTargets();
     this.centerOverviewOnSelected();
     this.loadPlan();
   }
 
-  private updateCopyTargets(): void {
-    const selected = this.selectedDate();
-    this.copyTargetDate.set(this.addDays(selected, 1));
-    this.copyWeekTargetDate.set(this.addDays(weekStart(selected), 7));
-  }
-
   goToPreviousDay(): void {
-    this.navigateToDate(this.addDays(this.selectedDate(), -1));
+    this.navigateToDate(addDays(this.selectedDate(), -1));
   }
 
   goToNextDay(): void {
-    this.navigateToDate(this.addDays(this.selectedDate(), 1));
+    this.navigateToDate(addDays(this.selectedDate(), 1));
   }
 
   goToToday(): void {
-    this.navigateToDate(this.todayString());
+    this.navigateToDate(todayString());
   }
 
   itemsForSlot(slot: MealSlot): MealPlanItem[] {
@@ -478,9 +334,8 @@ export class MealPlannerPage implements OnInit {
   }
 
   /** Drop onto a day in the week grid: move the meal to that day, keeping its slot. */
-  dropOnDay(event: CdkDragDrop<string>, targetDate: string): void {
-    const item = event.item.data as MealPlanItem;
-    this.moveItem(item, targetDate, item.slot);
+  dropOnDay({ item, date }: MealDroppedOnDay): void {
+    this.moveItem(item, date, item.slot);
   }
 
   /**
@@ -539,38 +394,8 @@ export class MealPlannerPage implements OnInit {
     return this.addingSlot() === `${prefix}-${slot}`;
   }
 
-  /** House members not yet assigned to the given meal, for the "add a person" picker. */
-  availableMembers(item: MealPlanItem): HouseMember[] {
-    const assigned = new Set(item.participants.map((p) => p.userId));
-    return this.members().filter((m) => !assigned.has(m.userId));
-  }
-
-  /** True when every house member is already assigned to the meal. */
-  isHouseFull(item: MealPlanItem): boolean {
-    return this.members().length > 0 && this.availableMembers(item).length === 0;
-  }
-
-  addParticipant(item: MealPlanItem, userId: string): void {
-    if (!userId || this.busyItemId()) return;
-    this.updateParticipants(item, [...item.participants.map((p) => p.userId), userId]);
-  }
-
-  removeParticipant(item: MealPlanItem, userId: string): void {
+  updateParticipants(item: MealPlanItem, userIds: string[]): void {
     if (this.busyItemId()) return;
-    this.updateParticipants(item, item.participants.map((p) => p.userId).filter((id) => id !== userId));
-  }
-
-  addHouse(item: MealPlanItem): void {
-    if (this.busyItemId() || this.isHouseFull(item)) return;
-    this.updateParticipants(item, this.members().map((m) => m.userId));
-  }
-
-  clearParticipants(item: MealPlanItem): void {
-    if (this.busyItemId() || item.participants.length === 0) return;
-    this.updateParticipants(item, []);
-  }
-
-  private updateParticipants(item: MealPlanItem, userIds: string[]): void {
     this.busyItemId.set(item.id);
     this.service.setParticipants(item.id, userIds).pipe(
       finalize(() => this.busyItemId.set(null))
@@ -580,60 +405,10 @@ export class MealPlannerPage implements OnInit {
     });
   }
 
-  /**
-   * Validates a portion input as the user types, surfacing an inline message the moment the value
-   * falls outside the allowed range. Persisting is left to the commit handler on blur/change.
-   */
-  validateParticipantField(item: MealPlanItem, participant: MealParticipant, field: ParticipantField, rawValue: string): void {
-    const key = this.participantFieldKey(item, participant.userId, field);
-    if (rawValue.trim() === '') { this.clearFieldError(key); return; }
-
-    const range = this.participantFieldRange(item, field);
-    const percent = this.participantFieldToPercent(item, field, Number(rawValue));
-    if (percent !== null && isPortionPercentInRange(percent)) {
-      this.clearFieldError(key);
-    } else {
-      this.fieldErrors.update((errors) => ({ ...errors, [key]: this.rangeMessage(item, field, range) }));
-    }
-  }
-
-  /**
-   * Commits a portion input on blur/change: the value is clamped into the allowed range, the field is
-   * reset to the clamped display value so the view can never show an out-of-range number, and the
-   * result is persisted. This is the single source of truth for the three interlinked columns.
-   */
-  commitParticipantField(item: MealPlanItem, participant: MealParticipant, field: ParticipantField, input: HTMLInputElement): void {
-    this.clearFieldError(this.participantFieldKey(item, participant.userId, field));
-
-    const percent = this.participantFieldToPercent(item, field, Number(input.value));
-    if (input.value.trim() === '' || percent === null || Number.isNaN(percent)) {
-      // Empty or unusable input: revert the field to the participant's current portion.
-      input.value = this.participantFieldDisplay(item, field, participant.portionPercent);
-      return;
-    }
-
-    const portionPercent = normalizePortionPercent(percent);
-    input.value = this.participantFieldDisplay(item, field, portionPercent);
-    this.saveParticipantPortion(item, participant, portionPercent);
-  }
-
-  fieldError(item: MealPlanItem, participant: MealParticipant, field: ParticipantField): string | null {
-    return this.fieldErrors()[this.participantFieldKey(item, participant.userId, field)] ?? null;
-  }
-
-  /** Distinct validation messages currently active for a meal, rendered together beneath its portion table. */
-  itemFieldErrors(item: MealPlanItem): string[] {
-    const prefix = `${item.id}:`;
-    const messages = Object.entries(this.fieldErrors())
-      .filter(([key]) => key.startsWith(prefix))
-      .map(([, message]) => message);
-    return [...new Set(messages)];
-  }
-
-  private saveParticipantPortion(item: MealPlanItem, participant: MealParticipant, portionPercent: number): void {
-    if (this.busyItemId() || portionPercent === participant.portionPercent) return;
+  saveParticipantPortion(item: MealPlanItem, { userId, portionPercent }: ParticipantPortionChange): void {
+    if (this.busyItemId()) return;
     this.busyItemId.set(item.id);
-    this.service.setParticipantPortion(item.id, participant.userId, portionPercent).pipe(
+    this.service.setParticipantPortion(item.id, userId, portionPercent).pipe(
       finalize(() => this.busyItemId.set(null))
     ).subscribe({
       next: (updated) => this.plan.update((p) => p ? this.replaceItem(p, updated) : p),
@@ -641,121 +416,8 @@ export class MealPlannerPage implements OnInit {
     });
   }
 
-  /** Converts a field's entered value into the portion percentage it represents, or null when it can't be resolved. */
-  private participantFieldToPercent(item: MealPlanItem, field: ParticipantField, value: number): number | null {
-    if (Number.isNaN(value)) return null;
-    switch (field) {
-      case 'portion':
-        return value;
-      case 'calories': {
-        const caloriesPerServing = this.caloriesPerServing(item);
-        return caloriesPerServing ? value / caloriesPerServing * 100 : null;
-      }
-      case 'quantity': {
-        const ingredient = this.ingredientFor(item);
-        if (!ingredient) return null;
-        const regularQuantity = ingredient.isCountable ? 1 : directIngredientQuantity(ingredient, 1);
-        return regularQuantity ? value / regularQuantity * 100 : null;
-      }
-    }
-  }
-
-  /** Renders the display value a field should show for a given portion percentage. */
-  private participantFieldDisplay(item: MealPlanItem, field: ParticipantField, portionPercent: number): string {
-    switch (field) {
-      case 'portion':
-        return String(portionPercent);
-      case 'calories':
-        return ((this.caloriesPerServing(item) ?? 0) * portionPercent / 100).toFixed(0);
-      case 'quantity':
-        return String(this.participantQuantityForPercent(item, portionPercent));
-    }
-  }
-
-  /** The valid input range for a field, expressed in that field's own units. */
-  private participantFieldRange(item: MealPlanItem, field: ParticipantField): { min: number; max: number } {
-    switch (field) {
-      case 'portion':
-        return { min: MIN_PORTION_PERCENT, max: MAX_PORTION_PERCENT };
-      case 'calories': {
-        const caloriesPerServing = this.caloriesPerServing(item) ?? 0;
-        return { min: caloriesPerServing * MIN_PORTION_PERCENT / 100, max: caloriesPerServing * MAX_PORTION_PERCENT / 100 };
-      }
-      case 'quantity':
-        return {
-          min: this.participantQuantityForPercent(item, MIN_PORTION_PERCENT),
-          max: this.participantQuantityForPercent(item, MAX_PORTION_PERCENT),
-        };
-    }
-  }
-
-  private rangeMessage(item: MealPlanItem, field: ParticipantField, range: { min: number; max: number }): string {
-    const unit = field === 'calories' ? 'kcal'
-      : field === 'portion' ? '%' : this.participantQuantityUnit(item);
-    return this.translations.translate('meal.rangeError')
-      .replace('{min}', this.formatRangeBound(field, range.min))
-      .replace('{max}', this.formatRangeBound(field, range.max))
-      .replace('{unit}', unit);
-  }
-
-  private formatRangeBound(field: ParticipantField, value: number): string {
-    return field === 'quantity' ? String(Math.round(value * 100) / 100) : String(Math.round(value));
-  }
-
-  private participantFieldKey(item: MealPlanItem, userId: string, field: ParticipantField): string {
-    return `${item.id}:${userId}:${field}`;
-  }
-
-  private clearFieldError(key: string): void {
-    if (!(key in this.fieldErrors())) return;
-    this.fieldErrors.update((errors) => {
-      const next = { ...errors };
-      delete next[key];
-      return next;
-    });
-  }
-
-  participantCalories(item: MealPlanItem, participant: MealParticipant): number {
-    return (this.caloriesPerServing(item) ?? 0) * participant.portionPercent / 100;
-  }
-
-  participantQuantity(item: MealPlanItem, participant: MealParticipant): number {
-    return this.participantQuantityForPercent(item, participant.portionPercent);
-  }
-
-  participantQuantityForPercent(item: MealPlanItem, portionPercent: number): number {
-    const ingredient = this.ingredientFor(item);
-    if (!ingredient) return 0;
-    return ingredient.isCountable
-      ? portionPercent / 100
-      : directIngredientQuantity(ingredient, portionPercent / 100);
-  }
-
-  participantQuantityUnit(item: MealPlanItem): string {
-    const ingredient = this.ingredientFor(item);
-    return ingredient?.isCountable ? this.translations.translate('units.piece') : ingredient?.measurementUnit ?? '';
-  }
-
-  private ingredientFor(item: MealPlanItem): Ingredient | undefined {
-    return this.ingredients().find((candidate) => candidate.id === item.ingredientId);
-  }
-
-  /** Builds an index array used to render one chip per guest. */
-  guestSeats(item: MealPlanItem): number[] {
-    return Array.from({ length: item.guests }, (_, index) => index);
-  }
-
-  addGuest(item: MealPlanItem): void {
-    if (this.busyItemId() || item.guests >= 99) return;
-    this.setGuests(item, item.guests + 1);
-  }
-
-  removeGuest(item: MealPlanItem): void {
-    if (this.busyItemId() || item.guests <= 0) return;
-    this.setGuests(item, item.guests - 1);
-  }
-
-  private setGuests(item: MealPlanItem, guests: number): void {
+  setGuests(item: MealPlanItem, guests: number): void {
+    if (this.busyItemId()) return;
     this.busyItemId.set(item.id);
     this.service.setGuests(item.id, guests).pipe(
       finalize(() => this.busyItemId.set(null))
@@ -852,7 +514,6 @@ export class MealPlannerPage implements OnInit {
     });
   }
 
-
   private allItems(): MealPlanItem[] {
     return this.slots.flatMap((slot) => this.itemsForSlot(slot));
   }
@@ -882,80 +543,6 @@ export class MealPlannerPage implements OnInit {
     this.loadRecipeDetails(plan);
   }
 
-  private readCachedPlan(cacheKey: string | null, date: string): DailyMealPlan | null {
-    if (!cacheKey) return null;
-    const storage = this.getStorage();
-    if (!storage) return null;
-
-    try {
-      const record = this.readCacheRecord(storage, cacheKey);
-      if (!record) return null;
-
-      const visibleWeek = weekStart(date);
-      if (record.weekStart !== visibleWeek) {
-        storage.removeItem(mealPlannerCacheStorageKey(cacheKey));
-        return null;
-      }
-
-      const cachedPlan = record.plans[date];
-      return isDailyMealPlan(cachedPlan)
-        && cachedPlan.date === date
-        && weekStart(cachedPlan.date) === visibleWeek
-        ? cachedPlan
-        : null;
-    } catch {
-      return null;
-    }
-  }
-
-  private cachePlan(cacheKey: string | null, date: string, plan: DailyMealPlan): void {
-    if (!cacheKey || plan.date !== date) return;
-    const storage = this.getStorage();
-    if (!storage) return;
-
-    try {
-      const visibleWeek = weekStart(date);
-      const current = this.readCacheRecord(storage, cacheKey);
-      if (current?.weekStart === visibleWeek && JSON.stringify(current.plans[date]) === JSON.stringify(plan)) return;
-
-      const plans = current?.weekStart === visibleWeek ? current.plans : {};
-      storage.setItem(mealPlannerCacheStorageKey(cacheKey), JSON.stringify({
-        version: mealPlanCacheVersion,
-        userKey: cacheKey,
-        weekStart: visibleWeek,
-        plans: { ...plans, [date]: plan },
-      } satisfies MealPlanCacheRecord));
-    } catch {
-      // Persistence is best-effort; the planner remains fully online when storage is unavailable.
-    }
-  }
-
-  private readCacheRecord(storage: Storage, cacheKey: string): MealPlanCacheRecord | null {
-    const storageKey = mealPlannerCacheStorageKey(cacheKey);
-    const raw = storage.getItem(storageKey);
-    if (!raw) return null;
-
-    try {
-      const record: unknown = JSON.parse(raw);
-      if (!isMealPlanCacheRecord(record) || record.userKey !== cacheKey) {
-        storage.removeItem(storageKey);
-        return null;
-      }
-      return record;
-    } catch {
-      storage.removeItem(storageKey);
-      return null;
-    }
-  }
-
-  private getStorage(): Storage | null {
-    try {
-      return globalThis.localStorage ?? null;
-    } catch {
-      return null;
-    }
-  }
-
   private appendItem(plan: DailyMealPlan, slot: MealSlot, item: MealPlanItem): DailyMealPlan {
     return {
       ...plan,
@@ -975,28 +562,5 @@ export class MealPlannerPage implements OnInit {
       meals[slot] = meals[slot].filter((i) => i.id !== id);
     }
     return { ...plan, meals };
-  }
-
-  private todayString(): string {
-    return this.dateString(new Date());
-  }
-
-  /** Returns the date string offset from the given ISO date by the supplied number of days. */
-  private addDays(value: string, days: number): string {
-    const date = this.localDate(value);
-    date.setDate(date.getDate() + days);
-    return this.dateString(date);
-  }
-
-  private dateString(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
-
-  private localDate(value: string): Date {
-    const [year, month, day] = value.split('-').map(Number);
-    return new Date(year, month - 1, day);
   }
 }

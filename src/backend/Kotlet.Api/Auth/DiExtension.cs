@@ -132,6 +132,7 @@ public static class DiExtension
 
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<TokenService>();
+        services.AddScoped<AuthSessionService>();
         return services;
     }
 

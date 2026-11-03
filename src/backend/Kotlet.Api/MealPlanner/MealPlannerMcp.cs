@@ -18,7 +18,7 @@ public sealed class MealPlannerMcp
     public static async Task<IReadOnlyList<ResourceLinkBlock>> GetMealPlanOverview(
         [Description("First date in yyyy-MM-dd format.")] string from,
         [Description("Number of days to return, from 1 to 62.")] int days,
-        MealPlannerService service,
+        MealPlanQueryService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken)
     {
@@ -41,7 +41,7 @@ public sealed class MealPlannerMcp
      Description("Returns the household members who can be assigned to meals, each with their user id and display " +
                 "name. Call this to obtain the userIds needed by add_meal_participants.")]
     public static async Task<IReadOnlyList<MealHouseMember>> GetMealPlanMembers(
-        MealPlannerService service,
+        MealPlanQueryService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         await service.GetHouseMembersAsync(RequireHouse(currentUser), cancellationToken);
@@ -51,7 +51,7 @@ public sealed class MealPlannerMcp
     public static async Task<IReadOnlyList<DailyMealPlanResponse>> GetMealPlan(
         [Description("First date in yyyy-MM-dd format.")] string from,
         [Description("Number of days to return, from 1 to 31.")] int days,
-        MealPlannerService service,
+        MealPlanQueryService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken)
     {
@@ -71,7 +71,7 @@ public sealed class MealPlannerMcp
     public static async Task<IReadOnlyList<DailyMealPlanResponse>> GetMealPlanRange(
         [Description("First date in yyyy-MM-dd format; resolve relative dates before calling this tool.")] string from,
         [Description("Number of days to return, from 1 to 62.")] int days,
-        MealPlannerService service,
+        MealPlanQueryService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken)
     {
@@ -94,7 +94,7 @@ public sealed class MealPlannerMcp
                  "The operation is atomic and does not mutate the shopping list.")]
     public static Task<MealPlanMutationResponse> ReplaceMealPlan(
         ReplaceMealPlanRequest request,
-        MealPlannerService service,
+        MealPlanSlotMutationService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.ReplaceAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
@@ -106,7 +106,7 @@ public sealed class MealPlannerMcp
                  "reported explicitly; expectedVersion protects against concurrent edits. The shopping list is not changed.")]
     public static Task<MealPlanMutationResponse> MoveMealPlan(
         MoveMealPlanMutationRequest request,
-        MealPlannerService service,
+        MealPlanSlotMutationService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.MoveAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
@@ -117,7 +117,7 @@ public sealed class MealPlannerMcp
                  "meal_plan_get_range; no shopping-list mutation occurs.")]
     public static Task<MealPlanMutationResponse> SwapMealPlan(
         SwapMealPlanRequest request,
-        MealPlannerService service,
+        MealPlanSlotMutationService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.SwapAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
@@ -128,7 +128,7 @@ public sealed class MealPlannerMcp
                  "The result includes the removed entries and the shopping list is not changed.")]
     public static Task<MealPlanMutationResponse> ClearMealPlanSlot(
         ClearMealPlanSlotRequest request,
-        MealPlannerService service,
+        MealPlanSlotMutationService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.ClearSlotAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
@@ -140,7 +140,7 @@ public sealed class MealPlannerMcp
     public static async Task<MealPlanRecommendationResponse> RecommendMealPlanReplacement(
         [Description("Date in yyyy-MM-dd format; resolve relative dates before calling this tool.")] string date,
         [Description("Slot: breakfast, second-breakfast, dinner, snack, or supper.")] string slot,
-        MealPlannerService service,
+        MealPlanSlotMutationService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken)
     {
@@ -161,7 +161,7 @@ public sealed class MealPlannerMcp
                  "is atomic and leaves the shopping list unchanged.")]
     public static Task<MealPlanMutationResponse> ApplyMealPlanReplacement(
         ApplyMealPlanReplacementRequest request,
-        MealPlannerService service,
+        MealPlanSlotMutationService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.ApplyReplacementAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
@@ -175,7 +175,7 @@ public sealed class MealPlannerMcp
     public static Task<WeeklyMealPlannerOperationResult> AddWeeklyMealPlan(
         [Description("The week start and meals to add. Every meal date must fall within the seven-day period.")]
         AddWeeklyMealPlanRequest request,
-        MealPlannerService service,
+        MealPlanItemService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.AddWeekAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
@@ -201,7 +201,7 @@ public sealed class MealPlannerMcp
                       "get_prepared_meals, or freeText for a meal that is not in the catalog — supply exactly one. " +
                       "freeText also requires confirmUncatalogued=true after explicit user approval; note is optional free text.")]
         AddMealPlanItemRequest request,
-        MealPlannerService service,
+        MealPlanItemService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.AddItemAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
@@ -218,7 +218,7 @@ public sealed class MealPlannerMcp
         [Description("Household member ids to add to the meal, from the kotlet://meal-plans/members resource " +
                      "or get_meal_plan_members.")]
         IReadOnlyList<Guid> userIds,
-        MealPlannerService service,
+        MealParticipantService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.AddParticipantsAsync(RequireUser(currentUser), RequireHouse(currentUser), mealId, userIds, cancellationToken);
@@ -231,7 +231,7 @@ public sealed class MealPlannerMcp
     public static Task<MealPlannerOperationResult> SetMealParticipants(
         [Description("Meal-plan item id from get_meal_plan.")] Guid mealId,
         [Description("Complete replacement list of household member ids, or an empty list.")] IReadOnlyList<Guid> userIds,
-        MealPlannerService service,
+        MealParticipantService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.SetParticipantsAsync(RequireUser(currentUser), RequireHouse(currentUser), mealId, userIds, cancellationToken);
@@ -244,7 +244,7 @@ public sealed class MealPlannerMcp
         [Description("Meal-plan item id from get_meal_plan.")] Guid mealId,
         [Description("Assigned household member id from the meal's participants.")] Guid userId,
         [Description("Percentage of one regular serving, from 50 to 150.")] int portionPercent,
-        MealPlannerService service,
+        MealParticipantService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.SetParticipantPortionAsync(
@@ -256,7 +256,7 @@ public sealed class MealPlannerMcp
     public static Task<MealPlannerOperationResult> SetMealGuests(
         [Description("Meal-plan item id from get_meal_plan.")] Guid mealId,
         [Description("Guest count, from 0 to 99.")] int guests,
-        MealPlannerService service,
+        MealParticipantService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.SetGuestsAsync(RequireUser(currentUser), RequireHouse(currentUser), mealId, guests, cancellationToken);
@@ -268,7 +268,7 @@ public sealed class MealPlannerMcp
     public static Task<MealPlannerOperationResult> SetMealServings(
         [Description("Meal-plan item id from get_meal_plan.")] Guid mealId,
         [Description("Total servings from 0 to 99, or null to derive servings from people and guests.")] int? servings,
-        MealPlannerService service,
+        MealParticipantService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.SetServingsAsync(RequireUser(currentUser), RequireHouse(currentUser), mealId, servings, cancellationToken);
@@ -280,7 +280,7 @@ public sealed class MealPlannerMcp
         [Description("Meal-plan item id from get_meal_plan.")] Guid mealId,
         [Description("New yyyy-MM-dd date and slot: breakfast, second-breakfast, dinner, snack, or supper.")]
         MoveMealPlanItemRequest request,
-        MealPlannerService service,
+        MealPlanItemService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.MoveItemAsync(RequireUser(currentUser), RequireHouse(currentUser), mealId, request, cancellationToken);
@@ -290,7 +290,7 @@ public sealed class MealPlannerMcp
      Description("Copies every meal, participant portion, guest, and note from one day to an empty target day.")]
     public static Task<CopyMealPlanDayResult> CopyMealPlanDay(
         [Description("Source and target dates in yyyy-MM-dd format.")] CopyMealPlanDayRequest request,
-        MealPlannerService service,
+        MealPlanCopyService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.CopyDayAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
@@ -300,7 +300,7 @@ public sealed class MealPlannerMcp
      Description("Copies a complete Monday-to-Sunday meal plan to an empty target week, including participant portions, guests, and notes.")]
     public static Task<CopyMealPlanWeekResult> CopyMealPlanWeek(
         [Description("Source and target Monday dates in yyyy-MM-dd format.")] CopyMealPlanWeekRequest request,
-        MealPlannerService service,
+        MealPlanCopyService service,
         ICurrentUser currentUser,
         CancellationToken cancellationToken) =>
         service.CopyWeekAsync(RequireUser(currentUser), RequireHouse(currentUser), request, cancellationToken);
@@ -313,7 +313,7 @@ public sealed class MealPlannerMcp
                 "deleted and { removed: false } when no meal with that id exists in your household.")]
     public static async Task<object> RemoveMealFromPlan(
         [Description("Meal id (the meal-plan item id) from get_meal_plan.")] Guid mealId,
-        MealPlannerService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
+        MealPlanItemService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
         Removed(await service.RemoveItemAsync(RequireHouse(currentUser), mealId, cancellationToken)
             is MealPlannerOperationStatus.Success);
 
@@ -321,7 +321,7 @@ public sealed class MealPlannerMcp
         Title = "Daily meal plan", MimeType = "application/json"),
      Description("Complete household meal plan for one yyyy-MM-dd date.")]
     public static async Task<string> DailyMealPlan(
-        string date, MealPlannerService service, ICurrentUser currentUser, CancellationToken cancellationToken)
+        string date, MealPlanQueryService service, ICurrentUser currentUser, CancellationToken cancellationToken)
     {
         if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", out var parsedDate))
             throw new ArgumentException("Date must use yyyy-MM-dd format.", nameof(date));
@@ -333,7 +333,7 @@ public sealed class MealPlannerMcp
         Title = "Weekly meal plan", MimeType = "application/json"),
      Description("Complete household meal plan for seven days beginning on the yyyy-MM-dd weekStart date.")]
     public static async Task<string> WeeklyMealPlan(
-        string weekStart, MealPlannerService service, ICurrentUser currentUser, CancellationToken cancellationToken)
+        string weekStart, MealPlanQueryService service, ICurrentUser currentUser, CancellationToken cancellationToken)
     {
         if (!DateOnly.TryParseExact(weekStart, "yyyy-MM-dd", out var start))
             throw new ArgumentException("Week start must use yyyy-MM-dd format.", nameof(weekStart));
@@ -347,6 +347,6 @@ public sealed class MealPlannerMcp
         Title = "Meal-plan household members", MimeType = "application/json"),
      Description("Household members who can participate in planned meals.")]
     public static async Task<string> MealPlanMembers(
-        MealPlannerService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
+        MealPlanQueryService service, ICurrentUser currentUser, CancellationToken cancellationToken) =>
         Json(await service.GetHouseMembersAsync(RequireHouse(currentUser), cancellationToken));
 }

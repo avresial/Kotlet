@@ -1,0 +1,75 @@
+@use '../../../../shared/styles/mobile-page' as mobile;
+:host { display: block; }
+
+input:focus, select:focus { outline: 2px solid #b96554; outline-offset: 1px; }
+button, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled, select:disabled { opacity: .5; cursor: default; }
+
+// Positioned so the visually hidden header label resolves inside the scroller rather than against
+// the page, which otherwise leaves the document a few pixels wider than the viewport.
+.portion-table-wrap { position: relative; overflow-x: auto; }
+.portion-table { width: 100%; border-collapse: collapse; font-size: .76rem; }
+.portion-table th, .portion-table td { padding: .35rem .3rem; border-bottom: 1px solid var(--app-border); text-align: left; white-space: nowrap; }
+.portion-table thead th { color: var(--app-text-muted); font-size: .65rem; text-transform: uppercase; }
+.portion-table tbody th { font-weight: 650; }
+.portion-table tbody th.is-me { color: #c47256; }
+.portion-table input { width: 4.25rem; box-sizing: border-box; padding: .3rem .35rem; border: 1px solid var(--app-border-strong); border-radius: .35rem; color: var(--app-text); background: var(--app-input); font: inherit; font-variant-numeric: tabular-nums; }
+.portion-table input.is-invalid { border-color: var(--app-danger-border); box-shadow: 0 0 0 1px var(--app-danger-border); }
+.portion-table td span { margin-left: .2rem; color: var(--app-text-muted); }
+.portion-table td:last-child { width: 1%; }
+.portion-errors { margin: .4rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .2rem; }
+.portion-errors li { color: var(--app-danger); font-size: .72rem; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.people-row { display: flex; min-height: 2rem; align-items: center; gap: .4rem; }
+.row-label { margin-right: .25rem; color: var(--app-text-muted); font-size: .7rem; font-weight: 750; text-transform: uppercase; }
+.chips { display: flex; flex: 0 1 auto; flex-wrap: wrap; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .2rem .22rem .2rem .6rem;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 99rem;
+  color: var(--app-text);
+  background: var(--app-inset);
+  font-size: .76rem;
+}
+.chip.is-me { border-color: #d9a99c; color: #c47256; background: var(--app-inset-strong); font-weight: 650; }
+.chip.is-guest { border-style: dashed; border-color: var(--app-border-strong); color: var(--app-text-muted); background: var(--app-inset); font-style: italic; }
+.chip-remove { width: 1.2rem; height: 1.2rem; padding: 0; border: 0; border-radius: 50%; color: inherit; background: transparent; line-height: 1; }
+.chip-remove:hover:not(:disabled) { background: rgb(0 0 0 / 8%); }
+
+.person-picker {
+  position: relative;
+  width: 2rem;
+  height: 2rem;
+
+  > span { display: flex; width: 100%; height: 100%; align-items: center; justify-content: center; gap: .05rem; border: 1px dashed var(--app-border-strong); border-radius: 99rem; color: #c47256; font-size: .8rem; }
+  svg { width: .9rem; height: .9rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+  select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+}
+
+.icon-button {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  padding: .38rem;
+  place-items: center;
+  border: 1px solid var(--app-border-strong);
+  border-radius: .45rem;
+  color: var(--app-text-soft);
+  background: transparent;
+  font-size: 1.1rem;
+  line-height: 1;
+
+  &:hover:not(:disabled) { background: var(--app-inset); }
+  svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+}
+
+@media (max-width: mobile.$breakpoint) {
+  .icon-button { width: 1.8rem; height: 1.8rem; padding: .3rem; }
+  .people-row { align-items: flex-start; flex-wrap: wrap; gap: .3rem; min-height: 0; }
+  .row-label { width: 100%; }
+}

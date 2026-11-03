@@ -7,5 +7,6 @@ public static class DiExtension
     public static IServiceCollection AddPantryApplication(this IServiceCollection services) =>
         services.AddScoped<PantryService>()
             .AddScoped<PantryRecipeMatchService>()
-            .AddScoped<PantryReconciliationService>();
+            .AddScoped<PantryReconciliationService>()
+            .AddScoped<PantryUndoService>();
 }

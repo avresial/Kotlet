@@ -1,0 +1,41 @@
+<button
+  #copyTrigger
+  type="button"
+  class="copy-trigger"
+  aria-haspopup="dialog"
+  [attr.aria-expanded]="isOpen()"
+  (click)="toggle($event)"
+>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+  {{ 'meal.copyPlan' | t }}
+</button>
+
+@if (isOpen()) {
+  <div class="copy-panel" role="dialog" [attr.aria-label]="'meal.copyPlan' | t" (click)="$event.stopPropagation()">
+    <div class="copy-panel-heading">
+      <h2>{{ 'meal.copyPlan' | t }}</h2>
+      <button type="button" class="icon-button" (click)="close(true)" [attr.aria-label]="'common.close' | t">×</button>
+    </div>
+    <p class="copy-hint">{{ 'meal.copyPlanHint' | t }}</p>
+
+    @if (copyError()) {
+      <p class="copy-error" role="alert">{{ copyError() }}</p>
+    }
+
+    <div class="copy-field">
+      <label for="copy-target">{{ 'meal.copyTo' | t }}</label>
+      <div>
+        <input #copyDayInput id="copy-target" type="date" [(ngModel)]="copyTargetDate" />
+        <button type="button" [disabled]="isCopying() || !hasPlan() || copyTargetDate() === selectedDate()" (click)="copyDay()">{{ 'meal.copyDay' | t }}</button>
+      </div>
+    </div>
+
+    <div class="copy-field">
+      <label for="copy-week-target">{{ 'meal.copyWeekTo' | t }}</label>
+      <div>
+        <input id="copy-week-target" type="date" [(ngModel)]="copyWeekTargetDate" />
+        <button type="button" [disabled]="isCopying() || weekStart(copyWeekTargetDate()) === weekStart(selectedDate())" (click)="copyWeek()">{{ 'meal.copyWeek' | t }}</button>
+      </div>
+    </div>
+  </div>
+}
